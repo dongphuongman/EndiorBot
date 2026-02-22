@@ -1,0 +1,77 @@
+{
+  "name": "endiorbot",
+  "version": "1.0.0",
+  "description": "Solo developer tool for enterprise-scale projects: Claude Code + SDLC framework automation + Multi-model orchestrator",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "endiorbot": "./endiorbot.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli/index.d.ts",
+      "import": "./dist/cli/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:security": "vitest run src/security --reporter=verbose",
+    "test:quality": "vitest run src/agents/quality --reporter=verbose",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Minh-Tam-Solution/EndiorBot"
+  },
+  "homepage": "https://endiorbot.nqh-internal.example",
+  "bugs": {
+    "url": "https://github.com/Minh-Tam-Solution/EndiorBot/issues"
+  },
+  "keywords": [
+    "sdlc",
+    "claude",
+    "multi-model",
+    "orchestrator",
+    "automation",
+    "solo-developer",
+    "enterprise",
+    "ai-assistant"
+  ],
+  "author": "Minh-Tam-Solution",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.35.0",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.0",
+    "keytar": "^7.9.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}

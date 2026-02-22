@@ -1,0 +1,29 @@
+{
+  "$schema": "./docs/reference/sdlc/schemas/sdlc-config.schema.json",
+  "version": "1.0.0",
+  "project": {
+    "id": "endiorbot-001",
+    "name": "EndiorBot",
+    "description": "Solo developer tool for enterprise-scale projects: Claude Code + SDLC framework automation + Multi-model orchestrator",
+    "repository": "https://github.com/Minh-Tam-Solution/EndiorBot"
+  },
+  "tier": "STANDARD",
+  "team_size": 3,
+  "docs_root": "docs",
+  "strict": true,
+  "framework": {
+    "name": "MTS SDLC Framework",
+    "version": "6.1.1"
+  },
+  "channels": {
+    "primary": "telegram",
+    "secondary": ["zalo", "whatsapp"]
+  },
+  "features": {
+    "multiModel": true,
+    "sdlcAutomation": true,
+    "projectSwitcher": true,
+    "juniorSupport": true,
+    "desktopApp": false
+  }
+}
