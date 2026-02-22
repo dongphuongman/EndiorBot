@@ -6,7 +6,7 @@
 
 import type { Message } from "../providers/types.js";
 import { getSessionStore } from "./session-store.js";
-import { getTokenCounter, TokenCounter } from "./token-counter.js";
+import { getTokenCounter, type TokenCounter } from "./token-counter.js";
 import type {
   GateId,
   ProjectTier,

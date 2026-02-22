@@ -148,7 +148,7 @@ export const DEFAULT_GATEWAY_PORT = 18790;
 export function resolveGatewayLockDir(tmpdir: () => string = os.tmpdir): string {
   const base = tmpdir();
   const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
-  const suffix = uid != null ? `endiorbot-${uid}` : "endiorbot";
+  const suffix = uid !== undefined ? `endiorbot-${uid}` : "endiorbot";
   return path.join(base, suffix);
 }
 
