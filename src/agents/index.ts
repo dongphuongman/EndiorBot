@@ -39,4 +39,16 @@ export {
 export type { AgentScopeConfig } from "./agent-scope.js";
 
 // Orchestrator
-export { getTaskClassifier, TaskClassifier } from "./orchestrator/index.js";
+export {
+  MultiModelOrchestrator,
+  getOrchestrator,
+  resetOrchestrator,
+  DEFAULT_ORCHESTRATOR_CONFIG,
+} from "./orchestrator/index.js";
+export type {
+  ProviderId,
+  ModelConfig,
+  ModelQueryResult,
+  ConsensusPoint,
+  OrchestratorConfig,
+} from "./orchestrator/index.js";

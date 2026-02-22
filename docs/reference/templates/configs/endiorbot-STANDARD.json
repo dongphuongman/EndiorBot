@@ -1,0 +1,82 @@
+{
+  "$schema": "https://endiorbot.ai/schemas/config.json",
+  "meta": {
+    "template": "STANDARD",
+    "version": "1.0.0",
+    "description": "SDLC Framework 6.1.0 - STANDARD tier (5 agents, 2 teams)"
+  },
+  "agents": {
+    "defaults": {
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "heartbeat": {
+        "every": "1h"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      }
+    },
+    "list": [
+      {
+        "id": "assistant",
+        "role": "assistant",
+        "default": true,
+        "description": "Router - message routing and delegation"
+      },
+      {
+        "id": "pm",
+        "role": "pm",
+        "description": "SE4A - Requirements and user stories"
+      },
+      {
+        "id": "pjm",
+        "role": "pjm",
+        "description": "SE4A - Sprint coordination"
+      },
+      {
+        "id": "coder",
+        "role": "coder",
+        "description": "SE4A - Implementation and TDD"
+      },
+      {
+        "id": "reviewer",
+        "role": "reviewer",
+        "description": "SE4A - Code review"
+      }
+    ]
+  },
+  "sdlc": {
+    "enabled": true,
+    "tier": "STANDARD",
+    "teams": {
+      "planning": {
+        "archetype": "planning",
+        "leader": "pm",
+        "members": ["pm", "pjm"]
+      },
+      "dev": {
+        "archetype": "dev",
+        "leader": "coder",
+        "members": ["coder", "reviewer"]
+      }
+    },
+    "gates": {
+      "required": ["G-Sprint", "G-Sprint-Close"],
+      "approvers": {
+        "G-Sprint": ["pjm"],
+        "G-Sprint-Close": ["pjm"]
+      }
+    },
+    "workflow": {
+      "maxReviewCycles": 2,
+      "escalationThreshold": 3,
+      "approvalRequired": false
+    }
+  }
+}

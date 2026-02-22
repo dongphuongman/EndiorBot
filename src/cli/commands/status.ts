@@ -1,0 +1,267 @@
+/**
+ * Status Command
+ *
+ * Show current project status including SDLC stage, gates, and metrics.
+ *
+ * Usage:
+ *   endiorbot status
+ *   endiorbot status --verbose
+ *
+ * @module cli/commands/status
+ * @version 1.0.0
+ * @date 2026-02-22
+ * @status ACTIVE - Phase 6 Implementation
+ * @authority ADR-002 Project Context Switching
+ * @pillar 2 - Sprint Governance
+ * @stage 04 - BUILD
+ * @sdlc SDLC Framework 6.1.1
+ */
+
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import type { Command } from "commander";
+import { STATE_DIR } from "../../config/paths.js";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface ProjectContext {
+  id: string;
+  name: string;
+  path: string;
+  tier: string;
+  lastActive: string;
+}
+
+interface SDLCConfig {
+  version: string;
+  project: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  tier: string;
+  framework?: {
+    version: string;
+  };
+}
+
+interface ProjectStatus {
+  name: string;
+  path: string;
+  tier: string;
+  sdlcVersion: string;
+  hasGit: boolean;
+  branch: string | undefined;
+  uncommittedFiles: number;
+  srcFiles: number;
+  testFiles: number;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Get current project from state.
+ */
+function getCurrentProject(): ProjectContext | undefined {
+  const statePath = join(STATE_DIR, "projects.json");
+
+  if (!existsSync(statePath)) {
+    return undefined;
+  }
+
+  try {
+    const content = readFileSync(statePath, "utf-8");
+    const state = JSON.parse(content);
+    if (state.currentProject && state.projects[state.currentProject]) {
+      return state.projects[state.currentProject] as ProjectContext;
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  return undefined;
+}
+
+/**
+ * Load SDLC config from project.
+ */
+function loadSDLCConfig(projectPath: string): SDLCConfig | undefined {
+  const configPath = join(projectPath, ".sdlc-config.json");
+  if (!existsSync(configPath)) {
+    return undefined;
+  }
+
+  try {
+    const content = readFileSync(configPath, "utf-8");
+    return JSON.parse(content) as SDLCConfig;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Get current git branch.
+ */
+function getCurrentBranch(projectPath: string): string | undefined {
+  const headPath = join(projectPath, ".git", "HEAD");
+  if (!existsSync(headPath)) {
+    return undefined;
+  }
+
+  try {
+    const content = readFileSync(headPath, "utf-8").trim();
+    if (content.startsWith("ref: refs/heads/")) {
+      return content.replace("ref: refs/heads/", "");
+    }
+    return content.slice(0, 7);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Count files in directory recursively.
+ */
+function countFiles(dir: string, pattern: RegExp): number {
+  if (!existsSync(dir)) {
+    return 0;
+  }
+
+  let count = 0;
+
+  try {
+    const entries = readdirSync(dir);
+    for (const entry of entries) {
+      if (entry.startsWith(".") || entry === "node_modules" || entry === "dist") {
+        continue;
+      }
+
+      const fullPath = join(dir, entry);
+      const stat = statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        count += countFiles(fullPath, pattern);
+      } else if (pattern.test(entry)) {
+        count++;
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  return count;
+}
+
+/**
+ * Get project status.
+ */
+function getProjectStatus(projectPath: string): ProjectStatus {
+  const sdlcConfig = loadSDLCConfig(projectPath);
+  const hasGit = existsSync(join(projectPath, ".git"));
+
+  return {
+    name: sdlcConfig?.project.name ?? projectPath.split("/").pop() ?? "Unknown",
+    path: projectPath,
+    tier: sdlcConfig?.tier ?? "STANDARD",
+    sdlcVersion: sdlcConfig?.framework?.version ?? "6.1.1",
+    hasGit,
+    branch: hasGit ? getCurrentBranch(projectPath) : undefined,
+    uncommittedFiles: 0, // TODO: Implement git status check
+    srcFiles: countFiles(join(projectPath, "src"), /\.(ts|tsx|js|jsx)$/),
+    testFiles: countFiles(join(projectPath, "tests"), /\.test\.(ts|tsx|js|jsx)$/),
+  };
+}
+
+/**
+ * Format tier with color.
+ */
+function formatTier(tier: string): string {
+  const tiers: Record<string, string> = {
+    LITE: "🟢 LITE",
+    STANDARD: "🔵 STANDARD",
+    PROFESSIONAL: "🟣 PROFESSIONAL",
+    ENTERPRISE: "🟠 ENTERPRISE",
+  };
+  return tiers[tier] ?? tier;
+}
+
+// ============================================================================
+// Command Action
+// ============================================================================
+
+/**
+ * Status command action.
+ */
+async function statusAction(options: { verbose?: boolean }): Promise<void> {
+  // Get current project
+  const currentProject = getCurrentProject();
+
+  if (!currentProject) {
+    console.log("");
+    console.log("⚠️  No active project");
+    console.log("");
+    console.log("Start a project with:");
+    console.log("  endiorbot start <project>");
+    console.log("");
+    return;
+  }
+
+  // Check project exists
+  if (!existsSync(currentProject.path)) {
+    console.error(`❌ Project path not found: ${currentProject.path}`);
+    console.error("Use 'endiorbot switch <project>' to change projects.");
+    process.exit(1);
+  }
+
+  // Get status
+  const status = getProjectStatus(currentProject.path);
+
+  // Display status
+  console.log("");
+  console.log("┌─────────────────────────────────────────────────────────────┐");
+  console.log(`│  📊 Project Status                                          │`);
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log(`│  Name: ${status.name.padEnd(52)}│`);
+  console.log(`│  Path: ${status.path.slice(0, 52).padEnd(52)}│`);
+  console.log(`│  Tier: ${formatTier(status.tier).padEnd(52)}│`);
+  console.log(`│  SDLC: v${status.sdlcVersion.padEnd(51)}│`);
+
+  if (status.hasGit && status.branch) {
+    console.log("├─────────────────────────────────────────────────────────────┤");
+    console.log(`│  Branch: ${status.branch.padEnd(50)}│`);
+  }
+
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log(`│  Source files: ${String(status.srcFiles).padEnd(44)}│`);
+  console.log(`│  Test files: ${String(status.testFiles).padEnd(46)}│`);
+  console.log("└─────────────────────────────────────────────────────────────┘");
+  console.log("");
+
+  if (options.verbose) {
+    console.log("📋 Available Commands:");
+    console.log("   endiorbot gate status     - Show SDLC gate checklist");
+    console.log("   endiorbot gate propose G2 - Propose gate evaluation");
+    console.log("   endiorbot consult <query> - Query AI experts");
+    console.log("   endiorbot switch <project>- Switch to another project");
+    console.log("");
+  }
+}
+
+// ============================================================================
+// Command Registration
+// ============================================================================
+
+/**
+ * Register status command.
+ */
+export function registerStatusCommand(program: Command): void {
+  program
+    .command("status")
+    .description("Show current project status")
+    .option("-v, --verbose", "Show detailed output with available commands")
+    .action(statusAction);
+}

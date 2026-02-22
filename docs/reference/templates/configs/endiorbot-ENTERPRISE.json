@@ -1,0 +1,133 @@
+{
+  "$schema": "https://endiorbot.ai/schemas/config.json",
+  "meta": {
+    "template": "ENTERPRISE",
+    "version": "1.0.0",
+    "description": "SDLC Framework 6.1.0 - ENTERPRISE tier (12 agents, 4 teams, full governance)"
+  },
+  "agents": {
+    "defaults": {
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "2h"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "heartbeat": {
+        "every": "30m"
+      },
+      "maxConcurrent": 8,
+      "subagents": {
+        "maxConcurrent": 16
+      }
+    },
+    "list": [
+      {
+        "id": "assistant",
+        "role": "assistant",
+        "default": true,
+        "description": "Router - message routing and delegation"
+      },
+      {
+        "id": "researcher",
+        "role": "researcher",
+        "description": "SE4A - Stage 00 Discovery and user research"
+      },
+      {
+        "id": "pm",
+        "role": "pm",
+        "description": "SE4A - Stage 00-01 Requirements and user stories"
+      },
+      {
+        "id": "pjm",
+        "role": "pjm",
+        "description": "SE4A - Sprint coordination and task tracking"
+      },
+      {
+        "id": "architect",
+        "role": "architect",
+        "description": "SE4A - Stage 02 System design and ADRs"
+      },
+      {
+        "id": "coder",
+        "role": "coder",
+        "description": "SE4A - Stage 04 Implementation and TDD"
+      },
+      {
+        "id": "reviewer",
+        "role": "reviewer",
+        "description": "SE4A - Stage 04-05 Code review and standards"
+      },
+      {
+        "id": "tester",
+        "role": "tester",
+        "description": "SE4A - Stage 05 Testing and quality assurance"
+      },
+      {
+        "id": "devops",
+        "role": "devops",
+        "description": "SE4A - Stage 06-07 Deployment and operations"
+      },
+      {
+        "id": "ceo",
+        "role": "ceo",
+        "description": "SE4H - Strategic advisor, approves G0.1 and G4"
+      },
+      {
+        "id": "cpo",
+        "role": "cpo",
+        "description": "SE4H - Product advisor, approves G0.1 and G1"
+      },
+      {
+        "id": "cto",
+        "role": "cto",
+        "description": "SE4H - Technical advisor, approves G2 and G3"
+      }
+    ]
+  },
+  "sdlc": {
+    "enabled": true,
+    "tier": "ENTERPRISE",
+    "teams": {
+      "planning": {
+        "archetype": "planning",
+        "leader": "pm",
+        "members": ["researcher", "pm", "pjm", "architect"]
+      },
+      "dev": {
+        "archetype": "dev",
+        "leader": "coder",
+        "members": ["coder", "reviewer"]
+      },
+      "qa": {
+        "archetype": "qa",
+        "leader": "tester",
+        "members": ["tester", "reviewer"]
+      },
+      "executive": {
+        "archetype": "executive",
+        "leader": "ceo",
+        "members": ["ceo", "cpo", "cto"]
+      }
+    },
+    "gates": {
+      "required": ["G0.1", "G1", "G2", "G-Sprint", "G3", "G4", "G-Sprint-Close"],
+      "approvers": {
+        "G0.1": ["ceo", "cpo"],
+        "G1": ["cpo"],
+        "G2": ["cto"],
+        "G3": ["cto"],
+        "G4": ["ceo"],
+        "G-Sprint": ["pjm"],
+        "G-Sprint-Close": ["pjm"]
+      }
+    },
+    "workflow": {
+      "maxReviewCycles": 5,
+      "escalationThreshold": 3,
+      "approvalRequired": true,
+      "auditTrail": true
+    }
+  }
+}

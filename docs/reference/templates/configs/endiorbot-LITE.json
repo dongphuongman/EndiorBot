@@ -1,0 +1,56 @@
+{
+  "$schema": "https://endiorbot.ai/schemas/config.json",
+  "meta": {
+    "template": "LITE",
+    "version": "1.0.0",
+    "description": "SDLC Framework 6.1.0 - LITE tier (2 agents, minimal workflow)"
+  },
+  "agents": {
+    "defaults": {
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "30m"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 2,
+      "subagents": {
+        "maxConcurrent": 4
+      }
+    },
+    "list": [
+      {
+        "id": "assistant",
+        "role": "assistant",
+        "default": true,
+        "description": "Router - message routing"
+      },
+      {
+        "id": "coder",
+        "role": "coder",
+        "description": "SE4A - Implementation with self-review"
+      }
+    ]
+  },
+  "sdlc": {
+    "enabled": true,
+    "tier": "LITE",
+    "teams": {
+      "dev": {
+        "archetype": "fullstack",
+        "leader": "coder",
+        "members": ["coder"]
+      }
+    },
+    "gates": {
+      "required": [],
+      "approvers": {}
+    },
+    "workflow": {
+      "maxReviewCycles": 0,
+      "escalationThreshold": 1,
+      "approvalRequired": false
+    }
+  }
+}
