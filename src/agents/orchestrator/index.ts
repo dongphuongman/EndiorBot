@@ -29,3 +29,11 @@ export {
   type ConsultationResult,
   type OrchestratorConfig,
 } from "./multi-model-orchestrator.js";
+
+// Task Classifier
+export {
+  TaskClassifier,
+  getTaskClassifier,
+  resetTaskClassifier,
+  createTaskClassifier,
+} from "./task-classifier.js";

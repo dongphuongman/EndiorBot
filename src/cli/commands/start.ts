@@ -22,6 +22,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import type { Command } from "commander";
+import { getCommandLogger } from "../logger.js";
 
 // ============================================================================
 // Types
@@ -166,10 +167,15 @@ async function startAction(
   project: string,
   _options: Record<string, unknown>,
 ): Promise<void> {
+  const log = getCommandLogger("start");
+  log.debug("Resolving project path", { project });
+
   const projectPath = resolveProjectPath(project);
+  log.debug("Resolved project path", { projectPath });
 
   // Validate project exists
   if (!existsSync(projectPath)) {
+    log.error("Project not found", { projectPath });
     console.error(`❌ Project not found: ${projectPath}`);
     console.error(`\nTry:\n  endiorbot start ~/Projects/${project}`);
     process.exit(1);
@@ -177,6 +183,7 @@ async function startAction(
 
   // Get project info
   const info = getProjectInfo(projectPath);
+  log.debug("Loaded project info", { name: info.name, tier: info.tier, hasSDLC: info.hasSDLCConfig });
 
   // Display project info
   console.log("");
@@ -205,6 +212,8 @@ async function startAction(
   console.log("   endiorbot gate status   - Show SDLC gate status");
   console.log("   endiorbot consult       - Query AI experts");
   console.log("");
+
+  log.info("Project started", { project: info.name, tier: info.tier });
 
   // TODO: Save active project to ~/.endiorbot/active-project.json
   // TODO: Load session state

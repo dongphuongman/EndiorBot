@@ -58,16 +58,28 @@ export class AnthropicProvider extends BaseProvider {
   readonly name = "Anthropic";
   readonly models = ANTHROPIC_MODELS;
 
-  private apiKey: string | undefined;
-  private baseUrl: string | undefined;
+  private _apiKey: string | undefined;
+  private _baseUrl: string | undefined;
   private timeout: number = 30000;
 
-  protected async doInitialize(config: ProviderConfig): Promise<void> {
-    this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl ?? "https://api.anthropic.com";
-    this.timeout = config.timeout ?? 30000;
+  /** Get API key (throws if not initialized) */
+  private get apiKey(): string {
+    if (!this._apiKey) {
+      throw new ProviderError("Provider not initialized", this.id, "AUTH_ERROR", false);
+    }
+    return this._apiKey;
+  }
 
-    if (!this.apiKey) {
+  /** Get base URL (throws if not initialized) */
+  private get baseUrl(): string {
+    if (!this._baseUrl) {
+      throw new ProviderError("Provider not initialized", this.id, "AUTH_ERROR", false);
+    }
+    return this._baseUrl;
+  }
+
+  protected async doInitialize(config: ProviderConfig): Promise<void> {
+    if (!config.apiKey) {
       throw new ProviderError(
         "API key is required",
         this.id,
@@ -75,11 +87,14 @@ export class AnthropicProvider extends BaseProvider {
         false,
       );
     }
+    this._apiKey = config.apiKey;
+    this._baseUrl = config.baseUrl ?? "https://api.anthropic.com";
+    this.timeout = config.timeout ?? 30000;
   }
 
   protected async doDispose(): Promise<void> {
-    this.apiKey = undefined;
-    this.baseUrl = undefined;
+    this._apiKey = undefined;
+    this._baseUrl = undefined;
   }
 
   protected async doChat(request: ChatRequest): Promise<ChatResponse> {
@@ -141,7 +156,7 @@ export class AnthropicProvider extends BaseProvider {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": this.apiKey!,
+        "x-api-key": this.apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify(body),
@@ -201,7 +216,7 @@ export class AnthropicProvider extends BaseProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": this.apiKey!,
+          "x-api-key": this.apiKey,
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
@@ -241,7 +256,7 @@ export class AnthropicProvider extends BaseProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": this.apiKey!,
+          "x-api-key": this.apiKey,
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify(body),

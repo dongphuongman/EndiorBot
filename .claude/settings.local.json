@@ -6,7 +6,19 @@
       "Bash(wc:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm build:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm test:*)",
+      "Bash(git push:*)",
+      "Bash(./endiorbot.mjs:*)",
+      "Bash(tree:*)",
+      "Bash(xargs:*)",
+      "Bash(pnpm add:*)",
+      "Bash(node --input-type=module -e:*)",
+      "Bash(tmux list-sessions:*)",
+      "Bash(tmux kill-session:*)"
     ]
   }
 }

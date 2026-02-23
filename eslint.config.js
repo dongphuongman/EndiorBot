@@ -46,4 +46,12 @@ export default [
       'no-console': 'off',
     },
   },
+  // CLI commands use console.log for user-facing output (intentional)
+  // See docs/04-build/coding-standards.md for policy details
+  {
+    files: ['src/cli/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];

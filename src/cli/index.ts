@@ -21,17 +21,40 @@ import {
   registerStatusCommand,
   registerGateCommand,
   registerConsultCommand,
+  registerConfigCommand,
+  registerCheckpointCommand,
+  registerResumeCommand,
+  registerQueueCommand,
+  registerFixCommand,
+  registerFixStatsCommand,
 } from "./commands/index.js";
+import { getCLILogger, logDebug, logError } from "./logger.js";
 
 const VERSION = "1.0.0";
 
 export async function run(): Promise<void> {
   const program = new Command();
 
+  // Initialize logger based on global options
+  program.hook("preAction", (thisCommand) => {
+    const opts = thisCommand.opts();
+    const loggerConfig: Parameters<typeof getCLILogger>[0] = {};
+    if (typeof opts.verbose === "boolean") {
+      loggerConfig.verbose = opts.verbose;
+    }
+    if (typeof opts.debug === "boolean") {
+      loggerConfig.debug = opts.debug;
+    }
+    getCLILogger(loggerConfig);
+    logDebug("CLI initialized", { version: VERSION, command: thisCommand.name() });
+  });
+
   program
     .name("endiorbot")
     .description("Solo developer tool for enterprise-scale projects")
-    .version(VERSION);
+    .version(VERSION)
+    .option("-v, --verbose", "Show verbose output")
+    .option("--debug", "Show debug output");
 
   // Register all commands
   registerStartCommand(program);
@@ -39,11 +62,23 @@ export async function run(): Promise<void> {
   registerStatusCommand(program);
   registerGateCommand(program);
   registerConsultCommand(program);
+  registerConfigCommand(program);
+  registerCheckpointCommand(program);
+  registerResumeCommand(program);
+  registerQueueCommand(program);
+  registerFixCommand(program);
+  registerFixStatsCommand(program);
 
   await program.parseAsync(process.argv);
 }
 
+// Re-export logger utilities for commands
+export { getCLILogger, logDebug, logError } from "./logger.js";
+
 // Allow direct execution
 if (import.meta.url === `file://${process.argv[1]}`) {
-  run().catch(console.error);
+  run().catch((err: Error) => {
+    logError("CLI error", err);
+    process.exit(1);
+  });
 }

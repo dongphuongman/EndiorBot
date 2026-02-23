@@ -1,14 +1,26 @@
 /**
  * Task Classifier
  *
- * Classifies queries to determine task type and recommended models.
- * Based on TS-003 Agent Orchestration specification.
+ * Classifies queries to determine task type, complexity, and recommended models.
+ * Enhanced with TaskComplexity taxonomy (simple/moderate/complex/critical).
+ *
+ * @module agents/orchestrator/task-classifier
+ * @version 2.0.0
+ * @date 2026-02-23
+ * @status ACTIVE - Sprint 39 Enhanced
+ * @authority ADR-001 Multi-Model Orchestrator
+ * @pillar 3 - Agent Personas
+ * @stage 04 - BUILD
+ * @sdlc SDLC Framework 6.1.1
  */
 
 import type {
+  ComplexityFactors,
   ModelRecommendation,
   ModelSelection,
+  ModelTier,
   QueryClassification,
+  TaskComplexity,
   TaskType,
 } from "../types.js";
 
@@ -61,19 +73,51 @@ const TASK_PATTERNS: Record<TaskType, RegExp[]> = {
 // Complexity Indicators
 // ============================================================================
 
-const HIGH_COMPLEXITY_PATTERNS = [
+/**
+ * Critical complexity patterns (always critical).
+ */
+const CRITICAL_PATTERNS: RegExp[] = [
+  /production\s+(deploy|release|rollback)/i,
+  /security\s+(vulnerability|breach|incident)/i,
+  /data\s+(migration|loss|corruption)/i,
+  /breaking\s+change/i,
+  /g3|g4\s+gate/i,
+  /@critical/i,
+];
+
+/**
+ * Complex patterns (multi-step reasoning needed).
+ */
+const COMPLEX_PATTERNS = [
   /integrat(e|ion)\s+with\s+multiple/i,
   /migrate|refactor|redesign/i,
   /scale|performance\s+optim/i,
   /distributed|concurrent|parallel/i,
   /complex|challenging|difficult/i,
+  /cross-domain|cross-team/i,
+  /adr|architecture\s+decision/i,
 ];
 
-const LOW_COMPLEXITY_PATTERNS = [
+/**
+ * Moderate patterns (standard reasoning).
+ */
+const MODERATE_PATTERNS = [
+  /implement\s+(feature|functionality)/i,
+  /add\s+(endpoint|api|component)/i,
+  /update|modify|change/i,
+  /test|spec|coverage/i,
+];
+
+/**
+ * Simple patterns (trivial tasks).
+ */
+const SIMPLE_PATTERNS = [
   /simple|basic|straightforward/i,
   /quick|fast|easy/i,
   /typo|rename|update\s+(text|string)/i,
   /add\s+comment|documentation/i,
+  /format|lint|style/i,
+  /@quick/i,
 ];
 
 // ============================================================================
@@ -88,25 +132,77 @@ const HIGH_URGENCY_PATTERNS = [
 ];
 
 // ============================================================================
+// Domain Patterns
+// ============================================================================
+
+const DOMAIN_PATTERNS: Record<string, RegExp[]> = {
+  frontend: [/react|vue|angular|css|html|ui|ux|component/i],
+  backend: [/api|server|database|endpoint|rest|graphql/i],
+  devops: [/docker|kubernetes|ci|cd|deploy|infrastructure/i],
+  testing: [/test|spec|coverage|mock|stub|fixture/i],
+  security: [/auth|security|encrypt|permission/i],
+  data: [/data|analytics|ml|ai|model|training/i],
+};
+
+// ============================================================================
+// Complexity Scoring Weights
+// ============================================================================
+
+const COMPLEXITY_WEIGHTS = {
+  conceptCount: 5,          // Per concept detected
+  domainCrossing: 15,       // Cross-domain reference
+  multiStepReasoning: 20,   // Needs multi-step
+  securityImplications: 25, // Security involved
+  productionScope: 30,      // Production impact
+  needsValidation: 10,      // Needs external validation
+  tokenEstimate: 0.01,      // Per estimated token
+};
+
+const COMPLEXITY_THRESHOLDS = {
+  simple: 15,     // 0-15: simple
+  moderate: 40,   // 16-40: moderate
+  complex: 70,    // 41-70: complex
+  critical: 100,  // 71+: critical
+};
+
+// ============================================================================
 // Task Classifier
 // ============================================================================
 
+/**
+ * TaskClassifier - Enhanced with TaskComplexity taxonomy.
+ *
+ * Features:
+ * 1. Detects task type from query patterns
+ * 2. Scores complexity using multiple factors
+ * 3. Maps to TaskComplexity (simple/moderate/complex/critical)
+ * 4. Recommends model tier based on complexity
+ */
 export class TaskClassifier {
   /**
    * Classify a query to determine task type and recommendations.
    */
   classify(query: string): QueryClassification {
     const taskType = this.detectTaskType(query);
-    const complexity = this.assessComplexity(query);
+    const factors = this.analyzeComplexityFactors(query, taskType);
+    const complexityScore = this.calculateComplexityScore(factors, query);
+    const complexity = this.scoreToComplexity(complexityScore);
+    const legacyComplexity = this.complexityToLegacy(complexity);
     const urgency = this.detectUrgency(query);
     const domain = this.detectDomain(query);
-    const recommendedModel = this.recommendModel(query, taskType, complexity);
+    const minModelTier = this.complexityToTier(complexity);
+    const recommendedModel = this.recommendModel(taskType, complexity);
 
     return {
+      taskType,
       complexity,
+      legacyComplexity,
       domain,
       urgency,
       recommendedModel,
+      minModelTier,
+      factors,
+      complexityScore,
     };
   }
 
@@ -140,51 +236,228 @@ export class TaskClassifier {
       case "architecture":
         return [
           { provider: "anthropic", model: "claude-opus-4", role: "primary" },
-          { provider: "openai", model: "gpt-5", role: "expert" },
-          { provider: "google", model: "gemini-2-pro", role: "expert" },
+          { provider: "openai", model: "gpt-4o", role: "expert" },
+          { provider: "google", model: "gemini-2.0-flash", role: "expert" },
         ];
       case "security":
         return [
           { provider: "anthropic", model: "claude-opus-4", role: "primary" },
-          { provider: "openai", model: "gpt-5", role: "expert" },
+          { provider: "openai", model: "gpt-4o", role: "expert" },
         ];
       case "code_gen":
       case "bug_fix":
         return [
-          { provider: "anthropic", model: "claude-opus-4", role: "primary" },
+          { provider: "anthropic", model: "claude-sonnet-4", role: "primary" },
         ];
       case "research":
         return [
-          { provider: "google", model: "gemini-2-pro", role: "primary" },
+          { provider: "google", model: "gemini-2.0-flash", role: "primary" },
           { provider: "anthropic", model: "claude-opus-4", role: "expert" },
         ];
       default:
         return [
-          { provider: "anthropic", model: "claude-opus-4", role: "primary" },
+          { provider: "anthropic", model: "claude-sonnet-4", role: "primary" },
         ];
     }
   }
 
   /**
-   * Assess query complexity.
+   * Analyze complexity factors from query.
    */
-  private assessComplexity(query: string): "low" | "medium" | "high" {
-    // Check for high complexity indicators
-    for (const pattern of HIGH_COMPLEXITY_PATTERNS) {
-      if (pattern.test(query)) {
-        return "high";
+  analyzeComplexityFactors(query: string, taskType: TaskType): ComplexityFactors {
+    const detectedDomains = this.detectAllDomains(query);
+
+    return {
+      conceptCount: this.countConcepts(query),
+      domainCrossing: detectedDomains.length > 1,
+      estimatedTokens: this.estimateTokens(query),
+      multiStepReasoning: this.needsMultiStepReasoning(query),
+      securityImplications: taskType === "security" || this.hasSecurityImplications(query),
+      productionScope: this.hasProductionScope(query),
+      needsValidation: this.needsValidation(query, taskType),
+    };
+  }
+
+  /**
+   * Calculate complexity score from factors and query patterns.
+   */
+  calculateComplexityScore(factors: ComplexityFactors, query?: string): number {
+    let score = 0;
+
+    // Factor-based scoring
+    score += Math.min(factors.conceptCount * COMPLEXITY_WEIGHTS.conceptCount, 25);
+    if (factors.domainCrossing) score += COMPLEXITY_WEIGHTS.domainCrossing;
+    if (factors.multiStepReasoning) score += COMPLEXITY_WEIGHTS.multiStepReasoning;
+    if (factors.securityImplications) score += COMPLEXITY_WEIGHTS.securityImplications;
+    if (factors.productionScope) score += COMPLEXITY_WEIGHTS.productionScope;
+    if (factors.needsValidation) score += COMPLEXITY_WEIGHTS.needsValidation;
+    score += Math.min(factors.estimatedTokens * COMPLEXITY_WEIGHTS.tokenEstimate, 10);
+
+    // Pattern-based adjustments (if query provided)
+    if (query) {
+      // Check for explicit critical patterns
+      if (CRITICAL_PATTERNS.some((p) => p.test(query))) {
+        score = Math.max(score, COMPLEXITY_THRESHOLDS.complex + 1);
+      }
+      // Boost for moderate patterns
+      else if (MODERATE_PATTERNS.some((p) => p.test(query))) {
+        score = Math.max(score, COMPLEXITY_THRESHOLDS.simple + 1);
+      }
+      // Reduce for simple patterns
+      else if (SIMPLE_PATTERNS.some((p) => p.test(query))) {
+        score = Math.min(score, COMPLEXITY_THRESHOLDS.simple);
       }
     }
 
-    // Check for low complexity indicators
-    for (const pattern of LOW_COMPLEXITY_PATTERNS) {
-      if (pattern.test(query)) {
+    return Math.min(score, 100);
+  }
+
+  /**
+   * Convert score to TaskComplexity.
+   */
+  scoreToComplexity(score: number): TaskComplexity {
+    if (score <= COMPLEXITY_THRESHOLDS.simple) return "simple";
+    if (score <= COMPLEXITY_THRESHOLDS.moderate) return "moderate";
+    if (score <= COMPLEXITY_THRESHOLDS.complex) return "complex";
+    return "critical";
+  }
+
+  /**
+   * Convert TaskComplexity to legacy format.
+   */
+  complexityToLegacy(complexity: TaskComplexity): "low" | "medium" | "high" {
+    switch (complexity) {
+      case "simple":
         return "low";
+      case "moderate":
+        return "medium";
+      case "complex":
+      case "critical":
+        return "high";
+    }
+  }
+
+  /**
+   * Convert TaskComplexity to ModelTier.
+   */
+  complexityToTier(complexity: TaskComplexity): ModelTier {
+    switch (complexity) {
+      case "simple":
+        return "fast";
+      case "moderate":
+        return "balanced";
+      case "complex":
+        return "powerful";
+      case "critical":
+        return "expert";
+    }
+  }
+
+  // ==========================================================================
+  // Private Methods
+  // ==========================================================================
+
+  /**
+   * Count distinct concepts in query.
+   */
+  private countConcepts(query: string): number {
+    const conceptPatterns = [
+      /\b(api|endpoint|route|controller)\b/gi,
+      /\b(database|table|schema|model)\b/gi,
+      /\b(component|view|page|layout)\b/gi,
+      /\b(service|provider|module|plugin)\b/gi,
+      /\b(auth|security|permission|role)\b/gi,
+      /\b(test|spec|fixture|mock)\b/gi,
+      /\b(deploy|release|pipeline|ci)\b/gi,
+    ];
+
+    let count = 0;
+    for (const pattern of conceptPatterns) {
+      const matches = query.match(pattern);
+      if (matches) count += new Set(matches.map((m) => m.toLowerCase())).size;
+    }
+
+    return count;
+  }
+
+  /**
+   * Estimate tokens for the query.
+   */
+  private estimateTokens(query: string): number {
+    // Rough estimate: ~4 chars per token
+    return Math.ceil(query.length / 4);
+  }
+
+  /**
+   * Check if multi-step reasoning is needed.
+   */
+  private needsMultiStepReasoning(query: string): boolean {
+    for (const pattern of COMPLEX_PATTERNS) {
+      if (pattern.test(query)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Check for security implications.
+   */
+  private hasSecurityImplications(query: string): boolean {
+    const securityPatterns = [
+      /auth|credential|secret|password|token/i,
+      /encrypt|decrypt|hash|salt/i,
+      /permission|access|role/i,
+      /injection|xss|csrf/i,
+    ];
+
+    return securityPatterns.some((p) => p.test(query));
+  }
+
+  /**
+   * Check for production scope.
+   */
+  private hasProductionScope(query: string): boolean {
+    const productionPatterns = [
+      /production|prod\b|live/i,
+      /deploy|release|rollback/i,
+      /customer|user\s+facing/i,
+      /critical|breaking/i,
+    ];
+
+    return productionPatterns.some((p) => p.test(query));
+  }
+
+  /**
+   * Check if validation is needed.
+   */
+  private needsValidation(query: string, taskType: TaskType): boolean {
+    // Architecture and security always need validation
+    if (taskType === "architecture" || taskType === "security") return true;
+
+    const validationPatterns = [
+      /verify|validate|confirm|check/i,
+      /review|approve|sign-off/i,
+      /gate|milestone/i,
+    ];
+
+    return validationPatterns.some((p) => p.test(query));
+  }
+
+  /**
+   * Detect all domains mentioned in query.
+   */
+  private detectAllDomains(query: string): string[] {
+    const detected: string[] = [];
+
+    for (const [domain, patterns] of Object.entries(DOMAIN_PATTERNS)) {
+      for (const pattern of patterns) {
+        if (pattern.test(query)) {
+          detected.push(domain);
+          break;
+        }
       }
     }
 
-    // Default to medium
-    return "medium";
+    return detected;
   }
 
   /**
@@ -204,16 +477,7 @@ export class TaskClassifier {
    * Detect the domain/area of the query.
    */
   private detectDomain(query: string): string {
-    const domains: Record<string, RegExp[]> = {
-      frontend: [/react|vue|angular|css|html|ui|ux|component/i],
-      backend: [/api|server|database|endpoint|rest|graphql/i],
-      devops: [/docker|kubernetes|ci|cd|deploy|infrastructure/i],
-      testing: [/test|spec|coverage|mock|stub|fixture/i],
-      security: [/auth|security|encrypt|permission/i],
-      data: [/data|analytics|ml|ai|model|training/i],
-    };
-
-    for (const [domain, patterns] of Object.entries(domains)) {
+    for (const [domain, patterns] of Object.entries(DOMAIN_PATTERNS)) {
       for (const pattern of patterns) {
         if (pattern.test(query)) {
           return domain;
@@ -225,43 +489,78 @@ export class TaskClassifier {
   }
 
   /**
-   * Recommend a model based on query characteristics.
+   * Recommend a model based on task type and complexity.
    */
   private recommendModel(
-    _query: string,
     taskType: TaskType,
-    complexity: "low" | "medium" | "high",
+    complexity: TaskComplexity
   ): ModelRecommendation {
-    // High complexity or architecture → Opus
-    if (complexity === "high" || taskType === "architecture" || taskType === "security") {
+    // Critical complexity always needs expert
+    if (complexity === "critical") {
       return {
         model: "claude-opus-4",
-        reason: "Complex reasoning or architecture decision required",
+        reason: "Critical task requires expert-level reasoning",
       };
     }
 
-    // Medium complexity → Sonnet
-    if (complexity === "medium") {
+    // Security and architecture need powerful+
+    if (taskType === "security" || taskType === "architecture") {
+      return {
+        model: "claude-opus-4",
+        reason: `${taskType} task requires thorough analysis`,
+      };
+    }
+
+    // Complex needs powerful
+    if (complexity === "complex") {
       return {
         model: "claude-sonnet-4",
-        reason: "Balanced speed and quality for medium complexity",
+        reason: "Complex task needs strong reasoning",
       };
     }
 
-    // Low complexity or quick tasks → Haiku
+    // Moderate uses balanced
+    if (complexity === "moderate") {
+      return {
+        model: "claude-sonnet-4",
+        reason: "Balanced speed and quality for moderate task",
+      };
+    }
+
+    // Simple uses fast
     return {
       model: "claude-haiku-4",
-      reason: "Fast response for straightforward task",
+      reason: "Fast response for simple task",
     };
   }
 }
 
-// Singleton instance
+// ============================================================================
+// Singleton & Factory
+// ============================================================================
+
 let globalClassifier: TaskClassifier | undefined;
 
+/**
+ * Get the global TaskClassifier instance.
+ */
 export function getTaskClassifier(): TaskClassifier {
   if (!globalClassifier) {
     globalClassifier = new TaskClassifier();
   }
   return globalClassifier;
+}
+
+/**
+ * Reset the global TaskClassifier (for testing).
+ */
+export function resetTaskClassifier(): void {
+  globalClassifier = undefined;
+}
+
+/**
+ * Create a new TaskClassifier instance.
+ */
+export function createTaskClassifier(): TaskClassifier {
+  return new TaskClassifier();
 }
