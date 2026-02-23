@@ -18,8 +18,10 @@
 
 | Sprint | Duration | Goal | Status |
 |--------|----------|------|--------|
-| Sprint 44 | TBD | Phase 7: Desktop Interface Core | PLANNED |
-| Sprint 45 | TBD | Phase 7: Desktop Interface Polish | PLANNED |
+| Sprint 44 | TBD | Gateway + Desktop Integration | PLANNED |
+| Sprint 45 | TBD | Brain Architecture | PLANNED |
+| Sprint 46 | TBD | Full OTT Ecosystem + GitHub Models Provider | PLANNED |
+| Sprint 47 | TBD | Integration + Stabilization | PLANNED |
 
 ---
 

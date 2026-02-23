@@ -1,42 +1,59 @@
-# Sprint 46 Detailed Plan - Full OTT Ecosystem
+# Sprint 46 Detailed Plan - Full OTT Ecosystem + GitHub Models Provider
 
-**Version**: 2.0.0 (Option A Resequence)
+**Version**: 3.0.0 (CTO Research Integration)
 **Date**: 2026-02-23
 **Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
+**Authority**: PM + CEO + CTO Research
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
 - Sprint 45 Complete (Brain Architecture validated)
 - Sprint 38 (Telegram channel) and Sprint 43 (Desktop channel) in place
+- GitHub PAT with `models:read` scope (for GitHub Models)
 **SDLC**: Framework 6.1.1
 
-> **Note**: Originally Sprint 45 (Full OTT Ecosystem). Shifted to Sprint 46 per CEO-approved Option A resequence (2026-02-23). Integration + Stabilization moves to Sprint 47.
+> **Note**: Originally Sprint 45 (Full OTT Ecosystem). Shifted to Sprint 46 per CEO-approved Option A resequence (2026-02-23).
+> **v3.0.0**: Added GitHub Models Provider per CTO research and CEO approval (2026-02-23).
 
 ---
 
 ## Executive Summary
 
-Sprint 46 expands the **OTT (Over-The-Top) ecosystem**: add Zalo (Vietnam market), refactor channels for **bidirectional** communication, and enable **conversational escalation** so the CEO can have multi-turn dialogue with EndiorBot via Telegram or Zalo.
+Sprint 46 delivers two major features:
 
-### Vision: Multi-Channel CEO
+1. **OTT Ecosystem**: Add Zalo (Vietnam market), refactor channels for **bidirectional** communication, and enable **conversational escalation** so the CEO can have multi-turn dialogue with EndiorBot via Telegram or Zalo.
+
+2. **GitHub Models Provider**: Add GitHub Models API as a **free-tier cloud provider** (via Copilot Pro+ subscription), expanding the provider ecosystem alongside Ollama.
+
+### Vision: Multi-Channel CEO + Extended Provider Ecosystem
 
 ```
 Sprint 38:  Telegram send-only + /approve, /reject, /status
 Sprint 46:  Telegram + Zalo; bidirectional; "Show me the error", "Try different approach", "What's status?"
+            + GitHub Models as free cloud provider ($0 via Copilot Pro+)
 ```
 
-Benefits:
+**OTT Benefits**:
 - Vietnam market: Zalo OA integration
 - Unified message format across channels
 - CEO can ask follow-ups from phone (e.g. "Show me the error" → code snippet)
 - Channel preference: ~/.endiorbot/channels.json
 
+**GitHub Models Benefits**:
+- Free cloud provider ($0 cost via Copilot Pro+ subscription)
+- OpenAI-compatible API (reuse existing SDK)
+- Access to GPT-4o, Claude 3.5 Sonnet, Llama 3.3 70B, Mistral, Phi-4
+- Second free-tier option (alongside Ollama)
+
 ---
 
 ## Sprint Goal
 
-**Refactor channels for bidirectional support; add Zalo channel; implement conversational escalation (multi-turn) so CEO can interact with EndiorBot via Telegram or Zalo.**
+**Two parallel tracks:**
+
+1. **OTT Track**: Refactor channels for bidirectional support; add Zalo channel; implement conversational escalation (multi-turn) so CEO can interact with EndiorBot via Telegram or Zalo.
+
+2. **Provider Track**: Add GitHub Models Provider as free-tier cloud option; integrate with ResourceRouter for intelligent failover.
 
 ---
 
@@ -47,17 +64,37 @@ Benefits:
 | **Sprint 45** | Brain Architecture validated | PLANNED | Sprint 46 start |
 | **Sprint 38** | Telegram channel (send + commands) | ✅ | Base |
 | **Zalo OA** | API access (app id, secret) | ⚠️ | Config |
+| **GitHub PAT** | Token with `models:read` scope | ⚠️ | GitHub Models |
+
+---
+
+## ADR-009: GitHub Models Provider
+
+**Decision**: Add GitHub Models API as free-tier cloud provider.
+
+**Context**:
+- CTO research identified GitHub Models API (OpenAI-compatible) as cost-free via Copilot Pro+ subscription
+- Provides access to GPT-4o, Claude 3.5 Sonnet, Llama 3.3 70B, Mistral-large, Phi-4
+- Lower rate limits than direct API (15 req/min) but $0 cost
+
+**Consequences**:
+- +1 provider in ResourceRouter failover chain
+- Circuit breaker required (15 req/min limit)
+- PAT stored securely via `keytar`
+
+**Status**: APPROVED (CEO 2026-02-23)
 
 ---
 
 ## Sprint 46 Overview
 
-| Week | Focus | Deliverables |
-|------|-------|--------------|
-| **Week 1** | Channel Abstraction + Zalo | Bidirectional interface, Zalo OA, unified format, routing |
-| **Week 2** | Conversational Escalation | Multi-turn: "Show error", "Try different approach", "Status?" |
+| Week | OTT Track | Provider Track |
+|------|-----------|----------------|
+| **Week 1** | Channel Abstraction + Zalo (Day 1-3) | GitHub Models Provider (Day 4-5) |
+| **Week 2** | Conversational Escalation (Day 6-9) | Integration + Testing (Day 10) |
 
 **Duration**: 10 working days (2 weeks from Sprint 45 close)
+**Total Scope**: ~2,800 LOC (OTT ~2,000 + GitHub Models ~800)
 
 ---
 
@@ -103,7 +140,50 @@ Benefits:
 
 ---
 
-### Day 4: Unified Message Format + Channel Routing
+### Day 4: GitHub Models Provider
+
+**Goal**: Implement GitHub Models as free-tier cloud provider.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| Add `GITHUB_TOKEN` to src/config/env-vars.ts | P0 | Optional env var with keytar fallback | ~40 |
+| Create src/providers/github-models/index.ts | P0 | GitHubModelsProvider extending BaseProvider | ~300 |
+| Use `openai` SDK with baseURL: `https://models.inference.ai.azure.com` | P0 | Same file | — |
+| Models map: gpt-4o, gpt-4o-mini, claude-3-5-sonnet, llama-3.3-70b, phi-4, mistral-large | P0 | Same file | ~60 |
+| Circuit breaker: 15 req/min with exponential backoff | P0 | Same file | ~80 |
+| Create src/cli/commands/setup-github.ts | P1 | CLI: `endiorbot setup github` to store PAT via keytar | ~100 |
+| Create tests/providers/github-models/provider.test.ts | P1 | Unit tests with mock HTTP | ~120 |
+
+**Acceptance Criteria**:
+- [ ] GitHubModelsProvider sends requests to GitHub Models API
+- [ ] Circuit breaker limits to 15 req/min
+- [ ] PAT stored securely via keytar (not .env)
+- [ ] Build passes
+
+---
+
+### Day 5: GitHub Models Integration + Unified Message Format
+
+**Goal**: Integrate GitHub Models into ResourceRouter; finalize channel routing.
+
+**GitHub Models Tasks**:
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| Register `github-models` in src/providers/provider-registry.ts | P0 | Provider registration | ~30 |
+| Add `'github-models'` to AIProvider union in types.ts | P0 | Type update | ~5 |
+| Update src/providers/resource-router.ts: add github-models to failover chain | P0 | Routing rules | ~60 |
+| Priority: Ollama (local) → GitHub Models (free cloud) → Paid (Anthropic/OpenAI) | P0 | Same | — |
+| Create tests/providers/github-models/integration.test.ts | P1 | Integration with mock | ~80 |
+
+**Acceptance Criteria**:
+- [ ] ResourceRouter includes github-models in failover chain
+- [ ] Route TaskType.research → github-models when Ollama unavailable
+- [ ] Build passes
+
+---
+
+### Day 5 (continued): Unified Message Format + Channel Routing
 
 **Goal**: One format for alerts and replies; route by alert type.
 
@@ -221,6 +301,8 @@ Benefits:
 
 ## Files Created (Sprint 46)
 
+### OTT Track Files
+
 | File / Dir | Est. LOC | Purpose |
 |------------|----------|---------|
 | src/channels/types.ts (extended) | ~140 | BidirectionalChannel, IncomingMessage, UnifiedEscalationMessage |
@@ -233,7 +315,25 @@ Benefits:
 | src/channels/conversation/actions/try-different.ts | ~160 | Retry strategy |
 | tests/channels/*.test.ts | ~530 | Channel + conversation tests |
 | docs/04-build/ott-channels.md | ~200 | Zalo setup, channels.json |
-| **Total** | **~2,000** | |
+| **OTT Subtotal** | **~2,000** | |
+
+### GitHub Models Track Files
+
+| File / Dir | Est. LOC | Purpose |
+|------------|----------|---------|
+| src/providers/github-models/index.ts | ~440 | GitHubModelsProvider with circuit breaker |
+| src/cli/commands/setup-github.ts | ~100 | CLI to store PAT via keytar |
+| tests/providers/github-models/*.test.ts | ~200 | Unit + integration tests |
+| docs/02-design/01-ADRs/ADR-009-github-models-provider.md | ~80 | ADR document |
+| **GitHub Models Subtotal** | **~820** | |
+
+### Total
+
+| Track | LOC |
+|-------|-----|
+| OTT Ecosystem | ~2,000 |
+| GitHub Models | ~820 |
+| **Sprint 46 Total** | **~2,820** |
 
 ---
 
@@ -250,6 +350,8 @@ Benefits:
 
 ## Success Criteria (Sprint 46)
 
+### OTT Track
+
 | Criterion | Target | Measurement |
 |-----------|--------|-------------|
 | Zalo channel send/receive | 100% | Manual / test |
@@ -258,7 +360,23 @@ Benefits:
 | "Show me the error" → snippet | 100% | Manual |
 | "Try different approach" → retry | 100% | Manual |
 | "What's the current status?" → summary | 100% | Manual |
+
+### GitHub Models Track
+
+| Criterion | Target | Measurement |
+|-----------|--------|-------------|
+| GitHubModelsProvider sends to API | 100% | Test |
+| Circuit breaker limits 15 req/min | 100% | Test |
+| PAT stored via keytar (not .env) | 100% | Code review |
+| ResourceRouter includes github-models | 100% | Test |
+| `endiorbot setup github` works | 100% | Manual |
+
+### Overall
+
+| Criterion | Target | Measurement |
+|-----------|--------|-------------|
 | Build + lint | Pass | CI |
+| All tests pass | 100% | CI |
 
 ---
 
@@ -271,6 +389,9 @@ Benefits:
 | Sprint 43 (Desktop channel) | ✅ | Parallel notifications |
 | ApprovalQueue, SessionManager, SelfCorrectionEngine | ✅ | Prior sprints |
 | Zalo OA API | ⚠️ | External |
+| GitHub PAT (`models:read`) | ⚠️ | CEO provides |
+| `keytar` (secure storage) | ✅ | Already in deps |
+| `openai` SDK | ✅ | Already in deps (OpenAI provider) |
 
 ---
 
@@ -290,6 +411,7 @@ Benefits:
 
 ## Approval Checklist (G-Sprint-46)
 
+### OTT Track
 - [ ] Bidirectional channel interface; Telegram and Zalo receive messages
 - [ ] Zalo OA integration (send + receive)
 - [ ] Unified message format and channel routing (channels.json)
@@ -297,17 +419,31 @@ Benefits:
 - [ ] SHOW_ERROR returns last error + snippet
 - [ ] TRY_DIFFERENT triggers retry and confirms
 - [ ] STATUS returns full session summary
-- [ ] Build and lint pass
 - [ ] docs/04-build/ott-channels.md updated
+
+### GitHub Models Track
+- [ ] ADR-009 created: docs/02-design/01-ADRs/ADR-009-github-models-provider.md
+- [ ] GitHubModelsProvider implements BaseProvider
+- [ ] Circuit breaker: 15 req/min with exponential backoff
+- [ ] PAT stored via keytar (not .env or git)
+- [ ] Registered in ProviderRegistry
+- [ ] ResourceRouter includes github-models in failover chain
+- [ ] `endiorbot setup github` CLI command works
+- [ ] Unit tests pass
+
+### Overall
+- [ ] Build and lint pass
+- [ ] All tests pass (~2,100+ total)
 
 ---
 
 **Last Updated**: 2026-02-23
-**Sprint Status**: DRAFT — Option A Resequence (shifted from Sprint 45)
+**Sprint Status**: DRAFT — v3.0.0 (OTT + GitHub Models)
 **Blocking**: Sprint 45 close
+**CTO Research**: GitHub Models Provider approved by CEO 2026-02-23
 
 ---
 
-*Sprint 46 Plan - Full OTT Ecosystem*
-*EndiorBot - Multi-Channel CEO*
+*Sprint 46 Plan - Full OTT Ecosystem + GitHub Models Provider*
+*EndiorBot - Multi-Channel CEO + Extended Provider Ecosystem*
 *SDLC Framework 6.1.1*

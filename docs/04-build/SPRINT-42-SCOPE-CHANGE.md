@@ -127,7 +127,7 @@ Rationale:
 - [x] **Option A APPROVED** — Shift roadmap by 1 sprint
 - [x] **Sprint 43 PROCEED** — Dev team proceeds immediately to Desktop Foundation
 
-### Revised Roadmap (Option A — Approved)
+### Revised Roadmap (Option A — Approved + CTO Research)
 
 | Sprint | Scope | Status |
 |--------|-------|--------|
@@ -135,7 +135,9 @@ Rationale:
 | **43** | Desktop Foundation (ClawX Port) | 🔄 IN PROGRESS |
 | **44** | Gateway + Desktop Integration | PLANNED |
 | **45** | Brain Architecture | PLANNED |
-| **46** | Full OTT Ecosystem | PLANNED |
+| **46** | Full OTT Ecosystem + GitHub Models Provider | PLANNED |
+
+> **v3.0.0**: Sprint 46 expanded to include GitHub Models Provider per CTO research (2026-02-23).
 
 ### Completed Actions
 1. ✅ CEO approved scope change and Option A
