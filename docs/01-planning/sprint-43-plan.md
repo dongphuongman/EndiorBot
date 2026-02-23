@@ -1,39 +1,49 @@
-# Sprint 43 Detailed Plan - Gateway + Desktop Integration
+# Sprint 43 Detailed Plan - Desktop Foundation (ClawX Port)
 
 **Version**: 1.0.0
-**Date**: 2026-02-22
+**Date**: 2026-02-23
 **Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Sprint 38-46 Replan)
+**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
-- Sprint 42 Complete (Desktop Foundation validated)
+- Sprint 42 Complete (Adaptive Quality Tuning validated) ✅
+- ClawX codebase or spec available for reference
 **SDLC**: Framework 6.1.1
 
 ---
 
 ## Executive Summary
 
-Sprint 43 implements **Gateway + Desktop Integration** — WebSocket gateway server connecting Desktop UI to EndiorBot core in real-time.
+Sprint 43 implements **Desktop Foundation** — port ClawX Electron/React desktop app into EndiorBot as integrated UI. No gateway yet; IPC calls EndiorBot core directly.
 
-### Vision: Real-Time Desktop
+### Vision: Desktop UI for EndiorBot
 
 ```
-Sprint 42:  Desktop → IPC (direct) → Core (poll/on-load)
-Sprint 43:  Desktop → WebSocket Gateway → Core (push events)
+Current (Sprint 42):  CLI only → CEO at terminal
+Sprint 43 Target:     Electron app → Dashboard, Chat, Checkpoints, Fix stats
+Future (Sprint 44):   Gateway → real-time sync
 ```
+
+### Why Desktop?
+
+> **CEO/CPO**: "Use EndiorBot Desktop directly (no VSCode needed)." Port ClawX INTO EndiorBot (single codebase).
 
 Benefits:
-- Real-time budget updates in UI
-- Live approval queue (approve/reject from desktop)
-- Checkpoint events stream to UI
-- Telegram + Desktop notifications in parallel (CEO chooses)
+- Single codebase (EndiorBot repo includes desktop)
+- Dashboard: active session, budget status, approval queue
+- Chat interface: streaming from multi-model orchestrator
+- Checkpoint viewer: list/restore
+- Fix stats viewer (Sprint 41 Fix Logging)
+- Dark/Light theme (Tailwind)
+
+> **Note**: Originally planned as Sprint 42. Shifted to Sprint 43 per CEO-approved Option A resequence (2026-02-23). Sprint 42 delivered Adaptive Quality Tuning instead.
 
 ---
 
 ## Sprint Goal
 
-**Implement WebSocket gateway server (port 18790) with JSON-RPC protocol; connect Desktop to gateway for real-time session, budget, approval, and checkpoint events.**
+**Port ClawX Electron/React shell into EndiorBot; implement core UI screens (Dashboard, Chat, Checkpoint viewer, Fix stats) with IPC bridge to CLI core.**
 
 ---
 
@@ -41,8 +51,18 @@ Benefits:
 
 | Gate | Requirement | Status | Blocking |
 |------|-------------|--------|----------|
-| **Sprint 42** | Desktop Foundation validated | PLANNED | Sprint 43 start |
-| **Port 18790** | Configurable (default 18790) | DESIGN | config.json / env |
+| **Sprint 42** | Adaptive Quality Tuning validated | ✅ COMPLETE | — |
+| **Electron 40+** | Runtime | ⚠️ Dependency | package.json |
+| **React 19, Vite, Tailwind** | From ClawX stack | ⚠️ Dependency | package.json |
+
+### Validation Criteria
+
+- [ ] Electron app launches
+- [ ] Dashboard shows session status + budget bar
+- [ ] Checkpoint viewer lists and can restore
+- [ ] Fix stats viewer shows weekly summary (Sprint 41)
+- [ ] Dark/Light theme works
+- [ ] No gateway needed (IPC only)
 
 ---
 
@@ -50,230 +70,219 @@ Benefits:
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| **Week 1** | Gateway Server | server.ts, protocol, methods, auth |
-| **Week 2** | Desktop Real-Time Integration | WebSocket client, live UI updates, parallel notifications |
+| **Week 1** | Electron Shell + IPC | main/, preload/, renderer shell, IPC handlers |
+| **Week 2** | Core UI Screens | Dashboard, Chat, Checkpoint viewer, Fix stats, themes |
 
 **Duration**: 10 working days (2 weeks from Sprint 42 close)
 
 ---
 
-## Week 1: Gateway Server (Day 1-5)
+## Week 1: Electron Shell + IPC (Day 1-5)
 
-### Day 1-2: WebSocket Server + Protocol
+### Day 1-2: Electron Main + Preload
 
-**Goal**: WebSocket server listening on port 18790; JSON-RPC 2.0 schema.
+**Goal**: Electron main process, window, preload context bridge.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/gateway/server.ts | P0 | WebSocket server (ws or uWebSockets.js) | ~200 |
-| Config: port from ~/.endiorbot/config.json or env GATEWAY_PORT | P0 | gateway-config.ts | ~60 |
-| Create src/gateway/protocol/schema.ts | P0 | JSON-RPC 2.0 request/response types | ~120 |
-| Create src/gateway/protocol/errors.ts | P0 | -32700, -32601, -32602, -32603 | ~60 |
-| Connection lifecycle: connect, ping/pong, disconnect | P0 | server.ts | ~80 |
-| Create tests/gateway/server.test.ts | P1 | Connect, send invalid JSON | ~150 |
+| Add Electron, electron-builder, Vite (desktop) to package.json | P0 | package.json, vite.config | — |
+| Create src/desktop/main/index.ts | P0 | App lifecycle, createWindow | ~150 |
+| Create src/desktop/main/window.ts | P0 | BrowserWindow config (800×600, dark frame) | ~100 |
+| Create src/desktop/preload/index.ts | P0 | contextBridge.exposeInMainWorld | ~200 |
+| Create src/desktop/preload/api.ts | P0 | Type-safe IPC API surface | ~80 |
+| Create tests/desktop/preload.test.ts | P0 | API surface unit tests | ~60 |
 
 **Acceptance Criteria**:
-- [ ] Gateway starts on configurable port (default 18790)
-- [ ] Client can connect via WebSocket
-- [ ] Messages follow JSON-RPC 2.0 (id, method, params / result / error)
+- [ ] Electron window opens with React renderer
+- [ ] preload exposes typed `window.endiorbot` API
+- [ ] No `nodeIntegration: true` (use contextBridge)
+- [ ] Build passes
+
+**Preload API (example)**:
+```typescript
+window.endiorbot = {
+  session: { get(), list() },
+  budget: { get() },
+  approval: { list(), approve(id), reject(id) },
+  checkpoints: { list(), restore(id) },
+  fixStats: { getWeeklySummary(), getPatterns() },
+}
+```
+
+---
+
+### Day 3-4: IPC Handlers
+
+**Goal**: Main process handles IPC calls from renderer.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| Create src/desktop/main/ipc/session-handlers.ts | P0 | session.get, session.list | ~100 |
+| Create src/desktop/main/ipc/budget-handlers.ts | P0 | budget.get | ~80 |
+| Create src/desktop/main/ipc/approval-handlers.ts | P0 | approval.list, approve, reject | ~100 |
+| Create src/desktop/main/ipc/checkpoint-handlers.ts | P0 | checkpoints.list, checkpoints.restore | ~100 |
+| Create src/desktop/main/ipc/fix-stats-handlers.ts | P0 | fixStats.getWeeklySummary, getPatterns | ~80 |
+| Create src/desktop/main/ipc/index.ts | P0 | Register all handlers | ~60 |
+| Create tests/desktop/ipc/*.test.ts | P0 | Unit tests with mocks | ~200 |
+
+**Acceptance Criteria**:
+- [ ] IPC handles: session, budget, approval, checkpoint, fix-stats
+- [ ] Handlers wire to existing EndiorBot core modules
+- [ ] Error cases return `{ error: string }` (never throw)
 - [ ] Build passes
 
 ---
 
-### Day 3: Gateway Methods (Sessions, Agents, Budget, Checkpoints)
+### Day 5: Renderer Shell
 
-**Goal**: Implement server methods callable via JSON-RPC.
+**Goal**: React renderer skeleton, routing, layout.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/gateway/methods/sessions.ts | P0 | sessions.list, sessions.get, sessions.status | ~150 |
-| Create src/gateway/methods/agents.ts | P0 | agents.status (or orchestrator status) | ~80 |
-| Create src/gateway/methods/budget.ts | P0 | budget.get (BudgetTracker state) | ~80 |
-| Create src/gateway/methods/checkpoints.ts | P0 | checkpoints.list, checkpoints.get | ~120 |
-| Create src/gateway/methods/approval.ts | P0 | approval.list, approval.approve, approval.reject | ~120 |
-| Router: dispatch by method name to handler | P0 | server.ts or router.ts | ~100 |
-| Create tests/gateway/methods/*.test.ts | P1 | Unit tests with mocks | ~200 |
+| Create src/desktop/renderer/App.tsx | P0 | Root component, router setup | ~80 |
+| Create src/desktop/renderer/layout/Sidebar.tsx | P0 | Navigation links | ~100 |
+| Create src/desktop/renderer/layout/Layout.tsx | P0 | Sidebar + main content | ~60 |
+| Create src/desktop/renderer/store/index.ts | P0 | Zustand store or React context | ~100 |
+| Tailwind config + dark/light base theme | P0 | tailwind.config.ts | ~40 |
+| Vite renderer config | P0 | vite.renderer.config.ts | ~40 |
+| Create src/desktop/renderer/pages/Loading.tsx | P0 | Splash/loading screen | ~40 |
 
 **Acceptance Criteria**:
-- [ ] sessions.list, sessions.get, sessions.status return expected shape
-- [ ] budget.get returns current budget state
-- [ ] checkpoints.list, checkpoints.get work
-- [ ] approval.list, approval.approve, approval.reject wire to ApprovalQueue
+- [ ] Renderer loads in Electron window
+- [ ] Sidebar navigates between pages (no content yet)
+- [ ] Dark mode toggle works
 - [ ] Build passes
 
 ---
 
-### Day 4: Authentication
+## Week 2: Core UI Screens (Day 6-10)
 
-**Goal**: Local-only or token-based auth.
+### Day 6-7: Dashboard + Chat
+
+**Goal**: Dashboard (session status, budget bar, approval queue) and Chat interface.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Localhost-only mode: accept connections from 127.0.0.1 only | P0 | server.ts (check socket.remoteAddress) | ~40 |
-| Optional: token in query or header; validate against config | P1 | auth.ts, config gateway.token | ~80 |
-| Reject unauthorized with JSON-RPC error | P0 | -32001 Unauthorized | ~20 |
-| Document auth in docs/04-build/gateway.md | P1 | doc | ~60 |
+| Create src/desktop/renderer/pages/Dashboard.tsx | P0 | Session status, budget bar, approval queue | ~250 |
+| Create src/desktop/renderer/components/BudgetBar.tsx | P0 | Visual budget usage | ~80 |
+| Create src/desktop/renderer/components/ApprovalCard.tsx | P0 | Approve/reject action card | ~100 |
+| Create src/desktop/renderer/pages/Chat.tsx | P0 | Message list, input, streaming placeholder | ~200 |
+| Create src/desktop/renderer/components/MessageBubble.tsx | P0 | User/bot message | ~80 |
+| Poll IPC every 5s for Dashboard data (gateway in Sprint 44) | P0 | useInterval hook | ~40 |
 
 **Acceptance Criteria**:
-- [ ] By default, only localhost can connect
-- [ ] If token configured, client must send valid token
-- [ ] Unauthorized returns error, connection closed
+- [ ] Dashboard shows active session name, budget %, approval count
+- [ ] Approve/reject buttons call IPC approval handlers
+- [ ] Chat renders placeholder (streaming in Sprint 44+)
 - [ ] Build passes
 
 ---
 
-### Day 5: Server Events (Push)
+### Day 8: Checkpoint Viewer + Fix Stats
 
-**Goal**: Server can push events to connected clients.
+**Goal**: Checkpoint list/restore UI and Fix Stats (Sprint 41 integration).
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Define event types: budget.updated, approval.pending, checkpoint.created, session.updated | P0 | protocol/events.ts | ~80 |
-| Subscribe/unsubscribe (optional) or broadcast to all | P0 | server broadcast on event | ~100 |
-| Wire BudgetTracker events → gateway broadcast | P0 | gateway subscribes to tracker | ~60 |
-| Wire ApprovalQueue events → gateway broadcast | P0 | Same | ~60 |
-| Wire CheckpointManager events → gateway broadcast | P0 | Same | ~60 |
-| Create tests/gateway/events.test.ts | P1 | Mock events, assert client receives | ~120 |
+| Create src/desktop/renderer/pages/Checkpoints.tsx | P0 | List checkpoints, restore button | ~200 |
+| Create src/desktop/renderer/components/CheckpointCard.tsx | P0 | ID, timestamp, brain digest | ~100 |
+| Create src/desktop/renderer/pages/FixStats.tsx | P0 | Weekly summary, pattern list | ~200 |
+| Create src/desktop/renderer/components/SuccessRateBar.tsx | P0 | Progress bar component | ~60 |
+| Fix stats calls Sprint 41 FixLogger via IPC handler | P0 | fix-stats-handlers.ts | ~80 |
 
 **Acceptance Criteria**:
-- [ ] When budget changes, connected clients receive budget.updated
-- [ ] When approval pending, clients receive approval.pending
-- [ ] When checkpoint created, clients receive checkpoint.created
+- [ ] Checkpoints page lists all checkpoints (newest first)
+- [ ] Restore triggers IPC checkpoint restore
+- [ ] Fix Stats shows weekly summary breakdown by category
 - [ ] Build passes
 
 ---
 
-## Week 2: Desktop Real-Time Integration (Day 6-10)
+### Day 9: Settings + Theme
 
-### Day 6-7: Desktop WebSocket Client
-
-**Goal**: Desktop renderer connects to gateway; reconnection logic.
+**Goal**: Settings page (config viewer) and persistent theme.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/desktop/renderer/gateway-client.ts | P0 | WebSocket connect, send JSON-RPC, handle response/events | ~250 |
-| Config: gateway URL (ws://127.0.0.1:18790) from main or env | P0 | Pass from main via IPC or env | ~40 |
-| Reconnect on disconnect (exponential backoff) | P0 | gateway-client.ts | ~80 |
-| Expose gateway client to React (context or store) | P0 | GatewayContext or useGatewayStore | ~100 |
-| Replace IPC session/budget/approval/checkpoint with gateway calls where real-time needed | P0 | Pages use gateway client | ~150 |
-| Keep IPC fallback when gateway not running | P1 | Desktop works without gateway | ~80 |
+| Create src/desktop/renderer/pages/Settings.tsx | P0 | Display ~/.endiorbot/config.json fields | ~150 |
+| Add IPC handler: config.get() | P0 | config-handlers.ts | ~60 |
+| Persist dark/light theme in localStorage | P0 | useTheme hook | ~60 |
+| Create src/desktop/renderer/components/ThemeToggle.tsx | P0 | Toggle button | ~40 |
+| Create src/desktop/renderer/hooks/useIpc.ts | P0 | Typed IPC call hook | ~80 |
 
 **Acceptance Criteria**:
-- [ ] Desktop connects to gateway when available
-- [ ] RPC calls (sessions.list, budget.get, etc.) work via gateway
-- [ ] When gateway down, fallback to IPC (or show "Gateway disconnected")
-- [ ] Build passes
-
----
-
-### Day 8: Live UI Updates
-
-**Goal**: Dashboard and approval queue update in real time.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| On budget.updated: refresh budget bar and state in Dashboard | P0 | Dashboard subscribes to event | ~80 |
-| On approval.pending: refresh approval list; show toast | P0 | Approval component | ~80 |
-| On checkpoint.created: append to Checkpoint viewer list | P0 | Checkpoints page | ~60 |
-| On session.updated: refresh session status | P0 | Dashboard | ~40 |
-| Loading states and "Gateway disconnected" banner | P0 | Shared component | ~60 |
-| Create tests (optional) for gateway-client | P2 | Unit tests | - |
-
-**Acceptance Criteria**:
-- [ ] Changing budget in CLI/core reflects in Desktop within 1–2 s
-- [ ] New approval appears in Desktop without refresh
-- [ ] New checkpoint appears in list
-- [ ] Build passes
-
----
-
-### Day 9: Telegram + Desktop Notifications in Parallel
-
-**Goal**: CEO can receive alerts on both Telegram and Desktop.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| NotificationSystem already supports multiple channels (Sprint 38) | P0 | Verify TerminalChannel, FileChannel, TelegramChannel | - |
-| Add DesktopChannel: push to gateway broadcast (alert event) | P0 | src/channels/desktop/desktop-channel.ts | ~100 |
-| Register DesktopChannel when gateway server is running | P0 | NotificationSystem + gateway | ~60 |
-| Desktop UI: show notification toast when alert received | P0 | renderer/components/NotificationToast.tsx | ~80 |
-| Config: enable Telegram and/or Desktop in ~/.endiorbot/config.json | P1 | channels.telegram, channels.desktop | ~40 |
-| Document: channels config | P1 | docs/04-build/gateway.md or config reference | ~40 |
-
-**Acceptance Criteria**:
-- [ ] Escalation alert sends to both Telegram (if configured) and Desktop (if connected)
-- [ ] Desktop shows toast for budget/approval/gate alerts
-- [ ] CEO can choose which channels to enable
+- [ ] Settings page shows config values (read-only)
+- [ ] Theme persists across app restarts
 - [ ] Build passes
 
 ---
 
 ### Day 10: Integration + G-Sprint-43
 
-**Goal**: E2E and gate validation.
+**Goal**: End-to-end Desktop + CLI core; release build check.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| E2E: start gateway, start desktop, trigger budget update → UI updates | P0 | Manual or E2E script | - |
-| E2E: approval from desktop (approve/reject) → ApprovalQueue updated | P0 | Manual or E2E | - |
-| CLI flag or subcommand to start gateway (e.g. endiorbot gateway) | P0 | bin or src/cli | ~60 |
-| G-Sprint-43 checklist | P0 | All criteria below | - |
+| E2E: launch Electron, verify Dashboard loads session state | P0 | Manual test | — |
+| E2E: approve from Desktop → ApprovalQueue updated | P0 | Manual test | — |
+| E2E: restore checkpoint from Desktop | P0 | Manual test | — |
+| electron-builder config + `npm run build:desktop` | P0 | electron-builder.json | ~40 |
+| G-Sprint-43 checklist | P0 | All criteria below | — |
 
 **Acceptance Criteria**:
-- [ ] endiorbot gateway starts WebSocket server
-- [ ] Desktop connects and receives real-time updates
-- [ ] Approve/reject from Desktop updates queue
+- [ ] All Sprint 43 acceptance criteria met
+- [ ] `npm run build:desktop` produces distributable
 - [ ] Build and lint pass
+- [ ] No `nodeIntegration: true`
 
 ---
 
 ## Files Created (Sprint 43)
 
-| File / Dir | Est. LOC | Purpose |
-|------------|----------|---------|
-| src/gateway/server.ts | ~280 | WebSocket server, router, broadcast |
-| src/gateway/protocol/schema.ts | ~120 | JSON-RPC types |
-| src/gateway/protocol/errors.ts | ~60 | RPC errors |
-| src/gateway/protocol/events.ts | ~80 | Event payloads |
-| src/gateway/methods/sessions.ts | ~150 | Session methods |
-| src/gateway/methods/agents.ts | ~80 | Agent methods |
-| src/gateway/methods/budget.ts | ~80 | Budget method |
-| src/gateway/methods/checkpoints.ts | ~120 | Checkpoint methods |
-| src/gateway/methods/approval.ts | ~120 | Approval methods |
-| src/gateway/auth.ts | ~100 | Token/localhost auth |
-| src/gateway/config.ts | ~60 | Port, token config |
-| src/channels/desktop/desktop-channel.ts | ~100 | Desktop notification channel |
-| src/desktop/renderer/gateway-client.ts | ~330 | WebSocket client |
-| src/desktop/renderer/components/NotificationToast.tsx | ~80 | Alert toasts |
-| tests/gateway/*.test.ts | ~470 | Gateway tests |
-| docs/04-build/gateway.md | ~100 | Gateway + auth doc |
-| **Total** | **~2,500** | |
+| File | Est. LOC | Purpose |
+|------|----------|---------|
+| src/desktop/main/index.ts | ~150 | Electron main process |
+| src/desktop/main/window.ts | ~100 | BrowserWindow config |
+| src/desktop/preload/index.ts | ~200 | contextBridge API |
+| src/desktop/preload/api.ts | ~80 | TypeScript types |
+| src/desktop/main/ipc/session-handlers.ts | ~100 | Session IPC |
+| src/desktop/main/ipc/budget-handlers.ts | ~80 | Budget IPC |
+| src/desktop/main/ipc/approval-handlers.ts | ~100 | Approval IPC |
+| src/desktop/main/ipc/checkpoint-handlers.ts | ~100 | Checkpoint IPC |
+| src/desktop/main/ipc/fix-stats-handlers.ts | ~80 | Fix stats IPC |
+| src/desktop/main/ipc/index.ts | ~60 | Handler registry |
+| src/desktop/renderer/App.tsx | ~80 | Root component |
+| src/desktop/renderer/layout/Sidebar.tsx | ~100 | Navigation |
+| src/desktop/renderer/layout/Layout.tsx | ~60 | Shell layout |
+| src/desktop/renderer/store/index.ts | ~100 | App state |
+| src/desktop/renderer/pages/Dashboard.tsx | ~250 | Main dashboard |
+| src/desktop/renderer/pages/Chat.tsx | ~200 | Chat interface |
+| src/desktop/renderer/pages/Checkpoints.tsx | ~200 | Checkpoint viewer |
+| src/desktop/renderer/pages/FixStats.tsx | ~200 | Fix statistics |
+| src/desktop/renderer/pages/Settings.tsx | ~150 | Settings viewer |
+| src/desktop/renderer/components/*.tsx (×8) | ~560 | Shared components |
+| src/desktop/renderer/hooks/*.ts (×2) | ~140 | Custom hooks |
+| tests/desktop/**/*.test.ts | ~260 | Unit tests |
+| vite.renderer.config.ts | ~40 | Vite renderer |
+| electron-builder.json | ~40 | Build config |
+| **Total** | **~3,430** | |
 
 ---
 
-## Modified Files (Sprint 43)
-
-| File | Changes |
-|------|---------|
-| src/notifications/notification-system.ts | Register DesktopChannel |
-| src/desktop/renderer/pages/Dashboard.tsx | Use gateway client, live updates |
-| src/desktop/renderer/pages/Checkpoints.tsx | Live checkpoint events |
-| src/desktop/renderer/pages/* (approval) | Live approval list + actions |
-| package.json | Script for gateway (if separate process) or CLI |
-| ~/.endiorbot/config.json (doc) | gateway.port, gateway.token, channels.desktop |
-
----
-
-## Success Criteria (Sprint 43)
+## Success Criteria (Sprint 43 — G-Sprint-43)
 
 | Criterion | Target | Measurement |
-|-----------|--------|--------------|
-| Gateway listens on 18790 | 100% | Manual / test |
-| Desktop connects to gateway | 100% | Manual |
-| Real-time budget/approval/checkpoint | 100% | Manual |
-| Approve/reject from Desktop | 100% | Manual |
-| Telegram + Desktop alerts in parallel | 100% | Manual |
-| Build + lint | Pass | CI |
+|-----------|--------|-------------|
+| Electron window opens | 100% | Manual |
+| Dashboard shows session + budget + approvals | 100% | Manual |
+| Approve/reject from Desktop works | 100% | Manual |
+| Checkpoint viewer lists and restores | 100% | Manual |
+| Fix Stats shows weekly summary (Sprint 41) | 100% | Manual |
+| Settings page shows config | 100% | Manual |
+| Dark/Light theme persists | 100% | Manual |
+| `npm run build:desktop` succeeds | Pass | Build |
+| No nodeIntegration: true | Pass | Code review |
+| TypeScript clean | Pass | tsc --noEmit |
 
 ---
 
@@ -281,47 +290,54 @@ Benefits:
 
 | Dependency | Status | Notes |
 |------------|--------|-------|
-| Sprint 42 complete | PLANNED | Desktop Foundation |
-| SessionManager, BudgetTracker, ApprovalQueue, CheckpointManager | ✅ | Prior sprints |
-| NotificationSystem (Sprint 38) | ✅ | Multi-channel |
-| WebSocket library (ws) | ⚠️ | Add dependency |
+| Sprint 42 complete | ✅ | Adaptive Quality Tuning |
+| SessionManager, BudgetTracker | ✅ | Prior sprints |
+| ApprovalQueue, CheckpointManager | ✅ | Prior sprints |
+| FixLogger (Sprint 41) | ✅ | Fix stats IPC |
+| Electron 40+ | ⚠️ | Add to package.json |
+| React 19, Vite, Tailwind | ⚠️ | Add to package.json |
+| Zustand (state) | ⚠️ | Add to package.json |
+| electron-builder | ⚠️ | Add to package.json |
 
 ---
 
 ## Next Sprint Preview (Sprint 44)
 
-**Sprint Goal**: Brain Architecture
+**Sprint Goal**: Gateway + Desktop Integration
 
 **Key Deliverables**:
-- Brain storage ~/.endiorbot/brain/
-- Layers: events, patterns, structures, mental-models
-- CEO profile, evolution/versioning
-- CLI: endiorbot brain status, brain export
+- WebSocket gateway server (port 18790, JSON-RPC 2.0)
+- Real-time budget/approval/checkpoint events to Desktop
+- Telegram + Desktop notifications in parallel
+- CLI: `endiorbot gateway`
 
-**Prerequisite**: Sprint 43 PASS (Gateway + Desktop validated)
+**Prerequisite**: Sprint 43 PASS (Desktop Foundation validated)
 
 ---
 
 ## Approval Checklist (G-Sprint-43)
 
-- [ ] WebSocket gateway server runs on configurable port (default 18790)
-- [ ] JSON-RPC methods: sessions, agents, budget, checkpoints, approval
-- [ ] Auth: localhost-only or token
-- [ ] Server pushes events: budget.updated, approval.pending, checkpoint.created
-- [ ] Desktop connects via WebSocket; real-time UI updates
-- [ ] Approve/reject from Desktop works
-- [ ] Telegram + Desktop notifications in parallel
-- [ ] Build and lint pass
-- [ ] docs/04-build/gateway.md updated
+- [ ] Electron app launches without errors
+- [ ] contextBridge API: session, budget, approval, checkpoints, fix-stats
+- [ ] IPC handlers wire to EndiorBot core modules
+- [ ] Dashboard: session name, budget bar, approval queue + actions
+- [ ] Checkpoint viewer: list, restore
+- [ ] Fix Stats: weekly summary by category (from Sprint 41 FixLogger)
+- [ ] Settings: config display
+- [ ] Dark/Light theme persistent
+- [ ] `npm run build:desktop` passes
+- [ ] No nodeIntegration: true
+- [ ] TypeScript clean, lint pass
 
 ---
 
-**Last Updated**: 2026-02-22
-**Sprint Status**: DRAFT - Sprint 38-46 Replan
-**Blocking**: Sprint 42 close
+**Last Updated**: 2026-02-23
+**Sprint Status**: IN PROGRESS
+**Blocking**: None - Sprint 42 closed ✅
+**Shifted from**: Originally Sprint 42; shifted per CEO Option A approval 2026-02-23
 
 ---
 
-*Sprint 43 Plan - Gateway + Desktop Integration*
-*EndiorBot - Real-Time Desktop*
+*Sprint 43 Plan - Desktop Foundation (ClawX Port)*
+*EndiorBot - Desktop UI*
 *SDLC Framework 6.1.1*

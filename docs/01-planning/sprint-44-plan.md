@@ -1,41 +1,41 @@
-# Sprint 44 Detailed Plan - Brain Architecture
+# Sprint 44 Detailed Plan - Gateway + Desktop Integration
 
-**Version**: 1.0.0
-**Date**: 2026-02-22
+**Version**: 2.0.0 (Option A Resequence)
+**Date**: 2026-02-23
 **Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Sprint 38-46 Replan)
+**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
-- Sprint 43 Complete (Gateway + Desktop validated)
-- ADR-006 (Checkpoint State) already references brainVersion, brainDigest
+- Sprint 43 Complete (Desktop Foundation validated)
 **SDLC**: Framework 6.1.1
+
+> **Note**: Originally Sprint 43 (Gateway + Desktop Integration). Shifted to Sprint 44 per CEO-approved Option A resequence (2026-02-23).
 
 ---
 
 ## Executive Summary
 
-Sprint 44 implements **EndiorBot Brain** — a persistent, LLM-agnostic knowledge base per ADR-009 proposal. Brain stores events, patterns, structures, and mental models in an iceberg-style layered model; supports CEO profile and versioning; and integrates with checkpoint provenance (brain digest).
+Sprint 44 implements **Gateway + Desktop Integration** — WebSocket gateway server connecting Desktop UI to EndiorBot core in real-time.
 
-### Vision: Persistent Knowledge
+### Vision: Real-Time Desktop
 
 ```
-Current:  Session-scoped context only; no cross-session memory
-Sprint 44: Brain at ~/.endiorbot/brain/ → layers 1–4, CEO profile, versioning
-Future:   Checkpoint restore uses brain context; agents query brain
+Sprint 43:  Desktop → IPC (direct) → Core (poll/on-load)
+Sprint 44:  Desktop → WebSocket Gateway → Core (push events)
 ```
 
 Benefits:
-- Cross-session learning (patterns, structures)
-- CEO coding style and preferences in one place
-- Checkpoint provenance: brain digest in CheckpointState (ADR-006)
-- No ML in Brain storage — structured data only
+- Real-time budget updates in UI
+- Live approval queue (approve/reject from desktop)
+- Checkpoint events stream to UI
+- Telegram + Desktop notifications in parallel (CEO chooses)
 
 ---
 
 ## Sprint Goal
 
-**Implement Brain storage (~/.endiorbot/brain/) with four layers (events, patterns, structures, mental-models), CEO profile, evolution/versioning, and CLI (brain status, brain export).**
+**Implement WebSocket gateway server (port 18790) with JSON-RPC protocol; connect Desktop to gateway for real-time session, budget, approval, and checkpoint events.**
 
 ---
 
@@ -43,9 +43,8 @@ Benefits:
 
 | Gate | Requirement | Status | Blocking |
 |------|-------------|--------|----------|
-| **Sprint 43** | Gateway + Desktop validated | PLANNED | Sprint 44 start |
-| **ADR-009** | Brain Architecture (proposal) | DRAFT | Day 1 approve or reference |
-| **ADR-006** | Checkpoint State (brainVersion, brainDigest) | ✅ | Already approved |
+| **Sprint 43** | Desktop Foundation validated | PLANNED | Sprint 44 start |
+| **Port 18790** | Configurable (default 18790) | DESIGN | config.json / env |
 
 ---
 
@@ -53,189 +52,177 @@ Benefits:
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| **Week 1** | Brain Storage + Iceberg Layers | types, storage, layers 1–4 |
-| **Week 2** | CEO Profile + Evolution | ceo-profile, evolution, CLI, checkpoint digest |
+| **Week 1** | Gateway Server | server.ts, protocol, methods, auth |
+| **Week 2** | Desktop Real-Time Integration | WebSocket client, live UI updates, parallel notifications |
 
 **Duration**: 10 working days (2 weeks from Sprint 43 close)
 
 ---
 
-## Week 1: Brain Storage + Iceberg Layers (Day 1-5)
+## Week 1: Gateway Server (Day 1-5)
 
-### Day 1: ADR-009 + Brain Types
+### Day 1-2: WebSocket Server + Protocol
 
-**Goal**: Formalize Brain architecture and TypeScript interfaces.
+**Goal**: WebSocket server listening on port 18790; JSON-RPC 2.0 schema.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create or update ADR-009 (Brain Architecture) | P0 | docs/02-design/01-ADRs/ADR-009-Brain-Architecture.md | ~400 |
-| Create src/brain/types.ts | P0 | Brain, BrainLayer, BrainVersion, BrainDigest | ~120 |
-| Define layer IDs: events, patterns, structures, mental-models | P0 | types.ts | ~40 |
-| Create src/brain/storage.ts | P0 | Base path ~/.endiorbot/brain/, ensureDir, read/write JSON | ~150 |
-| Create tests/brain/storage.test.ts | P1 | Path, read/write, version dirs | ~100 |
+| Create src/gateway/server.ts | P0 | WebSocket server (ws or uWebSockets.js) | ~200 |
+| Config: port from ~/.endiorbot/config.json or env GATEWAY_PORT | P0 | gateway-config.ts | ~60 |
+| Create src/gateway/protocol/schema.ts | P0 | JSON-RPC 2.0 request/response types | ~120 |
+| Create src/gateway/protocol/errors.ts | P0 | -32700, -32601, -32602, -32603 | ~60 |
+| Connection lifecycle: connect, ping/pong, disconnect | P0 | server.ts | ~80 |
+| Create tests/gateway/server.test.ts | P1 | Connect, send invalid JSON | ~150 |
 
 **Acceptance Criteria**:
-- [ ] ADR-009 describes four layers and storage layout
-- [ ] BrainVersion = semver or timestamp; BrainDigest = hash of layer contents (or manifest)
-- [ ] storage.ts reads/writes under ~/.endiorbot/brain/
+- [ ] Gateway starts on configurable port (default 18790)
+- [ ] Client can connect via WebSocket
+- [ ] Messages follow JSON-RPC 2.0 (id, method, params / result / error)
 - [ ] Build passes
 
 ---
 
-### Day 2: Layer 1 — Events
+### Day 3: Gateway Methods
 
-**Goal**: Raw events (session logs, fix attempts) stored in Layer 1.
+**Goal**: Implement server methods callable via JSON-RPC.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/brain/layers/events.ts | P0 | EventEntry type, appendEvent, getEvents(since?) | ~150 |
-| EventEntry: id, timestamp, type (session_start, fix_attempt, escalation, etc.), payload | P0 | types or events.ts | ~60 |
-| Storage: ~/.endiorbot/brain/events.json or events/ (sharded by date) | P0 | storage layout | ~40 |
-| Integrate: SelfCorrectionEngine or FixLogger writes to Brain Layer 1 (optional hook) | P1 | integration point | ~60 |
-| Create tests/brain/layers/events.test.ts | P1 | append, get, filter | ~100 |
+| Create src/gateway/methods/sessions.ts | P0 | sessions.list, sessions.get, sessions.status | ~150 |
+| Create src/gateway/methods/agents.ts | P0 | agents.status | ~80 |
+| Create src/gateway/methods/budget.ts | P0 | budget.get (BudgetTracker state) | ~80 |
+| Create src/gateway/methods/checkpoints.ts | P0 | checkpoints.list, checkpoints.get | ~120 |
+| Create src/gateway/methods/approval.ts | P0 | approval.list, approval.approve, approval.reject | ~120 |
+| Router: dispatch by method name to handler | P0 | router.ts | ~100 |
+| Create tests/gateway/methods/*.test.ts | P1 | Unit tests with mocks | ~200 |
 
 **Acceptance Criteria**:
-- [ ] Events can be appended and read back
-- [ ] Optional: fix attempts from Sprint 41 flow into Layer 1
+- [ ] sessions.list, sessions.get, sessions.status return expected shape
+- [ ] budget.get returns current budget state
+- [ ] checkpoints.list, checkpoints.get work
+- [ ] approval.list, approve, reject wire to ApprovalQueue
 - [ ] Build passes
 
 ---
 
-### Day 3: Layer 2 — Patterns
+### Day 4: Authentication
 
-**Goal**: Recurring errors, common fixes (from Fix Logging patterns).
+**Goal**: Local-only or token-based auth.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/brain/layers/patterns.ts | P0 | PatternEntry type, addPattern, getPatterns, updatePattern | ~150 |
-| PatternEntry: id, signature (e.g. error fingerprint), fixHint, count, lastSeen | P0 | types | ~60 |
-| Storage: ~/.endiorbot/brain/patterns.json | P0 | storage | ~40 |
-| Import from ~/.endiorbot/learning/patterns.json (Sprint 41) if exists | P1 | migration or sync | ~80 |
-| Create tests/brain/layers/patterns.test.ts | P1 | add, get, update | ~100 |
+| Localhost-only mode: accept connections from 127.0.0.1 only | P0 | server.ts (check socket.remoteAddress) | ~40 |
+| Optional: token in query or header; validate against config | P1 | auth.ts, config gateway.token | ~80 |
+| Reject unauthorized with JSON-RPC error | P0 | -32001 Unauthorized | ~20 |
+| Document auth in docs/04-build/gateway.md | P1 | doc | ~60 |
 
 **Acceptance Criteria**:
-- [ ] Patterns can be added and queried
-- [ ] Compatible with Sprint 41 pattern manager (import path or format)
+- [ ] By default, only localhost can connect
+- [ ] If token configured, client must send valid token
+- [ ] Unauthorized returns error, connection closed
 - [ ] Build passes
 
 ---
 
-### Day 4: Layer 3 — Structures
+### Day 5: Server Events (Push)
 
-**Goal**: Project architecture, module map (static structure).
+**Goal**: Server can push events to connected clients.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/brain/layers/structures.ts | P0 | StructureEntry type, setStructure, getStructure | ~120 |
-| StructureEntry: projectId, type (module_map, file_tree, etc.), data (JSON), updatedAt | P0 | types | ~60 |
-| Storage: ~/.endiorbot/brain/structures.json or by project | P0 | storage | ~60 |
-| Optional: ingest from codebase scan (list files, simple module graph) | P2 | scanner.ts | ~100 |
-| Create tests/brain/layers/structures.test.ts | P1 | set, get | ~80 |
+| Define event types: budget.updated, approval.pending, checkpoint.created, session.updated | P0 | protocol/events.ts | ~80 |
+| Subscribe/unsubscribe or broadcast to all clients | P0 | server broadcast on event | ~100 |
+| Wire BudgetTracker events → gateway broadcast | P0 | gateway subscribes to tracker | ~60 |
+| Wire ApprovalQueue events → gateway broadcast | P0 | Same | ~60 |
+| Wire CheckpointManager events → gateway broadcast | P0 | Same | ~60 |
+| Create tests/gateway/events.test.ts | P1 | Mock events, assert client receives | ~120 |
 
 **Acceptance Criteria**:
-- [ ] Structures can be stored and retrieved by project/type
+- [ ] When budget changes, connected clients receive budget.updated
+- [ ] When approval pending, clients receive approval.pending
+- [ ] When checkpoint created, clients receive checkpoint.created
 - [ ] Build passes
 
 ---
 
-### Day 5: Layer 4 — Mental Models
+## Week 2: Desktop Real-Time Integration (Day 6-10)
 
-**Goal**: Decision heuristics (e.g. "prefer X when Y").
+### Day 6-7: Desktop WebSocket Client
+
+**Goal**: Desktop renderer connects to gateway; reconnection logic.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/brain/layers/mental-models.ts | P0 | MentalModelEntry type, setModel, getModels | ~120 |
-| MentalModelEntry: id, domain, rule (text or structured), source (ceo_import, derived), updatedAt | P0 | types | ~60 |
-| Storage: ~/.endiorbot/brain/mental-models.json | P0 | storage | ~40 |
-| Create src/brain/index.ts | P0 | Re-export layers, storage, types; getBrain() facade | ~80 |
-| Create tests/brain/layers/mental-models.test.ts | P1 | set, get | ~80 |
-| Compute BrainDigest: hash of layer manifests or concatenated content | P0 | brain/digest.ts | ~80 |
+| Create src/desktop/renderer/gateway-client.ts | P0 | WebSocket connect, send JSON-RPC, handle response/events | ~250 |
+| Config: gateway URL (ws://127.0.0.1:18790) from main or env | P0 | Pass from main via IPC or env | ~40 |
+| Reconnect on disconnect (exponential backoff) | P0 | gateway-client.ts | ~80 |
+| Expose gateway client to React (context or store) | P0 | GatewayContext or useGatewayStore | ~100 |
+| Replace IPC poll with gateway calls where real-time needed | P0 | Pages use gateway client | ~150 |
+| Keep IPC fallback when gateway not running | P1 | Desktop works without gateway | ~80 |
 
 **Acceptance Criteria**:
-- [ ] All four layers implemented and tested
-- [ ] BrainDigest computable for checkpoint provenance (ADR-006)
+- [ ] Desktop connects to gateway when available
+- [ ] RPC calls (sessions.list, budget.get, etc.) work via gateway
+- [ ] When gateway down, fallback to IPC (or show "Gateway disconnected")
 - [ ] Build passes
 
 ---
 
-## Week 2: CEO Profile + Evolution (Day 6-10)
+### Day 8: Live UI Updates
 
-### Day 6-7: CEO Profile
-
-**Goal**: CEO coding style, preferences, conventions in one place.
+**Goal**: Dashboard and approval queue update in real time.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/brain/ceo-profile.ts | P0 | CEOProfile type: style (indent, quotes), preferences (testing, docs), conventions (naming) | ~150 |
-| Storage: ~/.endiorbot/brain/ceo-profile.json | P0 | storage | ~40 |
-| loadCEOProfile(), saveCEOProfile() | P0 | ceo-profile.ts | ~80 |
-| Optional: merge with mental-models (CEO rules) | P1 | Same file or link | ~40 |
-| Create tests/brain/ceo-profile.test.ts | P1 | load, save, default | ~80 |
-| Document: how to edit ceo-profile (manual or future CLI) | P1 | docs | ~40 |
+| On budget.updated: refresh budget bar in Dashboard | P0 | Dashboard subscribes to event | ~80 |
+| On approval.pending: refresh approval list; show toast | P0 | Approval component | ~80 |
+| On checkpoint.created: append to Checkpoint viewer list | P0 | Checkpoints page | ~60 |
+| On session.updated: refresh session status | P0 | Dashboard | ~40 |
+| Loading states and "Gateway disconnected" banner | P0 | Shared component | ~60 |
 
 **Acceptance Criteria**:
-- [ ] CEO profile load/save works
-- [ ] Profile can drive style hints (e.g. for code gen) in future sprints
+- [ ] Changing budget in CLI/core reflects in Desktop within 1–2s
+- [ ] New approval appears in Desktop without refresh
+- [ ] New checkpoint appears in list
 - [ ] Build passes
 
 ---
 
-### Day 8: Evolution + Versioning
+### Day 9: Telegram + Desktop Notifications in Parallel
 
-**Goal**: Brain versioning and migration.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| Create src/brain/evolution.ts | P0 | getCurrentVersion(), bumpVersion(), migrate(from, to) | ~150 |
-| Version stored in ~/.endiorbot/brain/version.json or manifest | P0 | storage | ~40 |
-| Migration: when schema changes, migrate old brain dir to new layout | P1 | evolution.ts | ~100 |
-| CheckpointState integration: save brainVersion + brainDigest in checkpoint (ADR-006) | P0 | CheckpointManager or createCheckpoint | ~80 |
-| loadBrainContext(version?) for restore: return snapshot of brain at version | P0 | brain/context.ts | ~100 |
-| Create tests/brain/evolution.test.ts | P1 | version bump, digest change | ~80 |
-
-**Acceptance Criteria**:
-- [ ] Brain has current version and digest
-- [ ] Checkpoint creation records brainVersion and brainDigest
-- [ ] loadBrainContext(version) returns brain snapshot for that version
-- [ ] Build passes
-
----
-
-### Day 9: CLI (brain status, brain export)
-
-**Goal**: CEO can inspect and export Brain.
+**Goal**: CEO can receive alerts on both Telegram and Desktop.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| endiorbot brain status | P0 | Print version, digest, layer counts (events N, patterns N, etc.) | ~120 |
-| endiorbot brain export [--output path] | P0 | Export all layers + ceo-profile to JSON or tarball | ~150 |
-| endiorbot brain layers [layerId] | P1 | List or show layer content (e.g. patterns) | ~100 |
-| Wire to CLI router (bin or src/cli) | P0 | brain subcommand | ~60 |
-| Create tests/cli/brain.test.ts | P1 | status, export | ~100 |
-| Document: docs/02-design/01-ADRs/ADR-009 and user guide snippet | P1 | doc | ~40 |
+| Add DesktopChannel: push to gateway broadcast (alert event) | P0 | src/channels/desktop/desktop-channel.ts | ~100 |
+| Register DesktopChannel when gateway server is running | P0 | NotificationSystem + gateway | ~60 |
+| Desktop UI: show notification toast when alert received | P0 | renderer/components/NotificationToast.tsx | ~80 |
+| Config: enable Telegram and/or Desktop in ~/.endiorbot/config.json | P1 | channels.telegram, channels.desktop | ~40 |
+| Document: channels config | P1 | docs/04-build/gateway.md | ~40 |
 
 **Acceptance Criteria**:
-- [ ] endiorbot brain status runs and prints version + layer summary
-- [ ] endiorbot brain export produces export file
+- [ ] Escalation alert sends to both Telegram (if configured) and Desktop (if connected)
+- [ ] Desktop shows toast for budget/approval/gate alerts
+- [ ] CEO can choose which channels to enable
 - [ ] Build passes
 
 ---
 
 ### Day 10: Integration + G-Sprint-44
 
-**Goal**: Checkpoint digest E2E; gate validation.
+**Goal**: E2E and gate validation.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| E2E: create checkpoint → checkpoint state includes brainVersion, brainDigest | P0 | Test or manual | - |
-| E2E: add pattern → brain digest changes → new checkpoint has new digest | P0 | Test | ~60 |
-| G-Sprint-44 checklist | P0 | All criteria below | - |
-| Tech debt: src/ceo/ module placeholder (optional) | P2 | README or stub | ~20 |
+| E2E: start gateway, start desktop, trigger budget update → UI updates | P0 | Manual or E2E script | — |
+| E2E: approval from desktop (approve/reject) → ApprovalQueue updated | P0 | Manual or E2E | — |
+| CLI flag or subcommand: `endiorbot gateway` | P0 | bin or src/cli | ~60 |
+| G-Sprint-44 checklist | P0 | All criteria below | — |
 
 **Acceptance Criteria**:
-- [ ] Checkpoint creation reads current brain version and digest from Brain module
-- [ ] Brain digest reflects layer content
-- [ ] endiorbot brain status and export work
+- [ ] `endiorbot gateway` starts WebSocket server
+- [ ] Desktop connects and receives real-time updates
+- [ ] Approve/reject from Desktop updates queue
 - [ ] Build and lint pass
 
 ---
@@ -244,43 +231,35 @@ Benefits:
 
 | File / Dir | Est. LOC | Purpose |
 |------------|----------|---------|
-| docs/02-design/01-ADRs/ADR-009-Brain-Architecture.md | ~400 | ADR |
-| src/brain/types.ts | ~160 | Interfaces |
-| src/brain/storage.ts | ~150 | File-based storage |
-| src/brain/layers/events.ts | ~250 | Layer 1 |
-| src/brain/layers/patterns.ts | ~270 | Layer 2 |
-| src/brain/layers/structures.ts | ~240 | Layer 3 |
-| src/brain/layers/mental-models.ts | ~220 | Layer 4 |
-| src/brain/digest.ts | ~80 | BrainDigest |
-| src/brain/context.ts | ~100 | loadBrainContext |
-| src/brain/ceo-profile.ts | ~270 | CEO profile |
-| src/brain/evolution.ts | ~330 | Versioning, migration |
-| src/brain/index.ts | ~80 | Facade |
-| tests/brain/*.test.ts | ~620 | Tests |
-| CLI brain commands | ~430 | status, export, layers |
-| **Total** | **~2,000** | |
-
----
-
-## Modified Files (Sprint 44)
-
-| File | Changes |
-|------|---------|
-| src/checkpoints/* (or session checkpoint creation) | Write brainVersion, brainDigest to CheckpointState |
-| package.json | No new deps (file-based) |
-| docs (user guide) | Brain section |
+| src/gateway/server.ts | ~280 | WebSocket server, router, broadcast |
+| src/gateway/protocol/schema.ts | ~120 | JSON-RPC types |
+| src/gateway/protocol/errors.ts | ~60 | RPC errors |
+| src/gateway/protocol/events.ts | ~80 | Event payloads |
+| src/gateway/methods/sessions.ts | ~150 | Session methods |
+| src/gateway/methods/agents.ts | ~80 | Agent methods |
+| src/gateway/methods/budget.ts | ~80 | Budget method |
+| src/gateway/methods/checkpoints.ts | ~120 | Checkpoint methods |
+| src/gateway/methods/approval.ts | ~120 | Approval methods |
+| src/gateway/auth.ts | ~100 | Token/localhost auth |
+| src/gateway/config.ts | ~60 | Port, token config |
+| src/channels/desktop/desktop-channel.ts | ~100 | Desktop notification channel |
+| src/desktop/renderer/gateway-client.ts | ~330 | WebSocket client |
+| src/desktop/renderer/components/NotificationToast.tsx | ~80 | Alert toasts |
+| tests/gateway/*.test.ts | ~470 | Gateway tests |
+| docs/04-build/gateway.md | ~100 | Gateway + auth doc |
+| **Total** | **~2,500** | |
 
 ---
 
 ## Success Criteria (Sprint 44)
 
 | Criterion | Target | Measurement |
-|-----------|--------|--------------|
-| Brain storage at ~/.endiorbot/brain/ | 100% | Manual |
-| Four layers readable/writable | 100% | Tests |
-| CEO profile load/save | 100% | Tests |
-| Checkpoint has brainVersion + brainDigest | 100% | Test |
-| endiorbot brain status / export | 100% | CLI tests |
+|-----------|--------|-------------|
+| Gateway listens on 18790 | 100% | Manual / test |
+| Desktop connects to gateway | 100% | Manual |
+| Real-time budget/approval/checkpoint | 100% | Manual |
+| Approve/reject from Desktop | 100% | Manual |
+| Telegram + Desktop alerts in parallel | 100% | Manual |
 | Build + lint | Pass | CI |
 
 ---
@@ -289,44 +268,47 @@ Benefits:
 
 | Dependency | Status | Notes |
 |------------|--------|-------|
-| Sprint 43 complete | PLANNED | Gateway + Desktop |
-| ADR-006 (Checkpoint State) | ✅ | brainVersion, brainDigest |
-| Fix Logging / patterns (Sprint 41) | ✅ | Pattern format compatibility |
-| No ML | ✅ | Structured data only |
+| Sprint 43 complete | PLANNED | Desktop Foundation |
+| SessionManager, BudgetTracker, ApprovalQueue, CheckpointManager | ✅ | Prior sprints |
+| NotificationSystem (Sprint 38) | ✅ | Multi-channel |
+| WebSocket library (ws) | ⚠️ | Add dependency |
 
 ---
 
 ## Next Sprint Preview (Sprint 45)
 
-**Sprint Goal**: Full OTT Ecosystem (Zalo + conversational)
+**Sprint Goal**: Brain Architecture
 
 **Key Deliverables**:
-- Bidirectional channels; Zalo channel
-- Conversational escalation (multi-turn via Telegram/Zalo)
-- Channel preference config
+- Brain storage ~/.endiorbot/brain/
+- Layers: events, patterns, structures, mental-models
+- CEO profile, evolution/versioning
+- CLI: `endiorbot brain status`, `brain export`
 
-**Prerequisite**: Sprint 44 PASS (Brain validated)
+**Prerequisite**: Sprint 44 PASS (Gateway + Desktop validated)
 
 ---
 
 ## Approval Checklist (G-Sprint-44)
 
-- [ ] ADR-009 approved or referenced
-- [ ] Brain storage at ~/.endiorbot/brain/ with four layers
-- [ ] CEO profile load/save
-- [ ] Brain version and digest; checkpoint records both
-- [ ] loadBrainContext(version) for restore
-- [ ] endiorbot brain status, brain export (and optional brain layers)
+- [ ] WebSocket gateway server runs on configurable port (default 18790)
+- [ ] JSON-RPC methods: sessions, agents, budget, checkpoints, approval
+- [ ] Auth: localhost-only or token
+- [ ] Server pushes events: budget.updated, approval.pending, checkpoint.created
+- [ ] Desktop connects via WebSocket; real-time UI updates
+- [ ] Approve/reject from Desktop works
+- [ ] Telegram + Desktop notifications in parallel
 - [ ] Build and lint pass
+- [ ] docs/04-build/gateway.md updated
 
 ---
 
-**Last Updated**: 2026-02-22
-**Sprint Status**: DRAFT - Sprint 38-46 Replan
+**Last Updated**: 2026-02-23
+**Sprint Status**: DRAFT — Option A Resequence (shifted from Sprint 43)
 **Blocking**: Sprint 43 close
 
 ---
 
-*Sprint 44 Plan - Brain Architecture*
-*EndiorBot - Persistent Knowledge*
+*Sprint 44 Plan - Gateway + Desktop Integration*
+*EndiorBot - Real-Time Desktop*
 *SDLC Framework 6.1.1*

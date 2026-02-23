@@ -1,40 +1,43 @@
-# Sprint 45 Detailed Plan - Full OTT Ecosystem
+# Sprint 45 Detailed Plan - Brain Architecture
 
-**Version**: 1.0.0
-**Date**: 2026-02-22
+**Version**: 2.0.0 (Option A Resequence)
+**Date**: 2026-02-23
 **Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Sprint 38-46 Replan)
+**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
-- Sprint 44 Complete (Brain Architecture validated)
-- Sprint 38 (Telegram channel) and Sprint 43 (Desktop channel) in place
+- Sprint 44 Complete (Gateway + Desktop Integration validated)
+- ADR-006 (Checkpoint State) already references brainVersion, brainDigest
 **SDLC**: Framework 6.1.1
+
+> **Note**: Originally Sprint 44 (Brain Architecture). Shifted to Sprint 45 per CEO-approved Option A resequence (2026-02-23).
 
 ---
 
 ## Executive Summary
 
-Sprint 45 expands the **OTT (Over-The-Top) ecosystem**: add Zalo (Vietnam market), refactor channels for **bidirectional** communication, and enable **conversational escalation** so the CEO can have multi-turn dialogue with EndiorBot via Telegram or Zalo.
+Sprint 45 implements **EndiorBot Brain** — a persistent, LLM-agnostic knowledge base per ADR-009 proposal. Brain stores events, patterns, structures, and mental models in an iceberg-style layered model; supports CEO profile and versioning; and integrates with checkpoint provenance (brain digest).
 
-### Vision: Multi-Channel CEO
+### Vision: Persistent Knowledge
 
 ```
-Sprint 38:  Telegram send-only + /approve, /reject, /status
-Sprint 45:  Telegram + Zalo; bidirectional; "Show me the error", "Try different approach", "What's status?"
+Current:  Session-scoped context only; no cross-session memory
+Sprint 45: Brain at ~/.endiorbot/brain/ → layers 1–4, CEO profile, versioning
+Future:   Checkpoint restore uses brain context; agents query brain
 ```
 
 Benefits:
-- Vietnam market: Zalo OA integration
-- Unified message format across channels
-- CEO can ask follow-ups from phone (e.g. "Show me the error" → code snippet)
-- Channel preference: ~/.endiorbot/channels.json
+- Cross-session learning (patterns, structures)
+- CEO coding style and preferences in one place
+- Checkpoint provenance: brain digest in CheckpointState (ADR-006)
+- No ML in Brain storage — structured data only
 
 ---
 
 ## Sprint Goal
 
-**Refactor channels for bidirectional support; add Zalo channel; implement conversational escalation (multi-turn) so CEO can interact with EndiorBot via Telegram or Zalo.**
+**Implement Brain storage (~/.endiorbot/brain/) with four layers (events, patterns, structures, mental-models), CEO profile, evolution/versioning, and CLI (brain status, brain export).**
 
 ---
 
@@ -42,9 +45,9 @@ Benefits:
 
 | Gate | Requirement | Status | Blocking |
 |------|-------------|--------|----------|
-| **Sprint 44** | Brain Architecture validated | PLANNED | Sprint 45 start |
-| **Sprint 38** | Telegram channel (send + commands) | ✅ | Base |
-| **Zalo OA** | API access (app id, secret) | ⚠️ | Config |
+| **Sprint 44** | Gateway + Desktop Integration validated | PLANNED | Sprint 45 start |
+| **ADR-009** | Brain Architecture (proposal) | DRAFT | Day 1 approve or reference |
+| **ADR-006** | Checkpoint State (brainVersion, brainDigest) | ✅ | Already approved |
 
 ---
 
@@ -52,168 +55,190 @@ Benefits:
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| **Week 1** | Channel Abstraction + Zalo | Bidirectional interface, Zalo OA, unified format, routing |
-| **Week 2** | Conversational Escalation | Multi-turn: "Show error", "Try different approach", "Status?" |
+| **Week 1** | Brain Storage + Iceberg Layers | types, storage, layers 1–4 |
+| **Week 2** | CEO Profile + Evolution | ceo-profile, evolution, CLI, checkpoint digest |
 
 **Duration**: 10 working days (2 weeks from Sprint 44 close)
 
 ---
 
-## Week 1: Channel Abstraction + Zalo (Day 1-5)
+## Week 1: Brain Storage + Iceberg Layers (Day 1-5)
 
-### Day 1-2: Bidirectional Channel Interface
+### Day 1: ADR-009 + Brain Types
 
-**Goal**: Channels can receive messages, not only send.
+**Goal**: Formalize Brain architecture and TypeScript interfaces.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Extend src/channels/types.ts | P0 | BidirectionalChannel: send, sendAlert, isAvailable, onMessage(callback), startListening(), stopListening() | ~80 |
-| Telegram channel: implement onMessage (polling or webhook), start/stop | P0 | telegram-channel.ts | ~120 |
-| Unified IncomingMessage type: channelId, userId, text, timestamp, messageId | P0 | types.ts | ~60 |
-| Channel registry: register bidirectional channels | P0 | channels/index.ts | ~60 |
-| Create tests/channels/bidirectional.test.ts | P1 | Mock channel, onMessage | ~100 |
-| Refactor NotificationSystem to support "reply target" per channel | P1 | notification-system.ts | ~80 |
+| Create or update ADR-009 (Brain Architecture) | P0 | docs/02-design/01-ADRs/ADR-009-Brain-Architecture.md | ~400 |
+| Create src/brain/types.ts | P0 | Brain, BrainLayer, BrainVersion, BrainDigest | ~120 |
+| Define layer IDs: events, patterns, structures, mental-models | P0 | types.ts | ~40 |
+| Create src/brain/storage.ts | P0 | Base path ~/.endiorbot/brain/, ensureDir, read/write JSON | ~150 |
+| Create tests/brain/storage.test.ts | P1 | Path, read/write, version dirs | ~100 |
 
 **Acceptance Criteria**:
-- [ ] Telegram can receive messages (polling); callback invoked with IncomingMessage
-- [ ] Unified IncomingMessage shape
+- [ ] ADR-009 describes four layers and storage layout
+- [ ] BrainVersion = semver or timestamp; BrainDigest = hash of layer contents (or manifest)
+- [ ] storage.ts reads/writes under ~/.endiorbot/brain/
 - [ ] Build passes
 
 ---
 
-### Day 3: Zalo Channel
+### Day 2: Layer 1 — Events
 
-**Goal**: Zalo OA API integration for send and receive.
+**Goal**: Raw events (session logs, fix attempts) stored in Layer 1.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/channels/zalo/zalo-config.ts | P0 | App id, secret, OA id from config (~/.endiorbot/config.json or channels.json) | ~60 |
-| Create src/channels/zalo/zalo-channel.ts | P0 | Send message via Zalo OA API; receive via webhook or polling (per Zalo docs) | ~250 |
-| Zalo message format: map to/from UnifiedMessage | P0 | Same file or format.ts | ~80 |
-| Register Zalo in channel registry when configured | P0 | channels/index.ts | ~40 |
-| Create tests/channels/zalo.test.ts (mock API) | P1 | Send, receive | ~120 |
-| Document: Zalo OA setup, webhook URL if required | P1 | docs/04-build/ott-channels.md | ~80 |
+| Create src/brain/layers/events.ts | P0 | EventEntry type, appendEvent, getEvents(since?) | ~150 |
+| EventEntry: id, timestamp, type (session_start, fix_attempt, escalation, etc.), payload | P0 | types or events.ts | ~60 |
+| Storage: ~/.endiorbot/brain/events.json or events/ (sharded by date) | P0 | storage layout | ~40 |
+| Integrate: SelfCorrectionEngine or FixLogger writes to Brain Layer 1 (optional hook) | P1 | integration point | ~60 |
+| Create tests/brain/layers/events.test.ts | P1 | append, get, filter | ~100 |
 
 **Acceptance Criteria**:
-- [ ] Zalo channel sends messages when configured
-- [ ] Zalo receives messages (webhook or polling per Zalo API)
+- [ ] Events can be appended and read back
+- [ ] Optional: fix attempts from Sprint 41 flow into Layer 1
 - [ ] Build passes
 
 ---
 
-### Day 4: Unified Message Format + Channel Routing
+### Day 3: Layer 2 — Patterns
 
-**Goal**: One format for alerts and replies; route by alert type.
+**Goal**: Recurring errors, common fixes (from Fix Logging patterns).
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Unified EscalationMessage: type (budget, approval, gate, status), payload, replyToMessageId? | P0 | channels/types.ts | ~60 |
-| Channel routing config: e.g. { budget: ['telegram'], approval: ['telegram', 'zalo'], default: ['telegram'] } | P0 | channels/routing.ts or config | ~100 |
-| NotificationSystem: when sending alert, use routing to pick channels | P0 | notification-system.ts | ~80 |
-| Create ~/.endiorbot/channels.json schema (or extend config.json) | P0 | docs or types | ~40 |
-| Create tests/channels/routing.test.ts | P1 | Route by type | ~80 |
+| Create src/brain/layers/patterns.ts | P0 | PatternEntry type, addPattern, getPatterns, updatePattern | ~150 |
+| PatternEntry: id, signature (e.g. error fingerprint), fixHint, count, lastSeen | P0 | types | ~60 |
+| Storage: ~/.endiorbot/brain/patterns.json | P0 | storage | ~40 |
+| Import from ~/.endiorbot/learning/patterns.json (Sprint 41) if exists | P1 | migration or sync | ~80 |
+| Create tests/brain/layers/patterns.test.ts | P1 | add, get, update | ~100 |
 
 **Acceptance Criteria**:
-- [ ] Alerts formatted once; routing picks which channels get which alert type
-- [ ] channels.json (or config) drives routing
+- [ ] Patterns can be added and queried
+- [ ] Compatible with Sprint 41 pattern manager (import path or format)
 - [ ] Build passes
 
 ---
 
-### Day 5: Integration (Week 1)
+### Day 4: Layer 3 — Structures
 
-**Goal**: Telegram + Zalo both work; routing applied.
+**Goal**: Project architecture, module map (static structure).
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| E2E: send alert → both Telegram and Zalo receive (if both configured) | P0 | Manual or E2E | - |
-| E2E: receive message from Telegram → callback; from Zalo → callback | P0 | Manual or E2E | - |
-| Document channels.json and config keys | P1 | docs/04-build/ott-channels.md | ~40 |
+| Create src/brain/layers/structures.ts | P0 | StructureEntry type, setStructure, getStructure | ~120 |
+| StructureEntry: projectId, type (module_map, file_tree, etc.), data (JSON), updatedAt | P0 | types | ~60 |
+| Storage: ~/.endiorbot/brain/structures.json or by project | P0 | storage | ~60 |
+| Optional: ingest from codebase scan (list files, simple module graph) | P2 | scanner.ts | ~100 |
+| Create tests/brain/layers/structures.test.ts | P1 | set, get | ~80 |
 
 **Acceptance Criteria**:
-- [ ] CEO can receive alerts on chosen channels (Telegram and/or Zalo)
-- [ ] Incoming messages from both channels trigger same handler path
+- [ ] Structures can be stored and retrieved by project/type
 - [ ] Build passes
 
 ---
 
-## Week 2: Conversational Escalation (Day 6-10)
+### Day 5: Layer 4 — Mental Models
 
-### Day 6-7: Message Router (Incoming → Actions)
-
-**Goal**: Incoming CEO messages map to actions (approve, reject, status, show error, try different, etc.).
+**Goal**: Decision heuristics (e.g. "prefer X when Y").
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Create src/channels/conversation/message-router.ts | P0 | Parse text: /approve &lt;id&gt;, /reject &lt;id&gt;, /status, "show me the error", "try a different approach", "what's the current status?" | ~200 |
-| Intent types: APPROVE, REJECT, STATUS, SHOW_ERROR, TRY_DIFFERENT, UNKNOWN | P0 | types | ~40 |
-| Wire APPROVE/REJECT to ApprovalQueue (existing) | P0 | message-router.ts | ~40 |
-| Wire STATUS to session summary (SessionManager or Orchestrator) | P0 | Return summary text | ~100 |
-| Create tests/channels/conversation/message-router.test.ts | P1 | Each intent | ~150 |
-| IncomingMessage handler in main/orchestrator: call messageRouter.route(msg) → execute action | P0 | Integration point | ~80 |
+| Create src/brain/layers/mental-models.ts | P0 | MentalModelEntry type, setModel, getModels | ~120 |
+| MentalModelEntry: id, domain, rule (text or structured), source (ceo_import, derived), updatedAt | P0 | types | ~60 |
+| Storage: ~/.endiorbot/brain/mental-models.json | P0 | storage | ~40 |
+| Create src/brain/index.ts | P0 | Re-export layers, storage, types; getBrain() facade | ~80 |
+| Create tests/brain/layers/mental-models.test.ts | P1 | set, get | ~80 |
+| Compute BrainDigest: hash of layer manifests or concatenated content | P0 | brain/digest.ts | ~80 |
 
 **Acceptance Criteria**:
-- [ ] /approve, /reject, /status work from Telegram and Zalo
-- [ ] Plain text "what's the current status?" (or similar) maps to STATUS
+- [ ] All four layers implemented and tested
+- [ ] BrainDigest computable for checkpoint provenance (ADR-006)
 - [ ] Build passes
 
 ---
 
-### Day 8: SHOW_ERROR and TRY_DIFFERENT
+## Week 2: CEO Profile + Evolution (Day 6-10)
 
-**Goal**: "Show me the error" returns last error/code snippet; "Try a different approach" triggers strategy change.
+### Day 6-7: CEO Profile
+
+**Goal**: CEO coding style, preferences, conventions in one place.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| SHOW_ERROR: get last error and optional code snippet from current session (SelfCorrectionEngine or session state) | P0 | conversation/actions/show-error.ts | ~120 |
-| Send reply to CEO on same channel (Telegram or Zalo) with error text + snippet | P0 | Channel send from conversation handler | ~80 |
-| TRY_DIFFERENT: set flag or call Orchestrator to retry with different strategy (e.g. alternate model or prompt) | P0 | conversation/actions/try-different.ts | ~120 |
-| Reply to CEO: "Retrying with different approach." | P0 | Same | ~40 |
-| Create tests for show-error and try-different (mocked session) | P1 | tests | ~100 |
-| Document: supported phrases in user guide | P1 | docs | ~40 |
+| Create src/brain/ceo-profile.ts | P0 | CEOProfile type: style (indent, quotes), preferences (testing, docs), conventions (naming) | ~150 |
+| Storage: ~/.endiorbot/brain/ceo-profile.json | P0 | storage | ~40 |
+| loadCEOProfile(), saveCEOProfile() | P0 | ceo-profile.ts | ~80 |
+| Optional: merge with mental-models (CEO rules) | P1 | Same file or link | ~40 |
+| Create tests/brain/ceo-profile.test.ts | P1 | load, save, default | ~80 |
+| Document: how to edit ceo-profile (manual or future CLI) | P1 | docs | ~40 |
 
 **Acceptance Criteria**:
-- [ ] "Show me the error" (or similar) returns last error and snippet to CEO on same channel
-- [ ] "Try a different approach" triggers retry and confirms to CEO
+- [ ] CEO profile load/save works
+- [ ] Profile can drive style hints (e.g. for code gen) in future sprints
 - [ ] Build passes
 
 ---
 
-### Day 9: Full Session Summary + Multi-Turn Context
+### Day 8: Evolution + Versioning
 
-**Goal**: "What's the current status?" returns rich summary; optional multi-turn context (conversation id).
+**Goal**: Brain versioning and migration.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| STATUS action: build summary (session id, project, budget used/limit, approval queue length, last checkpoint, active track) | P0 | conversation/actions/status.ts | ~150 |
-| Format summary for Telegram/Zalo (length limit, markdown or plain) | P0 | Same | ~60 |
-| Optional: conversationId or sessionId in IncomingMessage so replies stay in context | P1 | types, storage | ~60 |
-| Create tests for status action | P1 | tests | ~80 |
-| E2E: full flow — trigger escalation → CEO replies "status" → receives summary | P0 | Manual or E2E | - |
+| Create src/brain/evolution.ts | P0 | getCurrentVersion(), bumpVersion(), migrate(from, to) | ~150 |
+| Version stored in ~/.endiorbot/brain/version.json or manifest | P0 | storage | ~40 |
+| Migration: when schema changes, migrate old brain dir to new layout | P1 | evolution.ts | ~100 |
+| CheckpointState integration: save brainVersion + brainDigest in checkpoint (ADR-006) | P0 | CheckpointManager or createCheckpoint | ~80 |
+| loadBrainContext(version?) for restore: return snapshot of brain at version | P0 | brain/context.ts | ~100 |
+| Create tests/brain/evolution.test.ts | P1 | version bump, digest change | ~80 |
 
 **Acceptance Criteria**:
-- [ ] "What's the current status?" returns full session summary
-- [ ] Summary readable on mobile (length/formatted)
+- [ ] Brain has current version and digest
+- [ ] Checkpoint creation records brainVersion and brainDigest
+- [ ] loadBrainContext(version) returns brain snapshot for that version
+- [ ] Build passes
+
+---
+
+### Day 9: CLI (brain status, brain export)
+
+**Goal**: CEO can inspect and export Brain.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| `endiorbot brain status` | P0 | Print version, digest, layer counts (events N, patterns N, etc.) | ~120 |
+| `endiorbot brain export [--output path]` | P0 | Export all layers + ceo-profile to JSON or tarball | ~150 |
+| `endiorbot brain layers [layerId]` | P1 | List or show layer content (e.g. patterns) | ~100 |
+| Wire to CLI router (bin or src/cli) | P0 | brain subcommand | ~60 |
+| Create tests/cli/brain.test.ts | P1 | status, export | ~100 |
+| Document: ADR-009 and user guide snippet | P1 | doc | ~40 |
+
+**Acceptance Criteria**:
+- [ ] `endiorbot brain status` runs and prints version + layer summary
+- [ ] `endiorbot brain export` produces export file
 - [ ] Build passes
 
 ---
 
 ### Day 10: Integration + G-Sprint-45
 
-**Goal**: Channel preference config; gate validation.
+**Goal**: Checkpoint digest E2E; gate validation.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| channels.json: preferred channels per alert type; primary channel for replies | P0 | config load | ~60 |
-| Document ~/.endiorbot/channels.json with examples | P0 | docs/04-build/ott-channels.md | ~80 |
-| G-Sprint-45 checklist | P0 | All criteria below | - |
-| Optional: rate limit or throttle replies to avoid spam | P2 | throttle.ts | ~40 |
+| E2E: create checkpoint → checkpoint state includes brainVersion, brainDigest | P0 | Test or manual | — |
+| E2E: add pattern → brain digest changes → new checkpoint has new digest | P0 | Test | ~60 |
+| G-Sprint-45 checklist | P0 | All criteria below | — |
+| Tech debt: src/ceo/ module placeholder (optional) | P2 | README or stub | ~20 |
 
 **Acceptance Criteria**:
-- [ ] CEO can choose Telegram and/or Zalo; routing and replies use config
-- [ ] Conversational escalation: status, show error, try different all work from Telegram and Zalo
+- [ ] Checkpoint creation reads current brain version and digest from Brain module
+- [ ] Brain digest reflects layer content
+- [ ] `endiorbot brain status` and `brain export` work
 - [ ] Build and lint pass
-- [ ] docs/04-build/ott-channels.md updated
 
 ---
 
@@ -221,16 +246,20 @@ Benefits:
 
 | File / Dir | Est. LOC | Purpose |
 |------------|----------|---------|
-| src/channels/types.ts (extended) | ~140 | BidirectionalChannel, IncomingMessage, UnifiedEscalationMessage |
-| src/channels/zalo/zalo-config.ts | ~60 | Zalo config |
-| src/channels/zalo/zalo-channel.ts | ~330 | Zalo send/receive |
-| src/channels/routing.ts | ~100 | Route by alert type |
-| src/channels/conversation/message-router.ts | ~240 | Intent parsing, dispatch |
-| src/channels/conversation/actions/status.ts | ~210 | Session summary |
-| src/channels/conversation/actions/show-error.ts | ~200 | Last error + snippet |
-| src/channels/conversation/actions/try-different.ts | ~160 | Retry strategy |
-| tests/channels/*.test.ts | ~530 | Channel + conversation tests |
-| docs/04-build/ott-channels.md | ~200 | Zalo setup, channels.json |
+| docs/02-design/01-ADRs/ADR-009-Brain-Architecture.md | ~400 | ADR |
+| src/brain/types.ts | ~160 | Interfaces |
+| src/brain/storage.ts | ~150 | File-based storage |
+| src/brain/layers/events.ts | ~250 | Layer 1 |
+| src/brain/layers/patterns.ts | ~270 | Layer 2 |
+| src/brain/layers/structures.ts | ~240 | Layer 3 |
+| src/brain/layers/mental-models.ts | ~220 | Layer 4 |
+| src/brain/digest.ts | ~80 | BrainDigest |
+| src/brain/context.ts | ~100 | loadBrainContext |
+| src/brain/ceo-profile.ts | ~270 | CEO profile |
+| src/brain/evolution.ts | ~330 | Versioning, migration |
+| src/brain/index.ts | ~80 | Facade |
+| tests/brain/*.test.ts | ~620 | Tests |
+| CLI brain commands | ~430 | status, export, layers |
 | **Total** | **~2,000** | |
 
 ---
@@ -239,23 +268,21 @@ Benefits:
 
 | File | Changes |
 |------|---------|
-| src/channels/telegram/telegram-channel.ts | Bidirectional: onMessage, startListening |
-| src/channels/index.ts | Registry: Zalo, bidirectional |
-| src/notifications/notification-system.ts | Routing, reply target |
-| ~/.endiorbot/channels.json (doc) | Schema and examples |
+| src/checkpoints/* (or session checkpoint creation) | Write brainVersion, brainDigest to CheckpointState |
+| package.json | No new deps (file-based) |
+| docs (user guide) | Brain section |
 
 ---
 
 ## Success Criteria (Sprint 45)
 
 | Criterion | Target | Measurement |
-|-----------|--------|--------------|
-| Zalo channel send/receive | 100% | Manual / test |
-| Channel routing by alert type | 100% | Test |
-| /approve, /reject, /status from Telegram and Zalo | 100% | Manual |
-| "Show me the error" → snippet | 100% | Manual |
-| "Try different approach" → retry | 100% | Manual |
-| "What's the current status?" → summary | 100% | Manual |
+|-----------|--------|-------------|
+| Brain storage at ~/.endiorbot/brain/ | 100% | Manual |
+| Four layers readable/writable | 100% | Tests |
+| CEO profile load/save | 100% | Tests |
+| Checkpoint has brainVersion + brainDigest | 100% | Test |
+| `endiorbot brain status` / `brain export` | 100% | CLI tests |
 | Build + lint | Pass | CI |
 
 ---
@@ -264,48 +291,44 @@ Benefits:
 
 | Dependency | Status | Notes |
 |------------|--------|-------|
-| Sprint 44 complete | PLANNED | Brain |
-| Sprint 38 (Telegram) | ✅ | Base channel |
-| Sprint 43 (Desktop channel) | ✅ | Parallel notifications |
-| ApprovalQueue, SessionManager, SelfCorrectionEngine | ✅ | Prior sprints |
-| Zalo OA API | ⚠️ | External |
+| Sprint 44 complete | PLANNED | Gateway + Desktop Integration |
+| ADR-006 (Checkpoint State) | ✅ | brainVersion, brainDigest |
+| Fix Logging / patterns (Sprint 41) | ✅ | Pattern format compatibility |
+| No ML | ✅ | Structured data only |
 
 ---
 
 ## Next Sprint Preview (Sprint 46)
 
-**Sprint Goal**: Integration + Stabilization
+**Sprint Goal**: Full OTT Ecosystem (Zalo + conversational)
 
 **Key Deliverables**:
-- 2-hour autonomous session E2E
-- Budget optimization, Telegram escalation, parallel tracks, Desktop + Gateway verified
-- User guides, config reference, troubleshooting, benchmarks
-- Sprint 47+ planning
+- Bidirectional channels; Zalo channel
+- Conversational escalation (multi-turn via Telegram/Zalo)
+- Channel preference config
 
-**Prerequisite**: Sprint 45 PASS (Full OTT validated)
+**Prerequisite**: Sprint 45 PASS (Brain Architecture validated)
 
 ---
 
 ## Approval Checklist (G-Sprint-45)
 
-- [ ] Bidirectional channel interface; Telegram and Zalo receive messages
-- [ ] Zalo OA integration (send + receive)
-- [ ] Unified message format and channel routing (channels.json)
-- [ ] Message router: /approve, /reject, /status, show error, try different, status phrase
-- [ ] SHOW_ERROR returns last error + snippet
-- [ ] TRY_DIFFERENT triggers retry and confirms
-- [ ] STATUS returns full session summary
+- [ ] ADR-009 approved or referenced
+- [ ] Brain storage at ~/.endiorbot/brain/ with four layers
+- [ ] CEO profile load/save
+- [ ] Brain version and digest; checkpoint records both
+- [ ] loadBrainContext(version) for restore
+- [ ] `endiorbot brain status`, `brain export` (and optional `brain layers`)
 - [ ] Build and lint pass
-- [ ] docs/04-build/ott-channels.md updated
 
 ---
 
-**Last Updated**: 2026-02-22
-**Sprint Status**: DRAFT - Sprint 38-46 Replan
+**Last Updated**: 2026-02-23
+**Sprint Status**: DRAFT — Option A Resequence (shifted from Sprint 44)
 **Blocking**: Sprint 44 close
 
 ---
 
-*Sprint 45 Plan - Full OTT Ecosystem*
-*EndiorBot - Multi-Channel CEO*
+*Sprint 45 Plan - Brain Architecture*
+*EndiorBot - Persistent Knowledge*
 *SDLC Framework 6.1.1*

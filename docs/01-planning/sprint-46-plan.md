@@ -1,42 +1,42 @@
-# Sprint 46 Detailed Plan - Integration + Stabilization
+# Sprint 46 Detailed Plan - Full OTT Ecosystem
 
-**Version**: 1.0.0
-**Date**: 2026-02-22
+**Version**: 2.0.0 (Option A Resequence)
+**Date**: 2026-02-23
 **Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Sprint 38-46 Replan)
+**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
-- Sprint 45 Complete (Full OTT Ecosystem validated)
+- Sprint 45 Complete (Brain Architecture validated)
+- Sprint 38 (Telegram channel) and Sprint 43 (Desktop channel) in place
 **SDLC**: Framework 6.1.1
+
+> **Note**: Originally Sprint 45 (Full OTT Ecosystem). Shifted to Sprint 46 per CEO-approved Option A resequence (2026-02-23). Integration + Stabilization moves to Sprint 47.
 
 ---
 
 ## Executive Summary
 
-Sprint 46 is **Integration + Stabilization**: full system end-to-end validation, performance checks, documentation, and handover preparation for production hardening (Sprint 47+).
+Sprint 46 expands the **OTT (Over-The-Top) ecosystem**: add Zalo (Vietnam market), refactor channels for **bidirectional** communication, and enable **conversational escalation** so the CEO can have multi-turn dialogue with EndiorBot via Telegram or Zalo.
 
-### Vision: Production Ready
+### Vision: Multi-Channel CEO
 
 ```
-Sprints 38–45:  All features implemented
-Sprint 46:      Prove system works together; document; stabilize; plan next
+Sprint 38:  Telegram send-only + /approve, /reject, /status
+Sprint 46:  Telegram + Zalo; bidirectional; "Show me the error", "Try different approach", "What's status?"
 ```
 
-Goals:
-- 2-hour autonomous session with all systems active
-- Budget optimization (Ollama fallback) verified
-- Telegram escalation round-trip verified
-- Parallel tracks with file locks verified
-- Desktop + Gateway real-time verified
-- User guides, config reference, troubleshooting, performance benchmarks
-- Sprint 47+ planning
+Benefits:
+- Vietnam market: Zalo OA integration
+- Unified message format across channels
+- CEO can ask follow-ups from phone (e.g. "Show me the error" → code snippet)
+- Channel preference: ~/.endiorbot/channels.json
 
 ---
 
 ## Sprint Goal
 
-**Run full system E2E validation; produce user guides, configuration reference, and troubleshooting guide; capture performance benchmarks; complete Sprint 47+ planning.**
+**Refactor channels for bidirectional support; add Zalo channel; implement conversational escalation (multi-turn) so CEO can interact with EndiorBot via Telegram or Zalo.**
 
 ---
 
@@ -44,8 +44,9 @@ Goals:
 
 | Gate | Requirement | Status | Blocking |
 |------|-------------|--------|----------|
-| **Sprint 45** | Full OTT Ecosystem validated | PLANNED | Sprint 46 start |
-| **All Sprints 38–45** | Features implemented and gated | PLANNED | E2E scope |
+| **Sprint 45** | Brain Architecture validated | PLANNED | Sprint 46 start |
+| **Sprint 38** | Telegram channel (send + commands) | ✅ | Base |
+| **Zalo OA** | API access (app id, secret) | ⚠️ | Config |
 
 ---
 
@@ -53,189 +54,168 @@ Goals:
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| **Week 1** | E2E Validation | 2-hour session, budget, Telegram, parallel, desktop+gateway |
-| **Week 2** | Documentation + Handover | User guides, config reference, troubleshooting, benchmarks, Sprint 47+ plan |
+| **Week 1** | Channel Abstraction + Zalo | Bidirectional interface, Zalo OA, unified format, routing |
+| **Week 2** | Conversational Escalation | Multi-turn: "Show error", "Try different approach", "Status?" |
 
 **Duration**: 10 working days (2 weeks from Sprint 45 close)
 
 ---
 
-## Week 1: E2E Validation (Day 1-5)
+## Week 1: Channel Abstraction + Zalo (Day 1-5)
 
-### Day 1: E2E Test Plan + Environment
+### Day 1-2: Bidirectional Channel Interface
 
-**Goal**: Define and prepare E2E scenarios.
+**Goal**: Channels can receive messages, not only send.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Document E2E scenarios in docs/05-testing/e2e-sprint-46.md | P0 | Scenarios: long session, budget limit, approval, 3-strike, parallel, desktop | ~200 |
-| Prepare test project(s) and config (providers, budget limits, Telegram test chat) | P0 | Fixtures or env | - |
-| Optional: E2E script or playwright/jest E2E for CLI + gateway | P1 | tests/e2e/ or docs | ~150 |
-| Checklist: which systems must be running (gateway, desktop, Telegram bot) | P0 | docs | ~60 |
+| Extend src/channels/types.ts | P0 | BidirectionalChannel: send, sendAlert, isAvailable, onMessage(callback), startListening(), stopListening() | ~80 |
+| Telegram channel: implement onMessage (polling or webhook), start/stop | P0 | telegram-channel.ts | ~120 |
+| Unified IncomingMessage type: channelId, userId, text, timestamp, messageId | P0 | types.ts | ~60 |
+| Channel registry: register bidirectional channels | P0 | channels/index.ts | ~60 |
+| Create tests/channels/bidirectional.test.ts | P1 | Mock channel, onMessage | ~100 |
+| Refactor NotificationSystem to support "reply target" per channel | P1 | notification-system.ts | ~80 |
 
 **Acceptance Criteria**:
-- [ ] E2E scenarios written and agreed
-- [ ] Test environment and config documented
+- [ ] Telegram can receive messages (polling); callback invoked with IncomingMessage
+- [ ] Unified IncomingMessage shape
 - [ ] Build passes
 
 ---
 
-### Day 2: Long Autonomous Session (2-Hour)
+### Day 3: Zalo Channel
 
-**Goal**: Run 2-hour autonomous session with all systems active.
+**Goal**: Zalo OA API integration for send and receive.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Execute 2-hour session: real or simulated workload (multi-task, checkpoints, budget) | P0 | Run + log | - |
-| Verify: session runs without crash; checkpoints created; budget tracked | P0 | Checklist | - |
-| Verify: when budget limit approached, Ollama fallback or limit action triggers (per Sprint 39) | P0 | Checklist | - |
-| Document results: duration, checkpoints, budget used, failures if any | P0 | docs/05-testing/e2e-sprint-46.md or report | ~80 |
-| Fix critical bugs found | P0 | As needed | - |
+| Create src/channels/zalo/zalo-config.ts | P0 | App id, secret, OA id from config | ~60 |
+| Create src/channels/zalo/zalo-channel.ts | P0 | Send message via Zalo OA API; receive via webhook or polling | ~250 |
+| Zalo message format: map to/from UnifiedMessage | P0 | Same file or format.ts | ~80 |
+| Register Zalo in channel registry when configured | P0 | channels/index.ts | ~40 |
+| Create tests/channels/zalo.test.ts (mock API) | P1 | Send, receive | ~120 |
+| Document: Zalo OA setup, webhook URL if required | P1 | docs/04-build/ott-channels.md | ~80 |
 
 **Acceptance Criteria**:
-- [ ] 2-hour session completes (or reaches defined end condition)
-- [ ] Checkpoint and budget behavior as designed
-- [ ] Findings documented
-- [ ] Critical issues fixed or logged for Sprint 47
+- [ ] Zalo channel sends messages when configured
+- [ ] Zalo receives messages (webhook or polling per Zalo API)
+- [ ] Build passes
 
 ---
 
-### Day 3: Escalation + OTT Round-Trip
+### Day 4: Unified Message Format + Channel Routing
 
-**Goal**: Telegram (and Zalo if available) escalation round-trip.
+**Goal**: One format for alerts and replies; route by alert type.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Trigger budget warning → CEO receives Telegram alert | P0 | Manual | - |
-| Trigger approval request → CEO receives; /approve from Telegram → approval applied | P0 | Manual | - |
-| Trigger 3-strike gate → CEO receives alert; optional reply handling | P0 | Manual | - |
-| If Zalo configured: same flow on Zalo | P1 | Manual | - |
-| Document: escalation E2E results, screenshots or logs | P0 | docs | ~60 |
-| Fix critical bugs | P0 | As needed | - |
+| Unified EscalationMessage: type (budget, approval, gate, status), payload, replyToMessageId? | P0 | channels/types.ts | ~60 |
+| Channel routing config: e.g. `{ budget: ['telegram'], approval: ['telegram', 'zalo'] }` | P0 | channels/routing.ts or config | ~100 |
+| NotificationSystem: when sending alert, use routing to pick channels | P0 | notification-system.ts | ~80 |
+| Create ~/.endiorbot/channels.json schema (or extend config.json) | P0 | docs or types | ~40 |
+| Create tests/channels/routing.test.ts | P1 | Route by type | ~80 |
 
 **Acceptance Criteria**:
-- [ ] Budget/approval/gate alerts received on Telegram (and Zalo if configured)
-- [ ] /approve (and /reject) from Telegram update ApprovalQueue
-- [ ] Findings documented
-- [ ] Critical issues fixed or logged
+- [ ] Alerts formatted once; routing picks which channels get which alert type
+- [ ] channels.json (or config) drives routing
+- [ ] Build passes
 
 ---
 
-### Day 4: Parallel Tracks + Desktop + Gateway
+### Day 5: Integration (Week 1)
 
-**Goal**: Parallel execution and Desktop/Gateway real-time.
+**Goal**: Telegram + Zalo both work; routing applied.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Run 2 parallel tracks (Sprint 40): verify file locks prevent conflict; merge or completion | P0 | Manual or E2E | - |
-| Start gateway; start desktop; verify real-time budget/approval/checkpoint updates in UI | P0 | Manual | - |
-| Verify: approve/reject from Desktop updates queue and reflects in CLI/session | P0 | Manual | - |
-| Document: parallel and desktop E2E results | P0 | docs | ~60 |
-| Fix critical bugs | P0 | As needed | - |
+| E2E: send alert → both Telegram and Zalo receive (if both configured) | P0 | Manual or E2E | — |
+| E2E: receive message from Telegram → callback; from Zalo → callback | P0 | Manual or E2E | — |
+| Document channels.json and config keys | P1 | docs/04-build/ott-channels.md | ~40 |
 
 **Acceptance Criteria**:
-- [ ] Parallel tracks run without file conflicts
-- [ ] Desktop shows live updates when gateway connected
-- [ ] Approve/reject from Desktop works
-- [ ] Findings documented
-- [ ] Critical issues fixed or logged
+- [ ] CEO can receive alerts on chosen channels (Telegram and/or Zalo)
+- [ ] Incoming messages from both channels trigger same handler path
+- [ ] Build passes
 
 ---
 
-### Day 5: E2E Summary + Stabilization
+## Week 2: Conversational Escalation (Day 6-10)
 
-**Goal**: Consolidate E2E results; fix blocking issues.
+### Day 6-7: Message Router (Incoming → Actions)
+
+**Goal**: Incoming CEO messages map to actions (approve, reject, status, show error, try different).
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
-| Write E2E summary: pass/fail per scenario, known issues, recommendations | P0 | docs/05-testing/e2e-sprint-46.md | ~120 |
-| Triage bugs: critical (fix now), high (Sprint 47), medium/low (backlog) | P0 | Issue list or doc | ~40 |
-| Fix remaining critical bugs from Week 1 | P0 | Code | - |
-| Optional: add one or two automated E2E tests for highest-value path | P1 | tests/e2e | ~100 |
+| Create src/channels/conversation/message-router.ts | P0 | Parse text: /approve, /reject, /status, "show me the error", "try a different approach" | ~200 |
+| Intent types: APPROVE, REJECT, STATUS, SHOW_ERROR, TRY_DIFFERENT, UNKNOWN | P0 | types | ~40 |
+| Wire APPROVE/REJECT to ApprovalQueue (existing) | P0 | message-router.ts | ~40 |
+| Wire STATUS to session summary (SessionManager or Orchestrator) | P0 | Return summary text | ~100 |
+| Create tests/channels/conversation/message-router.test.ts | P1 | Each intent | ~150 |
+| IncomingMessage handler: call messageRouter.route(msg) → execute action | P0 | Integration point | ~80 |
 
 **Acceptance Criteria**:
-- [ ] E2E summary document complete
-- [ ] No critical bugs left open (or explicitly deferred with reason)
+- [ ] /approve, /reject, /status work from Telegram and Zalo
+- [ ] Plain text "what's the current status?" maps to STATUS
+- [ ] Build passes
+
+---
+
+### Day 8: SHOW_ERROR and TRY_DIFFERENT
+
+**Goal**: "Show me the error" returns last error/code snippet; "Try a different approach" triggers strategy change.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| SHOW_ERROR: get last error and optional code snippet from current session | P0 | conversation/actions/show-error.ts | ~120 |
+| Send reply to CEO on same channel with error text + snippet | P0 | Channel send from conversation handler | ~80 |
+| TRY_DIFFERENT: call Orchestrator to retry with different strategy | P0 | conversation/actions/try-different.ts | ~120 |
+| Reply to CEO: "Retrying with different approach." | P0 | Same | ~40 |
+| Create tests for show-error and try-different (mocked session) | P1 | tests | ~100 |
+| Document: supported phrases in user guide | P1 | docs | ~40 |
+
+**Acceptance Criteria**:
+- [ ] "Show me the error" returns last error and snippet to CEO on same channel
+- [ ] "Try a different approach" triggers retry and confirms to CEO
+- [ ] Build passes
+
+---
+
+### Day 9: Full Session Summary + Multi-Turn Context
+
+**Goal**: "What's the current status?" returns rich summary.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| STATUS action: build summary (session id, project, budget used/limit, approval queue, last checkpoint, active track) | P0 | conversation/actions/status.ts | ~150 |
+| Format summary for Telegram/Zalo (length limit, markdown or plain) | P0 | Same | ~60 |
+| Optional: conversationId in IncomingMessage so replies stay in context | P1 | types, storage | ~60 |
+| Create tests for status action | P1 | tests | ~80 |
+| E2E: trigger escalation → CEO replies "status" → receives summary | P0 | Manual or E2E | — |
+
+**Acceptance Criteria**:
+- [ ] "What's the current status?" returns full session summary
+- [ ] Summary readable on mobile (length/formatted)
+- [ ] Build passes
+
+---
+
+### Day 10: Integration + G-Sprint-46
+
+**Goal**: Channel preference config; gate validation.
+
+| Task | Priority | Deliverable | Est. LOC |
+|------|----------|-------------|----------|
+| channels.json: preferred channels per alert type; primary channel for replies | P0 | config load | ~60 |
+| Document ~/.endiorbot/channels.json with examples | P0 | docs/04-build/ott-channels.md | ~80 |
+| G-Sprint-46 checklist | P0 | All criteria below | — |
+| Optional: rate limit or throttle replies to avoid spam | P2 | throttle.ts | ~40 |
+
+**Acceptance Criteria**:
+- [ ] CEO can choose Telegram and/or Zalo; routing and replies use config
+- [ ] Conversational escalation: status, show error, try different all work from Telegram and Zalo
 - [ ] Build and lint pass
-- [ ] Optional E2E tests run in CI if added
-
----
-
-## Week 2: Documentation + Handover (Day 6-10)
-
-### Day 6-7: User Guides + Config Reference
-
-**Goal**: User-facing docs for all new features (Sprints 38–46).
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| User guide: OTT (Telegram, Zalo) — setup, commands, conversational escalation | P0 | docs/06-user-guide/ott-setup.md | ~250 |
-| User guide: Desktop + Gateway — install, run, real-time UI | P0 | docs/06-user-guide/desktop-and-gateway.md | ~200 |
-| User guide: Brain — brain status, export, ceo-profile | P0 | docs/06-user-guide/brain.md | ~150 |
-| User guide: Parallel execution — when to use, dry-run, safety | P0 | docs/06-user-guide/parallel-execution.md | ~150 |
-| Config reference: ~/.endiorbot/config.json, channels.json, gateway, providers | P0 | docs/07-reference/config-reference.md | ~300 |
-| TOC and index update | P0 | docs/README or index | ~40 |
-
-**Acceptance Criteria**:
-- [ ] Each major feature has a user guide section
-- [ ] Config reference lists all options with examples
-- [ ] Links and TOC correct
-- [ ] Build passes (docs build if applicable)
-
----
-
-### Day 8: Troubleshooting + Performance
-
-**Goal**: Troubleshooting guide and performance benchmarks.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| Troubleshooting guide: common errors (gateway won't start, Telegram not receiving, desktop disconnect, checkpoint restore failure) | P0 | docs/06-user-guide/troubleshooting.md | ~250 |
-| Performance benchmarks: document or run — session duration vs task count, budget consumption, parallel speedup | P0 | docs/05-testing/performance-benchmarks.md | ~200 |
-| Optional: benchmark script (run N tasks, record time and cost) | P1 | scripts/ or docs | ~100 |
-| Document: recommended hardware and limits (e.g. max parallel tracks) | P1 | docs | ~80 |
-
-**Acceptance Criteria**:
-- [ ] Troubleshooting guide covers main failure modes
-- [ ] Performance benchmarks documented (even if from single run)
-- [ ] Build passes
-
----
-
-### Day 9: Sprint 47+ Planning
-
-**Goal**: Production hardening and next steps.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| Draft Sprint 47 focus: production hardening (reliability, security, installers, auto-update) | P0 | docs/01-planning/sprint-47-preview.md or section in handover | ~200 |
-| Backlog: list of deferred items from Sprints 38–46 (tech debt, nice-to-haves) | P0 | docs/01-planning/backlog-post-46.md or existing backlog | ~150 |
-| Handover doc: what was delivered in 38–46, how to run E2E, how to release | P0 | docs/01-planning/HANDOVER-SPRINT-46.md | ~250 |
-| Optional: ADR or design notes for production (auth, secrets, rate limits) | P1 | docs/02-design | ~100 |
-
-**Acceptance Criteria**:
-- [ ] Sprint 47 preview (or outline) written
-- [ ] Backlog updated
-- [ ] Handover document complete
-- [ ] CEO/PM can hand off to next phase
-
----
-
-### Day 10: G-Sprint-46 + Sign-Off
-
-**Goal**: Gate validation and sign-off.
-
-| Task | Priority | Deliverable | Est. LOC |
-|------|----------|-------------|----------|
-| G-Sprint-46 checklist (all items below) | P0 | Checklist | - |
-| Final build, lint, test run | P0 | CI green | - |
-| Sign-off: PM/CEO approve Sprint 46 complete | P0 | Process | - |
-
-**Acceptance Criteria**:
-- [ ] All G-Sprint-46 items checked
-- [ ] CI green
-- [ ] Documentation complete
-- [ ] Sign-off obtained (or explicitly deferred)
+- [ ] docs/04-build/ott-channels.md updated
 
 ---
 
@@ -243,19 +223,17 @@ Goals:
 
 | File / Dir | Est. LOC | Purpose |
 |------------|----------|---------|
-| docs/05-testing/e2e-sprint-46.md | ~400 | E2E scenarios and results |
-| docs/06-user-guide/ott-setup.md | ~250 | OTT user guide |
-| docs/06-user-guide/desktop-and-gateway.md | ~200 | Desktop + Gateway |
-| docs/06-user-guide/brain.md | ~150 | Brain |
-| docs/06-user-guide/parallel-execution.md | ~150 | Parallel execution |
-| docs/06-user-guide/troubleshooting.md | ~250 | Troubleshooting |
-| docs/07-reference/config-reference.md | ~300 | Config reference |
-| docs/05-testing/performance-benchmarks.md | ~200 | Benchmarks |
-| docs/01-planning/sprint-47-preview.md | ~200 | Sprint 47 outline |
-| docs/01-planning/backlog-post-46.md | ~150 | Backlog |
-| docs/01-planning/HANDOVER-SPRINT-46.md | ~250 | Handover |
-| tests/e2e/* (optional) | ~100 | Automated E2E |
-| **Total** | **~2,400** (docs + optional code) | |
+| src/channels/types.ts (extended) | ~140 | BidirectionalChannel, IncomingMessage, UnifiedEscalationMessage |
+| src/channels/zalo/zalo-config.ts | ~60 | Zalo config |
+| src/channels/zalo/zalo-channel.ts | ~330 | Zalo send/receive |
+| src/channels/routing.ts | ~100 | Route by alert type |
+| src/channels/conversation/message-router.ts | ~240 | Intent parsing, dispatch |
+| src/channels/conversation/actions/status.ts | ~210 | Session summary |
+| src/channels/conversation/actions/show-error.ts | ~200 | Last error + snippet |
+| src/channels/conversation/actions/try-different.ts | ~160 | Retry strategy |
+| tests/channels/*.test.ts | ~530 | Channel + conversation tests |
+| docs/04-build/ott-channels.md | ~200 | Zalo setup, channels.json |
+| **Total** | **~2,000** | |
 
 ---
 
@@ -263,26 +241,23 @@ Goals:
 
 | File | Changes |
 |------|---------|
-| docs/README or index | TOC, links to new guides |
-| Bug fixes from E2E | Various |
-| package.json / CI | Optional E2E script |
+| src/channels/telegram/telegram-channel.ts | Bidirectional: onMessage, startListening |
+| src/channels/index.ts | Registry: Zalo, bidirectional |
+| src/notifications/notification-system.ts | Routing, reply target |
+| ~/.endiorbot/channels.json (doc) | Schema and examples |
 
 ---
 
 ## Success Criteria (Sprint 46)
 
 | Criterion | Target | Measurement |
-|-----------|--------|--------------|
-| 2-hour autonomous session | Run successfully | E2E |
-| Budget optimization (Ollama) | Verified | E2E |
-| Telegram escalation round-trip | Verified | E2E |
-| Parallel tracks + file locks | Verified | E2E |
-| Desktop + Gateway real-time | Verified | E2E |
-| User guides for Sprints 38–46 features | Complete | Review |
-| Config reference | Complete | Review |
-| Troubleshooting guide | Complete | Review |
-| Performance benchmarks | Documented | Doc |
-| Sprint 47+ planning | Documented | Doc |
+|-----------|--------|-------------|
+| Zalo channel send/receive | 100% | Manual / test |
+| Channel routing by alert type | 100% | Test |
+| /approve, /reject, /status from Telegram and Zalo | 100% | Manual |
+| "Show me the error" → snippet | 100% | Manual |
+| "Try different approach" → retry | 100% | Manual |
+| "What's the current status?" → summary | 100% | Manual |
 | Build + lint | Pass | CI |
 
 ---
@@ -291,35 +266,48 @@ Goals:
 
 | Dependency | Status | Notes |
 |------------|--------|-------|
-| Sprints 38–45 complete | PLANNED | All features |
-| Test environment (API keys, Telegram, etc.) | ⚠️ | Prepare Week 1 |
-| No new runtime dependencies | ✅ | Docs + validation |
+| Sprint 45 complete | PLANNED | Brain Architecture |
+| Sprint 38 (Telegram) | ✅ | Base channel |
+| Sprint 43 (Desktop channel) | ✅ | Parallel notifications |
+| ApprovalQueue, SessionManager, SelfCorrectionEngine | ✅ | Prior sprints |
+| Zalo OA API | ⚠️ | External |
+
+---
+
+## Next Sprint Preview (Sprint 47)
+
+**Sprint Goal**: Integration + Stabilization
+
+**Key Deliverables**:
+- 2-hour autonomous session E2E
+- Budget optimization, Telegram escalation, parallel tracks, Desktop + Gateway verified
+- User guides, config reference, troubleshooting, benchmarks
+- Sprint 48+ planning
+
+**Prerequisite**: Sprint 46 PASS (Full OTT validated)
 
 ---
 
 ## Approval Checklist (G-Sprint-46)
 
-- [ ] E2E: 2-hour session executed and documented
-- [ ] E2E: Budget optimization (Ollama fallback) verified
-- [ ] E2E: Telegram escalation round-trip verified
-- [ ] E2E: Parallel tracks with file locks verified
-- [ ] E2E: Desktop + Gateway real-time verified
-- [ ] User guides: OTT, Desktop/Gateway, Brain, Parallel, Troubleshooting
-- [ ] Config reference complete
-- [ ] Performance benchmarks documented
-- [ ] Sprint 47+ planning and backlog updated
-- [ ] HANDOVER-SPRINT-46.md complete
+- [ ] Bidirectional channel interface; Telegram and Zalo receive messages
+- [ ] Zalo OA integration (send + receive)
+- [ ] Unified message format and channel routing (channels.json)
+- [ ] Message router: /approve, /reject, /status, show error, try different, status phrase
+- [ ] SHOW_ERROR returns last error + snippet
+- [ ] TRY_DIFFERENT triggers retry and confirms
+- [ ] STATUS returns full session summary
 - [ ] Build and lint pass
-- [ ] Sign-off obtained
+- [ ] docs/04-build/ott-channels.md updated
 
 ---
 
-**Last Updated**: 2026-02-22
-**Sprint Status**: DRAFT - Sprint 38-46 Replan
+**Last Updated**: 2026-02-23
+**Sprint Status**: DRAFT — Option A Resequence (shifted from Sprint 45)
 **Blocking**: Sprint 45 close
 
 ---
 
-*Sprint 46 Plan - Integration + Stabilization*
-*EndiorBot - Production Ready*
+*Sprint 46 Plan - Full OTT Ecosystem*
+*EndiorBot - Multi-Channel CEO*
 *SDLC Framework 6.1.1*
