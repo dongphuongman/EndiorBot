@@ -24,8 +24,6 @@ import type { Command } from "commander";
 import {
   getFixLogger,
   getPatternManager,
-  type WeeklySummary,
-  type ErrorPattern,
   type ErrorCategory,
 } from "../../agents/fix-logging/index.js";
 
@@ -74,10 +72,6 @@ function yellow(text: string): string {
   return `${colors.yellow}${text}${colors.reset}`;
 }
 
-function cyan(text: string): string {
-  return `${colors.cyan}${text}${colors.reset}`;
-}
-
 function bold(text: string): string {
   return `${colors.bold}${text}${colors.reset}`;
 }
@@ -101,13 +95,6 @@ function formatSuccessRate(rate: number): string {
     return yellow(`${pct}%`);
   }
   return red(`${pct}%`);
-}
-
-/**
- * Format count.
- */
-function formatCount(n: number): string {
-  return n > 0 ? String(n) : dim("0");
 }
 
 /**
@@ -288,8 +275,8 @@ async function patternsListAction(options: PatternsListOptions): Promise<void> {
   const manager = await getPatternManager();
 
   const patterns = await manager.query({
-    category: options.category,
-    status: options.status,
+    ...(options.category !== undefined && { category: options.category }),
+    ...(options.status !== undefined && { status: options.status }),
     sortBy: options.sortBy ?? "successRate",
     sortOrder: "desc",
   });

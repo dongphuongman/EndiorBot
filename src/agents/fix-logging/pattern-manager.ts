@@ -15,8 +15,6 @@ import * as path from "path";
 import { homedir } from "os";
 import type {
   ErrorPattern,
-  PatternStorage,
-  PatternMetadata,
   PatternStatus,
   PatternQueryOptions,
   ErrorCategory,
@@ -26,11 +24,9 @@ import type {
 import {
   DEFAULT_STORAGE_DIR,
   PATTERNS_FILENAME,
-  PATTERN_SCHEMA_VERSION,
 } from "./types.js";
 import {
   validatePatternStorage,
-  validateErrorPattern,
   createEmptyPatternStorage,
   generatePatternId,
   type ValidatedPatternStorage,
@@ -270,13 +266,13 @@ export class PatternManager {
     }
 
     const pattern = this.storage!.patterns[index]!;
-    const updated: ErrorPattern = {
+    const updated = {
       ...pattern,
       ...updates,
       id: pattern.id,
       createdAt: pattern.createdAt,
       updatedAt: new Date().toISOString(),
-    };
+    } as ErrorPattern;
 
     this.storage!.patterns[index] = updated;
     await this.save();
@@ -336,7 +332,7 @@ export class PatternManager {
       await this.initialize();
     }
 
-    return this.storage!.patterns.find((p) => p.id === patternId) ?? null;
+    return (this.storage!.patterns.find((p) => p.id === patternId) ?? null) as ErrorPattern | null;
   }
 
   /**
@@ -361,7 +357,7 @@ export class PatternManager {
     if (matches.length === 0) return null;
 
     // Return highest success rate pattern
-    return matches.sort((a, b) => b.metadata.successRate - a.metadata.successRate)[0]!;
+    return matches.sort((a, b) => b.metadata.successRate - a.metadata.successRate)[0]! as ErrorPattern;
   }
 
   /**
@@ -411,7 +407,7 @@ export class PatternManager {
       return sortOrder === "desc" ? -comparison : comparison;
     });
 
-    return patterns;
+    return patterns as ErrorPattern[];
   }
 
   /**
@@ -421,7 +417,7 @@ export class PatternManager {
     if (!this.initialized) {
       await this.initialize();
     }
-    return this.storage!.patterns;
+    return this.storage!.patterns as ErrorPattern[];
   }
 
   /**

@@ -21,7 +21,6 @@ import type {
   PatternSummary,
   FixLogQueryOptions,
   ErrorCategory,
-  FixStatus,
 } from "./types.js";
 import { AUTO_FIX_TARGETS } from "../../self-correction/types.js";
 import {
@@ -110,20 +109,20 @@ export class FixLogger {
       params.fix.type
     );
 
-    // Create entry
+    // Create entry (omit undefined optional fields for exactOptionalPropertyTypes)
     const entry: EnhancedFixLogEntry = {
       id: randomUUID(),
       timestamp: new Date().toISOString(),
       sessionId: params.sessionId,
-      trackId: params.trackId,
-      projectId: params.projectId,
+      ...(params.trackId !== undefined && { trackId: params.trackId }),
+      ...(params.projectId !== undefined && { projectId: params.projectId }),
       error: params.error,
       fix: {
         ...params.fix,
         patternId,
       },
       outcome: params.outcome,
-      context: params.context,
+      ...(params.context !== undefined && { context: params.context }),
     };
 
     const result = await this.writer.append(entry);
@@ -250,13 +249,17 @@ export class FixLogger {
       patternMap.set(patternId, current);
     }
 
-    return Array.from(patternMap.entries()).map(([patternId, stats]) => ({
-      patternId,
-      count: stats.count,
-      successRate: stats.count > 0 ? stats.success / stats.count : 0,
-      trend: "stable" as const, // TODO: compare with previous week
-      recommendation: stats.success / stats.count < 0.5 ? "Review this pattern" : undefined,
-    }));
+    return Array.from(patternMap.entries()).map(([patternId, stats]) => {
+      const sr = stats.count > 0 ? stats.success / stats.count : 0;
+      const summary: PatternSummary = {
+        patternId,
+        count: stats.count,
+        successRate: sr,
+        trend: "stable" as const, // TODO: compare with previous week
+        ...(sr < 0.5 && { recommendation: "Review this pattern" }),
+      };
+      return summary;
+    });
   }
 
   /**

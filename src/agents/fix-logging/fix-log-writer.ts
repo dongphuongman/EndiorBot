@@ -197,7 +197,7 @@ export class FixLogWriter {
 
       return {
         success: true,
-        entryId: entries[entries.length - 1]?.id,
+        ...(entries.length > 0 && { entryId: entries[entries.length - 1]!.id }),
         rotated,
         totalEntries: this.storage!.entries.length,
       };
@@ -248,7 +248,7 @@ export class FixLogWriter {
     if (!this.storage) {
       await this.initialize();
     }
-    return this.storage!.entries;
+    return this.storage!.entries as EnhancedFixLogEntry[];
   }
 
   /**
@@ -258,7 +258,7 @@ export class FixLogWriter {
     if (!this.storage) {
       await this.initialize();
     }
-    return this.storage!.metadata;
+    return this.storage!.metadata as FixLogStorage["metadata"];
   }
 
   /**
@@ -285,7 +285,7 @@ export class FixLogWriter {
     return this.storage!.entries.filter((entry) => {
       const timestamp = new Date(entry.timestamp);
       return timestamp >= from && timestamp <= to;
-    });
+    }) as EnhancedFixLogEntry[];
   }
 
   /**
@@ -296,7 +296,7 @@ export class FixLogWriter {
       await this.initialize();
     }
 
-    return this.storage!.entries.filter((entry) => entry.sessionId === sessionId);
+    return this.storage!.entries.filter((entry) => entry.sessionId === sessionId) as EnhancedFixLogEntry[];
   }
 
   /**
@@ -307,7 +307,7 @@ export class FixLogWriter {
       await this.initialize();
     }
 
-    return this.storage!.entries.filter((entry) => entry.fix.patternId === patternId);
+    return this.storage!.entries.filter((entry) => entry.fix.patternId === patternId) as EnhancedFixLogEntry[];
   }
 
   /**
