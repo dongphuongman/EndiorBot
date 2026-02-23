@@ -36,11 +36,9 @@ type GatewayStore = GatewayState & GatewayActions;
 // ============================================================================
 
 export const useGatewayStore = create<GatewayStore>((set) => ({
-  // State
+  // State (omit optional properties that start as undefined)
   status: "stopped",
-  message: undefined,
   isConnected: false,
-  lastChecked: undefined,
 
   // Actions
   checkStatus: async () => {
@@ -50,9 +48,9 @@ export const useGatewayStore = create<GatewayStore>((set) => ({
       );
       set({
         status: result.status,
-        message: result.message,
         isConnected: result.status === "running",
         lastChecked: new Date().toISOString(),
+        ...(result.message !== undefined && { message: result.message }),
       });
     } catch (error) {
       set({
@@ -91,7 +89,7 @@ export const useGatewayStore = create<GatewayStore>((set) => ({
         set({ status: "stopped", isConnected: false });
       }
       return result.success;
-    } catch (error) {
+    } catch (_error) {
       set({ status: "error", message: "Failed to stop" });
       return false;
     }
@@ -107,7 +105,7 @@ export const useGatewayStore = create<GatewayStore>((set) => ({
         set({ status: "running", isConnected: true });
       }
       return result.success;
-    } catch (error) {
+    } catch (_error) {
       set({ status: "error", message: "Failed to restart" });
       return false;
     }

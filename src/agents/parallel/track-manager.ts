@@ -89,7 +89,7 @@ export class TrackManager {
     this.config = {
       maxTracks: config?.maxTracks ?? DEFAULT_MAX_TRACKS,
       defaultBudgetPercent: config?.defaultBudgetPercent ?? DEFAULT_BUDGET_PERCENT,
-      trackNames: config?.trackNames,
+      ...(config?.trackNames !== undefined && { trackNames: config.trackNames }),
     };
 
     this.initializeTracks();
@@ -198,7 +198,6 @@ export class TrackManager {
     const track = this.tracks.get(trackId);
     if (!track) return;
 
-    const previousStatus = this.taskStatuses.get(taskId);
     this.taskStatuses.set(taskId, status);
 
     // Update track counters
@@ -208,14 +207,14 @@ export class TrackManager {
     } else if (status === "completed") {
       track.completed++;
       if (track.currentTaskId === taskId) {
-        track.currentTaskId = undefined;
+        delete track.currentTaskId;
       }
       // Check if track has more tasks
       this.updateTrackStatus(trackId);
     } else if (status === "failed") {
       track.failed++;
       if (track.currentTaskId === taskId) {
-        track.currentTaskId = undefined;
+        delete track.currentTaskId;
       }
       this.updateTrackStatus(trackId);
     }
@@ -377,7 +376,7 @@ export class TrackManager {
     const track = this.tracks.get(trackId);
     if (!track) return false;
     track.status = "stopped";
-    track.currentTaskId = undefined;
+    delete track.currentTaskId;
     return true;
   }
 
@@ -465,7 +464,7 @@ export class TrackManager {
     for (const track of this.tracks.values()) {
       track.taskIds = [];
       track.status = "idle";
-      track.currentTaskId = undefined;
+      delete track.currentTaskId;
       track.completed = 0;
       track.failed = 0;
     }

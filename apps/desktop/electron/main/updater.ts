@@ -111,7 +111,10 @@ export async function initUpdater(win: BrowserWindow): Promise<void> {
  * Set update status and notify renderer.
  */
 function setStatus(status: UpdateStatus, version?: string): void {
-  updateState = { status, version };
+  updateState = {
+    status,
+    ...(version !== undefined && { version }),
+  };
   notifyRenderer();
 }
 

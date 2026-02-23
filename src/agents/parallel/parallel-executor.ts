@@ -16,19 +16,16 @@
 
 import type {
   ParallelTask,
-  ParallelTaskStatus,
   ParallelTaskResult,
   ParallelExecutionResult,
   TaskBatch,
 } from "../types.js";
-import { FileLockManager, createFileLockManager } from "../../infra/file-lock.js";
-import { DependencyGraph } from "./dependency-graph.js";
-import { TrackManager, createTrackManager, type TrackConfig } from "./track-manager.js";
+import { createFileLockManager, type FileLockManager } from "../../infra/file-lock.js";
+import { createTrackManager, type TrackManager, type TrackConfig } from "./track-manager.js";
 import {
-  DependencyScheduler,
   createDependencyScheduler,
+  type DependencyScheduler,
   type ScheduleConfig,
-  type Schedule,
 } from "./dependency-scheduler.js";
 
 // ============================================================================
@@ -121,8 +118,8 @@ export class ParallelExecutor {
       taskTimeoutMs: config?.taskTimeoutMs ?? DEFAULT_TASK_TIMEOUT_MS,
       continueOnError: config?.continueOnError ?? true,
       dryRun: config?.dryRun ?? false,
-      tracks: config?.tracks,
-      schedule: config?.schedule,
+      ...(config?.tracks !== undefined && { tracks: config.tracks }),
+      ...(config?.schedule !== undefined && { schedule: config.schedule }),
     };
 
     this.lockManager = createFileLockManager();
@@ -393,7 +390,7 @@ export class ParallelExecutor {
   /**
    * Release file locks for a task.
    */
-  private releaseLocks(task: ParallelTask, owner: string): void {
+  private releaseLocks(_task: ParallelTask, owner: string): void {
     this.lockManager.releaseAll(owner);
   }
 

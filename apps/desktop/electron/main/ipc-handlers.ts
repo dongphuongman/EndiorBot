@@ -23,7 +23,7 @@ import { getWindowIpcHandlers, getMainWindow } from "./window.js";
 
 let coreModules: {
   getSessionManager: () => import("endiorbot").SessionManager;
-  createBudgetTracker: (config?: unknown) => import("endiorbot").BudgetTracker;
+  createBudgetTracker: (config?: Partial<import("endiorbot").BudgetConfig>) => import("endiorbot").BudgetTracker;
   listCheckpoints: (sessionId?: string) => Promise<import("endiorbot").CheckpointSummary[]>;
   loadCheckpoint: (id: string) => Promise<import("endiorbot").CheckpointState | null>;
   // Sprint 41: Persistent FixLogger (file-backed for cross-session history)
@@ -316,14 +316,14 @@ function registerCheckpointHandlers(): void {
       const checkpoints = await core.listCheckpoints();
       return checkpoints.map((cp) => ({
         id: cp.id,
-        sessionId: cp.sessionId,
         createdAt: cp.createdAt.toISOString(),
-        brainDigest: cp.brainDigest,
-        description: `${cp.reason} - ${cp.completedActionsCount} actions`,
         reason: cp.reason,
-        completedActionsCount: cp.completedActionsCount,
-        sdlcStage: cp.sdlcStage,
-        taskCount: cp.taskCount,
+        description: cp.description ?? `${cp.reason} checkpoint`,
+        sessionCost: cp.sessionCost,
+        filesModified: cp.filesModified,
+        currentPhase: cp.currentPhase,
+        sizeBytes: cp.sizeBytes,
+        compressed: cp.compressed,
       }));
     } catch (error) {
       console.error("[IPC] Failed to list checkpoints:", error);
@@ -348,7 +348,7 @@ function registerCheckpointHandlers(): void {
       return {
         success: true,
         checkpointId: id,
-        sessionId: checkpoint.session.sessionId,
+        sessionId: checkpoint.session.session.id,
         createdAt: checkpoint.meta.createdAt.toISOString(),
       };
     } catch (error) {

@@ -10,25 +10,23 @@
  * @authority ADR-003 CLI-Desktop Protocol
  */
 
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, shell, ipcMain } from "electron";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createWindow, getMainWindow, restoreWindowState } from "./window.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
 import { setupMenu } from "./menu.js";
-import { createTray, destroyTray, updateTrayStatus } from "./tray.js";
+import { createTray } from "./tray.js";
 import { initUpdater, registerUpdaterIpc } from "./updater.js";
 
-// ES Module __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname in CJS context (esbuild bundles to CJS)
+declare const __dirname: string;
 
 // Environment
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 // Paths
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL ?? "http://localhost:5173";
-const PRELOAD_PATH = path.join(__dirname, "../preload/index.cjs");
+const PRELOAD_PATH = path.join(__dirname, "../preload/index.js");
 const RENDERER_PATH = path.join(__dirname, "../../dist/index.html");
 
 // ============================================================================

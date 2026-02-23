@@ -263,7 +263,7 @@ export class FileLockManager {
   releaseAll(owner: string): number {
     let count = 0;
 
-    for (const [path, pathLocks] of this.locks.entries()) {
+    for (const [_path, pathLocks] of this.locks.entries()) {
       const ownerLocks = pathLocks.filter((l) => l.owner === owner);
       for (const lock of ownerLocks) {
         this.release(lock);

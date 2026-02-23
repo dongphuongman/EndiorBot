@@ -134,15 +134,16 @@ const electronAPI = {
     on: (
       channel: string,
       callback: (...args: unknown[]) => void
-    ): ((...args: unknown[]) => void) | undefined => {
+    ): (() => void) | undefined => {
       if (!isValidEventChannel(channel)) {
         console.warn(`Invalid event channel: ${channel}`);
         return undefined;
       }
-      const wrapped = (_event: Electron.IpcRendererEvent, ...args: unknown[]) =>
+      const wrappedCallback = (_event: Electron.IpcRendererEvent, ...args: unknown[]) =>
         callback(...args);
-      ipcRenderer.on(channel, wrapped);
-      return wrapped;
+      ipcRenderer.on(channel, wrappedCallback);
+      // Return a cleanup function to remove the listener
+      return () => ipcRenderer.removeListener(channel, wrappedCallback);
     },
 
     /**

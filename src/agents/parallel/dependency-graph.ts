@@ -292,8 +292,8 @@ export class DependencyGraph {
       const writerArray = Array.from(writers);
       for (let i = 0; i < writerArray.length; i++) {
         for (let j = i + 1; j < writerArray.length; j++) {
-          const task1 = writerArray[i];
-          const task2 = writerArray[j];
+          const task1 = writerArray[i] as string;
+          const task2 = writerArray[j] as string;
 
           if (!this.hasDependency(task1, task2) && !this.hasDependency(task2, task1)) {
             conflicts.push({

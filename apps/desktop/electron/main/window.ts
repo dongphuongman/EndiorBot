@@ -31,7 +31,7 @@ interface WindowOptions {
   minHeight?: number;
   webPreferences: Electron.WebPreferences;
   show?: boolean;
-  titleBarStyle?: Electron.TitleBarStyle;
+  titleBarStyle?: "default" | "hidden" | "hiddenInset" | "customButtonsOnHover";
   backgroundColor?: string;
 }
 
@@ -45,8 +45,7 @@ let store: Store<{ windowState: WindowState }> | null = null;
 function getStore(): Store<{ windowState: WindowState }> {
   if (!store) {
     store = new Store<{ windowState: WindowState }>({
-      name: "window-state",
-      projectName: "endiorbot-desktop", // Required for electron-store v10+
+      name: "endiorbot-desktop-window-state",
       defaults: {
         windowState: {
           width: 1200,

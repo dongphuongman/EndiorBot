@@ -130,7 +130,7 @@ export function buildMenu(mainWindow: BrowserWindow | null): Menu {
           label: "Settings",
           // No accelerator — macOS App menu already owns Cmd+, for Preferences
           // Windows/Linux: Ctrl+, is available but Settings is in Navigate menu as reference
-          accelerator: isMac ? undefined : "Ctrl+,",
+          ...(!isMac && { accelerator: "Ctrl+," }),
           click: () => navigateTo(mainWindow, "/settings"),
         },
       ],

@@ -7,7 +7,7 @@ copyright: Copyright © 2026 Nhat Quang Holding
 
 directories:
   output: release
-  buildResources: resources
+  # buildResources: resources  # Disabled until icons are created
 
 files:
   - dist/**/*
@@ -17,9 +17,10 @@ files:
   - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
   - "!**/node_modules/.bin"
 
-extraResources:
-  - from: resources/icons
-    to: icons
+# Icons will be added in design task
+# extraResources:
+#   - from: resources/icons
+#     to: icons
 
 asar: true
 compression: maximum
@@ -30,13 +31,11 @@ mac:
   target:
     - target: dmg
       arch:
-        - x64
         - arm64
     - target: zip
       arch:
-        - x64
         - arm64
-  icon: resources/icons/icon.icns
+  # icon: resources/icons/icon.icns  # Will be added in design task
   darkModeSupport: true
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -59,8 +58,7 @@ win:
     - target: nsis
       arch:
         - x64
-        - arm64
-  icon: resources/icons/icon.ico
+  # icon: resources/icons/icon.ico  # Will be added in design task
   artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 
 nsis:
@@ -76,12 +74,10 @@ linux:
     - target: AppImage
       arch:
         - x64
-        - arm64
     - target: deb
       arch:
         - x64
-        - arm64
-  icon: resources/icons
+  # icon: resources/icons  # Will be added in design task
   category: Development
   artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 

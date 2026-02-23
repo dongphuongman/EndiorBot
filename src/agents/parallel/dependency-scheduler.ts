@@ -150,7 +150,6 @@ export class DependencyScheduler {
    * Build batches using level-based scheduling.
    */
   private buildBatches(graph: DependencyGraph, tasks: ParallelTask[]): TaskBatch[] {
-    const taskMap = new Map(tasks.map((t) => [t.id, t]));
     const batches: TaskBatch[] = [];
     const scheduled = new Set<string>();
     let batchOrder = 0;
@@ -189,9 +188,6 @@ export class DependencyScheduler {
 
       // Group into sub-batches respecting constraints
       const subBatches = this.groupIntoBatches(sorted);
-
-      // Find which previous batches this batch depends on
-      const previousBatchIds = batches.map((b) => b.id);
 
       for (const subBatch of subBatches) {
         const batchId = `batch-${++batchOrder}`;
