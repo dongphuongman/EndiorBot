@@ -1,196 +1,162 @@
 /**
- * Dashboard Page
- *
- * Main overview page showing session status, budget, and approvals.
- *
- * @module apps/desktop/src/pages/Dashboard
- * @version 1.0.0
- * @date 2026-02-23
+ * Dashboard Page - Project overview and system status
  */
 
-import { useState, useEffect } from "react";
-import { Activity, DollarSign, Clock, CheckCircle2 } from "lucide-react";
-import type { Session, Budget } from "../types/electron";
-import { formatPercent, formatCurrency } from "../lib/utils";
-import { cn } from "../lib/utils";
+import { useSettingsStore } from "../stores/settings.safe";
+import { useGatewayStore } from "../stores/gateway.safe";
+import { Card, CardHeader, CardTitle, CardContent, Badge } from "../components/ui";
 
 export function Dashboard() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { theme, gatewayPort } = useSettingsStore();
+  const { status, isConnected, lastChecked } = useGatewayStore();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [sessionData, budgetData] = await Promise.all([
-          window.electron.ipcRenderer.invoke<Session>("session:get"),
-          window.electron.ipcRenderer.invoke<Budget>("budget:get"),
-        ]);
-        setSession(sessionData);
-        setBudget(budgetData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Mock project data (will be replaced with real data from stores)
+  const projectStats = {
+    name: "EndiorBot",
+    sprint: "Sprint 44",
+    day: "Day 8",
+    progress: 75,
+    tier: "STANDARD" as const,
+  };
 
-    loadData();
-    // Poll every 5 seconds
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const systemStatus = [
+    { label: "Layout & Routing", status: "operational" as const },
+    { label: "Sidebar Navigation", status: "operational" as const },
+    { label: "Safe Stores", status: "operational" as const },
+    { label: "Gateway Connection", status: isConnected ? ("operational" as const) : ("degraded" as const) },
+  ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
-  const dailyUsagePercent = budget ? budget.dailyUsed / budget.dailyLimit : 0;
-  const monthlyUsagePercent = budget ? budget.monthlyUsed / budget.monthlyLimit : 0;
+  const getStatusBadge = (status: "operational" | "degraded" | "offline") => {
+    const variants = {
+      operational: "success",
+      degraded: "warning",
+      offline: "danger",
+    } as const;
+    return variants[status];
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Overview of your EndiorBot activity
-        </p>
+        <h1 className="text-3xl font-bold text-white mb-2">📊 Dashboard</h1>
+        <p className="text-gray-400">Overview of your EndiorBot activity</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Session Status */}
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary-100 p-2 dark:bg-primary-900/20">
-              <Activity className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+      {/* Project Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>🚀 Current Project</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-white">{projectStats.name}</p>
+                <p className="text-sm text-gray-400">{projectStats.sprint} • {projectStats.day}</p>
+              </div>
+              <Badge variant="info">{projectStats.tier}</Badge>
             </div>
+
+            {/* Progress Bar */}
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Active Session</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {session?.name ?? "None"}
-              </p>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-400">Sprint Progress</span>
+                <span className="text-white font-medium">{projectStats.progress}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${projectStats.progress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="text-center p-3 bg-gray-900 rounded-lg">
+                <p className="text-2xl font-bold text-blue-400">12</p>
+                <p className="text-xs text-gray-400">Tasks Done</p>
+              </div>
+              <div className="text-center p-3 bg-gray-900 rounded-lg">
+                <p className="text-2xl font-bold text-green-400">8</p>
+                <p className="text-xs text-gray-400">Commits</p>
+              </div>
+              <div className="text-center p-3 bg-gray-900 rounded-lg">
+                <p className="text-2xl font-bold text-purple-400">3</p>
+                <p className="text-xs text-gray-400">PRs</p>
+              </div>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Token Usage */}
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-100 p-2 dark:bg-green-900/20">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Token Usage</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {session?.tokenCount?.toLocaleString() ?? 0} /{" "}
-                {session?.maxTokens?.toLocaleString() ?? 0}
-              </p>
-            </div>
+      {/* System Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>✅ System Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {systemStatus.map((item, index) => (
+              <div key={index} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
+                <span className="text-gray-300">{item.label}</span>
+                <Badge variant={getStatusBadge(item.status)}>
+                  {item.status}
+                </Badge>
+              </div>
+            ))}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Daily Budget */}
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-yellow-100 p-2 dark:bg-yellow-900/20">
-              <DollarSign className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+      {/* Settings & Gateway Info */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>⚙️ Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Theme</span>
+                <span className="text-white font-medium">{theme}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gateway Port</span>
+                <span className="text-white font-medium">{gatewayPort}</span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Daily Budget</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {budget ? formatCurrency(budget.dailyUsed) : "$0.00"} /{" "}
-                {budget ? formatCurrency(budget.dailyLimit) : "$0.00"}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Monthly Budget */}
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/20">
-              <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Budget</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {budget ? formatCurrency(budget.monthlyUsed) : "$0.00"} /{" "}
-                {budget ? formatCurrency(budget.monthlyLimit) : "$0.00"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Budget Progress Bars */}
-      <div className="card space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Budget Usage
-        </h2>
-
-        {/* Daily Progress */}
-        <div>
-          <div className="mb-1 flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Daily</span>
-            <span className="text-gray-900 dark:text-white">
-              {formatPercent(dailyUsagePercent)}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                dailyUsagePercent >= 0.9
-                  ? "bg-red-500"
-                  : dailyUsagePercent >= 0.7
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
+        {/* Gateway Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>🌐 Gateway</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Status</span>
+                <Badge variant={isConnected ? "success" : "danger"}>
+                  {status}
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Connected</span>
+                <span className="text-white font-medium">{isConnected ? "Yes" : "No"}</span>
+              </div>
+              {lastChecked && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Last Checked</span>
+                  <span className="text-white text-sm">{lastChecked.toLocaleTimeString()}</span>
+                </div>
               )}
-              style={{ width: `${Math.min(dailyUsagePercent * 100, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Monthly Progress */}
-        <div>
-          <div className="mb-1 flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Monthly</span>
-            <span className="text-gray-900 dark:text-white">
-              {formatPercent(monthlyUsagePercent)}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                monthlyUsagePercent >= 0.9
-                  ? "bg-red-500"
-                  : monthlyUsagePercent >= 0.7
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
-              )}
-              style={{ width: `${Math.min(monthlyUsagePercent * 100, 100)}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-          Quick Actions
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn-primary">New Chat</button>
-          <button className="btn-secondary">View Checkpoints</button>
-          <button className="btn-secondary">View Fix Stats</button>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
