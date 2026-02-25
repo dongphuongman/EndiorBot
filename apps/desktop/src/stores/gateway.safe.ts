@@ -1,5 +1,5 @@
 /**
- * SAFE Gateway Store - Works without IPC
+ * SAFE Gateway Store - WebSocket connection to Gateway
  */
 
 import { create } from "zustand";
@@ -9,6 +9,7 @@ interface GatewayState {
   status: 'offline' | 'connecting' | 'connected' | 'error';
   port: number;
   lastChecked: Date | null;
+  ws: WebSocket | null;
 }
 
 interface GatewayActions {
@@ -19,37 +20,117 @@ interface GatewayActions {
 
 type GatewayStore = GatewayState & GatewayActions;
 
-export const useGatewayStore = create<GatewayStore>((set) => ({
+export const useGatewayStore = create<GatewayStore>((set, get) => ({
   // State
   isConnected: false,
   status: 'offline',
   port: 19000,
   lastChecked: null,
+  ws: null,
 
   // Actions
   checkStatus: async () => {
+    const state = get();
+
+    // If already connected, just update lastChecked
+    if (state.isConnected && state.ws && state.ws.readyState === WebSocket.OPEN) {
+      set({ lastChecked: new Date() });
+      return;
+    }
+
+    // If connecting, don't create another connection
+    if (state.ws && state.ws.readyState === WebSocket.CONNECTING) {
+      return;
+    }
+
+    // Close old connection if it exists but not open
+    if (state.ws && state.ws.readyState !== WebSocket.OPEN) {
+      try {
+        state.ws.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
+
+    // Try to connect
     try {
-      // Try WebSocket connection check
-      // For now, just mark as checked (will implement later)
-      set({
-        lastChecked: new Date(),
-        status: 'offline' // Default until Gateway is actually running
-      });
+      const ws = new WebSocket(`ws://127.0.0.1:${state.port}`);
+
+      // Set timeout for connection
+      const timeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          ws.close();
+          set({
+            isConnected: false,
+            status: 'offline',
+            lastChecked: new Date(),
+            ws: null
+          });
+        }
+      }, 3000); // 3 second timeout
+
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        console.log('✅ Gateway connected!');
+        set({
+          isConnected: true,
+          status: 'connected',
+          lastChecked: new Date(),
+          ws
+        });
+      };
+
+      ws.onerror = () => {
+        clearTimeout(timeout);
+        // Silent error - Gateway might not be running
+        set({
+          isConnected: false,
+          status: 'offline',
+          lastChecked: new Date(),
+          ws: null
+        });
+      };
+
+      ws.onclose = () => {
+        clearTimeout(timeout);
+        const currentState = get();
+        // Only log if we were previously connected
+        if (currentState.isConnected) {
+          console.log('Gateway disconnected');
+        }
+        set({
+          isConnected: false,
+          status: 'offline',
+          ws: null
+        });
+      };
     } catch (error) {
-      console.error("Gateway status check failed:", error);
-      set({ status: 'error' });
+      set({
+        isConnected: false,
+        status: 'offline',
+        lastChecked: new Date(),
+        ws: null
+      });
     }
   },
 
   connect: async () => {
+    const state = get();
     set({ status: 'connecting' });
+
     try {
-      // TODO: Implement WebSocket connection
-      // For now, just simulate
-      await new Promise(resolve => setTimeout(resolve, 500));
-      set({
-        isConnected: false, // Will be true when Gateway is actually running
-        status: 'offline'
+      const ws = new WebSocket(`ws://127.0.0.1:${state.port}`);
+
+      await new Promise((resolve, reject) => {
+        ws.onopen = () => {
+          set({
+            isConnected: true,
+            status: 'connected',
+            ws
+          });
+          resolve(undefined);
+        };
+        ws.onerror = reject;
       });
     } catch (error) {
       console.error("Gateway connection failed:", error);
@@ -61,9 +142,14 @@ export const useGatewayStore = create<GatewayStore>((set) => ({
   },
 
   disconnect: async () => {
+    const state = get();
+    if (state.ws) {
+      state.ws.close();
+    }
     set({
       isConnected: false,
-      status: 'offline'
+      status: 'offline',
+      ws: null
     });
   },
 }));

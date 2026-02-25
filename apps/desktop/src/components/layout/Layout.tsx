@@ -22,12 +22,12 @@ export function Layout({ children }: LayoutProps) {
       {/* Title bar (for custom window controls) */}
       <TitleBar />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
         {/* Sidebar navigation */}
         <Sidebar />
 
         {/* Main content area */}
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto bg-gray-50 p-6 dark:bg-gray-800">{children}</main>
       </div>
     </div>
   );
