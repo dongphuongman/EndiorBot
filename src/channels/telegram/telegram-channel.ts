@@ -16,7 +16,7 @@
  * @stage 04 - BUILD
  */
 
-import type { IChannel, EscalationAlert } from "../types.js";
+import type { BidirectionalChannel, EscalationAlert, IncomingMessage, IncomingMessageHandler } from "../types.js";
 import { formatAlertMarkdown } from "../types.js";
 import type { TelegramChannelConfig } from "./telegram-config.js";
 import { loadTelegramConfig, isValidBotToken, isValidChatId } from "./telegram-config.js";
@@ -93,15 +93,18 @@ const LONG_POLLING_TIMEOUT = 30;
 // ============================================================================
 
 /**
- * Telegram notification channel.
+ * Telegram notification channel (bidirectional).
  *
  * Features:
  * - Send plain text and formatted alerts
  * - Poll for CEO commands (/approve, /reject, /status)
+ * - Receive incoming messages via polling
  * - Markdown formatting for rich alerts
  * - Security: only process messages from configured chatId
+ *
+ * Sprint 46: Now implements BidirectionalChannel for two-way communication.
  */
-export class TelegramChannel implements IChannel {
+export class TelegramChannel implements BidirectionalChannel {
   readonly name = "telegram";
 
   private config: TelegramChannelConfig | null;
@@ -110,6 +113,8 @@ export class TelegramChannel implements IChannel {
   private pollingActive = false;
   private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
   private approvalQueue: ApprovalQueueLike | null = null;
+  private messageHandler: IncomingMessageHandler | null = null;
+  private pendingMessages: IncomingMessage[] = [];
 
   constructor(config?: TelegramChannelConfig) {
     this.config = config ?? loadTelegramConfig();
@@ -338,7 +343,25 @@ export class TelegramChannel implements IChannel {
       return;
     }
 
-    // Only process commands
+    // Convert to IncomingMessage for BidirectionalChannel
+    const incoming = this.toIncomingMessage(update);
+    if (incoming) {
+      // Queue for receive() polling
+      this.pendingMessages.push(incoming);
+
+      // Dispatch to handler if registered (non-command messages)
+      if (this.messageHandler && !message.text.startsWith("/")) {
+        try {
+          await this.messageHandler(incoming);
+        } catch (error) {
+          this.log.error("Message handler error", {
+            error: (error as Error).message,
+          });
+        }
+      }
+    }
+
+    // Process commands (existing logic)
     if (!message.text.startsWith("/")) {
       return;
     }
@@ -606,6 +629,93 @@ _CEO escalation bot for EndiorBot_`,
   }
 
   // ==========================================================================
+  // BidirectionalChannel Implementation (Sprint 46)
+  // ==========================================================================
+
+  /**
+   * Poll for incoming messages.
+   * Returns messages since last poll, clears pending queue.
+   */
+  async receive(): Promise<IncomingMessage[]> {
+    const messages = [...this.pendingMessages];
+    this.pendingMessages = [];
+    return messages;
+  }
+
+  /**
+   * Register handler for incoming messages.
+   */
+  onMessage(handler: IncomingMessageHandler): void {
+    this.messageHandler = handler;
+    this.log.info("Message handler registered");
+  }
+
+  /**
+   * Remove registered message handler.
+   */
+  offMessage(): void {
+    this.messageHandler = null;
+    this.log.info("Message handler removed");
+  }
+
+  /**
+   * Start receiving messages (starts polling).
+   */
+  async start(): Promise<void> {
+    this.startPolling();
+  }
+
+  /**
+   * Stop receiving messages (stops polling).
+   */
+  async stop(): Promise<void> {
+    this.stopPolling();
+  }
+
+  /**
+   * Check if channel is actively receiving messages.
+   */
+  isReceiving(): boolean {
+    return this.pollingActive;
+  }
+
+  /**
+   * Convert TelegramUpdate to IncomingMessage.
+   */
+  private toIncomingMessage(update: TelegramUpdate): IncomingMessage | null {
+    const message = update.message;
+    if (!message || !message.text) {
+      return null;
+    }
+
+    // Security: only process messages from configured chat
+    const chatId = String(message.chat.id);
+    if (chatId !== this.config?.chatId) {
+      return null;
+    }
+
+    const incoming: IncomingMessage = {
+      messageId: String(message.message_id),
+      senderId: chatId,
+      content: message.text,
+      receivedAt: new Date(message.date * 1000),
+      metadata: {
+        updateId: update.update_id,
+        username: message.from?.username,
+        isBot: message.from?.is_bot,
+        chatType: message.chat.type,
+      },
+    };
+
+    // Conditionally add optional properties (exactOptionalPropertyTypes)
+    if (message.from?.first_name !== undefined) {
+      incoming.senderName = message.from.first_name;
+    }
+
+    return incoming;
+  }
+
+  // ==========================================================================
   // Lifecycle
   // ==========================================================================
 
@@ -615,6 +725,8 @@ _CEO escalation bot for EndiorBot_`,
   dispose(): void {
     this.stopPolling();
     this.approvalQueue = null;
+    this.messageHandler = null;
+    this.pendingMessages = [];
   }
 }
 

@@ -5,14 +5,16 @@
  * Wired to EndiorBot core modules for real data.
  *
  * @module apps/desktop/electron/main/ipc-handlers
- * @version 1.1.0
- * @date 2026-02-23
- * @status ACTIVE - Sprint 43 Desktop Foundation
+ * @version 1.2.0
+ * @date 2026-02-24
+ * @status ACTIVE - Sprint 44 Day 8 IPC→Gateway Wiring
  * @authority ADR-003 CLI-Desktop Protocol
  */
 
-import { ipcMain, dialog } from "electron";
+import { ipcMain, dialog, app } from "electron";
 import { getWindowIpcHandlers, getMainWindow } from "./window.js";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 // ============================================================================
 // Core Module Imports (Lazy loaded to handle build order)
@@ -28,6 +30,11 @@ let coreModules: {
   loadCheckpoint: (id: string) => Promise<import("endiorbot").CheckpointState | null>;
   // Sprint 41: Persistent FixLogger (file-backed for cross-session history)
   getPersistentFixLogger: () => Promise<import("endiorbot").PersistentFixLogger>;
+  // Sprint 44: Gateway
+  createGatewayServer: (config?: Partial<import("endiorbot").GatewayConfig>) => import("endiorbot").GatewayServer;
+  setGatewayServer: (server: import("endiorbot").GatewayServer | null) => void;
+  getGatewayServer: () => import("endiorbot").GatewayServer | null;
+  registerAllMethods: (server: import("endiorbot").GatewayServer) => void;
 } | null = null;
 
 async function loadCoreModules(): Promise<typeof coreModules> {
@@ -41,6 +48,11 @@ async function loadCoreModules(): Promise<typeof coreModules> {
       listCheckpoints: core.listCheckpoints,
       loadCheckpoint: core.loadCheckpoint,
       getPersistentFixLogger: core.getPersistentFixLogger,
+      // Sprint 44: Gateway
+      createGatewayServer: core.createGatewayServer,
+      setGatewayServer: core.setGatewayServer,
+      getGatewayServer: core.getGatewayServer,
+      registerAllMethods: core.registerAllMethods,
     };
     return coreModules;
   } catch (error) {
@@ -123,67 +135,232 @@ function registerDialogHandlers(): void {
 }
 
 // ============================================================================
-// Settings Handlers (Placeholder for Sprint 44)
+// Settings Handlers (Wired to ~/.endiorbot/config.json)
 // ============================================================================
 
-function registerSettingsHandlers(): void {
-  // Settings will be wired to EndiorBot config in Sprint 44
-  const settings: Record<string, unknown> = {
-    theme: "dark",
-    language: "en",
-    gatewayPort: 18790,
-  };
+interface DesktopSettings {
+  theme: "light" | "dark" | "system";
+  language: string;
+  gatewayPort: number;
+  autoStartGateway: boolean;
+  [key: string]: unknown;
+}
 
+const DEFAULT_SETTINGS: DesktopSettings = {
+  theme: "dark",
+  language: "en",
+  gatewayPort: 18790,
+  autoStartGateway: true,
+};
+
+function getConfigPath(): string {
+  const homeDir = app.getPath("home");
+  return path.join(homeDir, ".endiorbot", "config.json");
+}
+
+function loadSettings(): DesktopSettings {
+  const configPath = getConfigPath();
+  try {
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, "utf-8");
+      const parsed = JSON.parse(content) as Partial<DesktopSettings>;
+      return { ...DEFAULT_SETTINGS, ...parsed };
+    }
+  } catch (error) {
+    console.warn("[IPC] Failed to load settings:", error);
+  }
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(settings: DesktopSettings): boolean {
+  const configPath = getConfigPath();
+  try {
+    const configDir = path.dirname(configPath);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(configPath, JSON.stringify(settings, null, 2), "utf-8");
+    return true;
+  } catch (error) {
+    console.error("[IPC] Failed to save settings:", error);
+    return false;
+  }
+}
+
+function registerSettingsHandlers(): void {
   ipcMain.handle("settings:get", (_event, key: string) => {
+    const settings = loadSettings();
     return settings[key];
   });
 
   ipcMain.handle("settings:set", (_event, key: string, value: unknown) => {
+    const settings = loadSettings();
     settings[key] = value;
-    return true;
+    return saveSettings(settings);
   });
 
   ipcMain.handle("settings:getAll", () => {
-    return { ...settings };
+    return loadSettings();
   });
 }
 
 // ============================================================================
-// Gateway Handlers (Placeholder for Sprint 44)
+// Gateway Handlers (Wired to GatewayServer - Sprint 44 Day 8)
 // ============================================================================
 
-function registerGatewayHandlers(): void {
-  // Gateway integration will be implemented in Sprint 44
-  let gatewayStatus: "stopped" | "starting" | "running" | "error" = "stopped";
+// Gateway server instance (managed by IPC)
+let gatewayServer: import("endiorbot").GatewayServer | null = null;
 
-  ipcMain.handle("gateway:status", () => {
-    return { status: gatewayStatus, message: "Gateway not implemented yet" };
+function registerGatewayHandlers(): void {
+  ipcMain.handle("gateway:status", async () => {
+    const core = await loadCoreModules();
+
+    // Check module-level instance first
+    if (gatewayServer) {
+      return {
+        status: gatewayServer.isRunning ? "running" : "stopped",
+        port: gatewayServer.config.port,
+        activeConnections: gatewayServer.stats.activeConnections,
+      };
+    }
+
+    // Check global singleton (in case started externally)
+    if (core) {
+      const globalServer = core.getGatewayServer();
+      if (globalServer) {
+        return {
+          status: globalServer.isRunning ? "running" : "stopped",
+          port: globalServer.config.port,
+          activeConnections: globalServer.stats.activeConnections,
+        };
+      }
+    }
+
+    return { status: "stopped" };
   });
 
-  ipcMain.handle("gateway:isConnected", () => {
-    return gatewayStatus === "running";
+  ipcMain.handle("gateway:isConnected", async () => {
+    if (gatewayServer?.isRunning) return true;
+
+    const core = await loadCoreModules();
+    if (core) {
+      const globalServer = core.getGatewayServer();
+      return globalServer?.isRunning ?? false;
+    }
+
+    return false;
   });
 
   ipcMain.handle("gateway:start", async () => {
-    gatewayStatus = "starting";
-    // Simulate startup
-    setTimeout(() => {
-      gatewayStatus = "running";
-    }, 1000);
-    return { success: true };
+    const core = await loadCoreModules();
+
+    if (!core) {
+      return { success: false, error: "Core modules not available" };
+    }
+
+    // Check if already running
+    if (gatewayServer?.isRunning) {
+      return { success: true, message: "Gateway already running" };
+    }
+
+    try {
+      // Load port from settings
+      const settings = loadSettings();
+      const port = settings.gatewayPort ?? 18790;
+
+      // Create and start gateway server
+      gatewayServer = core.createGatewayServer({ port });
+
+      // Register all gateway methods
+      core.registerAllMethods(gatewayServer);
+
+      // Set as global singleton
+      core.setGatewayServer(gatewayServer);
+
+      // Start the server
+      await gatewayServer.start();
+
+      console.log(`[IPC] Gateway server started on port ${port}`);
+
+      return {
+        success: true,
+        port,
+        message: `Gateway started on port ${port}`,
+      };
+    } catch (error) {
+      console.error("[IPC] Failed to start gateway:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   ipcMain.handle("gateway:stop", async () => {
-    gatewayStatus = "stopped";
-    return { success: true };
+    const core = await loadCoreModules();
+
+    try {
+      if (gatewayServer) {
+        await gatewayServer.stop();
+        gatewayServer = null;
+      }
+
+      // Clear global singleton
+      if (core) {
+        core.setGatewayServer(null);
+      }
+
+      console.log("[IPC] Gateway server stopped");
+
+      return { success: true };
+    } catch (error) {
+      console.error("[IPC] Failed to stop gateway:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   ipcMain.handle("gateway:restart", async () => {
-    gatewayStatus = "starting";
-    setTimeout(() => {
-      gatewayStatus = "running";
-    }, 1000);
-    return { success: true };
+    const core = await loadCoreModules();
+
+    if (!core) {
+      return { success: false, error: "Core modules not available" };
+    }
+
+    try {
+      // Stop existing server
+      if (gatewayServer) {
+        await gatewayServer.stop();
+        gatewayServer = null;
+        core.setGatewayServer(null);
+      }
+
+      // Load port from settings
+      const settings = loadSettings();
+      const port = settings.gatewayPort ?? 18790;
+
+      // Create and start new server
+      gatewayServer = core.createGatewayServer({ port });
+      core.registerAllMethods(gatewayServer);
+      core.setGatewayServer(gatewayServer);
+      await gatewayServer.start();
+
+      console.log(`[IPC] Gateway server restarted on port ${port}`);
+
+      return {
+        success: true,
+        port,
+        message: `Gateway restarted on port ${port}`,
+      };
+    } catch (error) {
+      console.error("[IPC] Failed to restart gateway:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 }
 

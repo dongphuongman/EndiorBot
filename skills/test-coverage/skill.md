@@ -172,38 +172,7 @@ Test coverage is one of 6 signals in the Vibecoding Index:
 
 ## EndiorBot-Specific Testing
 
-### Test Utilities
-Located in `src/test/` - use existing utilities when available.
-
-### Async Testing
-```typescript
-it('handles async operations', async () => {
-  const result = await asyncFunction();
-  expect(result).toBeDefined();
-});
-```
-
-### Environment Variables
-```typescript
-beforeEach(() => {
-  vi.stubEnv('API_KEY', 'test-key');
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-```
-
-### SDLC Module Testing
-```typescript
-import { GateEngine } from '../sdlc/gates/gate-engine.js';
-import { VibecodingCalculator } from '../sdlc/vibecoding/vibecoding-index.js';
-
-describe('GateEngine', () => {
-  it('evaluates G2 gate correctly', async () => {
-    const engine = new GateEngine({ projectPath: '/tmp/test' });
-    const result = await engine.evaluate('G2', 'feature-123', 'STANDARD');
-    expect(result.result).toBeDefined();
-  });
-});
-```
+- **Utilities**: `src/test/` - use existing utilities when available
+- **Async**: Use `async/await` with `it('...', async () => { ... })`
+- **Env Vars**: Use `vi.stubEnv()` in beforeEach, `vi.unstubAllEnvs()` in afterEach
+- **SDLC**: Import from `../sdlc/gates/` and `../sdlc/vibecoding/`

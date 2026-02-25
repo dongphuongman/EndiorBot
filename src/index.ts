@@ -183,6 +183,12 @@ export {
 // Self-correction module
 export * from './self-correction/index.js';
 
+// Gateway module (Sprint 44)
+export * from './gateway/index.js';
+
+// Brain module (Sprint 45)
+export * from './brain/index.js';
+
 // Sprint 41: Persistent Fix Logging (file-backed for desktop)
 export {
   // FixLogger (async, persistent)

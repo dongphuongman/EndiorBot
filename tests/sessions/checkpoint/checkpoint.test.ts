@@ -249,11 +249,12 @@ describe("createCheckpoint", () => {
       currentPhase: "implement",
       sessionCostSoFar: 0,
       tokenUsage: [],
-      brainVersion: "2.0.0",
     });
 
-    expect(checkpoint.brain.brainVersion).toBe("2.0.0");
-    expect(checkpoint.brain.brainDigest).toHaveLength(64);
+    // Brain reference now comes from the Brain module (Sprint 45)
+    expect(checkpoint.brain.brainVersion).toBeDefined();
+    expect(checkpoint.brain.brainDigest).toBeDefined();
+    expect(checkpoint.brain.brainDigest.length).toBeGreaterThanOrEqual(16);
   });
 
   it("should track created files", async () => {

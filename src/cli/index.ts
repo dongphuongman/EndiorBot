@@ -27,6 +27,10 @@ import {
   registerQueueCommand,
   registerFixCommand,
   registerFixStatsCommand,
+  registerGatewayCommand,
+  registerBrainCommand,
+  registerEvalCommand,
+  registerSetupCommand,
 } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
 
@@ -68,6 +72,10 @@ export async function run(): Promise<void> {
   registerQueueCommand(program);
   registerFixCommand(program);
   registerFixStatsCommand(program);
+  registerGatewayCommand(program);
+  registerBrainCommand(program);
+  registerEvalCommand(program);
+  registerSetupCommand(program);
 
   await program.parseAsync(process.argv);
 }

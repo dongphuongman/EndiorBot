@@ -20,9 +20,11 @@ import {
   formatAlertMarkdown,
   getAlertEmoji,
   getPriorityIndicator,
+  isBidirectionalChannel,
   type EscalationAlert,
   type TelegramChannelConfig,
   type ApprovalQueueLike,
+  type IncomingMessage,
 } from "../../src/channels/index.js";
 
 // ============================================================================
@@ -589,6 +591,145 @@ describe("TelegramChannel", () => {
 
       expect(result?.success).toBe(false);
       expect(result?.response).toContain("Error");
+    });
+  });
+
+  // ==========================================================================
+  // BidirectionalChannel Tests (Sprint 46)
+  // ==========================================================================
+
+  describe("BidirectionalChannel", () => {
+    it("should implement BidirectionalChannel interface", () => {
+      const channel = createTelegramChannel(createTestConfig());
+      expect(isBidirectionalChannel(channel)).toBe(true);
+    });
+
+    it("should have receive method", async () => {
+      const channel = createTelegramChannel(createTestConfig());
+      const messages = await channel.receive();
+      expect(messages).toEqual([]);
+    });
+
+    it("should register and unregister message handler", () => {
+      const channel = createTelegramChannel(createTestConfig());
+      const handler = vi.fn(async (_msg: IncomingMessage) => {});
+
+      channel.onMessage(handler);
+      channel.offMessage();
+      // Should not throw
+    });
+
+    it("should start and stop receiving", async () => {
+      const config = createTestConfig();
+      config.enablePolling = true;
+      const channel = createTelegramChannel(config);
+
+      expect(channel.isReceiving()).toBe(false);
+
+      // Note: startPolling is async but we test state
+      await channel.start();
+      expect(channel.isReceiving()).toBe(true);
+
+      await channel.stop();
+      expect(channel.isReceiving()).toBe(false);
+    });
+
+    it("should queue messages for receive()", async () => {
+      const config = createTestConfig();
+      const channel = createTelegramChannel(config);
+
+      // Simulate update handling
+      await channel.handleUpdate({
+        update_id: 1,
+        message: {
+          message_id: 123,
+          chat: { id: parseInt(config.chatId), type: "private" },
+          date: Math.floor(Date.now() / 1000),
+          text: "Hello from CEO",
+          from: {
+            id: 12345,
+            is_bot: false,
+            first_name: "CEO",
+            username: "ceo_user",
+          },
+        },
+      });
+
+      const messages = await channel.receive();
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content).toBe("Hello from CEO");
+      expect(messages[0].messageId).toBe("123");
+
+      // Second receive should be empty
+      const empty = await channel.receive();
+      expect(empty).toHaveLength(0);
+    });
+
+    it("should call message handler for non-command messages", async () => {
+      const config = createTestConfig();
+      const channel = createTelegramChannel(config);
+      const handler = vi.fn(async (_msg: IncomingMessage) => {});
+      channel.onMessage(handler);
+
+      await channel.handleUpdate({
+        update_id: 1,
+        message: {
+          message_id: 456,
+          chat: { id: parseInt(config.chatId), type: "private" },
+          date: Math.floor(Date.now() / 1000),
+          text: "Not a command",
+        },
+      });
+
+      expect(handler).toHaveBeenCalled();
+      expect(handler.mock.calls[0][0].content).toBe("Not a command");
+    });
+
+    it("should NOT call message handler for commands", async () => {
+      const config = createTestConfig();
+      const channel = createTelegramChannel(config);
+      const handler = vi.fn(async (_msg: IncomingMessage) => {});
+      channel.onMessage(handler);
+
+      // Mock the sendMessage response for command reply
+      mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 1 }));
+
+      await channel.handleUpdate({
+        update_id: 1,
+        message: {
+          message_id: 789,
+          chat: { id: parseInt(config.chatId), type: "private" },
+          date: Math.floor(Date.now() / 1000),
+          text: "/help",
+        },
+      });
+
+      // Commands still get queued
+      const messages = await channel.receive();
+      expect(messages).toHaveLength(1);
+
+      // But handler should not be called for commands
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("should clear pending messages on dispose", async () => {
+      const config = createTestConfig();
+      const channel = createTelegramChannel(config);
+
+      await channel.handleUpdate({
+        update_id: 1,
+        message: {
+          message_id: 111,
+          chat: { id: parseInt(config.chatId), type: "private" },
+          date: Math.floor(Date.now() / 1000),
+          text: "Test message",
+        },
+      });
+
+      channel.dispose();
+
+      const messages = await channel.receive();
+      expect(messages).toHaveLength(0);
     });
   });
 });

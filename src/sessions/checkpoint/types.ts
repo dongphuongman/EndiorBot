@@ -391,6 +391,17 @@ export interface RollbackStrategy {
 }
 
 /**
+ * Layer hashes for granular brain comparison.
+ */
+export interface BrainLayerHashes {
+  events: string;
+  patterns: string;
+  structures: string;
+  mentalModels: string;
+  ceoProfile: string;
+}
+
+/**
  * Brain reference (AI model state).
  */
 export interface BrainReference {
@@ -398,6 +409,10 @@ export interface BrainReference {
   brainVersion: string;
   /** Brain digest (SHA256) for verification */
   brainDigest: string;
+  /** Per-layer hashes for granular comparison */
+  layerHashes?: BrainLayerHashes;
+  /** Timestamp when reference was captured */
+  capturedAt?: string;
 }
 
 /**

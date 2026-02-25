@@ -24,3 +24,7 @@ export { registerQueueCommand } from "./queue.js";
 export { registerFixCommand } from "./fix.js";
 export { registerFixStatsCommand } from "./fix-stats.js";
 export { registerFixesCommand } from "./fixes.js";
+export { registerGatewayCommand } from "./gateway.js";
+export { registerBrainCommand } from "./brain.js";
+export { registerEvalCommand } from "./eval.js";
+export { registerSetupCommand } from "./setup.js";

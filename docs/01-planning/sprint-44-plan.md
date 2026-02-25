@@ -1,9 +1,9 @@
 # Sprint 44 Detailed Plan - Gateway + Desktop Integration
 
-**Version**: 2.0.0 (Option A Resequence)
+**Version**: 2.1.0 (Research Integration)
 **Date**: 2026-02-23
-**Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
+**Status**: APPROVED - Ready to Start
+**Authority**: PM + CTO (Research Integration — Claude Cowork Syllabus Findings)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
@@ -188,9 +188,9 @@ Benefits:
 
 ---
 
-### Day 9: Telegram + Desktop Notifications in Parallel
+### Day 9: Telegram + Desktop Notifications + SKILL.md Audit
 
-**Goal**: CEO can receive alerts on both Telegram and Desktop.
+**Goal**: CEO can receive alerts on both Telegram and Desktop; SKILL.md audit (research quick win).
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
@@ -199,27 +199,56 @@ Benefits:
 | Desktop UI: show notification toast when alert received | P0 | renderer/components/NotificationToast.tsx | ~80 |
 | Config: enable Telegram and/or Desktop in ~/.endiorbot/config.json | P1 | channels.telegram, channels.desktop | ~40 |
 | Document: channels config | P1 | docs/04-build/gateway.md | ~40 |
+| **SKILL.md Audit** (Research P0) | P0 | Audit existing skill files | ~50 |
+
+**SKILL.md Audit Checklist** (from Research):
+- [ ] All SKILL.md files < 200 lines
+- [ ] description has trigger keywords ("Use when user mentions...")
+- [ ] Progressive Disclosure: detail → references/ folder
+- [ ] No magic numbers in scripts
+- [ ] Test skill loading with Haiku, Sonnet, Opus
 
 **Acceptance Criteria**:
 - [ ] Escalation alert sends to both Telegram (if configured) and Desktop (if connected)
 - [ ] Desktop shows toast for budget/approval/gate alerts
 - [ ] CEO can choose which channels to enable
+- [ ] SKILL.md audit complete with findings documented
 - [ ] Build passes
 
 ---
 
-### Day 10: Integration + G-Sprint-44
+### Day 10: Routing Confidence + Integration + G-Sprint-44
 
-**Goal**: E2E and gate validation.
+**Goal**: Add Routing Confidence Score (research P1); E2E and gate validation.
 
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
+| **Routing Confidence Score** (Research P1) | P1 | src/agents/routing/confidence.ts | ~100 |
+| Wire ConfidenceRouter to QueryClassifier | P1 | Integration with existing router | ~50 |
 | E2E: start gateway, start desktop, trigger budget update → UI updates | P0 | Manual or E2E script | — |
 | E2E: approval from desktop (approve/reject) → ApprovalQueue updated | P0 | Manual or E2E | — |
 | CLI flag or subcommand: `endiorbot gateway` | P0 | bin or src/cli | ~60 |
 | G-Sprint-44 checklist | P0 | All criteria below | — |
 
+**Routing Confidence Interface** (from Research):
+```typescript
+// src/agents/routing/confidence.ts
+export interface RoutingDecision {
+  model: ModelType;
+  confidence: number;      // 0.0 - 1.0
+  reason: string;
+  escalateIfBelow: number; // Default 0.7 - HITL threshold
+}
+
+export class ConfidenceRouter {
+  route(query: string): RoutingDecision;
+  shouldEscalate(decision: RoutingDecision): boolean;
+}
+```
+
 **Acceptance Criteria**:
+- [ ] ConfidenceRouter returns confidence score with routing decision
+- [ ] HITL escalation triggers when confidence < 0.7
 - [ ] `endiorbot gateway` starts WebSocket server
 - [ ] Desktop connects and receives real-time updates
 - [ ] Approve/reject from Desktop updates queue
@@ -247,7 +276,9 @@ Benefits:
 | src/desktop/renderer/components/NotificationToast.tsx | ~80 | Alert toasts |
 | tests/gateway/*.test.ts | ~470 | Gateway tests |
 | docs/04-build/gateway.md | ~100 | Gateway + auth doc |
-| **Total** | **~2,500** | |
+| **src/agents/routing/confidence.ts** | **~100** | **Routing Confidence Score (Research)** |
+| **docs/02-design/research/skill-audit.md** | **~50** | **SKILL.md Audit Report (Research)** |
+| **Total** | **~2,700** | |
 
 ---
 
@@ -260,6 +291,8 @@ Benefits:
 | Real-time budget/approval/checkpoint | 100% | Manual |
 | Approve/reject from Desktop | 100% | Manual |
 | Telegram + Desktop alerts in parallel | 100% | Manual |
+| **SKILL.md Audit complete** | 100% | Audit report |
+| **Routing Confidence integrated** | 100% | Unit tests |
 | Build + lint | Pass | CI |
 
 ---
@@ -298,6 +331,8 @@ Benefits:
 - [ ] Desktop connects via WebSocket; real-time UI updates
 - [ ] Approve/reject from Desktop works
 - [ ] Telegram + Desktop notifications in parallel
+- [ ] **SKILL.md Audit complete** (Research P0)
+- [ ] **Routing Confidence Score integrated** (Research P1)
 - [ ] Build and lint pass
 - [ ] docs/04-build/gateway.md updated
 

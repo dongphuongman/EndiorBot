@@ -26,6 +26,10 @@ export type {
   NotificationChannelsConfig,
   RegisteredChannel,
   IChannelRegistry,
+  // Bidirectional Channel (Sprint 46)
+  IncomingMessage,
+  IncomingMessageHandler,
+  BidirectionalChannel,
 } from "./types.js";
 
 export {
@@ -33,6 +37,7 @@ export {
   formatAlertMarkdown,
   getAlertEmoji,
   getPriorityIndicator,
+  isBidirectionalChannel,
 } from "./types.js";
 
 // Telegram Channel
@@ -68,6 +73,92 @@ export {
   createTelegramAdapter,
   shouldSendToTelegram,
 } from "./telegram/notification-adapter.js";
+
+// OTT Message Router
+export {
+  OTTMessageRouter,
+  createOTTRouter,
+  getOTTRouter,
+  resetOTTRouter,
+  DEFAULT_ROUTER_CONFIG,
+  // Channel integration (Sprint 46)
+  createSecureChannelHandler,
+  createAllowedOnlyHandler,
+  type OTTChannelSource,
+  type OTTMessage,
+  type RoutedMessage,
+  type MessageHandler,
+  type RouteDecision,
+  type MessageRouterConfig,
+  type SanitizedChannelMessage,
+  type SecureMessageHandler,
+} from "./ott/message-router.js";
+
+// Zalo Channel (Sprint 46)
+export type {
+  ZaloChannelConfig,
+  ZaloChannelConfigPartial,
+} from "./zalo/index.js";
+
+export {
+  ZaloChannel,
+  createZaloChannel,
+  createZaloChannelFromEnv,
+  loadZaloConfig,
+  isZaloConfigured,
+  isValidOaId,
+  isValidUserId,
+  ZALO_API_BASE,
+  ENV_ZALO_ACCESS_TOKEN,
+  ENV_ZALO_REFRESH_TOKEN,
+  ENV_ZALO_USER_ID,
+  ENV_ZALO_OA_ID,
+  ENV_ZALO_WEBHOOK_SECRET,
+  DEFAULT_ZALO_CONFIG,
+} from "./zalo/index.js";
+
+// Conversation Handler (Sprint 46 Days 6-7)
+export type {
+  Intent,
+  ParsedIntent,
+  IntentParams,
+  ActionResult,
+  ActionContext,
+  ActionHandler,
+  MessageHandlerConfig,
+  ErrorStore,
+  HandleResult,
+} from "./conversation/index.js";
+
+export {
+  parseIntent,
+  requiresApprovalId,
+  isActionableIntent,
+  getIntentDescription,
+  executeAction,
+  getActionHandler,
+  ConversationMessageHandler,
+  SimpleErrorStore,
+  createMessageHandler,
+  getMessageHandler,
+  resetMessageHandler,
+  configureMessageHandler,
+} from "./conversation/index.js";
+
+// Channel Routing (Sprint 46 Day 9)
+export type { AlertType, ChannelRoutingConfig } from "./routing.js";
+
+export {
+  loadChannelRouting,
+  saveChannelRouting,
+  getChannelsForAlert,
+  setChannelsForAlert,
+  setPrimaryChannel,
+  isChannelInRouting,
+  getAllConfiguredChannels,
+  DEFAULT_CHANNELS_CONFIG_PATH,
+  DEFAULT_CHANNEL_ROUTING,
+} from "./routing.js";
 
 // ============================================================================
 // Channel Registry

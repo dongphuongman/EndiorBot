@@ -68,7 +68,10 @@
       "Bash(__NEW_LINE_d454ac1ae4165997__ echo \"✅ 9. Production build succeeds \\(pnpm run build\\)\")",
       "Bash(__NEW_LINE_d454ac1ae4165997__ echo \"✅ 10. No nodeIntegration: true\")",
       "Bash(__NEW_LINE_d454ac1ae4165997__ echo \"✅ 11. TypeScript clean, lint pass\")",
-      "Bash(__NEW_LINE_d454ac1ae4165997__ echo \"================================================\")"
+      "Bash(__NEW_LINE_d454ac1ae4165997__ echo \"================================================\")",
+      "Bash(pnpm eslint:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(find:*)"
     ]
   }
 }

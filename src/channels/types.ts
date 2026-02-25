@@ -71,7 +71,7 @@ export interface EscalationAlert {
  * - TerminalChannel (existing)
  * - FileChannel (existing)
  * - TelegramChannel (Sprint 38)
- * - Future: ZaloChannel (Sprint 45)
+ * - Future: ZaloChannel (Sprint 46)
  */
 export interface IChannel {
   /** Channel name (e.g., "telegram", "terminal", "file") */
@@ -96,6 +96,94 @@ export interface IChannel {
    * @returns true if channel can send messages
    */
   isAvailable(): Promise<boolean>;
+}
+
+// ============================================================================
+// Bidirectional Channel Interface (Sprint 46)
+// ============================================================================
+
+/**
+ * Incoming message from a bidirectional channel.
+ */
+export interface IncomingMessage {
+  /** Unique message ID from source */
+  messageId: string;
+  /** Sender ID (user/chat) */
+  senderId: string;
+  /** Message content */
+  content: string;
+  /** When message was received */
+  receivedAt: Date;
+  /** Optional reply-to message ID */
+  replyTo?: string;
+  /** Optional sender display name */
+  senderName?: string;
+  /** Optional metadata from source */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Message handler for bidirectional channels.
+ */
+export type IncomingMessageHandler = (message: IncomingMessage) => Promise<void>;
+
+/**
+ * Bidirectional channel interface for two-way communication.
+ *
+ * Extends IChannel with receive capabilities:
+ * - Poll-based: receive() for manual polling
+ * - Event-based: onMessage() for push notifications
+ * - Lifecycle: start()/stop() for connection management
+ *
+ * Per Sprint 46 Days 4-5 CTO direction:
+ * - Telegram first, then Zalo
+ * - Wire through OTTMessageRouter for security
+ */
+export interface BidirectionalChannel extends IChannel {
+  /**
+   * Poll for incoming messages.
+   * @returns Array of received messages since last poll
+   */
+  receive(): Promise<IncomingMessage[]>;
+
+  /**
+   * Register handler for incoming messages.
+   * @param handler - Function to handle incoming messages
+   */
+  onMessage(handler: IncomingMessageHandler): void;
+
+  /**
+   * Remove registered message handler.
+   */
+  offMessage(): void;
+
+  /**
+   * Start receiving messages (connect/start polling).
+   */
+  start(): Promise<void>;
+
+  /**
+   * Stop receiving messages (disconnect/stop polling).
+   */
+  stop(): Promise<void>;
+
+  /**
+   * Check if channel is actively receiving messages.
+   */
+  isReceiving(): boolean;
+}
+
+/**
+ * Type guard for bidirectional channels.
+ */
+export function isBidirectionalChannel(channel: IChannel): channel is BidirectionalChannel {
+  return (
+    'receive' in channel &&
+    'onMessage' in channel &&
+    'start' in channel &&
+    'stop' in channel &&
+    'isReceiving' in channel
+  );
 }
 
 // ============================================================================

@@ -49,3 +49,23 @@ export {
   type CommandCheckResult,
   type ShellGuardConfig,
 } from "./shell-guard.js";
+
+// OTT Audit Logger
+export {
+  OTTAuditLogger,
+  createOTTAuditLogger,
+  getOTTAuditLogger,
+  resetOTTAuditLogger,
+  auditOTTMessage,
+  auditOTTViolation,
+  auditOTTRateLimit,
+  cleanupOTTAudit,
+  DEFAULT_AUDIT_CONFIG,
+  type OTTAuditConfig,
+  type OTTAuditType,
+  type OTTAuditEntry,
+  type OTTMessageAudit,
+  type OTTViolationAudit,
+  type OTTRateLimitAudit,
+  type AnyOTTAudit,
+} from "./ott-audit.js";

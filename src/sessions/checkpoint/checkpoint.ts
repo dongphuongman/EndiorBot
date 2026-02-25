@@ -49,6 +49,7 @@ import {
   validateCheckpoint,
   sanitizeCheckpoint,
 } from "./serializer.js";
+import { getBrainCheckpointReference } from "../../brain/evolution.js";
 
 // ============================================================================
 // Constants
@@ -270,9 +271,22 @@ export async function createCheckpoint(options: CreateCheckpointOptions): Promis
   });
   const executionTraceDigest = createHash("sha256").update(traceData).digest("hex");
 
-  // Compute brain digest
-  const brainVersion = options.brainVersion ?? "1.0.0";
-  const brainDigest = createHash("sha256").update(`${brainVersion}:${runtimeFingerprint}`).digest("hex");
+  // Get brain reference from Brain module (Sprint 45 integration)
+  let brainRef: BrainReference;
+  try {
+    const brainCheckpointRef = getBrainCheckpointReference();
+    brainRef = {
+      brainVersion: brainCheckpointRef.brainVersion,
+      brainDigest: brainCheckpointRef.brainDigest,
+      layerHashes: brainCheckpointRef.layerHashes,
+      capturedAt: brainCheckpointRef.capturedAt,
+    };
+  } catch {
+    // Fallback if brain module not initialized
+    const brainVersion = options.brainVersion ?? "1.0.0";
+    const brainDigest = createHash("sha256").update(`${brainVersion}:${runtimeFingerprint}`).digest("hex");
+    brainRef = { brainVersion, brainDigest };
+  }
 
   // Build checkpoint
   const meta: CheckpointMeta = {
@@ -340,10 +354,7 @@ export async function createCheckpoint(options: CreateCheckpointOptions): Promis
 
   const rollback = {};
 
-  const brain: BrainReference = {
-    brainVersion,
-    brainDigest,
-  };
+  const brain: BrainReference = brainRef;
 
   const statemachine: StateMachineState = {
     gateStatus: {},

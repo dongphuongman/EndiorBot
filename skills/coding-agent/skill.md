@@ -47,16 +47,8 @@ bash command:"codex exec 'Your prompt'"
 
 ### Process Tool Actions (for background sessions)
 
-| Action | Description |
-|--------|-------------|
-| `list` | List all running/recent sessions |
-| `poll` | Check if session is still running |
-| `log` | Get session output (with optional offset/limit) |
-| `write` | Send raw data to stdin |
-| `submit` | Send data + newline (like typing and pressing Enter) |
-| `send-keys` | Send key tokens or hex bytes |
-| `paste` | Paste text (with optional bracketed mode) |
-| `kill` | Terminate the session |
+See [references/process-actions.md](references/process-actions.md) for full action list.
+Common: `list`, `poll`, `log`, `write`, `submit`, `kill`.
 
 ---
 
@@ -71,8 +63,6 @@ SCRATCH=$(mktemp -d) && cd $SCRATCH && git init && codex exec "Your prompt here"
 # Or in a real project - with PTY!
 bash pty:true workdir:~/Projects/myproject command:"codex exec 'Add error handling to the API calls'"
 ```
-
-**Why git init?** Codex refuses to run outside a trusted git directory. Creating a temp repo solves this for scratch work.
 
 ---
 
@@ -181,63 +171,30 @@ bash pty:true command:"pi --provider openai --model gpt-4o-mini -p 'Your task'"
 
 ---
 
-## Parallel Issue Fixing with git worktrees
+## Parallel Issue Fixing
 
-For fixing multiple issues in parallel, use git worktrees:
-
-```bash
-# 1. Create worktrees for each issue
-git worktree add -b fix/issue-78 /tmp/issue-78 main
-git worktree add -b fix/issue-99 /tmp/issue-99 main
-
-# 2. Launch Codex in each (background + PTY!)
-bash pty:true workdir:/tmp/issue-78 background:true command:"pnpm install && codex --yolo 'Fix issue #78: <description>. Commit and push.'"
-bash pty:true workdir:/tmp/issue-99 background:true command:"pnpm install && codex --yolo 'Fix issue #99: <description>. Commit and push.'"
-
-# 3. Monitor progress
-process action:list
-process action:log sessionId:XXX
-
-# 4. Create PRs after fixes
-cd /tmp/issue-78 && git push -u origin fix/issue-78
-gh pr create --repo user/repo --head fix/issue-78 --title "fix: ..." --body "..."
-
-# 5. Cleanup
-git worktree remove /tmp/issue-78
-git worktree remove /tmp/issue-99
-```
+Use git worktrees for parallel fixes. See [references/parallel-worktrees.md](references/parallel-worktrees.md).
 
 ---
 
 ## Rules
 
-1. **Always use pty:true** - coding agents need a terminal!
-2. **Respect tool choice** - if user asks for Codex, use Codex.
-3. **Be patient** - don't kill sessions because they're "slow"
-4. **Monitor with process:log** - check progress without interfering
-5. **--full-auto for building** - auto-approves changes
-6. **vanilla for reviewing** - no special flags needed
-7. **Parallel is OK** - run many Codex processes at once for batch work
+1. **pty:true always** - agents need a terminal
+2. **Respect tool choice** - use what user asks for
+3. **Be patient** - don't kill "slow" sessions
+4. **--full-auto for building**, vanilla for reviewing
+5. **Parallel OK** - run many agents at once
 
 ---
 
 ## Progress Updates
 
-When you spawn coding agents in the background, keep the user in the loop.
-
-- Send 1 short message when you start (what's running + where).
-- Then only update again when something changes:
-  - a milestone completes (build finished, tests passed)
-  - the agent asks a question / needs input
-  - you hit an error or need user action
-  - the agent finishes (include what changed + where)
-- If you kill a session, immediately say you killed it and why.
+For background agents: send 1 message on start, then update only on milestones, questions, errors, or completion. Always explain if you kill a session.
 
 ---
 
-## Learnings
+## Key Points
 
-- **PTY is essential:** Coding agents are interactive terminal apps. Without `pty:true`, output breaks or agent hangs.
-- **Git repo required:** Codex won't run outside a git directory. Use `mktemp -d && git init` for scratch work.
-- **exec is your friend:** `codex exec "prompt"` runs and exits cleanly - perfect for one-shots.
-- **submit vs write:** Use `submit` to send input + Enter, `write` for raw data without newline.
+- **PTY required:** Always use `pty:true` - agents need a terminal
+- **Git required:** Codex needs a git repo. Use `mktemp -d && git init` for scratch
+- **exec for one-shots:** `codex exec "prompt"` runs and exits cleanly

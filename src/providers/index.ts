@@ -95,6 +95,30 @@ export {
   GEMINI_TASK_ROUTING,
 } from "./gemini/index.js";
 
+// GitHub Models Provider (Sprint 46 Day 2-3)
+export type {
+  GitHubModel,
+  GitHubModelTier,
+  GitHubModelsConfig,
+} from "./github/index.js";
+
+export {
+  GitHubModelsProvider,
+  createGitHubModelsProvider,
+  createGitHubModelsProviderFromEnv,
+  GITHUB_MODELS,
+  GITHUB_MODELS_BASE_URL,
+  DEFAULT_GITHUB_MODEL,
+  DEFAULT_GITHUB_RATE_LIMIT,
+  GITHUB_FREE_MODELS,
+  GITHUB_PRO_MODELS,
+  getGitHubModel,
+  getApiModelName,
+  isFreeTierModel,
+  getModelsByProvider,
+  selectModelForTask,
+} from "./github/index.js";
+
 // Account Manager (Sprint 38 Day 1-2)
 export type {
   AccountId,

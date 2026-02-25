@@ -109,3 +109,20 @@ export {
   resetPatternFeedbackLoop,
   type FeedbackLoopConfig,
 } from "./pattern-feedback-loop.js";
+
+// Routing Confidence
+export {
+  RoutingConfidenceCalculator,
+  createConfidenceCalculator,
+  createConfidenceContext,
+  formatConfidence,
+  getConfidenceColor,
+  isActionable,
+  DEFAULT_HITL_THRESHOLD,
+  MINIMUM_CONFIDENCE,
+  type ConfidenceBreakdown,
+  type HITLDecision,
+  type RoutingConfidenceResult,
+  type ModelSuccessRate,
+  type ConfidenceContext,
+} from "./confidence.js";

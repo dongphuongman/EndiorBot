@@ -1,9 +1,9 @@
 # Sprint 45 Detailed Plan - Brain Architecture
 
-**Version**: 2.0.0 (Option A Resequence)
+**Version**: 2.1.0 (Scope Bounded)
 **Date**: 2026-02-23
-**Status**: DRAFT - Pending CEO Approval
-**Authority**: PM + CEO (Option A Resequence — Sprint 42 Scope Change)
+**Status**: APPROVED - Pending Sprint 44 Close
+**Authority**: PM + CTO (Research Integration — Context Engineering deferred to Sprint 47)
 **Pillar**: 3 - Software Engineering 3.0
 **Stage**: 01 - PLANNING
 **Prerequisites**:
@@ -295,6 +295,20 @@ Benefits:
 | ADR-006 (Checkpoint State) | ✅ | brainVersion, brainDigest |
 | Fix Logging / patterns (Sprint 41) | ✅ | Pattern format compatibility |
 | No ML | ✅ | Structured data only |
+
+---
+
+## Deferred Items (Research → Sprint 47)
+
+> **CTO Decision (2026-02-23)**: Context Engineering items from Claude Cowork research were proposed for Sprint 45, but Sprint 45 is already scope-bounded at 2,000 LOC. These are deferred to Sprint 47 where they align with Integration work.
+
+| Item | Est. LOC | Deferred To |
+|------|----------|-------------|
+| Working Memory / Structured Note-taking | ~150 | Sprint 47 |
+| Dynamic Context Loading | ~200 | Sprint 47 |
+| Context Rot Metric | ~100 | Sprint 47 |
+
+**Rationale**: Brain Architecture (Sprint 45) provides the storage foundation. Context Engineering builds on Brain to optimize context usage. Sprint 47's Integration focus is the right time to add context health monitoring.
 
 ---
 
