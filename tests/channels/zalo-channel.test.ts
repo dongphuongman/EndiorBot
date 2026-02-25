@@ -244,7 +244,8 @@ describe("ZaloChannel", () => {
       });
 
       expect(handler).toHaveBeenCalled();
-      expect(handler.mock.calls[0][0].content).toBe("Hello from CEO");
+      // Content is wrapped with [EXTERNAL_INPUT] tags for security (defense-in-depth)
+      expect(handler.mock.calls[0][0].content).toContain("Hello from CEO");
 
       const messages = await channel.receive();
       expect(messages).toHaveLength(1);

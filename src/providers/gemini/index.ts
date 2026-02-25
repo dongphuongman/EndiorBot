@@ -31,6 +31,7 @@ import type {
   Tool,
 } from "../types.js";
 import { ProviderError } from "../types.js";
+import { RateLimiter } from "../../gateway/auth.js";
 
 // ============================================================================
 // Types
@@ -70,6 +71,8 @@ export interface GeminiProviderConfig {
   defaultModel?: string | undefined;
   /** Request timeout in ms */
   timeoutMs?: number | undefined;
+  /** Max requests per minute (default: 60) */
+  maxRequestsPerMinute?: number | undefined;
 }
 
 /**
@@ -265,6 +268,9 @@ export const GEMINI_TASK_ROUTING: Record<string, string> = {
  * - Cost tracking
  * - Health monitoring
  */
+/** Default rate limit for Gemini API (60 req/min for most tiers) */
+const DEFAULT_RATE_LIMIT = 60;
+
 export class GeminiProvider extends BaseProvider {
   readonly id = "gemini";
   readonly name = "Google Gemini";
@@ -276,6 +282,7 @@ export class GeminiProvider extends BaseProvider {
   private timeoutMs: number;
   private maxRetries: number;
   private retryDelayMs: number;
+  private rateLimiter: RateLimiter;
 
   constructor(config: GeminiProviderConfig = {}) {
     super();
@@ -286,6 +293,10 @@ export class GeminiProvider extends BaseProvider {
     this.timeoutMs = config.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS;
     this.maxRetries = 2;
     this.retryDelayMs = 1000;
+
+    // Rate limiter: configurable req/min (default 60)
+    const maxRequests = config.maxRequestsPerMinute ?? DEFAULT_RATE_LIMIT;
+    this.rateLimiter = new RateLimiter(60_000, maxRequests);
 
     // Convert GeminiModel to ModelDefinition
     this.models = GEMINI_MODELS.map((m) => ({
@@ -328,10 +339,11 @@ export class GeminiProvider extends BaseProvider {
   }
 
   protected async doDispose(): Promise<void> {
-    // No cleanup needed for HTTP-based provider
+    this.rateLimiter.clear();
   }
 
   protected async doChat(request: ChatRequest): Promise<ChatResponse> {
+    this.checkRateLimit();
     const model = request.model || this.defaultModel;
 
     const body = this.buildRequestBody(request);
@@ -349,6 +361,7 @@ export class GeminiProvider extends BaseProvider {
   }
 
   protected async *doChatStream(request: ChatRequest): AsyncIterable<ChatChunk> {
+    this.checkRateLimit();
     const model = request.model || this.defaultModel;
 
     const body = this.buildRequestBody(request);
@@ -876,6 +889,21 @@ export class GeminiProvider extends BaseProvider {
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Check rate limit and throw if exceeded.
+   */
+  private checkRateLimit(): void {
+    const result = this.rateLimiter.check(this.id);
+    if (!result.allowed) {
+      throw new ProviderError(
+        `Rate limit exceeded. Reset in ${Math.ceil(result.resetIn / 1000)}s`,
+        this.id,
+        "RATE_LIMIT",
+        true
+      );
+    }
   }
 }
 

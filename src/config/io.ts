@@ -20,6 +20,7 @@ import JSON5 from "json5";
 import { resolveConfigPath, resolveStateDir } from "./paths.js";
 import { validateConfig, mergeWithDefaults } from "./validation.js";
 import { DEFAULT_CONFIG, type EndiorBotConfig, type ValidationIssue } from "./schema.js";
+import { ensureSecureDir, SECURE_FILE_MODE } from "../security/secure-fs.js";
 
 // ============================================================================
 // Types
@@ -230,12 +231,10 @@ export function writeConfig(
     pretty = true,
   } = options;
 
-  // Ensure directory exists
+  // Ensure directory exists with secure permissions (0o700)
   const dir = path.dirname(configPath);
   try {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    ensureSecureDir(dir);
   } catch (err) {
     return {
       ok: false,
@@ -271,12 +270,12 @@ export function writeConfig(
     }
   }
 
-  // Write config
+  // Write config with secure permissions (0o600)
   try {
     const content = pretty
       ? JSON.stringify(finalConfig, null, 2)
       : JSON.stringify(finalConfig);
-    fs.writeFileSync(configPath, content, "utf-8");
+    fs.writeFileSync(configPath, content, { encoding: "utf-8", mode: SECURE_FILE_MODE });
   } catch (err) {
     return {
       ok: false,
@@ -316,13 +315,11 @@ export function resetConfig(options: WriteConfigOptions = {}): WriteConfigResult
 }
 
 /**
- * Ensure config directory exists and return its path.
+ * Ensure config directory exists with secure permissions and return its path.
  */
 export function ensureConfigDir(env: NodeJS.ProcessEnv = process.env): string {
   const stateDir = resolveStateDir(env);
-  if (!fs.existsSync(stateDir)) {
-    fs.mkdirSync(stateDir, { recursive: true });
-  }
+  ensureSecureDir(stateDir);
   return stateDir;
 }
 

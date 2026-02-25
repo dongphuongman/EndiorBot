@@ -183,8 +183,8 @@ export const METHOD_COUNTS = {
   chat: 4,         // chat.send, chat.stream, chat.abort, chat.history
   eval: 3,         // eval.score, eval.history, eval.compare (Sprint 48)
   optimizer: 2,    // optimizer.status, optimizer.reset (Sprint 48)
-  system: 3,       // Built into server (ping, version, stats)
+  system: 4,       // Built into server (ping, version, stats, health)
   subscription: 2, // Built into server (subscribe, unsubscribe)
   auth: 1,         // Built into server (auth)
-  total: 42,
+  total: 43,
 } as const;

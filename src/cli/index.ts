@@ -31,12 +31,28 @@ import {
   registerBrainCommand,
   registerEvalCommand,
   registerSetupCommand,
+  registerSecretsCommand,
 } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
+import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.js";
+import { ensureSecureStateDir } from "../security/secure-fs.js";
+import { resolveStateDir } from "../config/paths.js";
 
 const VERSION = "1.0.0";
 
 export async function run(): Promise<void> {
+  // Install global error handlers for uncaught exceptions/rejections
+  installGlobalErrorHandlers();
+
+  // Ensure state directory exists with secure permissions (0o700)
+  // This runs BEFORE any file operations to establish security from first run
+  try {
+    const stateDir = resolveStateDir();
+    ensureSecureStateDir(stateDir);
+  } catch {
+    // Non-fatal - directory creation will happen on first write
+  }
+
   const program = new Command();
 
   // Initialize logger based on global options
@@ -76,6 +92,7 @@ export async function run(): Promise<void> {
   registerBrainCommand(program);
   registerEvalCommand(program);
   registerSetupCommand(program);
+  registerSecretsCommand(program);
 
   await program.parseAsync(process.argv);
 }
@@ -86,6 +103,7 @@ export { getCLILogger, logDebug, logError } from "./logger.js";
 // Allow direct execution
 if (import.meta.url === `file://${process.argv[1]}`) {
   run().catch((err: Error) => {
+    console.error(formatErrorForCLI(err));
     logError("CLI error", err);
     process.exit(1);
   });

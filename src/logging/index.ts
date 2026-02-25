@@ -80,9 +80,11 @@ export {
   // Transport Classes
   ConsoleTransport,
   FileTransport,
+  DailyFileTransport,
   // Factory Functions
   createConsoleTransport,
   createFileTransport,
+  createDailyFileTransport,
   createTransports,
   // Utilities
   parseSize,
@@ -90,6 +92,7 @@ export {
   type Transport,
   type ConsoleTransportOptions,
   type FileTransportOptions,
+  type DailyFileTransportOptions,
 } from "./transports.js";
 
 // ============================================================================
@@ -139,6 +142,20 @@ export {
   // Types
   type EventsLoggerOptions,
 } from "./events-logger.js";
+
+// ============================================================================
+// Configuration Integration (Sprint 49)
+// ============================================================================
+
+export {
+  // Config Functions
+  configureLoggerFromConfig,
+  createTransportsFromConfig,
+  getLogDirectory,
+  getDefaultLoggingConfig,
+  // Types
+  type LoggingConfigInput,
+} from "./config.js";
 
 // ============================================================================
 // Convenience Functions

@@ -657,7 +657,8 @@ describe("TelegramChannel", () => {
 
       const messages = await channel.receive();
       expect(messages).toHaveLength(1);
-      expect(messages[0].content).toBe("Hello from CEO");
+      // Content is wrapped with [EXTERNAL_INPUT] tags for security (non-command messages)
+      expect(messages[0].content).toContain("Hello from CEO");
       expect(messages[0].messageId).toBe("123");
 
       // Second receive should be empty
@@ -682,7 +683,8 @@ describe("TelegramChannel", () => {
       });
 
       expect(handler).toHaveBeenCalled();
-      expect(handler.mock.calls[0][0].content).toBe("Not a command");
+      // Content is wrapped with [EXTERNAL_INPUT] tags for security (defense-in-depth)
+      expect(handler.mock.calls[0][0].content).toContain("Not a command");
     });
 
     it("should NOT call message handler for commands", async () => {
@@ -704,11 +706,12 @@ describe("TelegramChannel", () => {
         },
       });
 
-      // Commands still get queued
+      // Commands still get queued (raw text for command processing)
       const messages = await channel.receive();
       expect(messages).toHaveLength(1);
+      expect(messages[0].content).toContain("/help");
 
-      // But handler should not be called for commands
+      // Handler is NOT called for commands - they're processed by command handler
       expect(handler).not.toHaveBeenCalled();
     });
 

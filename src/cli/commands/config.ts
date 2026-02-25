@@ -212,6 +212,63 @@ async function envAction(): Promise<void> {
 }
 
 // ============================================================================
+// Set Action
+// ============================================================================
+
+/**
+ * Forbidden keys that must not be set via config set.
+ * These should use secure storage (keytar) or environment variables.
+ */
+const FORBIDDEN_CONFIG_KEYS = [
+  "apiKey",
+  "apikey",
+  "api_key",
+  "token",
+  "secret",
+  "password",
+  "pat",
+  "accessToken",
+  "access_token",
+];
+
+/**
+ * Set a configuration value.
+ * Security: Rejects API keys and secrets - use secure storage instead.
+ */
+async function setAction(key: string, value: string): Promise<void> {
+  // Security: Block API keys and secrets
+  const keyLower = key.toLowerCase();
+  const isForbidden = FORBIDDEN_CONFIG_KEYS.some(
+    (forbidden) => keyLower.includes(forbidden.toLowerCase())
+  );
+
+  if (isForbidden) {
+    console.error("");
+    console.error("\x1b[31m✗ API keys must not be stored in config.\x1b[0m");
+    console.error("");
+    console.error("  Use secure storage instead:");
+    console.error("    \x1b[36mendiorbot setup github\x1b[0m     (for GitHub Models)");
+    console.error("    \x1b[36mexport ANTHROPIC_API_KEY=...\x1b[0m (for Anthropic)");
+    console.error("    \x1b[36mexport OPENAI_API_KEY=...\x1b[0m   (for OpenAI)");
+    console.error("");
+    console.error("  Secrets in config files are:");
+    console.error("    • Visible in git history if committed");
+    console.error("    • Readable by any process with file access");
+    console.error("    • Not rotated automatically");
+    console.error("");
+    process.exit(1);
+  }
+
+  // For now, just show help - full implementation would update config
+  console.log("");
+  console.log(`Setting ${key} = ${value}`);
+  console.log("");
+  console.log("\x1b[33mNote: config set is currently limited.\x1b[0m");
+  console.log("Edit the config file directly: endiorbot config path");
+  console.log("");
+}
+
+// ============================================================================
 // Validate Action
 // ============================================================================
 
@@ -289,4 +346,9 @@ export function registerConfigCommand(program: Command): void {
     .command("validate")
     .description("Validate config file")
     .action(validateAction);
+
+  configCmd
+    .command("set <key> <value>")
+    .description("Set a configuration value (blocks API keys)")
+    .action(setAction);
 }

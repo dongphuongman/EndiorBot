@@ -543,8 +543,8 @@ describe("Redaction", () => {
 
 describe("Transports", () => {
   describe("ConsoleTransport", () => {
-    it("should write to stdout for info", () => {
-      const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    it("should write to stderr by default (logs→stderr, data→stdout convention)", () => {
+      const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const transport = new ConsoleTransport();
 
       transport.write("info", "Test message");
@@ -555,11 +555,21 @@ describe("Transports", () => {
 
     it("should write to stderr for errors", () => {
       const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      const transport = new ConsoleTransport({ useStderr: true });
+      const transport = new ConsoleTransport();
 
       transport.write("error", "Error message");
 
       expect(writeSpy).toHaveBeenCalledWith("Error message\n");
+      writeSpy.mockRestore();
+    });
+
+    it("should write to stdout for info when useStderr is false", () => {
+      const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+      const transport = new ConsoleTransport({ useStderr: false });
+
+      transport.write("info", "Test message");
+
+      expect(writeSpy).toHaveBeenCalledWith("Test message\n");
       writeSpy.mockRestore();
     });
   });

@@ -28,3 +28,4 @@ export { registerGatewayCommand } from "./gateway.js";
 export { registerBrainCommand } from "./brain.js";
 export { registerEvalCommand } from "./eval.js";
 export { registerSetupCommand } from "./setup.js";
+export { registerSecretsCommand } from "./secrets.js";

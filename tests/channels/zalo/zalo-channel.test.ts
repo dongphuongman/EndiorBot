@@ -297,10 +297,10 @@ describe("ZaloChannel", () => {
 
       await channel.handleWebhookEvent(webhookEvent);
 
-      // Message should be queued
+      // Message should be queued (wrapped with [EXTERNAL_INPUT] tags for security)
       const messages = await channel.receive();
       expect(messages.length).toBe(1);
-      expect(messages[0].content).toBe("Hello from CEO");
+      expect(messages[0].content).toContain("Hello from CEO");
     });
 
     it("should call message handler for non-command messages", async () => {
@@ -326,7 +326,8 @@ describe("ZaloChannel", () => {
       await channel.handleWebhookEvent(webhookEvent);
 
       expect(handler).toHaveBeenCalled();
-      expect(handler.mock.calls[0][0].content).toBe("Not a command");
+      // Content is wrapped with [EXTERNAL_INPUT] tags for security (defense-in-depth)
+      expect(handler.mock.calls[0][0].content).toContain("Not a command");
     });
   });
 
@@ -367,7 +368,8 @@ describe("ZaloChannel", () => {
       await channel.handleWebhookEvent(webhookEvent);
 
       expect(processedMessages.length).toBe(1);
-      expect(processedMessages[0].content).toBe("Process this message");
+      // Content is wrapped with [EXTERNAL_INPUT] tags for security (defense-in-depth)
+      expect(processedMessages[0].content).toContain("Process this message");
       expect(processedMessages[0].senderId).toBe("9876543210123456");
     });
   });
@@ -466,10 +468,10 @@ describe("Zalo E2E Integration", () => {
 
     await channel.handleWebhookEvent(incomingEvent);
 
-    // 2. Process message
+    // 2. Process message (wrapped with [EXTERNAL_INPUT] tags for security)
     const messages = await channel.receive();
     expect(messages.length).toBe(1);
-    expect(messages[0].content).toBe("What is the status?");
+    expect(messages[0].content).toContain("What is the status?");
 
     // 3. Send reply
     const replyResult = await channel.send("Status: All systems operational");
@@ -505,14 +507,14 @@ describe("Zalo E2E Integration", () => {
       });
     }
 
-    // All messages should be queued
+    // All messages should be queued (wrapped with [EXTERNAL_INPUT] tags for security)
     const messages = await channel.receive();
     expect(messages.length).toBe(3);
 
-    // Verify order
-    expect(messages[0].content).toBe("Message 1");
-    expect(messages[1].content).toBe("Message 2");
-    expect(messages[2].content).toBe("Message 3");
+    // Verify order - content is wrapped with security tags
+    expect(messages[0].content).toContain("Message 1");
+    expect(messages[1].content).toContain("Message 2");
+    expect(messages[2].content).toContain("Message 3");
   });
 
   it("should ignore non-text events", async () => {

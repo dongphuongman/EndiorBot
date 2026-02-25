@@ -60,6 +60,7 @@ const LEVEL_COLORS: Record<LogLevel, string> = {
   info: "\x1b[36m", // cyan
   warn: "\x1b[33m", // yellow
   error: "\x1b[31m", // red
+  fatal: "\x1b[35m", // magenta (unrecoverable)
 };
 
 /**
@@ -70,6 +71,7 @@ const LEVEL_LABELS: Record<LogLevel, string> = {
   info: "INFO ",
   warn: "WARN ",
   error: "ERROR",
+  fatal: "FATAL",
 };
 
 const RESET_COLOR = "\x1b[0m";

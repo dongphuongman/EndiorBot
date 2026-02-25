@@ -22,6 +22,7 @@ import { formatAlert } from "../types.js";
 import type { ZaloChannelConfig } from "./zalo-config.js";
 import { loadZaloConfig, isValidOaId, isValidUserId, ZALO_API_BASE } from "./zalo-config.js";
 import { createLogger, type Logger } from "../../logging/index.js";
+import { getInputSanitizer } from "../../security/input-sanitizer.js";
 
 // ============================================================================
 // Types
@@ -291,8 +292,27 @@ export class ZaloChannel implements BidirectionalChannel {
       return;
     }
 
-    // Convert to IncomingMessage
-    const incoming = this.toIncomingMessage(event);
+    // Security: Sanitize incoming message text (Sprint 49 Day 6)
+    const messageText = event.message?.text;
+    if (!messageText) {
+      return;
+    }
+
+    const sanitizer = getInputSanitizer();
+    const sanitizeResult = sanitizer.sanitizeExternalInput(messageText, "zalo");
+
+    // Check for injection attempts - log violations for audit
+    if (sanitizeResult.violations.length > 0) {
+      this.log.warn("Injection attempt detected", {
+        senderId: event.sender.id,
+        violations: sanitizeResult.violations,
+      });
+      // For now, log violations but allow sanitized message through
+      // The message is wrapped in [EXTERNAL_INPUT] tags for defense-in-depth
+    }
+
+    // Convert to IncomingMessage with sanitized text (wrapped for defense-in-depth)
+    const incoming = this.toIncomingMessage(event, sanitizeResult.sanitized);
     if (!incoming) {
       return;
     }
@@ -314,8 +334,10 @@ export class ZaloChannel implements BidirectionalChannel {
 
   /**
    * Convert Zalo webhook event to IncomingMessage.
+   * @param event - Zalo webhook event
+   * @param sanitizedText - Optional pre-sanitized text (Sprint 49 security)
    */
-  private toIncomingMessage(event: ZaloWebhookEvent): IncomingMessage | null {
+  private toIncomingMessage(event: ZaloWebhookEvent, sanitizedText?: string): IncomingMessage | null {
     if (!event.message?.text) {
       return null;
     }
@@ -323,7 +345,7 @@ export class ZaloChannel implements BidirectionalChannel {
     return {
       messageId: event.message.msg_id,
       senderId: event.sender.id,
-      content: event.message.text,
+      content: sanitizedText ?? event.message.text, // Use sanitized text if provided
       receivedAt: new Date(parseInt(event.timestamp, 10)),
       metadata: {
         eventName: event.event_name,

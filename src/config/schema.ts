@@ -173,15 +173,17 @@ export type OrchestratorConfig = z.infer<typeof OrchestratorConfigSchema>;
  * Logging configuration.
  */
 export const LoggingConfigSchema = z.object({
-  level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  level: z.enum(["debug", "info", "warn", "error", "fatal"]).default("info"),
   format: z.enum(["json", "pretty"]).default("pretty"),
   redactSensitive: z.enum(["none", "tools", "all"]).default("tools"),
+  console: z.boolean().default(true),
   file: z
     .object({
-      enabled: z.boolean().default(false),
+      enabled: z.boolean().default(true),
       path: z.string().optional(),
       maxSize: z.string().default("10MB"),
-      maxFiles: z.number().int().positive().default(5),
+      maxFiles: z.number().int().positive().default(7),
+      dailyRotation: z.boolean().default(true),
     })
     .optional(),
 });
@@ -398,6 +400,7 @@ export const DEFAULT_CONFIG: EndiorBotConfig = {
     level: "info",
     format: "pretty",
     redactSensitive: "tools",
+    console: true,
   },
   security: {
     inputSanitizer: {

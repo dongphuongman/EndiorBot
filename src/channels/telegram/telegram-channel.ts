@@ -21,6 +21,7 @@ import { formatAlertMarkdown } from "../types.js";
 import type { TelegramChannelConfig } from "./telegram-config.js";
 import { loadTelegramConfig, isValidBotToken, isValidChatId } from "./telegram-config.js";
 import { createLogger, type Logger } from "../../logging/index.js";
+import { getInputSanitizer } from "../../security/input-sanitizer.js";
 
 // ============================================================================
 // Types
@@ -343,14 +344,41 @@ export class TelegramChannel implements BidirectionalChannel {
       return;
     }
 
+    // Detect commands BEFORE sanitization (use raw text for command detection)
+    const rawText = message.text;
+    const isCommand = rawText.startsWith("/");
+
+    // Security: Sanitize incoming message text (Sprint 49 Day 6)
+    // Commands are processed without wrapping; non-commands get defense-in-depth tags
+    const sanitizer = getInputSanitizer();
+    const sanitizeResult = sanitizer.sanitizeExternalInput(rawText, "telegram");
+
+    // Check for injection attempts - log violations for audit
+    if (sanitizeResult.violations.length > 0) {
+      this.log.warn("Injection attempt detected", {
+        chatId,
+        violations: sanitizeResult.violations,
+      });
+    }
+
+    // For commands: use raw text (commands are trusted CEO input)
+    // For non-commands: use sanitized text (wrapped for defense-in-depth)
+    //
+    // SECURITY NOTE: Command sanitization bypass is ONLY safe because the
+    // chatId guard above (lines 338-345) already verified this is from the
+    // authorized CEO chat. If chatId authorization is removed/weakened,
+    // commands become vulnerable to injection. Do not remove chatId check
+    // without also adding command input sanitization.
+    const processedText = isCommand ? rawText : sanitizeResult.sanitized;
+
     // Convert to IncomingMessage for BidirectionalChannel
-    const incoming = this.toIncomingMessage(update);
+    const incoming = this.toIncomingMessage(update, processedText);
     if (incoming) {
       // Queue for receive() polling
       this.pendingMessages.push(incoming);
 
-      // Dispatch to handler if registered (non-command messages)
-      if (this.messageHandler && !message.text.startsWith("/")) {
+      // Dispatch to handler if registered (non-command messages only)
+      if (this.messageHandler && !isCommand) {
         try {
           await this.messageHandler(incoming);
         } catch (error) {
@@ -362,16 +390,16 @@ export class TelegramChannel implements BidirectionalChannel {
     }
 
     // Process commands (existing logic)
-    if (!message.text.startsWith("/")) {
+    if (!isCommand) {
       return;
     }
 
     this.log.info("Received command", {
-      command: message.text,
+      command: rawText,
       from: message.from?.username,
     });
 
-    const result = await this.handleCommand(message.text);
+    const result = await this.handleCommand(rawText);
     if (result) {
       await this.sendMessage(result.response);
     }
@@ -681,8 +709,10 @@ _CEO escalation bot for EndiorBot_`,
 
   /**
    * Convert TelegramUpdate to IncomingMessage.
+   * @param update - Telegram update object
+   * @param sanitizedText - Optional pre-sanitized text (Sprint 49 security)
    */
-  private toIncomingMessage(update: TelegramUpdate): IncomingMessage | null {
+  private toIncomingMessage(update: TelegramUpdate, sanitizedText?: string): IncomingMessage | null {
     const message = update.message;
     if (!message || !message.text) {
       return null;
@@ -697,7 +727,7 @@ _CEO escalation bot for EndiorBot_`,
     const incoming: IncomingMessage = {
       messageId: String(message.message_id),
       senderId: chatId,
-      content: message.text,
+      content: sanitizedText ?? message.text, // Use sanitized text if provided
       receivedAt: new Date(message.date * 1000),
       metadata: {
         updateId: update.update_id,

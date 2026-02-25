@@ -10,7 +10,7 @@
 
 | Sprint | Duration | Goal | Status |
 |--------|----------|------|--------|
-| **Sprint 48** | TBD | Evaluator-Optimizer Loop | PLANNED |
+| - | - | Maintenance Mode | ✅ |
 
 ---
 
@@ -18,8 +18,7 @@
 
 | Sprint | Duration | Goal | Status |
 |--------|----------|------|--------|
-| Sprint 48 | TBD | Evaluator-Optimizer Loop | PLANNED |
-| Sprint 49 | TBD | Production Hardening | PLANNED |
+| Sprint 50+ | TBD | Future enhancements | PLANNED |
 
 ---
 
@@ -27,6 +26,8 @@
 
 | Sprint | Duration | Goal | Status | Report |
 |--------|----------|------|--------|--------|
+| Sprint 49 | Feb 25, 2026 | Production Hardening | ✅ COMPLETE | [SPRINT-49-STATUS](SPRINT-49-STATUS.md) |
+| Sprint 48 | Feb 25, 2026 | Evaluator-Optimizer Loop | ✅ COMPLETE | [SPRINT-48-STATUS](SPRINT-48-STATUS.md) |
 | Sprint 47 | Feb 25, 2026 | Desktop Chat + Integration | ✅ COMPLETE | [SPRINT-47-STATUS](SPRINT-47-STATUS.md) |
 | Sprint 46 | Feb 24, 2026 | Full OTT Ecosystem + GitHub Models | ✅ COMPLETE | [SPRINT-46-STATUS](SPRINT-46-STATUS.md) |
 | Sprint 45 | Feb 24, 2026 | Brain Architecture | ✅ COMPLETE | [SPRINT-45-STATUS](SPRINT-45-STATUS.md) |
@@ -46,6 +47,73 @@
 ---
 
 ## Sprint Summaries
+
+### Sprint 49 Summary
+
+**Duration**: February 25, 2026
+**Goal**: Production Hardening
+**Outcome**: ✅ COMPLETE
+
+**Deliverables**:
+- Error Hierarchy (8 modules: base, provider, gateway, brain, security, config, budget, index)
+- Graceful Degradation with provider fallback chains
+- Rate Limiting for all 6 providers (Anthropic, OpenAI, Gemini, GitHub, Groq, Ollama)
+- Structured Logging with daily rotation
+- Health Monitoring (system.health gateway method)
+- Secure File Operations (0o700/0o600 permissions)
+- Credential Management via keytar/env
+- CLI Setup Commands (setup, secrets)
+- Production Documentation (4 guides)
+
+**Key Files**:
+- `src/errors/*.ts` (8 files)
+- `src/monitoring/*.ts` (3 files)
+- `src/security/secure-fs.ts`
+- `src/cli/commands/setup.ts`
+- `src/cli/commands/secrets.ts`
+- `docs/04-build/deployment-guide.md`
+- `docs/04-build/configuration-reference.md`
+- `docs/04-build/troubleshooting-guide.md`
+- `docs/04-build/security-best-practices.md`
+
+**Test Count**: 3,171 passing (+378 from Sprint 48)
+
+---
+
+### Sprint 48 Summary
+
+**Duration**: February 25, 2026
+**Goal**: Evaluator-Optimizer Loop
+**Outcome**: ✅ COMPLETE
+
+**Deliverables**:
+- Evaluator Types (~280 LOC) - ScoreCard with 5 dimensions
+- Evaluator Core (~400 LOC) - Provider-aware quality assessment
+- ScoreCard (~220 LOC) - Aggregate scores, categorization
+- Optimizer (~450 LOC) - 5 optimization strategies
+- Optimizer Strategies (~580 LOC) - rephrase, decompose, escalate-model, add-context, reduce-scope
+- Brain Bridge (~310 LOC) - Pattern learning integration
+- Evaluator-Optimizer Loop (~380 LOC) - Full cycle orchestration
+- Gateway Methods (~260 LOC) - eval.run, optimizer.apply
+- CLI Eval Command (~220 LOC) - endiorbot eval
+- ADR-010 Evaluator-Optimizer Architecture
+
+**Key Files**:
+- `src/evaluator/types.ts`
+- `src/evaluator/evaluator.ts`
+- `src/evaluator/score-card.ts`
+- `src/evaluator/optimizer.ts`
+- `src/evaluator/loop.ts`
+- `src/evaluator/brain-bridge.ts`
+- `src/evaluator/strategies/*.ts`
+- `src/gateway/methods/eval.ts`
+- `src/gateway/methods/optimizer.ts`
+- `src/cli/commands/eval.ts`
+- `docs/02-design/01-ADRs/ADR-010-Evaluator-Optimizer.md`
+
+**Test Count**: 2,793 (+300 from Sprint 47)
+
+---
 
 ### Sprint 47 Summary
 
@@ -414,13 +482,13 @@
 
 ## Sprint Metrics
 
-| Metric | Sprint 41 | Sprint 42 | Sprint 43 | Sprint 44 | Sprint 45 | Sprint 46 | Sprint 47 | Total |
-|--------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-------|
-| Files Created | 6 | 4 | 5 | 10 | 12 | 15 | 6 | 58 |
-| LOC Added | ~600 | ~1,290 | ~850 | ~6,720 | ~6,478 | ~2,960 | ~1,970 | ~20,868 |
-| Tests Added | +37 | +53 | +54 | +144 | +315 | +276 | +54 | +933 |
-| Total Tests | 1,951 | 2,004 | 2,004 | 2,148 | 2,463 | 2,739 | 2,793 | 2,793 |
-| Build Status | PASS | PASS | PASS | PASS | PASS | PASS | PASS | ✅ |
+| Metric | Sprint 44 | Sprint 45 | Sprint 46 | Sprint 47 | Sprint 48 | Sprint 49 | Total |
+|--------|-----------|-----------|-----------|-----------|-----------|-----------|-------|
+| Files Created | 10 | 12 | 15 | 6 | 14 | 18 | 75 |
+| LOC Added | ~6,720 | ~6,478 | ~2,960 | ~1,970 | ~3,100 | ~6,500 | ~27,728 |
+| Tests Added | +144 | +315 | +276 | +54 | +300 | +378 | +1,467 |
+| Total Tests | 2,148 | 2,463 | 2,739 | 2,793 | 2,793 | 3,171 | 3,171 |
+| Build Status | PASS | PASS | PASS | PASS | PASS | PASS | ✅ |
 
 ---
 
@@ -439,6 +507,8 @@
 | Phase 8: Brain Architecture | 45 | ✅ COMPLETE | 100% |
 | **Phase 9: OTT + GitHub Models** | 46 | ✅ COMPLETE | 100% |
 | **Phase 10: Desktop Chat + E2E** | 47 | ✅ COMPLETE | 100% |
+| **Phase 11: Evaluator-Optimizer** | 48 | ✅ COMPLETE | 100% |
+| **Phase 12: Production Hardening** | 49 | ✅ COMPLETE | 100% |
 
 ---
 

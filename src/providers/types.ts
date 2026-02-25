@@ -150,6 +150,12 @@ export interface AIProvider {
 // Provider Error
 // ============================================================================
 
+import { EndiorBotError } from "../errors/base.js";
+
+/**
+ * Legacy provider error codes (kept for backward compatibility).
+ * New code should use ProviderErrorCode from ../errors/provider.js
+ */
 export type ProviderErrorCode =
   | "AUTH_ERROR"
   | "RATE_LIMIT"
@@ -160,15 +166,66 @@ export type ProviderErrorCode =
   | "SERVICE_ERROR"
   | "UNKNOWN";
 
-export class ProviderError extends Error {
+/**
+ * Map legacy codes to new error hierarchy codes.
+ */
+function mapLegacyCode(code: ProviderErrorCode): string {
+  const codeMap: Record<ProviderErrorCode, string> = {
+    AUTH_ERROR: "PROVIDER_AUTH_FAILED",
+    RATE_LIMIT: "PROVIDER_RATE_LIMITED",
+    CONTEXT_LENGTH: "PROVIDER_CONTEXT_TOO_LONG",
+    TIMEOUT: "PROVIDER_TIMEOUT",
+    NETWORK: "PROVIDER_NETWORK_ERROR",
+    INVALID_REQUEST: "PROVIDER_INVALID_RESPONSE",
+    SERVICE_ERROR: "PROVIDER_SERVICE_ERROR",
+    UNKNOWN: "PROVIDER_UNKNOWN",
+  };
+  return codeMap[code];
+}
+
+/**
+ * Provider error class extending the unified error hierarchy.
+ * Maintains backward compatibility with legacy constructor signature.
+ */
+export class ProviderError extends EndiorBotError {
+  /** Provider that generated the error */
+  public readonly providerId: string;
+
+  /** Legacy error code (for backward compatibility) */
+  public readonly legacyCode: ProviderErrorCode;
+
+  /** Original error if any */
+  public readonly originalError?: Error;
+
   constructor(
     message: string,
-    public readonly providerId: string,
-    public readonly code: ProviderErrorCode,
-    public readonly retryable: boolean,
-    public readonly originalError?: Error,
+    providerId: string,
+    code: ProviderErrorCode,
+    retryable: boolean,
+    originalError?: Error,
   ) {
-    super(message);
+    const superOptions: {
+      code: string;
+      category: "PROVIDER";
+      retryable: boolean;
+      metadata: Record<string, unknown>;
+      cause?: Error;
+    } = {
+      code: mapLegacyCode(code),
+      category: "PROVIDER",
+      retryable,
+      metadata: { providerId, legacyCode: code },
+    };
+    if (originalError) {
+      superOptions.cause = originalError;
+    }
+    super(message, superOptions);
+
     this.name = "ProviderError";
+    this.providerId = providerId;
+    this.legacyCode = code;
+    if (originalError) {
+      this.originalError = originalError;
+    }
   }
 }

@@ -14,7 +14,8 @@ import type {
   ProviderConfig,
   ProviderHealth,
 } from "../types.js";
-import { ProviderError } from "../types.js";
+import { ProviderError, type ProviderErrorCode } from "../types.js";
+import { RateLimiter } from "../../gateway/auth.js";
 
 // Anthropic API response types
 interface AnthropicResponse {
@@ -53,6 +54,9 @@ const ANTHROPIC_MODELS: ModelDefinition[] = [
   },
 ];
 
+/** Default rate limit for Anthropic API (50 req/min for most tiers) */
+const DEFAULT_RATE_LIMIT = 50;
+
 export class AnthropicProvider extends BaseProvider {
   readonly id = "anthropic";
   readonly name = "Anthropic";
@@ -61,6 +65,13 @@ export class AnthropicProvider extends BaseProvider {
   private _apiKey: string | undefined;
   private _baseUrl: string | undefined;
   private timeout: number = 30000;
+  private rateLimiter: RateLimiter;
+
+  constructor(maxRequestsPerMinute: number = DEFAULT_RATE_LIMIT) {
+    super();
+    // Rate limiter: configurable req/min (default 50)
+    this.rateLimiter = new RateLimiter(60_000, maxRequestsPerMinute);
+  }
 
   /** Get API key (throws if not initialized) */
   private get apiKey(): string {
@@ -95,9 +106,11 @@ export class AnthropicProvider extends BaseProvider {
   protected async doDispose(): Promise<void> {
     this._apiKey = undefined;
     this._baseUrl = undefined;
+    this.rateLimiter.clear();
   }
 
   protected async doChat(request: ChatRequest): Promise<ChatResponse> {
+    this.checkRateLimit();
     this.validateModel(request.model);
 
     // Convert messages to Anthropic format
@@ -133,6 +146,7 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   protected async *doChatStream(request: ChatRequest): AsyncIterable<ChatChunk> {
+    this.checkRateLimit();
     this.validateModel(request.model);
 
     const systemMessage = request.messages.find((m) => m.role === "system");
@@ -295,7 +309,7 @@ export class AnthropicProvider extends BaseProvider {
 
   private async handleErrorResponse(response: Response): Promise<ProviderError> {
     let message = `HTTP ${response.status}`;
-    let code: ProviderError["code"] = "SERVICE_ERROR";
+    let code: ProviderErrorCode = "SERVICE_ERROR";
     let retryable = false;
 
     try {
@@ -362,6 +376,21 @@ export class AnthropicProvider extends BaseProvider {
         return "tool_calls";
       default:
         return "stop";
+    }
+  }
+
+  /**
+   * Check rate limit and throw if exceeded.
+   */
+  private checkRateLimit(): void {
+    const result = this.rateLimiter.check(this.id);
+    if (!result.allowed) {
+      throw new ProviderError(
+        `Rate limit exceeded. Reset in ${Math.ceil(result.resetIn / 1000)}s`,
+        this.id,
+        "RATE_LIMIT",
+        true
+      );
     }
   }
 }

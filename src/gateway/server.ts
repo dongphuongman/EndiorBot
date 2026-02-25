@@ -23,6 +23,7 @@ import type {
   GatewayEvent,
   IGatewayServer,
 } from "./types.js";
+import { collectHealthReport } from "../monitoring/index.js";
 import { resolveGatewayConfig, validateGatewayConfig } from "./config.js";
 import {
   type JsonRpcRequest,
@@ -435,6 +436,19 @@ export class GatewayServer implements IGatewayServer {
     }));
 
     this.registerMethod("system.stats", () => this.stats);
+
+    // Health check method
+    this.registerMethod("system.health", async (params) => {
+      const options = params as {
+        checkProviders?: boolean;
+        providerCheckTimeout?: number;
+      } | undefined;
+
+      return collectHealthReport(this.stats, this.methods.size, {
+        checkProviders: options?.checkProviders ?? false,
+        providerCheckTimeout: options?.providerCheckTimeout ?? 5000,
+      });
+    });
 
     // Subscription methods
     this.registerMethod("subscribe", (params, client) => {

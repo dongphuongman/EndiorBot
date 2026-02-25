@@ -25,7 +25,7 @@ import { type Transport, ConsoleTransport } from "./transports.js";
 /**
  * Log levels in order of severity.
  */
-export type LogLevel = "debug" | "info" | "warn" | "error";
+export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 /**
  * Log level numeric values for comparison.
@@ -35,6 +35,7 @@ export const LOG_LEVEL_VALUES: Record<LogLevel, number> = {
   info: 1,
   warn: 2,
   error: 3,
+  fatal: 4,
 };
 
 /**
@@ -240,6 +241,13 @@ export class Logger {
    */
   error(message: string, contextOrError?: Record<string, unknown> | Error): void {
     this.log("error", message, contextOrError);
+  }
+
+  /**
+   * Log a fatal message (unrecoverable error).
+   */
+  fatal(message: string, contextOrError?: Record<string, unknown> | Error): void {
+    this.log("fatal", message, contextOrError);
   }
 
   /**

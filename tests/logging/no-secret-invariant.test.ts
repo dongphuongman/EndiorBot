@@ -318,19 +318,20 @@ describe("No-Secret Invariants", () => {
 
   describe("Logger integration", () => {
     let capturedOutput: string[] = [];
-    let originalWrite: typeof process.stdout.write;
+    let originalWrite: typeof process.stderr.write;
 
     beforeEach(() => {
       capturedOutput = [];
-      originalWrite = process.stdout.write;
-      process.stdout.write = vi.fn((chunk: string | Uint8Array) => {
+      // Logs now go to stderr by default (logs→stderr, data→stdout convention)
+      originalWrite = process.stderr.write;
+      process.stderr.write = vi.fn((chunk: string | Uint8Array) => {
         capturedOutput.push(chunk.toString());
         return true;
-      }) as typeof process.stdout.write;
+      }) as typeof process.stderr.write;
     });
 
     afterEach(() => {
-      process.stdout.write = originalWrite;
+      process.stderr.write = originalWrite;
     });
 
     it("should not leak secrets when logging config with tools redaction", () => {
