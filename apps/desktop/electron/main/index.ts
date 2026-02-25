@@ -22,11 +22,13 @@ import { initUpdater, registerUpdaterIpc } from "./updater.js";
 declare const __dirname: string;
 
 // Environment
+// Check if running in dev mode (Vite dev server) or production (built files)
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 // Paths
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL ?? "http://localhost:5173";
 const PRELOAD_PATH = path.join(__dirname, "../preload/index.js");
+// Load built React app
 const RENDERER_PATH = path.join(__dirname, "../../dist/index.html");
 
 // ============================================================================
@@ -48,14 +50,15 @@ async function onReady(): Promise<void> {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: PRELOAD_PATH,
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
+      // TEMPORARY: Disable security for debugging
+      nodeIntegration: true,
+      contextIsolation: false,
+      sandbox: false,
+      // preload: PRELOAD_PATH, // Disabled for testing
     },
     show: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
-    backgroundColor: "#0f172a", // slate-900
+    backgroundColor: "#ffffff", // white - temporary for debugging
   });
 
   // Restore window state (position, size)
@@ -67,6 +70,8 @@ async function onReady(): Promise<void> {
     win.webContents.openDevTools({ mode: "detach" });
   } else {
     await win.loadFile(RENDERER_PATH);
+    // Temporary: Open DevTools in production for debugging
+    win.webContents.openDevTools({ mode: "detach" });
   }
 
   // Show window when ready

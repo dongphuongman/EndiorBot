@@ -26,7 +26,13 @@ await build({
   external: [
     "electron",
     "original-fs", // Electron's patched fs
+    "keytar", // Native module for credential management
+    "endiorbot", // CLI package (workspace dependency)
   ],
+  // Use loader for .node files
+  loader: {
+    ".node": "file",
+  },
   // Handle node: protocol imports
   alias: {
     "node:path": "path",
