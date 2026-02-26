@@ -186,6 +186,9 @@ export * from './self-correction/index.js';
 // Gateway module (Sprint 44)
 export * from './gateway/index.js';
 
+// Provider init (for Desktop gateway start – load API keys and register providers)
+export { initializeProvidersFromEnv } from './providers/init.js';
+
 // Brain module (Sprint 45)
 export * from './brain/index.js';
 

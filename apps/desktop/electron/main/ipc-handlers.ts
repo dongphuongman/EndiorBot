@@ -15,6 +15,7 @@ import { ipcMain, dialog, app } from "electron";
 import { getWindowIpcHandlers, getMainWindow } from "./window.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { config } from "dotenv";
 
 // ============================================================================
 // Core Module Imports (Lazy loaded to handle build order)
@@ -35,7 +36,20 @@ let coreModules: {
   setGatewayServer: (server: import("endiorbot").GatewayServer | null) => void;
   getGatewayServer: () => import("endiorbot").GatewayServer | null;
   registerAllMethods: (server: import("endiorbot").GatewayServer) => void;
+  initializeProvidersFromEnv: () => Promise<number>;
 } | null = null;
+
+/** Load .env and .env.local from project root (cwd or monorepo parent) so API keys are available for providers. */
+function loadEnvFromProjectRoot(): void {
+  const cwd = process.cwd();
+  const candidates = [cwd, path.join(cwd, ".."), path.join(cwd, "..", "..")];
+  for (const dir of candidates) {
+    const envPath = path.join(dir, ".env");
+    const envLocalPath = path.join(dir, ".env.local");
+    if (fs.existsSync(envPath)) config({ path: envPath });
+    if (fs.existsSync(envLocalPath)) config({ path: envLocalPath, override: true });
+  }
+}
 
 async function loadCoreModules(): Promise<typeof coreModules> {
   if (coreModules) return coreModules;
@@ -53,6 +67,7 @@ async function loadCoreModules(): Promise<typeof coreModules> {
       setGatewayServer: core.setGatewayServer,
       getGatewayServer: core.getGatewayServer,
       registerAllMethods: core.registerAllMethods,
+      initializeProvidersFromEnv: core.initializeProvidersFromEnv,
     };
     return coreModules;
   } catch (error) {
@@ -264,6 +279,10 @@ function registerGatewayHandlers(): void {
     }
 
     try {
+      // Load .env.local so API keys (Anthropic, OpenAI, Gemini) are available
+      loadEnvFromProjectRoot();
+      await core.initializeProvidersFromEnv();
+
       // Load port from settings
       const settings = loadSettings();
       const port = settings.gatewayPort ?? 18790;
@@ -336,6 +355,10 @@ function registerGatewayHandlers(): void {
         gatewayServer = null;
         core.setGatewayServer(null);
       }
+
+      // Load .env.local and (re)initialize providers so API keys are available
+      loadEnvFromProjectRoot();
+      await core.initializeProvidersFromEnv();
 
       // Load port from settings
       const settings = loadSettings();

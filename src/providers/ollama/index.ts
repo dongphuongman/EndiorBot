@@ -125,6 +125,9 @@ export const DEFAULT_CHAT_MODEL = "qwen3:32b";
 /** Default model for fast responses */
 export const DEFAULT_FAST_MODEL = "qwen3:8b";
 
+/** Default model when Ollama is used as fallback (lighter weight) */
+export const DEFAULT_FALLBACK_MODEL = "qwen3:14b";
+
 /**
  * Available Ollama models with their specifications.
  */
@@ -672,7 +675,7 @@ export function createOllamaProviderFromEnv(): OllamaProvider {
   return createOllamaProvider({
     baseUrl: process.env.OLLAMA_BASE_URL ?? DEFAULT_OLLAMA_URL,
     apiKey: process.env.OLLAMA_API_KEY,
-    defaultModel: process.env.OLLAMA_DEFAULT_MODEL ?? DEFAULT_CODE_MODEL,
+    defaultModel: process.env.OLLAMA_DEFAULT_MODEL ?? DEFAULT_FALLBACK_MODEL,
     timeoutMs: parseInt(
       process.env.OLLAMA_TIMEOUT_MS ?? String(DEFAULT_OLLAMA_TIMEOUT_MS),
       10

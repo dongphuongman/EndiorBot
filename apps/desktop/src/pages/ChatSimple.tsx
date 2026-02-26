@@ -58,6 +58,23 @@ export function ChatSimple() {
           }
         }
 
+        // Handle JSON-RPC error response
+        if (data.jsonrpc === "2.0" && data.error && data.id) {
+          console.error("❌ Gateway error:", data.error);
+          const errorMsg = data.error.message || data.error.code || JSON.stringify(data.error);
+          setMessages((prev) => [
+            ...prev.filter(m => !m.isStreaming),
+            {
+              id: Date.now().toString(),
+              role: "assistant",
+              content: `❌ Error: ${errorMsg}`,
+              timestamp: new Date(),
+            },
+          ]);
+          setIsLoading(false);
+          setCurrentStreamId(null);
+        }
+
         // Handle JSON-RPC notifications (streaming events)
         if (data.jsonrpc === "2.0" && data.method) {
           if (data.method === "chat.chunk") {

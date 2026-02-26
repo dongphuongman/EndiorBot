@@ -14,6 +14,9 @@
  * @sdlc SDLC Framework 6.1.1
  */
 
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { config } from "dotenv";
 import { Command } from "commander";
 import {
   registerStartCommand,
@@ -41,6 +44,15 @@ import { resolveStateDir } from "../config/paths.js";
 const VERSION = "1.0.0";
 
 export async function run(): Promise<void> {
+  // Load .env and .env.local from cwd (e.g. project root) so API keys are available for gateway/providers
+  const cwd = process.cwd();
+  if (existsSync(join(cwd, ".env"))) {
+    config({ path: join(cwd, ".env") });
+  }
+  if (existsSync(join(cwd, ".env.local"))) {
+    config({ path: join(cwd, ".env.local"), override: true });
+  }
+
   // Install global error handlers for uncaught exceptions/rejections
   installGlobalErrorHandlers();
 

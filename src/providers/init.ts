@@ -29,6 +29,7 @@ import { createOllamaProviderFromEnv } from "./ollama/index.js";
  */
 export async function initializeProvidersFromEnv(): Promise<number> {
   const registry = getProviderRegistry();
+  registry.clear();
   let count = 0;
 
   // Anthropic (Claude)
@@ -50,6 +51,7 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   if (process.env.OPENAI_API_KEY) {
     try {
       const openai = createOpenAIProviderFromEnv();
+      await openai.initialize({});
       registry.register(openai);
       console.log("✓ Registered OpenAIProvider");
       count++;
@@ -62,6 +64,7 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   if (process.env.GOOGLE_API_KEY) {
     try {
       const gemini = createGeminiProviderFromEnv();
+      await gemini.initialize({});  // Initialize provider before registration
       registry.register(gemini);
       console.log("✓ Registered GeminiProvider");
       count++;
@@ -71,9 +74,10 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   }
 
   // Ollama (local models)
-  if (process.env.OLLAMA_URL || process.env.OLLAMA_HOST) {
+  if (process.env.OLLAMA_URL || process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL) {
     try {
       const ollama = createOllamaProviderFromEnv();
+      await ollama.initialize({});
       registry.register(ollama);
       console.log("✓ Registered OllamaProvider");
       count++;
@@ -82,11 +86,10 @@ export async function initializeProvidersFromEnv(): Promise<number> {
     }
   }
 
-  // Set default provider (prefer premium providers, Ollama as fallback only)
+  // Set default provider: Cloud APIs first (Anthropic, OpenAI, Gemini), Ollama only as fallback
   const defaultProvider = registry.getDefault();
 
-  // Priority: Gemini > OpenAI > Anthropic > Ollama (fallback)
-  // Note: Anthropic OAuth token has model access issues, use Gemini/OpenAI as primary
+  // Priority: Gemini > OpenAI > Anthropic > Ollama (fallback only; uses qwen3:14b when used)
   if (registry.has('gemini')) {
     registry.setDefault('gemini');
     console.log(`✓ Default provider: gemini (Gemini 2.0 Flash, premium)`);
@@ -98,12 +101,14 @@ export async function initializeProvidersFromEnv(): Promise<number> {
     console.log(`✓ Default provider: anthropic (Claude, premium)`);
   } else if (registry.has('ollama')) {
     registry.setDefault('ollama');
-    console.log(`✓ Default provider: ollama (qwen3-coder:30b, fallback)`);
+    console.log(`✓ Default provider: ollama (qwen3:14b, fallback only)`);
+    console.warn("  ⚠ No Cloud API keys set. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY for primary use.");
   } else if (defaultProvider) {
     console.log(`✓ Default provider: ${defaultProvider.id}`);
   } else {
     console.warn("⚠ No AI providers configured!");
-    console.warn("  Set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, OLLAMA_URL");
+    console.warn("  Prefer Cloud APIs: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY");
+    console.warn("  Fallback (local): OLLAMA_URL or OLLAMA_BASE_URL");
   }
 
   return count;

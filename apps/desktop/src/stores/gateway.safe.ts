@@ -24,7 +24,7 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
   // State
   isConnected: false,
   status: 'offline',
-  port: 19000,
+  port: 18790, // Fixed: Match Gateway port from .env.local (ENDIORBOT_GATEWAY_PORT)
   lastChecked: null,
   ws: null,
 

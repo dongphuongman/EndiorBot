@@ -39,7 +39,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   // State
   theme: "dark",
   language: "en",
-  gatewayPort: 19000,
+  gatewayPort: 18790, // Match ENDIORBOT_GATEWAY_PORT from .env.local
   isLoading: false,
 
   // Actions
@@ -67,7 +67,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({
         theme: storedTheme ?? allSettings.theme ?? "dark",
         language: allSettings.language ?? "en",
-        gatewayPort: allSettings.gatewayPort ?? 19000,
+        gatewayPort: allSettings.gatewayPort ?? 18790,
         isLoading: false,
       });
     } catch (error) {
@@ -76,7 +76,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({
         theme: "dark",
         language: "en",
-        gatewayPort: 19000,
+        gatewayPort: 18790,
         isLoading: false
       });
     }

@@ -8,8 +8,10 @@ import { useSettingsStore } from "./stores/settings.safe";
 import { useGatewayStore } from "./stores/gateway.safe";
 import { Dashboard } from "./pages/Dashboard";
 import { ChatSimple } from "./pages/ChatSimple";
-
-// Pages now imported from separate files
+import { ProjectsPage } from "./pages/Projects";
+import { GatesPage } from "./pages/Gates";
+import { ExpertsPage } from "./pages/Experts";
+import { JuniorHubPage } from "./pages/JuniorHub";
 
 function SettingsPage() {
   return (
@@ -28,6 +30,10 @@ function SimpleLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { path: '/dashboard', icon: '📊', label: 'Dashboard' },
     { path: '/chat', icon: '💬', label: 'Chat' },
+    { path: '/projects', icon: '📁', label: 'Projects' },
+    { path: '/gates', icon: '🚪', label: 'Gates' },
+    { path: '/experts', icon: '🤖', label: 'Experts' },
+    { path: '/junior', icon: '👥', label: 'Junior Hub' },
     { path: '/settings', icon: '⚙️', label: 'Settings' },
   ];
 
@@ -83,12 +89,17 @@ function SimpleLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const { theme, loadSettings } = useSettingsStore();
-  const { checkStatus } = useGatewayStore();
+  const { checkStatus, connect } = useGatewayStore();
 
   // Load settings on mount
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Connect to Gateway WebSocket on mount
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
   // Check gateway status periodically
   useEffect(() => {
@@ -113,6 +124,10 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/chat" element={<ChatSimple />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/gates" element={<GatesPage />} />
+        <Route path="/experts" element={<ExpertsPage />} />
+        <Route path="/junior" element={<JuniorHubPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </SimpleLayout>

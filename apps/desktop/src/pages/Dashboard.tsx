@@ -10,12 +10,11 @@ export function Dashboard() {
   const { theme, gatewayPort } = useSettingsStore();
   const { status, isConnected, lastChecked } = useGatewayStore();
 
-  // Mock project data (will be replaced with real data from stores)
+  // Project overview (no sprint-specific info, just status)
   const projectStats = {
     name: "EndiorBot",
-    sprint: "Sprint 44",
-    day: "Day 8",
-    progress: 75,
+    status: "Production Ready",
+    version: "1.0.0",
     tier: "STANDARD" as const,
   };
 
@@ -53,23 +52,9 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-white">{projectStats.name}</p>
-                <p className="text-sm text-gray-400">{projectStats.sprint} • {projectStats.day}</p>
+                <p className="text-sm text-gray-400">{projectStats.status} • v{projectStats.version}</p>
               </div>
               <Badge variant="info">{projectStats.tier}</Badge>
-            </div>
-
-            {/* Progress Bar */}
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-400">Sprint Progress</span>
-                <span className="text-white font-medium">{projectStats.progress}%</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${projectStats.progress}%` }}
-                />
-              </div>
             </div>
 
             {/* Quick Stats */}
