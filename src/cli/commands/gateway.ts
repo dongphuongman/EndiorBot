@@ -26,6 +26,7 @@ import {
   setGatewayServer,
 } from "../../gateway/index.js";
 import { registerAllMethods } from "../../gateway/methods/index.js";
+import { initializeProvidersFromEnv } from "../../providers/init.js";
 
 // ============================================================================
 // Terminal Colors
@@ -90,6 +91,16 @@ async function startAction(options: GatewayStartOptions): Promise<void> {
   }
 
   try {
+    // Initialize AI providers from environment
+    console.log("");
+    console.log(dim("Initializing AI providers..."));
+    const providerCount = await initializeProvidersFromEnv();
+    if (providerCount === 0) {
+      console.log(yellow("⚠ No AI providers configured - chat will not work"));
+      console.log(dim("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY"));
+    }
+    console.log("");
+
     const server = createGatewayServer({ port });
     registerAllMethods(server);
     setGatewayServer(server);

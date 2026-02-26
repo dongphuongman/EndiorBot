@@ -29,27 +29,43 @@ interface AnthropicResponse {
   stop_reason?: string;
 }
 
-// Anthropic model definitions
+// Anthropic model definitions (comprehensive list for compatibility)
 const ANTHROPIC_MODELS: ModelDefinition[] = [
+  // Claude 3.5 models
   {
-    id: "claude-opus-4",
-    name: "Claude Opus 4",
+    id: "claude-3-5-sonnet-20241022",
+    name: "Claude 3.5 Sonnet (Oct 2024)",
     contextWindow: 200000,
     maxOutputTokens: 8192,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
   {
-    id: "claude-sonnet-4",
-    name: "Claude Sonnet 4",
+    id: "claude-3-5-sonnet-20240620",
+    name: "Claude 3.5 Sonnet (June 2024)",
     contextWindow: 200000,
     maxOutputTokens: 8192,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
+  // Claude 3 models
   {
-    id: "claude-haiku-4",
-    name: "Claude Haiku 4",
+    id: "claude-3-opus-20240229",
+    name: "Claude 3 Opus",
     contextWindow: 200000,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 4096,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  {
+    id: "claude-3-sonnet-20240229",
+    name: "Claude 3 Sonnet",
+    contextWindow: 200000,
+    maxOutputTokens: 4096,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  {
+    id: "claude-3-haiku-20240307",
+    name: "Claude 3 Haiku",
+    contextWindow: 200000,
+    maxOutputTokens: 4096,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
 ];

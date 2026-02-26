@@ -20,6 +20,7 @@ import type { ClientInfo } from "../types.js";
 import { getProviderRegistry } from "../../providers/provider-registry.js";
 import type { ChatRequest, ChatResponse, Message, AIProvider } from "../../providers/types.js";
 import { recordCost } from "./budget.js";
+import { createNotification } from "../protocol/schema.js";
 
 // ============================================================================
 // Types
@@ -392,17 +393,24 @@ async function processStream(
 }
 
 /**
- * Send notification to client.
+ * Send JSON-RPC notification to client.
  */
-function sendNotification(clientId: string, method: string, data: unknown): void {
+function sendNotification(clientId: string, method: string, params: unknown): void {
   if (!serverRef) return;
 
-  // Use the server's sendTo method with a custom event
-  serverRef.sendTo(clientId, {
-    type: method as "notification",
-    timestamp: Date.now(),
-    data,
-  });
+  // Get client WebSocket
+  const clients = (serverRef as any).clients;
+  if (!clients) return;
+
+  const client = clients.get(clientId);
+  if (!client || client.readyState !== 1) return; // 1 = WebSocket.OPEN
+
+  // Create proper JSON-RPC notification
+  const notification = createNotification(method, params);
+  const message = JSON.stringify(notification);
+
+  // Send directly via WebSocket
+  client.send(message);
 }
 
 /**
