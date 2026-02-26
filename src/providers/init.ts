@@ -82,13 +82,23 @@ export async function initializeProvidersFromEnv(): Promise<number> {
     }
   }
 
-  // Set default provider (prefer Ollama for local testing if available)
+  // Set default provider (prefer premium providers, Ollama as fallback only)
   const defaultProvider = registry.getDefault();
 
-  // If Ollama is available, prefer it as default
-  if (registry.has('ollama')) {
+  // Priority: Gemini > OpenAI > Anthropic > Ollama (fallback)
+  // Note: Anthropic OAuth token has model access issues, use Gemini/OpenAI as primary
+  if (registry.has('gemini')) {
+    registry.setDefault('gemini');
+    console.log(`✓ Default provider: gemini (Gemini 2.0 Flash, premium)`);
+  } else if (registry.has('openai')) {
+    registry.setDefault('openai');
+    console.log(`✓ Default provider: openai (GPT-4o, premium)`);
+  } else if (registry.has('anthropic')) {
+    registry.setDefault('anthropic');
+    console.log(`✓ Default provider: anthropic (Claude, premium)`);
+  } else if (registry.has('ollama')) {
     registry.setDefault('ollama');
-    console.log(`✓ Default provider: ollama (local, free)`);
+    console.log(`✓ Default provider: ollama (qwen3-coder:30b, fallback)`);
   } else if (defaultProvider) {
     console.log(`✓ Default provider: ${defaultProvider.id}`);
   } else {
