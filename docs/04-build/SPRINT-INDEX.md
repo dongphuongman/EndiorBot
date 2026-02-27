@@ -2,7 +2,7 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.1.1
-**Last Updated**: 2026-02-25
+**Last Updated**: 2026-02-27 (Sprint 53 Complete)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Sprint | Duration | Goal | Status |
 |--------|----------|------|--------|
-| - | - | Maintenance Mode | ✅ |
+| Sprint 54+ | TBD | Future: MCP Servers, Multi-Project | 📋 PLANNED |
 
 ---
 
@@ -18,7 +18,7 @@
 
 | Sprint | Duration | Goal | Status |
 |--------|----------|------|--------|
-| Sprint 50+ | TBD | Future enhancements | PLANNED |
+| Sprint 54+ | TBD | Future: MCP Servers, Multi-Project | 📋 FUTURE |
 
 ---
 
@@ -26,6 +26,10 @@
 
 | Sprint | Duration | Goal | Status | Report |
 |--------|----------|------|--------|--------|
+| Sprint 53 | 16-20h | Claude Code Integration: Extended DevEx | ✅ COMPLETE | [SPRINT-53-STATUS](SPRINT-53-STATUS.md) |
+| Sprint 52 | 10-12h | Claude Code Integration: Minimal DevEx | ✅ COMPLETE | [SPRINT-52-STATUS](SPRINT-52-STATUS.md) |
+| Sprint 51 | 10 days | Composio Phase 2: Tool-Aware Intelligence | ✅ COMPLETE | [SPRINT-51-STATUS](SPRINT-51-STATUS.md) |
+| Sprint 50 | 10 days | Composio Phase 1: Security Foundation | ✅ COMPLETE | [SPRINT-50-STATUS](SPRINT-50-STATUS.md) |
 | Sprint 49 | Feb 25, 2026 | Production Hardening | ✅ COMPLETE | [SPRINT-49-STATUS](SPRINT-49-STATUS.md) |
 | Sprint 48 | Feb 25, 2026 | Evaluator-Optimizer Loop | ✅ COMPLETE | [SPRINT-48-STATUS](SPRINT-48-STATUS.md) |
 | Sprint 47 | Feb 25, 2026 | Desktop Chat + Integration | ✅ COMPLETE | [SPRINT-47-STATUS](SPRINT-47-STATUS.md) |
@@ -47,6 +51,157 @@
 ---
 
 ## Sprint Summaries
+
+### Sprint 53 Summary
+
+**Duration**: February 27, 2026 (~16-20 hours)
+**Goal**: Claude Code Integration - Extended DevEx Pack
+**Status**: ✅ COMPLETE
+
+**Deliverables**:
+- 3 Sub-Agents: Architect (opus), Coder (sonnet), Reviewer (sonnet)
+- 3 Skills: sdlc-compliance, multi-model-router, security-validator
+- Vibecoding baseline module with regression detection
+- /project:vibecoding command (thin client)
+- GitHub MCP server configuration
+- Plugin packaging script
+
+**Key Files**:
+- `.claude/agents/architect.md`
+- `.claude/agents/coder.md`
+- `.claude/agents/reviewer.md`
+- `.claude/skills/sdlc-compliance/SKILL.md`
+- `.claude/skills/multi-model-router/SKILL.md`
+- `.claude/skills/security-validator/SKILL.md`
+- `.claude/commands/vibecoding.md`
+- `src/sdlc/vibecoding/baseline.ts`
+- `scripts/endiorbot-sdlc-plugin.sh`
+
+**Architecture**:
+- NO PM agent (EndiorBot SOUL = governance)
+- Architect handles HOW to build
+- Coder handles BUILD it
+- Reviewer handles VERIFY it
+
+**Test Count**: 3,434 passing (no regressions)
+
+**Documentation**:
+- [SPRINT-53-STATUS](SPRINT-53-STATUS.md)
+- [sprint-53-implementation-guide.md](sprint-53-implementation-guide.md)
+
+---
+
+### Sprint 52 Summary
+
+**Duration**: February 27, 2026 (~10-12 hours)
+**Goal**: Claude Code Integration - Minimal DevEx Pack
+**Status**: ✅ COMPLETE
+
+**Deliverables**:
+- CLAUDE.md updated with 4 Non-Negotiable Invariants
+- /project:gate command (thin client pattern)
+- /project:consult command (thin client pattern)
+- PreToolUse hook (secret guard + ADR warnings, ~50 LOC)
+- PostToolUse hook (lint + vibecoding-lite, ~45 LOC)
+- settings.json hook configuration
+
+**Key Files**:
+- `CLAUDE.md` (updated)
+- `.claude/commands/gate.md`
+- `.claude/commands/consult.md`
+- `.claude/hooks/pre-tool-use.sh`
+- `.claude/hooks/post-tool-use.sh`
+- `.claude/settings.json`
+
+**4 Non-Negotiable Invariants**:
+1. **THIN CLIENT PATTERN**: Commands are wrappers calling `./endiorbot.mjs`
+2. **STDIN JSON FOR HOOKS**: Hooks receive JSON via stdin, parse with jq
+3. **ENDIORBOT SOUL = GOVERNANCE**: Business logic in EndiorBot, not .md files
+4. **DEFAULT MODEL = SONNET**: Model directive in all command files
+
+**Test Count**: 3,434 passing (no regressions)
+
+**Documentation**:
+- [SPRINT-52-STATUS](SPRINT-52-STATUS.md)
+- [claude-code-integration.md](claude-code-integration.md)
+
+---
+
+### Sprint 51 Summary
+
+**Duration**: February 27, 2026
+**Goal**: Composio Integration Phase 2: Tool-Aware Intelligence
+**Status**: ✅ COMPLETE
+
+**Deliverables**:
+- ToolAwareOrchestrator (~350 LOC) - AI + Composio wrapper, tool injection
+- toolEffectiveness dimension (~280 LOC) - 5% weight, 4 metrics
+- OTTApprovalService (~350 LOC) - Telegram/Zalo CEO approval
+- ToolPatternRecognizer (~400 LOC) - Pattern recognition, auto-approve
+- Evaluator weight renormalization (correctness 30%→25%)
+- 56 new tests
+
+**Key Files**:
+- `src/tools/orchestrator.ts`
+- `src/evaluator/dimensions/tool-effectiveness.ts`
+- `src/tools/ott-approval.ts`
+- `src/tools/tool-patterns.ts`
+- `src/evaluator/types.ts` (modified)
+
+**Test Count**: 3,434 passing (+56 from Sprint 50)
+
+**Documentation**:
+- [Sprint 51 Implementation Guide](sprint-51-implementation-guide.md)
+- [SPRINT-51-STATUS](SPRINT-51-STATUS.md)
+
+---
+
+### Sprint 50 Summary
+
+**Duration**: 10 days (February 27, 2026)
+**Goal**: Composio Integration Phase 1: Security Foundation
+**Status**: ✅ COMPLETE
+
+**Deliverables**:
+- ToolControlPlane (trust boundary) - 480 LOC
+- PolicyEngine (READ/WRITE/DESTRUCTIVE risk classification) - 320 LOC
+- ApprovalQueue (5min expiry, one-time use tokens) - 280 LOC
+- AuditLogger (100% execution logging) - 250 LOC
+- ComposioClient (SDK wrapper with mockMode) - 580 LOC
+- InputValidator (Zod schemas) - 180 LOC
+- ToolRegistry (discovery + caching) - 200 LOC
+- ToolExecutor (validation + Brain tracking) - 350 LOC
+- AuthManager (OAuth flow + principal mapping) - 534 LOC
+- 10 curated tools whitelist (GitHub, Gmail, Calendar, Slack, Shell)
+- 9 Gateway methods (discover, execute, approve, cancel, status, connections, dryRun, initOAuth, handleCallback)
+- OAuth flow with CSRF protection
+- Principal UUID ↔ Composio entity mapping
+- 215 new tests
+
+**Key Files**:
+- `src/tools/control-plane.ts`
+- `src/tools/policy-engine.ts`
+- `src/tools/approval-queue.ts`
+- `src/tools/tool-registry.ts`
+- `src/tools/tool-executor.ts`
+- `src/tools/composio-client.ts`
+- `src/tools/auth-manager.ts`
+- `src/tools/audit-logger.ts`
+- `src/tools/input-validator.ts`
+- `src/tools/types.ts`
+- `src/gateway/methods/tools.ts`
+
+**Test Count**: 3,384 passing (+213 from Sprint 49)
+
+**Documentation**:
+- [ADR-011: Composio Integration](../02-design/01-ADRs/ADR-011-Composio-Integration.md)
+- [TOOL-POLICY.md](TOOL-POLICY.md)
+- [Sprint 50 Plan](../01-planning/sprint-50-plan.md)
+- [Sprint 50 Requirements](../01-planning/sprint-50-requirements.md)
+- [Sprint 50 Implementation Guide](sprint-50-implementation-guide.md)
+- [SPRINT-50-STATUS](SPRINT-50-STATUS.md)
+
+---
 
 ### Sprint 49 Summary
 
@@ -482,13 +637,13 @@
 
 ## Sprint Metrics
 
-| Metric | Sprint 44 | Sprint 45 | Sprint 46 | Sprint 47 | Sprint 48 | Sprint 49 | Total |
-|--------|-----------|-----------|-----------|-----------|-----------|-----------|-------|
-| Files Created | 10 | 12 | 15 | 6 | 14 | 18 | 75 |
-| LOC Added | ~6,720 | ~6,478 | ~2,960 | ~1,970 | ~3,100 | ~6,500 | ~27,728 |
-| Tests Added | +144 | +315 | +276 | +54 | +300 | +378 | +1,467 |
-| Total Tests | 2,148 | 2,463 | 2,739 | 2,793 | 2,793 | 3,171 | 3,171 |
-| Build Status | PASS | PASS | PASS | PASS | PASS | PASS | ✅ |
+| Metric | Sprint 44 | Sprint 45 | Sprint 46 | Sprint 47 | Sprint 48 | Sprint 49 | Sprint 50 | Sprint 51 | Sprint 52 | Sprint 53 | Total |
+|--------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|-------|
+| Files Created | 10 | 12 | 15 | 6 | 14 | 18 | 11 | 8 | 5 | 10 | 109 |
+| LOC Added | ~6,720 | ~6,478 | ~2,960 | ~1,970 | ~3,100 | ~6,500 | ~3,820 | ~1,380 | ~130 | ~725 | ~33,783 |
+| Tests Added | +144 | +315 | +276 | +54 | +300 | +378 | +213 | +56 | 0 | 0 | +1,736 |
+| Total Tests | 2,148 | 2,463 | 2,739 | 2,793 | 2,793 | 3,171 | 3,384 | 3,434 | 3,434 | 3,434 | 3,434 |
+| Build Status | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | ✅ |
 
 ---
 
@@ -509,6 +664,8 @@
 | **Phase 10: Desktop Chat + E2E** | 47 | ✅ COMPLETE | 100% |
 | **Phase 11: Evaluator-Optimizer** | 48 | ✅ COMPLETE | 100% |
 | **Phase 12: Production Hardening** | 49 | ✅ COMPLETE | 100% |
+| **Phase 13: Composio Integration** | 50-51 | ✅ COMPLETE | 100% |
+| **Phase 14: Claude Code Integration** | 52-53 | ✅ COMPLETE | 100% |
 
 ---
 

@@ -15,7 +15,7 @@
  * Quality dimensions for response evaluation.
  */
 export interface ScoreDimensions {
-  /** Did it solve the problem? (weight: 30%) */
+  /** Did it solve the problem? (weight: 25%) - reduced from 30% in Sprint 51 */
   correctness: number;
   /** Token/cost efficiency (weight: 20%) */
   efficiency: number;
@@ -25,6 +25,8 @@ export interface ScoreDimensions {
   safety: number;
   /** CEO preference match (weight: 15%) */
   ceoAlignment: number;
+  /** Tool usage effectiveness (weight: 5%) - added in Sprint 51 */
+  toolEffectiveness?: number;
 }
 
 /**
@@ -48,17 +50,23 @@ export interface DimensionWeights {
   clarity: number;
   safety: number;
   ceoAlignment: number;
+  /** Tool effectiveness weight (added Sprint 51, default 5%) */
+  toolEffectiveness: number;
 }
 
 /**
  * Default dimension weights.
+ * Sprint 51: Renormalized to add toolEffectiveness (5%)
+ * - correctness: 30% -> 25% (-5%)
+ * - toolEffectiveness: 0% -> 5% (+5%)
  */
 export const DEFAULT_DIMENSION_WEIGHTS: DimensionWeights = {
-  correctness: 0.3,
+  correctness: 0.25,      // Reduced from 0.30 in Sprint 51
   efficiency: 0.2,
   clarity: 0.15,
   safety: 0.2,
   ceoAlignment: 0.15,
+  toolEffectiveness: 0.05, // Added in Sprint 51
 };
 
 /**
@@ -568,17 +576,22 @@ export function getDimensionsBelowThreshold(
 
 /**
  * Calculate weighted overall score from dimensions.
+ * Sprint 51: Added toolEffectiveness dimension (5% weight)
  */
 export function calculateOverallScore(
   dimensions: ScoreDimensions,
   weights: DimensionWeights = DEFAULT_DIMENSION_WEIGHTS
 ): number {
+  // toolEffectiveness is optional (may not be present for non-tool responses)
+  const toolScore = dimensions.toolEffectiveness ?? 50; // Neutral if not set
+
   return Math.round(
     dimensions.correctness * weights.correctness +
     dimensions.efficiency * weights.efficiency +
     dimensions.clarity * weights.clarity +
     dimensions.safety * weights.safety +
-    dimensions.ceoAlignment * weights.ceoAlignment
+    dimensions.ceoAlignment * weights.ceoAlignment +
+    toolScore * weights.toolEffectiveness
   );
 }
 

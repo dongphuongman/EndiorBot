@@ -26,3 +26,11 @@ export {
   type VibecodingMetrics,
   type VibecodingConfig,
 } from "./vibecoding-index.js";
+
+export {
+  BaselineManager,
+  getBaselineManager,
+  resetBaselineManager,
+  type BaselineEntry,
+  type BaselineData,
+} from "./baseline.js";

@@ -20,6 +20,7 @@ import { registerAgentMethods } from "./agents.js";
 import { registerChatMethods } from "./chat.js";
 import { registerEvalMethods } from "./eval.js";
 import { registerOptimizerMethods } from "./optimizer.js";
+import { registerToolsMethods } from "./tools.js";
 
 // ============================================================================
 // Type Exports (with gateway prefix to avoid conflicts)
@@ -78,6 +79,28 @@ export type {
   OptimizerStatusResult,
   OptimizerResetResult,
 } from "./optimizer.js";
+
+// Tools types (Sprint 50)
+export type {
+  ToolsDiscoverParams,
+  ToolsDiscoverResult,
+  ToolsExecuteParams,
+  ToolsExecuteResult,
+  ToolsApproveParams,
+  ToolsApproveResult,
+  ToolsCancelParams,
+  ToolsCancelResult,
+  ToolsStatusParams,
+  ToolsStatusResult,
+  ToolsConnectionsParams,
+  ToolsConnectionsResult,
+  ToolsDryRunParams,
+  ToolsDryRunResult,
+  ToolsInitOAuthParams,
+  ToolsInitOAuthResult,
+  ToolsHandleCallbackParams,
+  ToolsHandleCallbackResult,
+} from "./tools.js";
 
 // ============================================================================
 // Function Exports
@@ -153,6 +176,14 @@ export {
   resumeLoop,
 } from "./optimizer.js";
 
+// Tools methods (Sprint 50)
+export {
+  registerToolsMethods,
+  getControlPlane,
+  setControlPlane,
+  resetToolsState,
+} from "./tools.js";
+
 // ============================================================================
 // Aggregate Registration
 // ============================================================================
@@ -169,6 +200,7 @@ export function registerAllMethods(server: GatewayServer): void {
   registerChatMethods(server);
   registerEvalMethods(server);
   registerOptimizerMethods(server);
+  registerToolsMethods(server);
 }
 
 /**
@@ -183,8 +215,9 @@ export const METHOD_COUNTS = {
   chat: 4,         // chat.send, chat.stream, chat.abort, chat.history
   eval: 3,         // eval.score, eval.history, eval.compare (Sprint 48)
   optimizer: 2,    // optimizer.status, optimizer.reset (Sprint 48)
+  tools: 9,        // tools.discover, tools.execute, tools.approve, tools.cancel, tools.status, tools.connections, tools.dryRun, tools.initOAuth, tools.handleCallback (Sprint 50)
   system: 4,       // Built into server (ping, version, stats, health)
   subscription: 2, // Built into server (subscribe, unsubscribe)
   auth: 1,         // Built into server (auth)
-  total: 43,
+  total: 52,
 } as const;
