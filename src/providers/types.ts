@@ -10,7 +10,7 @@
 // ============================================================================
 
 export interface ProviderConfig {
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
   timeout?: number;
   maxRetries?: number;

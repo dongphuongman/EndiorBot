@@ -94,7 +94,13 @@ class MockProvider implements AIProvider {
 
 class MockGatewayServer {
   private methods = new Map<string, (params: unknown, client: ClientInfo) => unknown>();
-  public sentMessages: Array<{ clientId: string; event: GatewayEvent }> = [];
+  public sentMessages: Array<{ clientId: string; message: string }> = [];
+
+  // Mock WebSocket clients map for sendNotification to work
+  public clients = new Map<string, {
+    readyState: number;
+    send: (message: string) => void;
+  }>();
 
   registerMethod(method: string, handler: (params: unknown, client: ClientInfo) => unknown): void {
     this.methods.set(method, handler);
@@ -105,8 +111,18 @@ class MockGatewayServer {
   }
 
   sendTo(clientId: string, event: GatewayEvent): boolean {
-    this.sentMessages.push({ clientId, event });
+    this.sentMessages.push({ clientId, message: JSON.stringify(event) });
     return true;
+  }
+
+  // Add a mock client that captures sent messages
+  addMockClient(clientId: string): void {
+    this.clients.set(clientId, {
+      readyState: 1, // WebSocket.OPEN
+      send: (message: string) => {
+        this.sentMessages.push({ clientId, message });
+      },
+    });
   }
 }
 
@@ -143,6 +159,9 @@ describe("Chat Methods", () => {
       authenticated: true,
       subscriptions: new Set(["chat.chunk", "chat.done", "chat.error"]),
     };
+
+    // Add mock client to server's clients map for sendNotification to work
+    mockServer.addMockClient(mockClient.id);
 
     // Register methods
     registerChatMethods(mockServer as unknown as GatewayServer);
@@ -256,10 +275,15 @@ describe("Chat Methods", () => {
       // Wait for stream to complete
       await new Promise((r) => setTimeout(r, 100));
 
-      // Check that chunks were sent
-      const chunkMessages = mockServer.sentMessages.filter(
-        (m) => (m.event.data as ChatChunkData).streamId !== undefined && "delta" in (m.event.data as Record<string, unknown>)
-      );
+      // Check that chunks were sent (messages are JSON strings)
+      const chunkMessages = mockServer.sentMessages.filter((m) => {
+        try {
+          const parsed = JSON.parse(m.message);
+          return parsed.method === "chat.chunk" && parsed.params?.delta !== undefined;
+        } catch {
+          return false;
+        }
+      });
 
       expect(chunkMessages.length).toBeGreaterThan(0);
     });
@@ -276,10 +300,15 @@ describe("Chat Methods", () => {
       // Wait for stream to complete
       await new Promise((r) => setTimeout(r, 100));
 
-      // Check that done was sent
-      const doneMessages = mockServer.sentMessages.filter(
-        (m) => (m.event.data as ChatDoneData).finishReason !== undefined
-      );
+      // Check that done was sent (messages are JSON strings)
+      const doneMessages = mockServer.sentMessages.filter((m) => {
+        try {
+          const parsed = JSON.parse(m.message);
+          return parsed.method === "chat.done" && parsed.params?.finishReason !== undefined;
+        } catch {
+          return false;
+        }
+      });
 
       expect(doneMessages.length).toBe(1);
     });

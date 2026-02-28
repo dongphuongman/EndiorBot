@@ -736,9 +736,10 @@ export class EvaluatorLoop {
     for (const key of Object.keys(dimensions) as (keyof typeof dimensions)[]) {
       const current = this.metrics.dimensionAverages[key] ?? 0;
       const count = this.scoreHistory.length;
+      const dimValue = dimensions[key] ?? 50; // Default to neutral for optional dimensions
       const newAvg = count > 1
-        ? Math.round((current * (count - 1) + dimensions[key]) / count)
-        : dimensions[key];
+        ? Math.round((current * (count - 1) + dimValue) / count)
+        : dimValue;
       this.metrics.dimensionAverages[key] = newAvg;
     }
   }

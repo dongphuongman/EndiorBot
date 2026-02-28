@@ -103,8 +103,21 @@ export interface OTTApprovalRequest {
  * const approved = await ottService.requestApproval(decision);
  * ```
  */
+/**
+ * Resolved config with required defaults
+ */
+interface ResolvedOTTApprovalConfig {
+  telegramChannel: TelegramChannel | undefined;
+  zaloChannel: ZaloChannel | undefined;
+  preferredChannel: 'telegram' | 'zalo';
+  ceoChatId: string;
+  approvalTimeoutMs: number;
+  retryOnTimeout: boolean;
+  maxRetries: number;
+}
+
 export class OTTApprovalService {
-  private config: Required<OTTApprovalConfig>;
+  private config: ResolvedOTTApprovalConfig;
   private pendingApprovals: Map<string, PendingApproval> = new Map();
   private approvalHistory: OTTApprovalResponse[] = [];
   private log: Logger;
@@ -112,7 +125,10 @@ export class OTTApprovalService {
 
   constructor(config: OTTApprovalConfig) {
     this.config = {
-      ...config,
+      telegramChannel: config.telegramChannel,
+      zaloChannel: config.zaloChannel,
+      preferredChannel: config.preferredChannel,
+      ceoChatId: config.ceoChatId,
       approvalTimeoutMs: config.approvalTimeoutMs ?? 5 * 60 * 1000, // 5 min
       retryOnTimeout: config.retryOnTimeout ?? false,
       maxRetries: config.maxRetries ?? 1,
@@ -201,10 +217,12 @@ export class OTTApprovalService {
     const response: OTTApprovalResponse = {
       token: foundToken,
       approved,
-      approvedBy,
       timestamp: new Date(),
       channel: this.config.preferredChannel,
     };
+    if (approvedBy !== undefined) {
+      response.approvedBy = approvedBy;
+    }
     this.approvalHistory.push(response);
 
     // Resolve promise
@@ -336,12 +354,13 @@ Reply with:
 
     try {
       // Use sendAlert for formatted messages
+      // Note: Using 'approval_needed' type from EscalationAlertType
       const alert = {
-        type: 'tool_approval' as const,
-        priority: 'high' as const,
+        type: 'approval_needed' as const,
         title: 'Tool Approval Required',
-        message,
+        body: message,
         timestamp: new Date(),
+        priority: 'high' as const,
       };
 
       return await channel.sendAlert(alert);

@@ -190,9 +190,10 @@ export class Optimizer {
    * Check if a trigger condition is met.
    */
   private checkTrigger(trigger: StrategyTrigger, scoreCard: ScoreCard): boolean {
-    const value = trigger.dimension === "overall"
+    const rawValue = trigger.dimension === "overall"
       ? scoreCard.overall
       : scoreCard.dimensions[trigger.dimension];
+    const value = rawValue ?? 50; // Default to neutral for optional dimensions
 
     switch (trigger.operator) {
       case "<":
@@ -537,7 +538,8 @@ export class Optimizer {
     for (const dim of lowDimensions) {
       const existing = suggestions.some((s) => s.reason.includes(dim));
       if (!existing) {
-        suggestions.push(this.getGenericSuggestion(dim, scoreCard.dimensions[dim]));
+        const dimScore = scoreCard.dimensions[dim] ?? 50;
+        suggestions.push(this.getGenericSuggestion(dim, dimScore));
       }
     }
 
@@ -595,6 +597,12 @@ export class Optimizer {
         reason: `CEO alignment is low (${score}). Review preferences and retry.`,
         confidence: 0.5,
         estimatedImprovement: 8,
+      },
+      toolEffectiveness: {
+        type: "enhance",
+        reason: `Tool effectiveness is low (${score}). Review tool selection strategy.`,
+        confidence: 0.6,
+        estimatedImprovement: 10,
       },
     };
 

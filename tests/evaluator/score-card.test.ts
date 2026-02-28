@@ -396,9 +396,10 @@ describe("ScoreCardCalculator", () => {
 
   describe("Utility Methods", () => {
     it("should recalculate overall from dimensions", () => {
+      // Sprint 51: Include toolEffectiveness dimension
       const card = createTestScoreCard({
         overall: 0, // Wrong
-        dimensions: { correctness: 100, efficiency: 100, clarity: 100, safety: 100, ceoAlignment: 100 },
+        dimensions: { correctness: 100, efficiency: 100, clarity: 100, safety: 100, ceoAlignment: 100, toolEffectiveness: 100 },
       });
 
       const recalculated = calculator.recalculateOverall(card);

@@ -77,17 +77,12 @@ export interface ToolExecutionEvent {
 }
 
 /**
- * Tool specification for provider injection
+ * Import Tool type from providers/types for provider injection
  */
-interface ProviderTool {
-  name: string;
-  description: string;
-  parameters: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required: string[];
-  };
-}
+import type { Tool as ProviderTool, ToolParameter as ProviderToolParameter } from '../providers/types.js';
+
+// Ignore unused import warning - kept for documentation
+void (null as unknown as ProviderToolParameter);
 
 // =============================================================================
 // ToolAwareOrchestrator
@@ -109,8 +104,8 @@ export class ToolAwareOrchestrator {
   private toolRegistry: ToolRegistry;
   private principal_id: string;
   private autoExecuteReads: boolean;
-  private onApprovalRequired?: (decision: PolicyDecision, toolCall: ToolCall) => Promise<void>;
-  private onToolExecution?: (event: ToolExecutionEvent) => Promise<void>;
+  private onApprovalRequired: ((decision: PolicyDecision, toolCall: ToolCall) => Promise<void>) | undefined;
+  private onToolExecution: ((event: ToolExecutionEvent) => Promise<void>) | undefined;
   private log: Logger;
 
   constructor(config: OrchestratorConfig) {
@@ -225,13 +220,18 @@ export class ToolAwareOrchestrator {
       pendingApprovals: pendingApprovals.length,
     });
 
-    return {
+    const result: ToolAwareResponse = {
       ...response,
       tool_calls: toolCalls,
       tool_results: results,
-      pending_approvals: pendingApprovals.length > 0 ? pendingApprovals : undefined,
       tools_invoked: true,
     };
+
+    if (pendingApprovals.length > 0) {
+      result.pending_approvals = pendingApprovals;
+    }
+
+    return result;
   }
 
   /**
@@ -282,46 +282,31 @@ export class ToolAwareOrchestrator {
 
   /**
    * Convert Composio tool to provider-specific format.
+   * Maps Tool (from tools/types.ts) to ProviderTool (from providers/types.ts)
    */
   private convertToProviderTool(tool: Tool): ProviderTool {
-    const properties: Record<string, unknown> = {};
-    const required: string[] = [];
+    const parameters: Record<string, ProviderToolParameter> = {};
 
     for (const param of tool.parameters) {
-      properties[param.name] = {
-        type: this.mapParameterType(param.type),
+      const providerParam: ProviderToolParameter = {
+        type: param.type,
         description: param.description,
+        required: param.required,
       };
 
       // Add enum if present
       if (param.enum && param.enum.length > 0) {
-        (properties[param.name] as Record<string, unknown>).enum = param.enum;
+        providerParam.enum = param.enum;
       }
 
-      if (param.required) {
-        required.push(param.name);
-      }
+      parameters[param.name] = providerParam;
     }
 
     return {
       name: tool.name,
       description: tool.description,
-      parameters: {
-        type: 'object',
-        properties,
-        required,
-      },
+      parameters,
     };
-  }
-
-  /**
-   * Map Composio parameter types to JSON Schema types.
-   */
-  private mapParameterType(
-    type: 'string' | 'number' | 'boolean' | 'array' | 'object'
-  ): string {
-    // Types are already JSON Schema compatible
-    return type;
   }
 
   // ===========================================================================

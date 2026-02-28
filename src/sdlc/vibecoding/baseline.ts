@@ -196,8 +196,12 @@ export class BaselineManager {
     let decreasing = 0;
 
     for (let i = 1; i < scores.length; i++) {
-      if (scores[i] > scores[i - 1]) increasing++;
-      else if (scores[i] < scores[i - 1]) decreasing++;
+      const current = scores[i];
+      const previous = scores[i - 1];
+      if (current !== undefined && previous !== undefined) {
+        if (current > previous) increasing++;
+        else if (current < previous) decreasing++;
+      }
     }
 
     if (increasing > decreasing + 1) return "declining"; // Score up = quality down

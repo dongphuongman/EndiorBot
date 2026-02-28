@@ -31,11 +31,13 @@ import {
 describe("Evaluator Types", () => {
   describe("Default Configurations", () => {
     it("should have correct default dimension weights", () => {
-      expect(DEFAULT_DIMENSION_WEIGHTS.correctness).toBe(0.3);
+      // Sprint 51: correctness reduced 0.30 -> 0.25 to add toolEffectiveness (0.05)
+      expect(DEFAULT_DIMENSION_WEIGHTS.correctness).toBe(0.25);
       expect(DEFAULT_DIMENSION_WEIGHTS.efficiency).toBe(0.2);
       expect(DEFAULT_DIMENSION_WEIGHTS.clarity).toBe(0.15);
       expect(DEFAULT_DIMENSION_WEIGHTS.safety).toBe(0.2);
       expect(DEFAULT_DIMENSION_WEIGHTS.ceoAlignment).toBe(0.15);
+      expect(DEFAULT_DIMENSION_WEIGHTS.toolEffectiveness).toBe(0.05);
     });
 
     it("should have weights that sum to 1.0", () => {
@@ -194,35 +196,53 @@ describe("Evaluator Types", () => {
 
   describe("calculateOverallScore", () => {
     it("should calculate weighted average correctly", () => {
+      // Sprint 51: All 100s including toolEffectiveness = 100
       const dimensions: ScoreDimensions = {
-        correctness: 100, // 0.3 * 100 = 30
+        correctness: 100, // 0.25 * 100 = 25
         efficiency: 100, // 0.2 * 100 = 20
         clarity: 100, // 0.15 * 100 = 15
         safety: 100, // 0.2 * 100 = 20
         ceoAlignment: 100, // 0.15 * 100 = 15
+        toolEffectiveness: 100, // 0.05 * 100 = 5
       };
       expect(calculateOverallScore(dimensions)).toBe(100);
     });
 
     it("should calculate correctly with mixed scores", () => {
+      // Sprint 51: Updated weights with toolEffectiveness
       const dimensions: ScoreDimensions = {
-        correctness: 80, // 0.3 * 80 = 24
+        correctness: 80, // 0.25 * 80 = 20
         efficiency: 70, // 0.2 * 70 = 14
         clarity: 60, // 0.15 * 60 = 9
         safety: 90, // 0.2 * 90 = 18
         ceoAlignment: 50, // 0.15 * 50 = 7.5
+        toolEffectiveness: 70, // 0.05 * 70 = 3.5
       };
-      // 24 + 14 + 9 + 18 + 7.5 = 72.5 → 73 (rounded)
-      expect(calculateOverallScore(dimensions)).toBe(73);
+      // 20 + 14 + 9 + 18 + 7.5 + 3.5 = 72 (rounded)
+      expect(calculateOverallScore(dimensions)).toBe(72);
     });
 
-    it("should return 0 for all zero dimensions", () => {
+    it("should return 3 for all zero dimensions (toolEffectiveness defaults to 50)", () => {
+      // Sprint 51: toolEffectiveness defaults to 50 when not set
+      // So 0.05 * 50 = 2.5 → 3 (rounded)
       const dimensions: ScoreDimensions = {
         correctness: 0,
         efficiency: 0,
         clarity: 0,
         safety: 0,
         ceoAlignment: 0,
+      };
+      expect(calculateOverallScore(dimensions)).toBe(3);
+    });
+
+    it("should return 0 for all zero dimensions including toolEffectiveness", () => {
+      const dimensions: ScoreDimensions = {
+        correctness: 0,
+        efficiency: 0,
+        clarity: 0,
+        safety: 0,
+        ceoAlignment: 0,
+        toolEffectiveness: 0,
       };
       expect(calculateOverallScore(dimensions)).toBe(0);
     });
@@ -234,6 +254,7 @@ describe("Evaluator Types", () => {
         clarity: 0,
         safety: 0,
         ceoAlignment: 0,
+        toolEffectiveness: 0,
       };
       const customWeights: DimensionWeights = {
         correctness: 1.0,
@@ -241,6 +262,7 @@ describe("Evaluator Types", () => {
         clarity: 0,
         safety: 0,
         ceoAlignment: 0,
+        toolEffectiveness: 0,
       };
       expect(calculateOverallScore(dimensions, customWeights)).toBe(100);
     });

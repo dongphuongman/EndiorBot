@@ -355,6 +355,7 @@ export class Evaluator {
         clarity: parsed.scoresA.clarity - parsed.scoresB.clarity,
         safety: parsed.scoresA.safety - parsed.scoresB.safety,
         ceoAlignment: parsed.scoresA.ceoAlignment - parsed.scoresB.ceoAlignment,
+        toolEffectiveness: (parsed.scoresA.toolEffectiveness ?? 50) - (parsed.scoresB.toolEffectiveness ?? 50),
       },
       improvementPercent: scoresB.overall > 0
         ? ((scoresA.overall - scoresB.overall) / scoresB.overall) * 100
@@ -616,7 +617,8 @@ export class Evaluator {
       );
 
       if (!existing) {
-        suggestions.push(this.getSuggestionForDimension(dim, scores[dim]));
+        const dimScore = scores[dim] ?? 50; // Default to neutral for optional dimensions
+        suggestions.push(this.getSuggestionForDimension(dim, dimScore));
       }
     }
 
@@ -668,6 +670,14 @@ export class Evaluator {
         reason: `CEO alignment score (${score}) is low - review preferences`,
         confidence: 0.6,
         estimatedImprovement: 8,
+        strategyName: "review-preferences",
+      },
+      toolEffectiveness: {
+        type: "enhance",
+        reason: `Tool effectiveness score (${score}) is low - review tool selection`,
+        confidence: 0.7,
+        estimatedImprovement: 10,
+        strategyName: "tool-optimization",
       },
     };
 

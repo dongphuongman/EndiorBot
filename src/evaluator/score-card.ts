@@ -206,6 +206,7 @@ export class ScoreCardCalculator {
       clarity: a.dimensions.clarity - b.dimensions.clarity,
       safety: a.dimensions.safety - b.dimensions.safety,
       ceoAlignment: a.dimensions.ceoAlignment - b.dimensions.ceoAlignment,
+      toolEffectiveness: (a.dimensions.toolEffectiveness ?? 50) - (b.dimensions.toolEffectiveness ?? 50),
     };
 
     let winner: "a" | "b" | "equal";
@@ -252,10 +253,13 @@ export class ScoreCardCalculator {
       "clarity",
       "safety",
       "ceoAlignment",
+      "toolEffectiveness",
     ];
 
     for (const dim of dims) {
-      const diff = after.dimensions[dim] - before.dimensions[dim];
+      const afterVal = after.dimensions[dim] ?? 50;
+      const beforeVal = before.dimensions[dim] ?? 50;
+      const diff = afterVal - beforeVal;
       if (diff > 5) {
         improvedDimensions.push(dim);
       } else if (diff < -5) {
