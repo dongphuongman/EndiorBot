@@ -29,6 +29,9 @@ export {
 // Server
 export { GatewayServer, createGatewayServer } from "./server.js";
 
+// Web Server (HTTP + WebSocket hybrid for browser interface)
+export { WebGatewayServer, createWebGatewayServer } from "./web-server.js";
+
 // Authentication
 export {
   GatewayAuthManager,
@@ -62,3 +65,17 @@ export {
 
 // Methods
 export * from "./methods/index.js";
+
+// Chat Handler (Sprint 54 - 3-Model Consultation)
+export {
+  ChatHandler,
+  getChatHandler,
+  resetChatHandler,
+  classifyTask,
+  routeTask,
+  type ChatTaskType,
+  type ChatHandlerRequest,
+  type ChatHandlerResponse,
+  type ConsolidatedResponse,
+  type ModelSelection,
+} from "./chat-handler.js";

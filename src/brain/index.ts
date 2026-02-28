@@ -95,3 +95,16 @@ export {
   logSessionEnd,
   logSessionStart,
 } from './layers/events.js';
+
+// Context Budget (Sprint 54 - Token Budget Governance)
+export {
+  ContextBudget,
+  getContextBudget,
+  resetContextBudget,
+  DEFAULT_CONTEXT_BUDGET_CONFIG,
+  LAYER_PRIORITY,
+  type ContextBlock,
+  type BudgetAllocation,
+  type SessionState,
+  type ContextBudgetConfig,
+} from './context-budget.js';

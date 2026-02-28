@@ -6,13 +6,18 @@
  *
  * Usage:
  *   endiorbot consult "design payment gateway integration"
- *   endiorbot consult "is Redis or PostgreSQL better for sessions?" --models claude,gpt
+ *   endiorbot consult --openai o3 --gemini gemini-2.5-pro "complex design question"
+ *   endiorbot consult --full "should we use Redis or PostgreSQL?"
+ *
+ * Model Selection (same as chatgpt.com/gemini.com):
+ *   --openai <model>  - OpenAI model: o3, o3-mini, o1, o1-mini, gpt-4o
+ *   --gemini <model>  - Gemini model: gemini-2.5-pro, gemini-2.0-flash-thinking
  *
  * @module cli/commands/consult
- * @version 1.0.0
- * @date 2026-02-22
- * @status ACTIVE - Phase 6 Implementation
- * @authority ADR-001 Multi-Model Orchestrator
+ * @version 2.0.0
+ * @date 2026-02-28
+ * @status ACTIVE - Sprint 54 Implementation
+ * @authority ADR-001 3-Model Consultation
  * @pillar 3 - Agent Personas
  * @stage 04 - BUILD
  * @sdlc SDLC Framework 6.1.1
@@ -24,6 +29,32 @@ import {
   type ConsultationResult,
   type ModelQueryResult,
 } from "../../agents/orchestrator/index.js";
+import {
+  getChatHandler,
+  type ChatHandlerRequest,
+} from "../../gateway/chat-handler.js";
+
+// ============================================================================
+// Constants - Available Models (per ADR-001)
+// ============================================================================
+
+/**
+ * Available models for CEO selection.
+ * Same experience as chatgpt.com/gemini.com.
+ */
+export const AVAILABLE_MODELS = {
+  openai: ["o3", "o3-mini", "o1", "o1-mini", "gpt-4o", "gpt-4o-mini"],
+  gemini: ["gemini-2.5-pro", "gemini-2.0-flash-thinking", "gemini-1.5-pro", "gemini-2.0-flash"],
+  anthropic: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4"],
+} as const;
+
+/**
+ * Default models (per ADR-001).
+ */
+const DEFAULT_MODELS = {
+  openai: "o3-mini",
+  gemini: "gemini-2.0-flash-thinking",
+} as const;
 
 // ============================================================================
 // Helpers
@@ -187,20 +218,82 @@ function displayResult(result: ConsultationResult, verbose: boolean): void {
 // ============================================================================
 
 /**
+ * Consult options with model selection.
+ */
+interface ConsultOptions {
+  models?: string;
+  openai?: string;
+  gemini?: string;
+  full?: boolean;
+  verbose?: boolean;
+}
+
+/**
+ * Validate model selection.
+ */
+function validateModel(
+  provider: "openai" | "gemini",
+  model: string,
+): boolean {
+  const available = AVAILABLE_MODELS[provider] as readonly string[];
+  return available.includes(model);
+}
+
+/**
  * Consult command action.
  */
 async function consultAction(
   query: string,
-  options: { models?: string; verbose?: boolean },
+  options: ConsultOptions,
 ): Promise<void> {
   console.log("");
   console.log("🔄 Consulting expert panel...");
 
-  const orchestrator = getOrchestrator();
+  // Validate model selections if provided
+  if (options.openai && !validateModel("openai", options.openai)) {
+    console.error(`❌ Invalid OpenAI model: ${options.openai}`);
+    console.log(`   Available: ${AVAILABLE_MODELS.openai.join(", ")}`);
+    process.exit(1);
+  }
+
+  if (options.gemini && !validateModel("gemini", options.gemini)) {
+    console.error(`❌ Invalid Gemini model: ${options.gemini}`);
+    console.log(`   Available: ${AVAILABLE_MODELS.gemini.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Show selected models
+  const openaiModel = options.openai ?? DEFAULT_MODELS.openai;
+  const geminiModel = options.gemini ?? DEFAULT_MODELS.gemini;
+  console.log(`   Claude (Primary) + ${openaiModel} + ${geminiModel}`);
+  console.log("");
 
   try {
-    const result = await orchestrator.consult(query);
-    displayResult(result, options.verbose ?? false);
+    // Use ChatHandler for Sprint 54 3-model consultation
+    const chatHandler = getChatHandler();
+
+    // Build request with only defined properties
+    const request: ChatHandlerRequest = {
+      message: query,
+      channel: "cli",
+      clientId: "cli-consult",
+    };
+
+    // Add optional model selections if provided
+    if (options.openai) {
+      request.openaiModel = options.openai;
+    }
+    if (options.gemini) {
+      request.geminiModel = options.gemini;
+    }
+    if (options.full) {
+      request.forceConsultation = options.full;
+    }
+
+    const response = await chatHandler.consult(request);
+
+    // Display using new format for ChatHandler response
+    displayChatResponse(response, options.verbose ?? false);
 
     // Show next actions
     console.log("📋 Actions:");
@@ -210,9 +303,78 @@ async function consultAction(
     console.log("");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`❌ Consultation failed: ${message}`);
-    process.exit(1);
+
+    // Fallback to orchestrator if ChatHandler not available
+    if (message.includes("not available") || message.includes("not initialized")) {
+      console.log("⚠️  ChatHandler not available, using orchestrator fallback...");
+      console.log("");
+
+      const orchestrator = getOrchestrator();
+      const result = await orchestrator.consult(query);
+      displayResult(result, options.verbose ?? false);
+    } else {
+      console.error(`❌ Consultation failed: ${message}`);
+      process.exit(1);
+    }
   }
+}
+
+/**
+ * Display ChatHandler response in CLI format.
+ */
+function displayChatResponse(
+  response: Awaited<ReturnType<ReturnType<typeof getChatHandler>["consult"]>>,
+  verbose: boolean,
+): void {
+  console.log("");
+  console.log("┌─────────────────────────────────────────────────────────────┐");
+  console.log(`│  🤖 3-Model Consultation (Sprint 54 MVP)                    │`);
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log(`│  Primary: ${response.model.padEnd(49)}│`);
+  console.log(`│  Provider: ${response.provider.padEnd(48)}│`);
+
+  if (response.agreement) {
+    const agreementEmoji: Record<string, string> = {
+      full: "✅",
+      partial: "⚠️",
+      divergent: "🔀",
+    };
+    console.log(
+      `│  Agreement: ${agreementEmoji[response.agreement]} ${response.agreement.padEnd(45)}│`,
+    );
+  }
+
+  console.log("├─────────────────────────────────────────────────────────────┤");
+
+  // Show primary response
+  console.log("│  📝 Response:".padEnd(62) + "│");
+  const lines = response.text.split("\n").slice(0, verbose ? 20 : 5);
+  for (const line of lines) {
+    const truncated = line.slice(0, 55);
+    console.log(`│     ${truncated.padEnd(55)}│`);
+  }
+  if (lines.length < response.text.split("\n").length) {
+    console.log(`│     ...`.padEnd(62) + "│");
+  }
+
+  // Show notes/critiques if available
+  if (response.notes) {
+    console.log("├─────────────────────────────────────────────────────────────┤");
+    console.log("│  📋 Alternative Views:".padEnd(62) + "│");
+    const noteLines = response.notes.split("\n").slice(0, 5);
+    for (const line of noteLines) {
+      const truncated = line.slice(0, 55);
+      console.log(`│     ${truncated.padEnd(55)}│`);
+    }
+  }
+
+  // Show token usage
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log(
+    `│  📊 Tokens: ${response.tokenUsage.input} in / ${response.tokenUsage.output} out (budget: ${response.tokenUsage.budget})`.padEnd(62) + "│",
+  );
+  console.log("└─────────────────────────────────────────────────────────────┘");
+  console.log("");
 }
 
 // ============================================================================
@@ -221,12 +383,52 @@ async function consultAction(
 
 /**
  * Register consult command.
+ *
+ * Per ADR-001 3-Model Consultation:
+ * - Claude (Primary) for coding/docs
+ * - OpenAI (Critique) - CEO can select: o3, o3-mini, o1, gpt-4o
+ * - Gemini (Critique) - CEO can select: gemini-2.5-pro, gemini-2.0-flash-thinking
  */
 export function registerConsultCommand(program: Command): void {
   program
     .command("consult <query>")
-    .description("Query multiple AI models for expert consultation")
-    .option("-m, --models <models>", "Specific models to query (comma-separated)")
+    .description("Query 3 AI models for expert consultation (Claude + OpenAI + Gemini)")
+    .option("--openai <model>", `OpenAI model (${AVAILABLE_MODELS.openai.join(", ")})`, DEFAULT_MODELS.openai)
+    .option("--gemini <model>", `Gemini model (${AVAILABLE_MODELS.gemini.join(", ")})`, DEFAULT_MODELS.gemini)
+    .option("--full", "Force full 3-model consultation regardless of task type")
     .option("-v, --verbose", "Show detailed responses from each model")
+    .option("-m, --models <models>", "Legacy: Specific models to query (comma-separated)")
     .action(consultAction);
+
+  // Also add 'models' command to list available models
+  program
+    .command("models")
+    .description("List available AI models for consultation")
+    .action(() => {
+      console.log("");
+      console.log("┌─────────────────────────────────────────────────────────────┐");
+      console.log("│  🤖 Available Models for Consultation                       │");
+      console.log("├─────────────────────────────────────────────────────────────┤");
+      console.log("│  OpenAI:".padEnd(62) + "│");
+      for (const model of AVAILABLE_MODELS.openai) {
+        const isDefault = model === DEFAULT_MODELS.openai ? " (default)" : "";
+        console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
+      }
+      console.log("│".padEnd(62) + "│");
+      console.log("│  Gemini:".padEnd(62) + "│");
+      for (const model of AVAILABLE_MODELS.gemini) {
+        const isDefault = model === DEFAULT_MODELS.gemini ? " (default)" : "";
+        console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
+      }
+      console.log("│".padEnd(62) + "│");
+      console.log("│  Claude (Primary):".padEnd(62) + "│");
+      for (const model of AVAILABLE_MODELS.anthropic) {
+        console.log(`│     • ${model}`.padEnd(62) + "│");
+      }
+      console.log("└─────────────────────────────────────────────────────────────┘");
+      console.log("");
+      console.log("Usage:");
+      console.log("  endiorbot consult --openai o3 --gemini gemini-2.5-pro \"your question\"");
+      console.log("");
+    });
 }

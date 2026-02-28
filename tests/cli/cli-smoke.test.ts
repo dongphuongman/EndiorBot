@@ -206,8 +206,9 @@ describe("CLI Smoke Tests", () => {
     it("should show consult help", () => {
       const result = runCli("consult --help");
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Query multiple AI models");
-      expect(result.stdout).toContain("--models");
+      expect(result.stdout).toContain("Query 3 AI models");
+      expect(result.stdout).toContain("--openai");
+      expect(result.stdout).toContain("--gemini");
       expect(result.stdout).toContain("--verbose");
     });
 
