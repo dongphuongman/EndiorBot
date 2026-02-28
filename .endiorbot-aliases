@@ -1,0 +1,41 @@
+#!/bin/bash
+###############################################################################
+# EndiorBot Shell Aliases
+#
+# Source this in your ~/.zshrc or ~/.bashrc:
+#   source ~/Documents/Python/01.NQH/EndiorBot/.endiorbot-aliases
+###############################################################################
+
+# EndiorBot project directory
+export ENDIORBOT_DIR="$HOME/Documents/Python/01.NQH/EndiorBot"
+
+# Quick navigation
+alias cde='cd $ENDIORBOT_DIR'
+
+# EndiorBot commands (replacing OpenClaw)
+alias eb='$ENDIORBOT_DIR/endiorbot.mjs'
+alias eb-start='$ENDIORBOT_DIR/start-endiorbot.sh'
+alias eb-gateway='$ENDIORBOT_DIR/start-endiorbot.sh gateway'
+alias eb-desktop='$ENDIORBOT_DIR/start-endiorbot.sh desktop'
+alias eb-stop='$ENDIORBOT_DIR/start-endiorbot.sh stop'
+alias eb-status='$ENDIORBOT_DIR/start-endiorbot.sh status'
+
+# Development shortcuts
+alias eb-build='cd $ENDIORBOT_DIR && pnpm build'
+alias eb-test='cd $ENDIORBOT_DIR && pnpm test'
+alias eb-dev='cd $ENDIORBOT_DIR/apps/desktop && pnpm dev'
+
+# CLI commands
+alias eb-gate='$ENDIORBOT_DIR/endiorbot.mjs gate status'
+alias eb-brain='$ENDIORBOT_DIR/endiorbot.mjs brain status'
+alias eb-eval='$ENDIORBOT_DIR/endiorbot.mjs eval'
+alias eb-setup='$ENDIORBOT_DIR/endiorbot.mjs setup'
+
+# Shortcuts
+alias eb-logs='tail -f ~/.endiorbot/logs/endiorbot-*.log'
+alias eb-clean='cd $ENDIORBOT_DIR && pnpm clean && rm -rf node_modules/.cache'
+
+echo "✅ EndiorBot aliases loaded"
+echo "   eb-start   - Start Gateway + Desktop"
+echo "   eb-status  - Show status"
+echo "   eb-stop    - Stop all"

@@ -1,202 +1,169 @@
 # OTT Channels Documentation
 
-**Sprint 46 Days 4-9 | EndiorBot Bidirectional Messaging**
+**Sprint 51 | EndiorBot Bidirectional Messaging**
 
 ## Overview
 
-EndiorBot supports bidirectional OTT (Over-The-Top) messaging channels for CEO escalation and command processing. Channels implement the `BidirectionalChannel` interface enabling two-way communication.
+EndiorBot supports bidirectional messaging channels for CEO escalation and command processing. Channels implement the `BidirectionalChannel` interface enabling two-way communication.
 
-## Supported Channels
+## Current Status (Sprint 51)
 
-| Channel | Status | Features |
-|---------|--------|----------|
-| Telegram | Active | Polling, Webhooks, Commands |
-| Zalo OA | Active | Webhooks, Commands |
+| Channel | Status | Endpoint | Protocol |
+|---------|--------|----------|----------|
+| **Web** | ✅ READY | `http://localhost:18790` | WebSocket + JSON-RPC 2.0 |
+| **Telegram** | ✅ READY | @Endior_bot | Telegram Bot API |
+| **Zalo Bot** | ✅ READY | Bot Endior | Zalo Bot Platform API |
+| Zalo OA | ⏸️ Legacy | - | - |
 
-## Zalo OA Setup
+## Channel Architecture
 
-### 1. Create Zalo Official Account
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    EndiorBot Gateway                            │
+│                    localhost:18790                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │               Channel Router                             │   │
+│  │                                                          │   │
+│  │   Incoming Message → Detect Channel → Route to Handler   │   │
+│  │   Outgoing Message → Select Channel → Deliver            │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                           │                                     │
+│         ┌─────────────────┼─────────────────┐                   │
+│         ▼                 ▼                 ▼                   │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐           │
+│  │    Web      │   │  Telegram   │   │  Zalo Bot   │           │
+│  │   Channel   │   │   Channel   │   │   Channel   │           │
+│  │             │   │             │   │             │           │
+│  │ WebSocket   │   │ Bot API     │   │ Bot API     │           │
+│  │ JSON-RPC    │   │ Long Poll   │   │ Long Poll   │           │
+│  └─────────────┘   └─────────────┘   └─────────────┘           │
+│         │                 │                 │                   │
+└─────────┼─────────────────┼─────────────────┼───────────────────┘
+          ▼                 ▼                 ▼
+    ┌──────────┐      ┌──────────┐      ┌──────────┐
+    │ Browser  │      │ Telegram │      │   Zalo   │
+    │   User   │      │   User   │      │   User   │
+    └──────────┘      └──────────┘      └──────────┘
+```
 
-1. Go to [Zalo Official Account](https://oa.zalo.me/)
-2. Create an Official Account (OA)
-3. Note your **OA ID** (numeric string)
-
-### 2. Create Zalo App
-
-1. Go to [Zalo Developers](https://developers.zalo.me/)
-2. Create a new application
-3. Enable "Official Account API"
-4. Note your **App ID** and **Secret Key**
-5. Generate an **Access Token** (valid 90 days)
-
-### 3. Configure Environment Variables
+## Environment Variables
 
 ```bash
-# Required
-export ENDIORBOT_ZALO_ACCESS_TOKEN="your-access-token"
-export ENDIORBOT_ZALO_USER_ID="ceo-user-id"
-export ENDIORBOT_ZALO_OA_ID="your-oa-id"
+# .env.local configuration
 
-# Optional
-export ENDIORBOT_ZALO_REFRESH_TOKEN="your-refresh-token"
-export ENDIORBOT_ZALO_WEBHOOK_SECRET="your-webhook-secret"
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=***REMOVED-TELEGRAM-BOT-TOKEN***
+TELEGRAM_CHAT_ID=1754248572
+
+# Zalo Bot (from Zalo Bot Manager - zapps.me)
+ZALO_BOT_TOKEN=104903295***REMOVED-TELEGRAM-BOT-TOKEN***rGYJBCYCpMDnCWIuBcpWndgaqhQFw
+ZALO_BOT_CHAT_ID=e0c2caf9ebba02e45bab
 ```
 
-### 4. Webhook Setup (Optional)
+---
 
-For real-time message handling:
+## Telegram Setup
 
-1. In Zalo Developer Console, add webhook URL:
-   ```
-   https://your-domain.com/webhooks/zalo
-   ```
-2. Set your `ENDIORBOT_ZALO_WEBHOOK_SECRET`
-3. Verify the webhook using Zalo's verification flow
+### 1. Create Telegram Bot
 
-## channels.json Configuration
+1. Open Telegram and search for [@BotFather](https://t.me/BotFather)
+2. Send `/newbot` and follow the prompts
+3. Copy the **Bot Token** (format: `123456789:ABCdefGHIjklMNOpqrSTUvwxYZ`)
 
-Channel routing is configured in `~/.endiorbot/channels.json`:
+### 2. Get Your Chat ID
 
-### Schema
+1. Start a chat with your new bot
+2. Send any message to the bot
+3. Visit: `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+4. Find `"chat":{"id": 1234567890}` in the response
 
-```typescript
-interface ChannelRoutingConfig {
-  primary: string;                        // Fallback channel
-  routing: Record<AlertType, string[]>;   // Per-alert routing
-}
-
-type AlertType = "budget" | "approval" | "gate" | "status" | "error";
-```
-
-### Example Configuration
-
-```json
-{
-  "primary": "telegram",
-  "routing": {
-    "budget": ["telegram", "zalo"],
-    "approval": ["telegram", "zalo"],
-    "gate": ["telegram"],
-    "status": ["telegram"],
-    "error": ["telegram"]
-  }
-}
-```
-
-### Routing Behavior
-
-- Alerts are sent to all channels in the routing array
-- If no routing defined for an alert type, falls back to `primary`
-- Channels are tried in order; failures don't block other channels
-
-## Supported Intents
-
-The ConversationHandler parses incoming messages into intents:
-
-| Intent | Trigger | Description |
-|--------|---------|-------------|
-| `APPROVE` | `/approve <id>` or "approve", "yes", "ok" | Approve pending item |
-| `REJECT` | `/reject <id>` or "reject", "no", "deny" | Reject pending item |
-| `STATUS` | `/status` or "status", "how is" | Get system status |
-| `SHOW_ERROR` | `/error` or "error", "what went wrong" | Show recent errors |
-| `TRY_DIFFERENT` | `/try <model>` or "try with", "use instead" | Retry with different model |
-
-### Command Examples
-
-```
-/approve apr-123          # Approve item apr-123
-/reject apr-456 --reason "Over budget"  # Reject with reason
-/status                   # Get current status
-/error                    # Show last error
-/try gpt-4o               # Retry last task with gpt-4o
-```
-
-### NLP Fallback
-
-If no command prefix is detected, NLP patterns are used:
-
-| Pattern | Intent | Confidence |
-|---------|--------|------------|
-| "approve this", "yes go ahead" | APPROVE | 0.85 |
-| "reject that", "no don't do it" | REJECT | 0.85 |
-| "how is everything", "what's the status" | STATUS | 0.80 |
-| "what error", "what went wrong" | SHOW_ERROR | 0.80 |
-| "try with gpt", "use claude instead" | TRY_DIFFERENT | 0.75 |
-
-## Security Notes
-
-### Input Sanitization
-
-**All incoming messages are sanitized before processing.**
-
-The `InputSanitizer` (from `src/security/input-sanitizer.ts`) is active on all incoming channel messages:
-
-```typescript
-// Applied automatically in ConversationHandler
-const sanitized = sanitize(message.content);
-const parsed = parseIntent(sanitized);
-```
-
-### Sanitization Rules
-
-- HTML entities are escaped
-- Script tags are removed
-- SQL injection patterns are blocked
-- Path traversal attempts are blocked
-- Command injection is prevented
-
-### Allowed User IDs
-
-Channels can restrict which users can send commands:
-
-```typescript
-// In channel config
-const config: ZaloChannelConfig = {
-  accessToken: "...",
-  userId: "allowed-ceo-id",  // Only this user can send commands
-  // ...
-};
-```
-
-### Webhook Verification
-
-For webhook-based channels (Zalo):
-
-- Verify `X-Zalo-Signature` header
-- Use `webhookSecret` for HMAC validation
-- Reject requests with invalid signatures
-
-## GitHub Models Provider Setup
-
-GitHub Models uses a Personal Access Token (PAT) for authentication:
-
-### Option 1: Environment Variable (Recommended)
+### 3. Test Connection
 
 ```bash
-export GITHUB_MODELS_PAT="ghp_your_token_here"
-# Or use existing GitHub token
-export GITHUB_TOKEN="ghp_your_token_here"
+# Verify bot
+curl https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getMe
+
+# Send test message
+curl -X POST https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage \
+  -H "Content-Type: application/json" \
+  -d '{"chat_id": "'$TELEGRAM_CHAT_ID'", "text": "Hello from EndiorBot!"}'
 ```
 
-### Option 2: Keytar Storage
+---
 
-```typescript
-import { GitHubModelsProvider } from "@/providers/github";
+## Zalo Bot Setup (Zapps.me)
 
-const provider = new GitHubModelsProvider();
-await provider.storePat("ghp_your_token_here");
+Zalo Bot Platform cho phép tạo bot Zalo Personal qua [Zalo Bot Manager](https://bot.zapps.me/).
+
+> **Note:** Zalo Bot ≠ Zalo OA. Đây là 2 hệ thống khác nhau.
+
+### 1. Create Zalo Bot
+
+1. Đăng nhập [Zalo Bot Manager](https://bot.zapps.me/)
+2. Quét mã QR bằng app Zalo
+3. Tạo bot mới và lấy **Bot Token** (format: `{bot_id}:{secret_key}`)
+
+### 2. Get CEO Chat ID
+
+**Cách 1: Từ OpenClaw/Picoclaw config**
+```bash
+# Nếu đã dùng với openclaw/picoclaw, check config
+cat ~/.picoclaw/config.json | jq '.channels.zalo'
 ```
 
-### Verify Setup
+**Cách 2: Từ Zalo Bot Manager Dashboard**
+1. Đăng nhập [bot.zapps.me](https://bot.zapps.me)
+2. Xem conversation history
+3. Copy User ID / Chat ID
+
+**Cách 3: Polling (BASIC accounts có thể không hỗ trợ)**
+```bash
+# getUpdates thường timeout với BASIC accounts
+# Sử dụng webhook mode hoặc cách 1/2
+```
+
+### 3. Test Connection
 
 ```bash
-# Check provider availability via config command
-endiorbot config env
+# Set variables
+export ZALO_BOT_TOKEN="104903295***REMOVED-TELEGRAM-BOT-TOKEN***rGYJBCYCpMDnCWIuBcpWndgaqhQFw"
+export ZALO_BOT_CHAT_ID="e0c2caf9ebba02e45bab"
 
-# Available Providers section shows configured providers
+# Verify bot
+curl -X POST "https://bot-api.zaloplatforms.com/bot$ZALO_BOT_TOKEN/getMe" \
+  -H "Content-Type: application/json"
+
+# Send message
+curl -X POST "https://bot-api.zaloplatforms.com/bot$ZALO_BOT_TOKEN/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d '{"chat_id": "'$ZALO_BOT_CHAT_ID'", "text": "Hello from EndiorBot!"}'
 ```
 
-## API Reference
+### 4. API Reference
+
+| Method | Description |
+|--------|-------------|
+| `getMe` | Get bot info |
+| `getUpdates` | Long polling (BASIC: limited) |
+| `sendMessage` | Send text message |
+| `sendPhoto` | Send image |
+| `setWebhook` | Set webhook URL |
+| `deleteWebhook` | Remove webhook |
+
+### 5. Important Notes
+
+- **Token expiration**: Token có thể hết hạn, cần refresh từ Bot Manager
+- **BASIC vs PRO**: BASIC accounts có giới hạn getUpdates polling
+- **API Endpoints**:
+  - `https://bot-api.zaloplatforms.com` (chính thức)
+  - `https://bot-api.zapps.me` (alternative)
+- **Chat ID format**: Hex string (e.g., `e0c2caf9ebba02e45bab`)
+
+---
+
+## Architecture
 
 ### Channel Interface
 
@@ -211,19 +178,93 @@ interface BidirectionalChannel extends IChannel {
 }
 ```
 
-### Channel Registry
+### Source Files
+
+| File | Description |
+|------|-------------|
+| `src/channels/telegram/` | Telegram Bot channel |
+| `src/channels/zalo/zalo-bot-api.ts` | Zalo Bot API client |
+| `src/channels/zalo/zalo-bot-channel.ts` | Zalo Bot channel |
+| `src/channels/zalo/zalo-channel.ts` | Zalo OA channel (legacy) |
+
+### Usage Example
 
 ```typescript
-import { getChannelRegistry } from "@/channels";
+import { ZaloBotChannel, TelegramChannel } from "@/channels";
 
-const registry = getChannelRegistry();
-registry.register(telegramChannel, 100);  // priority 100
-registry.register(zaloChannel, 200);       // priority 200
+// Create channels
+const telegram = new TelegramChannel();
+const zalo = new ZaloBotChannel();
 
-// Broadcast to all channels
-await registry.broadcast(alert);
+// Check availability
+if (await telegram.isAvailable()) {
+  await telegram.send("Hello from Telegram!");
+}
+
+if (await zalo.isAvailable()) {
+  await zalo.send("Hello from Zalo!");
+}
 ```
 
 ---
 
-*Sprint 46 | EndiorBot v1.0.0*
+## Channel Routing
+
+Routing configuration in `~/.endiorbot/channels.json`:
+
+```json
+{
+  "primary": "telegram",
+  "routing": {
+    "budget": ["telegram", "zalo-bot"],
+    "approval": ["telegram", "zalo-bot"],
+    "gate": ["telegram"],
+    "status": ["telegram"],
+    "error": ["telegram"]
+  }
+}
+```
+
+---
+
+## Troubleshooting
+
+### Telegram
+
+| Issue | Solution |
+|-------|----------|
+| Bot doesn't respond | Check `TELEGRAM_BOT_TOKEN` is valid |
+| getUpdates 404 | Token is invalid or expired |
+| Message not delivered | Verify `TELEGRAM_CHAT_ID` is correct |
+
+### Zalo Bot
+
+| Issue | Solution |
+|-------|----------|
+| getMe fails | Check token format (`botId:secret`) |
+| getUpdates timeout | BASIC accounts - use webhook or get Chat ID from dashboard |
+| sendMessage "chat_id is invalid" | Chat ID must be hex string from Bot Manager |
+| 408 Request timeout | Normal polling timeout - no new messages |
+| Token expired | Regenerate token from Bot Manager |
+
+---
+
+## Security
+
+### Input Sanitization
+
+All incoming messages are sanitized via `InputSanitizer`:
+- HTML entities escaped
+- Script tags removed
+- SQL injection patterns blocked
+- Path traversal prevented
+
+### Allowed Users
+
+Channels restrict which users can send commands:
+- Telegram: Only configured `TELEGRAM_CHAT_ID`
+- Zalo Bot: Only configured `ZALO_BOT_CHAT_ID`
+
+---
+
+*Sprint 51 | EndiorBot v1.1.0 | Updated 2026-02-28*

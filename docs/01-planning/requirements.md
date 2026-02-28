@@ -1,100 +1,111 @@
 # Requirements Specification
 
 **Project:** EndiorBot
-**Version:** 1.0.0
-**Date:** 2026-02-21
+**Version:** 2.0.0
+**Date:** 2026-02-28
 **SDLC Stage:** 01-PLANNING
+**Identity:** CEO Power Tool (LOCKED)
+
+---
+
+## MVP Scope (Tier 1)
+
+> Per Master Plan v2.0, MVP features are scope-locked.
+
+```bash
+endiorbot consult "<question>"  # 2 models, primary_with_notes
+endiorbot gate status G2        # Read-only checklist
+endiorbot switch <project>      # Minimal context
+```
 
 ---
 
 ## Functional Requirements
 
-### FR-001: Multi-Model Orchestrator
+### FR-001: 2-Model Consultation (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-001.1 | Query multiple AI models in parallel (Claude, GPT, Gemini, Mistral) | P0 | Planned |
-| FR-001.2 | Auto-select expert panel based on task type | P0 | Planned |
-| FR-001.3 | Consolidate responses with consensus detection | P0 | Planned |
-| FR-001.4 | Present disagreements with evidence | P1 | Planned |
-| FR-001.5 | Support explicit consultation mode | P1 | Planned |
-| FR-001.6 | Support single-model mode for speed | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-001.1 | Query 2 models: Gemini (primary) + Opus (backup) | P0 | MVP |
+| FR-001.2 | Consolidate with primary_with_notes algorithm | P0 | MVP |
+| FR-001.3 | Fallback to single model on timeout | P0 | MVP |
+| FR-001.4 | Full 4+ model orchestration | P2 | Tier 3 |
 
-### FR-002: Project Context Switching
+### FR-002: Project Context Switching (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-002.1 | Quick switch between projects (Bflow, NQH-Bot, MTEP) | P0 | Planned |
-| FR-002.2 | Preserve conversation history on switch | P0 | Planned |
-| FR-002.3 | Preserve SDLC state (stage, gates) on switch | P0 | Planned |
-| FR-002.4 | Warn about uncommitted changes | P1 | Planned |
-| FR-002.5 | Support up to 5 concurrent project contexts | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-002.1 | Quick switch between projects | P0 | MVP |
+| FR-002.2 | Context switch < 2s | P0 | MVP |
+| FR-002.3 | Warn about uncommitted changes | P1 | Pro |
+| FR-002.4 | Full session resume with Brain | P1 | Pro |
 
-### FR-003: SDLC Gate Automation
+### FR-003: Gate Status Read-Only (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-003.1 | Auto-evaluate gate criteria (G0-G4, G-Sprint) | P0 | Planned |
-| FR-003.2 | Generate gate checklist based on tier | P0 | Planned |
-| FR-003.3 | Collect evidence automatically | P0 | Planned |
-| FR-003.4 | Calculate Vibecoding Index | P0 | Planned |
-| FR-003.5 | Support manual override with reason | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-003.1 | Show gate checklist (read-only) | P0 | MVP |
+| FR-003.2 | Gate status at a glance | P0 | MVP |
+| FR-003.3 | Auto-evaluate gate criteria | P1 | Pro |
+| FR-003.4 | Evidence collection | P1 | Pro |
+| FR-003.5 | Full SDLC enforcement | P2 | Tier 3 |
 
-### FR-004: Document Generation
+### FR-004: ActionControlPlane (MVP Stub)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-004.1 | Auto-generate CRP from git commits | P1 | Planned |
-| FR-004.2 | Auto-generate MRP from PR | P1 | Planned |
-| FR-004.3 | Auto-generate VCR from test results | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-004.1 | Propose → Approve → Execute pattern | P0 | MVP |
+| FR-004.2 | Auto-approve READ/WRITE actions | P0 | MVP |
+| FR-004.3 | Require CEO approval for DESTRUCTIVE | P0 | MVP |
+| FR-004.4 | Block dangerous commands | P0 | MVP |
+| FR-004.5 | Full audit logging | P1 | Pro |
 
-### FR-005: Security Layer
+### FR-005: Context Budget Governance (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-005.1 | Input sanitization (12 injection patterns) | P0 | Planned |
-| FR-005.2 | Output scrubbing (6 credential patterns) | P0 | Planned |
-| FR-005.3 | Shell command guard | P0 | Planned |
-| FR-005.4 | Secret detection before commit | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-005.1 | Max 2K tokens per turn | P0 | MVP |
+| FR-005.2 | Max 3 blocks per turn | P0 | MVP |
+| FR-005.3 | Hard reset every 30 turns | P0 | MVP |
+| FR-005.4 | Brain L4 injection at session start | P0 | MVP |
 
-### FR-006: Quality Layer
+### FR-006: Brain Integration (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-006.1 | Reflect step after tool execution | P1 | Planned |
-| FR-006.2 | History compaction at 80% capacity | P1 | Planned |
-| FR-006.3 | Query classification for model routing | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-006.1 | L4 Mental Models injection | P0 | MVP |
+| FR-006.2 | L3 Structures on project switch | P1 | Pro |
+| FR-006.3 | L2 Patterns on similar errors | P1 | Pro |
+| FR-006.4 | Full Brain provenance | P1 | Pro |
 
-### FR-007: CLI Interface
+### FR-007: CLI Interface (MVP)
 
-| ID | Requirement | Priority | Status |
-|----|-------------|----------|--------|
-| FR-007.1 | `endiorbot start <project>` - Start project | P0 | Planned |
-| FR-007.2 | `endiorbot switch <project>` - Switch context | P0 | Planned |
-| FR-007.3 | `endiorbot gate status` - Show gate status | P0 | Planned |
-| FR-007.4 | `endiorbot consult <query>` - Multi-model query | P0 | Planned |
-| FR-007.5 | `endiorbot config` - Configuration management | P1 | Planned |
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-007.1 | `endiorbot consult "<question>"` | P0 | MVP |
+| FR-007.2 | `endiorbot gate status G2` | P0 | MVP |
+| FR-007.3 | `endiorbot switch <project>` | P0 | MVP |
+| FR-007.4 | Full CLI with all commands | P1 | Pro |
 
 ---
 
 ## Non-Functional Requirements
 
-### NFR-001: Performance
+### NFR-001: Performance (MVP Targets)
 
 | ID | Requirement | Target | Priority |
 |----|-------------|--------|----------|
-| NFR-001.1 | CLI startup time | < 1 sec | P0 |
-| NFR-001.2 | Context switch latency | < 2 sec | P0 |
-| NFR-001.3 | Memory per project | < 200 MB | P1 |
-| NFR-001.4 | Model query timeout | 30s/model, 60s total | P0 |
+| NFR-001.1 | Decision time | <30s (not 30-60 min) | P0 |
+| NFR-001.2 | Context switch | <2s | P0 |
+| NFR-001.3 | CLI startup | <1s | P0 |
 
-### NFR-002: Scalability
+### NFR-002: Context Drift Prevention
 
 | ID | Requirement | Target | Priority |
 |----|-------------|--------|----------|
-| NFR-002.1 | Support codebase size | ~1M LOC | P0 |
-| NFR-002.2 | Concurrent projects | 5 max | P1 |
-| NFR-002.3 | Token budget (ENTERPRISE) | 200K tokens | P0 |
+| NFR-002.1 | Token budget per turn | 2K max | P0 |
+| NFR-002.2 | Blocks per turn | 3 max | P0 |
+| NFR-002.3 | Context drift rate | <5% re-explanations | P1 |
 
 ### NFR-003: Security
 
@@ -102,27 +113,20 @@
 |----|-------------|--------|----------|
 | NFR-003.1 | API keys in OS keychain | Required | P0 |
 | NFR-003.2 | Never log sensitive data | Required | P0 |
-| NFR-003.3 | Localhost-only gateway | Required | P0 |
-
-### NFR-004: Reliability
-
-| ID | Requirement | Target | Priority |
-|----|-------------|--------|----------|
-| NFR-004.1 | Daily backups | Last 7 days | P1 |
-| NFR-004.2 | Weekly backups | Last 4 weeks | P2 |
-| NFR-004.3 | Gate evidence retention | 90 days | P1 |
+| NFR-003.3 | Block dangerous commands | Required | P0 |
 
 ---
 
-## Technical Constraints
+## What's NOT in MVP
 
-| Constraint | Description |
-|------------|-------------|
-| TC-001 | TypeScript ES2022, NodeNext module resolution |
-| TC-002 | Must work with Claude Code VSCode extension |
-| TC-003 | No heavy infrastructure (no DB, Redis, MinIO) |
-| TC-004 | SDLC Framework v6.1.1 compliance |
-| TC-005 | macOS primary, Windows/Linux secondary |
+| Feature | Status | Reason |
+|---------|--------|--------|
+| Desktop shell | Tier 3 | CLI-first |
+| Skills gateway | Tier 3 | Complexity |
+| Full multi-model (4+) | Tier 3 | 2 models enough |
+| SDLC enforcement | Tier 3 | Checklist first |
+| Dynamic overlay | Tier 2 | Session anchor first |
+| Junior hub | Tier 3 | Solo developer focus |
 
 ---
 
@@ -132,23 +136,17 @@
 |------------|---------|---------|
 | Node.js | 22+ | Runtime |
 | TypeScript | 5.8+ | Language |
-| pnpm | 10+ | Package manager |
-| Anthropic SDK | Latest | Claude API |
-| OpenAI SDK | Latest | GPT API |
 | Google AI SDK | Latest | Gemini API |
+| Anthropic SDK | Latest | Claude API |
 
 ---
 
-## Acceptance Criteria
+## References
 
-| Criterion | Measurement |
-|-----------|-------------|
-| All P0 requirements implemented | 100% |
-| Build passes | `pnpm build` success |
-| Tests pass | `pnpm test` > 80% coverage |
-| CLI functional | All commands work |
-| SDLC compliant | Validator passes |
+- [Master Plan v2.0](../00-foundation/master-plan.md)
+- [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md)
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 01: Planning*
+*CEO Power Tool | SDLC Framework v6.1.1 - Stage 01: Planning*
+*Identity: LOCKED (2026-02-28)*

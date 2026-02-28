@@ -51,9 +51,10 @@ export const AVAILABLE_MODELS = {
 
 /**
  * Default models (per ADR-001).
+ * Note: o3-mini requires special API access, using gpt-4o as default.
  */
 const DEFAULT_MODELS = {
-  openai: "o3-mini",
+  openai: "gpt-4o",
   gemini: "gemini-2.0-flash-thinking",
 } as const;
 

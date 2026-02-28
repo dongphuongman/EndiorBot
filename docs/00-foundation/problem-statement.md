@@ -1,16 +1,22 @@
 # Problem Statement
 
 **Project:** EndiorBot
-**Version:** 1.0.0
-**Date:** 2026-02-21
+**Version:** 2.0.0
+**Date:** 2026-02-28
 **Author:** CEO/Solo Developer
 **SDLC Stage:** 00-FOUNDATION
+**Identity:** CEO Power Tool (LOCKED)
 
 ---
 
 ## Executive Summary
 
-EndiorBot addresses the inefficiency of solo developers managing enterprise-scale projects (~1M LOC) using fragmented AI tooling and manual SDLC compliance.
+> **EndiorBot is a PERSONAL AI POWER TOOL for CEO**
+> Not a platform. Not an SDLC enforcer. Not an enterprise product.
+
+**One Sentence**: Help CEO get AI-assisted answers in <30s instead of 30-60 min.
+
+EndiorBot addresses the inefficiency of solo developers managing enterprise-scale projects (~1M LOC) by eliminating copy/paste between AI apps through automated 2-model consultation.
 
 ---
 
@@ -69,14 +75,14 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 | 4 | Manual expert opinion consolidation | Decision delays | Every architecture decision |
 | 5 | Project context switching overhead | 5+ min per switch | Multiple times/day |
 
-### Quantified Impact
+### Quantified Impact (Per Master Plan v2.0)
 
 | Metric | Current | Target | Improvement |
 |--------|---------|--------|-------------|
-| Architecture decision time | 30-60 min | 5 min | 90% reduction |
-| Gate evaluation time | 20 min | 1 min | 95% reduction |
-| Project context switch | 5 min | 10 sec | 97% reduction |
-| CRP/MRP generation | 30 min | 2 min | 93% reduction |
+| Decision time | 30-60 min | <30s | **98%** |
+| Context switch | 5 min | <2s | **99%** |
+| Gate status | 20 min | At a glance | **95%** |
+| Copy/paste between apps | 10+ times/day | 0 | **100%** |
 
 ---
 
@@ -121,24 +127,35 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 
 ---
 
-## Success Criteria
+## Success Criteria (Per Master Plan v2.0)
 
-| Criteria | Measurement | Target |
-|----------|-------------|--------|
-| Build time | `pnpm build` | < 30 sec |
-| CLI startup | Time to prompt | < 1 sec |
-| Context switch | Project to project | < 2 sec |
-| Multi-model query | End-to-end | < 60 sec |
-| Gate evaluation | Auto-check | < 5 sec |
+| Metric | Target | Tier |
+|--------|--------|------|
+| Decision time | <30s (not 30-60 min) | MVP |
+| Context switch | <2s | MVP |
+| No copy/paste | 0 app switches | MVP |
+| Gate status | At a glance | MVP |
+| Session resume | No context loss | Pro |
+| Context drift | <5% re-explanations | Pro |
+
+---
+
+## MVP Scope (Tier 1)
+
+```bash
+endiorbot consult "<question>"  # 2 models, primary_with_notes
+endiorbot gate status G2        # Read-only checklist
+endiorbot switch <project>      # Minimal context
+```
 
 ---
 
 ## References
 
+- [Master Plan v2.0](./master-plan.md) - Identity & roadmap
 - [MTS SDLC Framework v6.1.1](/.sdlc-framework)
-- [OpenClaw Source](../../../openclaw) - Base platform
-- [SDLC Orchestrator](../../../SDLC-Orchestrator) - Automation patterns
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 00: Foundation*
+*CEO Power Tool | SDLC Framework v6.1.1 - Stage 00: Foundation*
+*Identity: LOCKED (2026-02-28)*

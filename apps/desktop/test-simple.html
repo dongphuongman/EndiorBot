@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- NO CSP - testing without restrictions -->
+    <title>JS Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        h1 { font-size: 48px; }
+        .status { margin: 20px 0; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 JavaScript Test</h1>
+    <div class="status" id="status">⏳ Checking JavaScript...</div>
+    <div class="status" id="info"></div>
+
+    <script>
+        console.log('✅ Inline script executed!');
+        document.getElementById('status').innerHTML = '✅ JavaScript is working!';
+        document.getElementById('status').style.color = '#00ff00';
+        document.getElementById('info').innerHTML =
+            'Platform: ' + navigator.platform + '<br>' +
+            'User Agent: ' + navigator.userAgent.substring(0, 50) + '...';
+    </script>
+</body>
+</html>

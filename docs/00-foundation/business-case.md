@@ -1,19 +1,23 @@
 # Business Case
 
 **Project:** EndiorBot
-**Version:** 1.0.0
-**Date:** 2026-02-21
+**Version:** 2.0.0
+**Date:** 2026-02-28
 **Author:** CEO/Solo Developer
 **SDLC Stage:** 00-FOUNDATION
+**Identity:** CEO Power Tool (LOCKED)
 
 ---
 
 ## Executive Summary
 
-EndiorBot is a solo developer power tool that combines Claude Code capabilities with SDLC Framework automation and multi-model AI orchestration. It eliminates the need for manual context switching between multiple AI tools and automates SDLC compliance tracking.
+> **EndiorBot is a PERSONAL AI POWER TOOL for CEO**
+> Not a platform. Not an SDLC enforcer. Not an enterprise product.
 
-**Investment:** ~4 weeks development (Sprint 29-32)
-**ROI:** 90%+ time savings on architecture decisions, gate evaluations, and project switching
+EndiorBot eliminates copy/paste between AI apps by querying 2 models and consolidating responses automatically. CEO gets answers in <30s instead of 30-60 min.
+
+**MVP Investment:** 2-3 weeks (Tier 1)
+**ROI:** 98% time savings on architecture decisions
 
 ---
 
@@ -47,28 +51,28 @@ EndiorBot is a solo developer power tool that combines Claude Code capabilities 
 
 ## Cost-Benefit Analysis
 
-### Development Cost
+### Three Tiers (Per Master Plan v2.0)
 
-| Phase | Sprints | Effort |
-|-------|---------|--------|
-| Phase 1: Scaffolding | Sprint 29 | 3 days |
-| Phase 2: Core Migration | Sprint 29-30 | 2 weeks |
-| Phase 3: SDLC Patterns | Sprint 30-31 | 2 weeks |
-| Phase 4: Multi-Model | Sprint 31-32 | 1 week |
-| Phase 5: Desktop (Optional) | Sprint 33-35 | 3 weeks |
+| Tier | Timeline | Features |
+|------|----------|----------|
+| **Tier 1 — MVP** | 2-3 weeks | CLI, 2 models, read-only SDLC, Telegram notify |
+| **Tier 2 — Pro** | 4-6 weeks after MVP | Auto-ADR, gate evidence, history compaction |
+| **Tier 3 — Productization** | After 2-4 weeks usage | Desktop shell, Skills gateway, Junior hub |
 
-**Total Core:** ~4 weeks
-**With Desktop:** ~7 weeks
+**MVP Scope:**
+```bash
+endiorbot consult "<question>"  # 2 models, primary_with_notes
+endiorbot gate status G2        # Read-only checklist
+endiorbot switch <project>      # Minimal context
+```
 
-### Time Savings (ROI)
+### Time Savings (ROI) - Per Master Plan v2.0
 
-| Task | Before (Manual) | After (EndiorBot) | Savings |
-|------|-----------------|-------------------|---------|
-| Architecture decision | 30-60 min | 5 min | **90%** |
+| Task | Before | After | Savings |
+|------|--------|-------|---------|
+| Architecture decision | 30-60 min | <30s | **98%** |
 | Gate evaluation | 20 min | 1 min | **95%** |
-| Context switch | 5 min | 10 sec | **97%** |
-| CRP/MRP generation | 30 min | 2 min | **93%** |
-| Junior code review | 15 min | 5 min | **67%** |
+| Context switch | 5 min | <2s | **99%** |
 
 ### Break-Even Analysis
 
@@ -139,10 +143,18 @@ Assuming 5 architecture decisions + 10 gate evaluations + 20 context switches pe
 
 ## Approval
 
-| Role | Name | Date | Decision |
-|------|------|------|----------|
-| CEO | - | 2026-02-21 | ✅ APPROVED |
+| Role | Decision | Date |
+|------|----------|------|
+| CEO | ✅ Identity = CEO Tool (LOCKED) | 2026-02-28 |
+| 4-Expert Panel | ✅ Scope Crisis Resolved | 2026-02-28 |
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 00: Foundation*
+## References
+
+- [Master Plan v2.0](./master-plan.md) - Identity & roadmap
+
+---
+
+*CEO Power Tool | SDLC Framework v6.1.1 - Stage 00: Foundation*
+*Identity: LOCKED (2026-02-28)*

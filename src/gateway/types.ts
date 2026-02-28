@@ -66,7 +66,7 @@ export interface ClientInfo {
   /** Unique client ID */
   id: string;
   /** Client type */
-  type: "desktop" | "cli" | "unknown";
+  type: "desktop" | "cli" | "web" | "unknown";
   /** Remote address */
   remoteAddress: string;
   /** Connection time */

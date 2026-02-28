@@ -1,321 +1,367 @@
-# ADR-001: Multi-Model Orchestrator
+# ADR-001: 3-Model Consultation (MVP)
 
 | Metadata | Value |
 |----------|-------|
-| **Status** | Proposed |
-| **Date** | 2026-02-22 |
+| **Status** | Approved |
+| **Date** | 2026-02-28 |
 | **Authors** | PM, Architect |
-| **Reviewers** | CTO |
-| **Sprint** | 29 |
+| **Reviewers** | CTO, 4-Expert Panel |
+| **Sprint** | 54 |
+| **Identity** | CEO Power Tool (LOCKED) |
+
+---
 
 ## Context
 
 ### Problem Statement
 
-CEO currently uses multiple AI tools (Claude Code, Cursor, ChatGPT, Gemini) to get diverse perspectives on architecture decisions. This workflow requires:
+CEO spends 30-60 min per decision copying/pasting between AI apps. EndiorBot reduces this to <30s with automated 3-model consultation.
 
-- Opening 5+ apps
-- Copy/paste prompts 10+ times
-- Manual consolidation of responses
-- 30-60 minutes per decision
+### CEO Workflow Reality
 
-### Goal
+| Task | Provider | Model (Configurable) |
+|------|----------|----------------------|
+| Coding & Documentation | Claude Code | Claude (Primary) |
+| Research & Critique | OpenAI | o3, o3-mini, o1, gpt-4o (CEO's choice) |
+| Research & Critique | Google | gemini-2.5-pro, gemini-2.0-flash-thinking (CEO's choice) |
 
-Reduce decision time to ~5 minutes by automating multi-model consultation within EndiorBot CLI.
+**Note**: CEO can always select the **latest model** from each provider - same experience as chatgpt.com and gemini.google.com.
+
+---
 
 ## Decision
 
-### Architecture
+### MVP Architecture (3 Models)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Multi-Model Orchestrator                     │
+│                   3-Model Consultation (MVP)                     │
 │                                                                 │
+│   CEO: endiorbot consult "design payment gateway"               │
+│         │                                                       │
+│         ▼                                                       │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │                  Query Dispatcher                        │   │
-│   │  • Detect task type (architecture, security, research)  │   │
-│   │  • Select appropriate expert panel                       │   │
-│   │  • Format queries for each provider                      │   │
+│   │                   Chat Handler                           │   │
+│   │   1. Detect task type (coding vs research)              │   │
+│   │   2. Inject Brain L4 context (max 2K tokens)            │   │
+│   │   3. Route to appropriate models                         │   │
+│   │   4. Consolidate with primary_with_notes                 │   │
 │   └─────────────────────────────────────────────────────────┘   │
-│                            │                                    │
-│         ┌──────────────────┼──────────────────┐                │
-│         ▼                  ▼                  ▼                │
-│   ┌──────────┐      ┌──────────┐      ┌──────────┐            │
-│   │  Claude  │      │   GPT    │      │  Gemini  │            │
-│   │ (Primary)│      │ (Expert) │      │ (Expert) │            │
-│   └────┬─────┘      └────┬─────┘      └────┬─────┘            │
-│        │                 │                 │                   │
-│        └─────────────────┼─────────────────┘                   │
-│                          ▼                                     │
+│         │                                                       │
+│         ▼                                                       │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │                 Response Consolidator                    │   │
-│   │  • Extract key recommendations                          │   │
-│   │  • Identify consensus (>50% agreement)                  │   │
-│   │  • Surface disagreements                                │   │
-│   │  • Apply SDLC compliance filter                         │   │
+│   │                   AI Router (3 Models)                   │   │
+│   │                                                          │   │
+│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │   │
+│   │   │   Claude    │  │   OpenAI    │  │   Gemini    │     │   │
+│   │   │  (Primary)  │  │  (Critique) │  │  (Critique) │     │   │
+│   │   │             │  │             │  │             │     │   │
+│   │   │  Coding &   │  │  Research   │  │  Research   │     │   │
+│   │   │   Docs      │  │  & Debate   │  │  & Debate   │     │   │
+│   │   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │   │
+│   │          │                │                │             │   │
+│   │          └────────────────┼────────────────┘             │   │
+│   │                           ▼                              │   │
+│   │           primary_with_notes consolidation               │   │
 │   └─────────────────────────────────────────────────────────┘   │
-│                          │                                     │
-│                          ▼                                     │
-│   ┌─────────────────────────────────────────────────────────┐   │
-│   │                  CEO Decision Interface                  │   │
-│   │  [Approve] [Discuss] [Re-consult] [See Full Responses]  │   │
-│   └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Core Interfaces
+### Provider Roles (3 Models)
 
-```typescript
-interface MultiModelConfig {
-  // Query Strategy
-  queryMode: 'parallel' | 'sequential' | 'cascade';
-  maxParallelQueries: number;  // Default: 3
+| Provider | Default Model | Role | Use Case |
+|----------|---------------|------|----------|
+| **Anthropic** | Claude (via Claude Code) | Primary | Coding, documentation, SDLC |
+| **OpenAI** | o3-mini (configurable) | Critique | Deep reasoning, design critique |
+| **Google** | gemini-2.0-flash-thinking (configurable) | Critique | Reasoning, latest trends |
 
-  // Timeout Handling
-  perModelTimeout: number;     // Default: 30000ms
-  totalTimeout: number;        // Default: 60000ms
+**Model Selection**: CEO can select latest models via config or CLI flag:
+```bash
+# Use specific models
+endiorbot consult --openai-model o3 --gemini-model gemini-2.5-pro "design question"
 
-  // Fallback Strategy
-  fallbackBehavior: 'use_available' | 'require_minimum' | 'fail_fast';
-  minimumResponses: number;    // Default: 2
-
-  // Response Merging
-  mergingAlgorithm: 'weighted_consensus' | 'simple_majority' | 'primary_with_notes';
-  primaryModelWeight: number;  // Default: 1.5
-  expertModelWeight: number;   // Default: 1.0
-}
-
-interface ExpertConsultation {
-  taskId: string;
-  taskType: TaskType;
-  query: string;
-  
-  models: ModelQuery[];
-  responses: ModelResponse[];
-  consensus: ConsensusResult;
-  
-  decision?: CEODecision;
-  createdAt: Date;
-  completedAt?: Date;
-}
-
-type TaskType = 
-  | 'architecture'
-  | 'security'
-  | 'code_review'
-  | 'research'
-  | 'general';
-
-interface ModelQuery {
-  provider: 'anthropic' | 'openai' | 'google' | 'mistral';
-  model: string;
-  role: 'primary' | 'expert';
-  prompt: string;
-  status: 'pending' | 'success' | 'timeout' | 'error';
-  latencyMs?: number;
-}
-
-interface ModelResponse {
-  provider: string;
-  content: string;
-  confidence?: number;
-  recommendations: string[];
-  concerns: string[];
-  metadata: Record<string, unknown>;
-}
-
-interface ConsensusResult {
-  hasConsensus: boolean;
-  consensusPoints: string[];
-  disagreements: Disagreement[];
-  recommendation: string;
-  sdlcCompliance: SDLCComplianceResult;
-}
-
-interface Disagreement {
-  topic: string;
-  positions: {
-    provider: string;
-    position: string;
-  }[];
+# Or configure defaults in ~/.endiorbot/config.json
+{
+  "models": {
+    "openai": "o3-mini",      // or "o3", "o1", "gpt-4o"
+    "gemini": "gemini-2.0-flash-thinking"  // or "gemini-2.5-pro", "gemini-1.5-pro"
+  }
 }
 ```
 
-### Model Routing by Task Type
+**Why reasoning models for critique:**
+- **o3-mini/o3/o1**: OpenAI's reasoning models - excel at multi-step analysis, finding edge cases, and challenging assumptions
+- **gemini-2.0-flash-thinking/gemini-2.5-pro**: Google's reasoning models - combine speed with deep thinking for architecture critique
 
-| Task Type | Primary Model | Expert Models | Rationale |
-|-----------|---------------|---------------|-----------|
-| **Architecture** | Claude Opus | GPT-5, Gemini | Diverse perspectives |
-| **Security** | Claude Opus | GPT-5 | Cross-validation |
-| **Code Gen** | Claude Opus | - | Single model faster |
-| **Bug Fix** | Claude Sonnet | GPT-5 (if stuck) | Speed priority |
-| **Research** | Gemini | Claude, GPT-5 | Latest data access |
-| **SDLC Gate** | Claude Opus | - | Framework knowledge |
+### Task Routing
 
-### Merging Algorithm
+| Task Type | Primary | Critics | Rationale |
+|-----------|---------|---------|-----------|
+| **Coding** | Claude | - | Claude Code is primary dev tool |
+| **Documentation** | Claude | - | Consistent with coding |
+| **Architecture** | Claude | OpenAI + Gemini | Need diverse perspectives |
+| **Research** | Gemini | OpenAI + Claude | Gemini has latest data |
+| **Security Review** | Claude | OpenAI | Cross-validation critical |
+| **SDLC Gate** | Claude | - | Framework knowledge |
 
-1. **Collect Responses**
-   - Gather responses from all models with metadata
-   - Track latency and confidence scores
+### Core Interfaces (MVP)
 
-2. **Extract Key Recommendations**
-   - Parse structured recommendations from each response
-   - Identify action items and warnings
+```typescript
+// 3-Model Config (MVP)
+interface ThreeModelConfig {
+  primary: {
+    provider: 'anthropic';
+    model: string;  // claude-sonnet-4 or claude-opus-4 for architecture
+    role: 'coding_and_docs';
+  };
+  critics: [
+    {
+      provider: 'openai';
+      model: string;  // CEO选latest: o3-mini, o3, o1, gpt-4o
+      role: 'research_critique';
+    },
+    {
+      provider: 'google';
+      model: string;  // CEO选latest: gemini-2.0-flash-thinking, gemini-2.5-pro
+      role: 'research_critique';
+    }
+  ];
 
-3. **Calculate Consensus**
-   - Weighted voting based on model weights
-   - Consensus threshold: 50% agreement
-   - Flag items with significant disagreement
+  // Merging
+  mergingAlgorithm: 'primary_with_notes';
 
-4. **Apply SDLC Filter**
-   - Check recommendations against SDLC Framework 6.1.1
-   - Add required artifacts (ADRs, diagrams) to output
+  // Timeouts
+  perModelTimeout: 30000;  // 30s
+  totalTimeout: 60000;     // 60s
+}
 
-5. **Generate Summary**
-   - Format consolidated recommendation
-   - Include evidence from each expert
-   - Surface concerns and disagreements
+// Available models (updated as providers release new versions)
+const AVAILABLE_MODELS = {
+  openai: ['o3', 'o3-mini', 'o1', 'o1-mini', 'gpt-4o', 'gpt-4o-mini'],
+  gemini: ['gemini-2.0-flash-thinking', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.0-flash'],
+  anthropic: ['claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'],
+};
 
-### Fallback Scenarios
+// Task Type Detection
+type TaskType =
+  | 'coding'         // → Claude only
+  | 'documentation'  // → Claude only
+  | 'architecture'   // → Claude + critics
+  | 'research'       // → All 3
+  | 'security'       // → Claude + OpenAI
+  | 'sdlc_gate';     // → Claude only
+
+// Consolidated Response
+interface ConsolidatedResponse {
+  primary: string;           // Claude response
+  critiques?: {
+    openai?: string;         // OpenAI critique
+    gemini?: string;         // Gemini critique
+  };
+  agreement: 'full' | 'partial' | 'divergent';
+  recommendation: string;
+}
+```
+
+### Routing Algorithm
+
+```typescript
+function routeTask(query: string): ModelSelection {
+  const taskType = classifyTask(query);
+
+  switch (taskType) {
+    case 'coding':
+    case 'documentation':
+    case 'sdlc_gate':
+      // Claude only (fast path)
+      return { primary: 'claude', critics: [] };
+
+    case 'architecture':
+    case 'research':
+      // All 3 models (full consultation)
+      return {
+        primary: 'claude',
+        critics: ['openai', 'gemini']
+      };
+
+    case 'security':
+      // Claude + OpenAI (security critical)
+      return {
+        primary: 'claude',
+        critics: ['openai']
+      };
+
+    default:
+      return { primary: 'claude', critics: [] };
+  }
+}
+
+function classifyTask(query: string): TaskType {
+  const patterns = {
+    coding: /\b(implement|code|fix|bug|function|class)\b/i,
+    documentation: /\b(document|write|readme|comment)\b/i,
+    architecture: /\b(design|architect|pattern|scale)\b/i,
+    research: /\b(research|compare|evaluate|trend)\b/i,
+    security: /\b(security|auth|vulnerability|encrypt)\b/i,
+    sdlc_gate: /\b(gate|g[0-4]|sdlc|checklist)\b/i,
+  };
+
+  for (const [type, pattern] of Object.entries(patterns)) {
+    if (pattern.test(query)) return type as TaskType;
+  }
+
+  return 'coding';  // Default to Claude only
+}
+```
+
+### Merging Algorithm: primary_with_notes
+
+```typescript
+function consolidate(
+  claudeResponse: string,
+  critiques: { openai?: string; gemini?: string }
+): ConsolidatedResponse {
+  // If no critiques, return Claude only
+  if (!critiques.openai && !critiques.gemini) {
+    return {
+      primary: claudeResponse,
+      agreement: 'full',
+      recommendation: claudeResponse,
+    };
+  }
+
+  // Calculate agreement level
+  const allResponses = [claudeResponse, critiques.openai, critiques.gemini]
+    .filter(Boolean);
+  const similarity = calculateConsensus(allResponses);
+
+  if (similarity > 0.85) {
+    return {
+      primary: claudeResponse,
+      agreement: 'full',
+      recommendation: claudeResponse,
+    };
+  } else if (similarity > 0.6) {
+    const notes = extractDifferentPoints(critiques, claudeResponse);
+    return {
+      primary: claudeResponse,
+      critiques,
+      agreement: 'partial',
+      recommendation: `${claudeResponse}\n\n📝 Alternative views:\n${notes}`,
+    };
+  } else {
+    return {
+      primary: claudeResponse,
+      critiques,
+      agreement: 'divergent',
+      recommendation: formatDivergentViews(claudeResponse, critiques),
+    };
+  }
+}
+```
+
+### CLI Interface (MVP)
+
+```bash
+# Full consultation (architecture/research)
+$ endiorbot consult "design payment gateway integration"
+# → Claude + OpenAI + Gemini
+# → Returns consolidated response with critiques
+
+# Coding task (Claude only, fast)
+$ endiorbot consult "implement PaymentAdapter class"
+# → Claude only
+# → Fast response
+
+# Explicit single model
+$ endiorbot consult --model claude "quick fix"
+# → Uses Claude only
+
+# Force full consultation
+$ endiorbot consult --full "should we use Redis or PostgreSQL?"
+# → All 3 models regardless of task type
+
+# Select specific models (same as chatgpt.com/gemini.com)
+$ endiorbot consult --openai o3 --gemini gemini-2.5-pro "complex design"
+# → Uses CEO-selected latest models
+
+# List available models
+$ endiorbot models list
+# OpenAI: o3, o3-mini, o1, o1-mini, gpt-4o, gpt-4o-mini
+# Gemini: gemini-2.5-pro, gemini-2.0-flash-thinking, gemini-1.5-pro
+# Claude: claude-opus-4, claude-sonnet-4, claude-haiku-4
+```
+
+### Fallback Scenarios (MVP)
 
 | Scenario | Response |
 |----------|----------|
-| Model timeout | Use available responses, note timeout |
-| Model error | Retry once, then exclude from result |
-| All models fail | Return primary model only with warning |
-| No consensus | Present all opinions without recommendation |
-| Rate limited | Queue request, notify CEO |
+| Claude timeout | Error (primary required) |
+| OpenAI timeout | Use Claude + Gemini |
+| Gemini timeout | Use Claude + OpenAI |
+| Both critics timeout | Use Claude only, note in response |
+| All timeout | Error with retry suggestion |
 
-### CLI Interface
-
-```bash
-# Auto mode - EndiorBot decides when to consult
-$ endiorbot "design payment gateway integration"
-# → Detects: Architecture task
-# → Auto-consults: Claude + GPT-5 + Gemini
-
-# Explicit consultation mode
-$ endiorbot consult "is Redis or PostgreSQL better for sessions?"
-# → Queries all configured experts
-# → Returns comparison table
-
-# Single model mode
-$ endiorbot --model opus "quick fix for this bug"
-# → Uses only Claude Opus
-# → Faster, no consolidation
-```
-
-### Configuration
-
-```yaml
-# ~/.endiorbot/experts.yaml
-experts:
-  primary:
-    provider: anthropic
-    model: claude-opus-4
-    purpose: "Main development, SDLC compliance"
-    
-  panel:
-    - provider: openai
-      model: gpt-5.2
-      purpose: "Architecture review, scaling analysis"
-      when: ["architecture", "security", "scaling"]
-      
-    - provider: google
-      model: gemini-2-pro
-      purpose: "GCP integration, latest tech trends"
-      when: ["architecture", "research", "gcp"]
-      
-    - provider: mistral
-      model: mistral-large
-      purpose: "Cost-effective validation"
-      when: ["validation", "simple-review"]
-
-consultation:
-  auto_threshold: 0.7      # Confidence below this triggers multi-model
-  max_parallel: 3          # Max experts queried at once
-  timeout_ms: 30000        # Per-model timeout
-  require_minimum: 2       # Minimum responses for consensus
-```
+---
 
 ## Alternatives Considered
 
-### 1. Sequential Querying
-- **Pros**: Lower API costs, simpler implementation
-- **Cons**: 3x longer latency, loses parallel benefit
-- **Decision**: Rejected - speed is critical for CEO workflow
+### 1. 2-Model Only (Gemini + Opus)
+- **Pros**: Simpler
+- **Cons**: Doesn't match CEO's actual workflow
+- **Decision**: Rejected - CEO uses Claude Code as primary
 
-### 2. Single Model Only
-- **Pros**: Simplest, cheapest
-- **Cons**: No diverse perspectives, misses the core value prop
-- **Decision**: Rejected - multi-model is the key differentiator
+### 2. 4+ Models
+- **Pros**: More diverse
+- **Cons**: Higher cost, diminishing returns
+- **Decision**: Deferred to Tier 3
 
-### 3. External Service (e.g., OpenRouter)
-- **Pros**: Managed routing, unified API
-- **Cons**: Additional dependency, less control, cost
-- **Decision**: Rejected - prefer direct control over routing logic
+---
 
 ## Consequences
 
 ### Positive
-- 90% reduction in architecture decision time
-- Automated expert consultation
-- Consistent SDLC compliance
-- Evidence-based recommendations
+- 98% reduction in decision time
+- Matches CEO's actual workflow
+- Claude remains primary for coding/docs
+- OpenAI + Gemini provide research/critique
 
 ### Negative
-- Higher API costs (3-4x single model)
-- More complex error handling
-- Requires multiple API keys
+- ~2-3x API cost for full consultation
+- More complex routing logic
 
 ### Risks
-- **API Cost Runaway**: Mitigated by per-session rate limits
-- **Response Inconsistency**: Mitigated by structured prompts
-- **Latency Spikes**: Mitigated by timeouts and fallbacks
-
-## Implementation Plan
-
-### Phase 1: Core Infrastructure (Sprint 30)
-- [ ] Define TypeScript interfaces
-- [ ] Implement query dispatcher
-- [ ] Add provider adapters (Claude, GPT, Gemini)
-- [ ] Basic parallel execution
-
-### Phase 2: Consolidation (Sprint 30-31)
-- [ ] Response parsing and normalization
-- [ ] Consensus algorithm
-- [ ] SDLC compliance filter
-- [ ] CLI integration
-
-### Phase 3: Optimization (Sprint 31)
-- [ ] Caching for repeated queries
-- [ ] Cost tracking and alerts
-- [ ] Performance tuning
-
-## Verification
-
-### Unit Tests
-```typescript
-describe('MultiModelOrchestrator', () => {
-  it('should query all models in parallel');
-  it('should respect per-model timeout');
-  it('should calculate consensus correctly');
-  it('should surface disagreements');
-  it('should handle partial failures');
-});
-```
-
-### Integration Tests
-- Query all providers with test prompts
-- Verify consolidation accuracy
-- Test fallback scenarios
-
-### Manual Verification
-- [ ] CEO reviews consolidated output quality
-- [ ] Compare to manual consolidation baseline
-- [ ] Verify time savings (~5 min target)
+| Risk | Mitigation |
+|------|------------|
+| API cost | Coding tasks use Claude only |
+| Latency | Parallel queries, 30s timeout |
+| Disagreement | primary_with_notes shows all |
 
 ---
 
-*ADR-001 created for EndiorBot Multi-Model Orchestrator*
+## Implementation Plan
+
+### Sprint 54 Tasks
+
+| Task | Hours | Status |
+|------|-------|--------|
+| ChatHandler (3-model) | 2h | PENDING |
+| AIRouter (Claude + OpenAI + Gemini) | 2h | PENDING |
+| Task type classifier | 1h | PENDING |
+| primary_with_notes consolidation | 1h | PENDING |
+| CLI `consult` command | 1h | PENDING |
+
+---
+
+## References
+
+- [Master Plan v2.0](../../00-foundation/master-plan.md)
+- [Sprint 54 Plan](../../04-build/sprints/sprint-54-ai-chat-integration.md)
+
+---
+
+*ADR-001 | CEO Power Tool MVP | 3-Model Consultation*
+*Claude (Coding) + OpenAI + Gemini (Research/Critique)*
+*Identity: LOCKED (2026-02-28)*
 *SDLC Framework v6.1.1*

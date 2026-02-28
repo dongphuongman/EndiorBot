@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Electron Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+        }
+        h1 {
+            font-size: 48px;
+            margin: 0;
+        }
+        .box {
+            background: rgba(255,255,255,0.2);
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>✅ ELECTRON IS WORKING!</h1>
+    <div class="box">
+        <p>🟢 HTML loaded successfully</p>
+        <p>🟢 CSS is working</p>
+        <p id="js-test">⏳ JavaScript loading...</p>
+    </div>
+
+    <script>
+        console.log('✅ JavaScript is running!');
+        document.getElementById('js-test').innerHTML = '🟢 JavaScript is working!';
+        document.getElementById('js-test').style.fontWeight = 'bold';
+    </script>
+</body>
+</html>
