@@ -33,6 +33,7 @@ import {
   getChatHandler,
   type ChatHandlerRequest,
 } from "../../gateway/chat-handler.js";
+import { initializeProvidersFromEnv } from "../../providers/init.js";
 
 // ============================================================================
 // Constants - Available Models (per ADR-001)
@@ -248,6 +249,9 @@ async function consultAction(
 ): Promise<void> {
   console.log("");
   console.log("🔄 Consulting expert panel...");
+
+  // Initialize providers from environment variables
+  await initializeProvidersFromEnv();
 
   // Validate model selections if provided
   if (options.openai && !validateModel("openai", options.openai)) {
