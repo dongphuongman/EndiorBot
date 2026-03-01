@@ -316,7 +316,7 @@ async function compactHistory(context: ProjectContext): Promise<void> {
 ### Phase 3: Polish (Sprint 31)
 - [ ] Performance optimization
 - [ ] Error recovery
-- [ ] Migration from OpenClaw
+- [ ] Migration from MTS-OpenClaw
 
 ## Verification
 

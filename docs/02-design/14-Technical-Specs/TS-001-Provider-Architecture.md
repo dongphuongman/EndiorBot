@@ -270,9 +270,9 @@ providers:
 
 ---
 
-## Migration from OpenClaw
+## Migration from MTS-OpenClaw
 
-| OpenClaw File | EndiorBot Target | Changes |
+| MTS-OpenClaw File | EndiorBot Target | Changes |
 |---------------|------------------|---------|
 | src/providers/index.ts | src/providers/index.ts | Namespace updates |
 | src/providers/anthropic.ts | src/providers/anthropic/anthropic-provider.ts | Modularize |

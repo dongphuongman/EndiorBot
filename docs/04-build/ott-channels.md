@@ -107,7 +107,7 @@ Zalo Bot Platform cho phép tạo bot Zalo Personal qua [Zalo Bot Manager](https
 
 ### 2. Get CEO Chat ID
 
-**Cách 1: Từ OpenClaw/Picoclaw config**
+**Cách 1: Từ MTS-OpenClaw/Picoclaw config**
 ```bash
 # Nếu đã dùng với openclaw/picoclaw, check config
 cat ~/.picoclaw/config.json | jq '.channels.zalo'

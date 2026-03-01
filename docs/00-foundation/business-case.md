@@ -126,7 +126,7 @@ Assuming 5 architecture decisions + 10 gate evaluations + 20 context switches pe
 | Keep current workflow | No development | Inefficient, manual | ❌ Reject |
 | Use existing tools (Cursor, etc.) | Ready to use | No SDLC, no multi-model | ❌ Reject |
 | Build from scratch | Clean design | Long development | ❌ Reject |
-| Fork OpenClaw + Enhance | Proven base, extensible | Migration effort | ✅ **Selected** |
+| Fork MTS-OpenClaw + Enhance | Proven base, extensible | Migration effort | ✅ **Selected** |
 
 ---
 
