@@ -133,7 +133,8 @@
       "Bash(TELEGRAM_CHAT_ID=\"1754248572\")",
       "Bash(git tag:*)",
       "Bash(source:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git -C /Users/dttai/Documents/Python/01.NQH/EndiorBot log --oneline --grep=\"agent\\\\|OTT\\\\|channel\" -20)"
     ]
   }
 }

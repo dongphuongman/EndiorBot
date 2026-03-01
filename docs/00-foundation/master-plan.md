@@ -1,11 +1,13 @@
-# EndiorBot Master Plan v2.0
+# EndiorBot Master Plan v3.1
 
 ---
-version: 2.0
-updated: 2026-02-28
+version: 3.1
+updated: 2026-03-01
 status: ACTIVE
 author: PM + Architect (4-Expert Panel Review)
 changelog:
+  - v3.1: Sprint 55 Agent Orchestration complete, Claude Code Bridge operational
+  - v3.0: Agent Orchestration Layer architecture, 12 agent SOULs
   - v2.0: Identity locked as CEO Tool, scope crisis resolved
   - v1.0: Initial master plan (G2 ready) - 2026-02-21
 ---
@@ -156,31 +158,76 @@ ADMIN → require CEO approval
 
 ---
 
-## 9. Roadmap
+## 9. Agent Orchestration (v3.1)
 
-### NOW (Sprint 54)
-- [ ] ChatHandler (3 models: Claude + o3-mini + Gemini Thinking)
-- [ ] Gate status read-only
-- [ ] Context Budget governance
-- [ ] ActionControlPlane stub
+```
+CEO: @pm "plan payment gateway"
+  → PM executes via Claude Code
+  → Handoff JSON to @architect
+  → Architect executes
+  → Handoff to @coder
+  → Coder creates patch
+  → CEO confirms apply
+  → Handoff to @reviewer
+  → Review complete
+```
 
-### NEXT (Sprint 55-56)
-- [ ] Brain provenance (schema_version)
-- [ ] Session resume with Brain
-- [ ] Telegram magic link approvals
+### Claude Code Bridge (3 Modes)
 
-### LATER (After CEO validates MVP)
-- [ ] Desktop shell
-- [ ] Skills gateway
-- [ ] Full SDLC enforcement
-- [ ] Junior hub
+| Mode | Flag | Description |
+|------|------|-------------|
+| READ | (default) | No file changes, output text only |
+| PATCH | --patch | Claude outputs diff, CEO confirms |
+| INTERACTIVE | --interactive | Opens Claude Code for human takeover |
+
+### Agent Transitions (SE4A)
+
+```
+researcher → pm
+pm → architect, pjm
+architect → coder, reviewer
+coder → reviewer, tester
+reviewer → coder, pm
+tester → coder, devops
+devops → tester
+```
 
 ---
 
-## 10. Decisions Log
+## 10. Roadmap
+
+### ✅ COMPLETE (Sprint 49-55)
+- [x] Foundation: 11,780 LOC, 641+ tests
+- [x] Claude Code DevEx: Sub-agents, skills, MCP
+- [x] CEO Tool MVP: 3-model consultation
+- [x] Agent Orchestration: @agent → Claude Code
+
+### 🎯 NOW (Sprint 56)
+- [ ] Evidence CLI (expose existing types)
+- [ ] Gate rename: recommend/confirm
+- [ ] Context CLI (expose context-injector)
+
+### NEXT (Sprint 57-58)
+- [ ] OTT Agent Integration (Telegram/Zalo)
+- [ ] Desktop App v1
+- [ ] Production hardening
+
+### LATER (Sprint 59-61)
+- [ ] Cross-project workflows
+- [ ] SE4H roles (CEO/CPO/CTO advisors)
+- [ ] Analytics dashboard
+- [ ] v1.0 Release
+
+---
+
+## 11. Decisions Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-03-01 | Sprint 55 fix: CLI registration | Agent command blocked, 1 line fix |
+| 2026-03-01 | Codebase-verified roadmap | Avoid recreating existing code |
+| 2026-03-01 | Gate rename: recommend/confirm | Agent ≠ Authority invariant |
+| 2026-02-28 | Agent Orchestration complete | 3 modes: read/patch/interactive |
 | 2026-02-28 | Identity = CEO Tool | 4-expert panel: scope crisis resolution |
 | 2026-02-28 | 3 reasoning models MVP | Claude (coding) + o3-mini + Gemini Thinking (critique) |
 | 2026-02-28 | Read-only SDLC | Checklist, not enforcer |
@@ -189,20 +236,33 @@ ADMIN → require CEO approval
 
 ---
 
-## What's NOT in MVP
+## What's NOT in v1.0
 
-| Feature | Status | Reason |
+| Feature | Target | Reason |
 |---------|--------|--------|
-| Desktop shell | Tier 3 | CLI-first |
-| Skills gateway | Tier 3 | Complexity |
-| Full multi-model (4+) | Tier 3 | 3 reasoning models enough |
-| SDLC enforcement | Tier 3 | Checklist first |
-| Dynamic overlay | Tier 2 | Session anchor first |
-| Junior hub | Tier 3 | Solo developer focus |
+| Enterprise team features | Post v1.0 | Solo developer focus |
+| Complex RBAC | Post v1.0 | Just CEO + Junior roles |
+| Heavy infrastructure | Never | No DB, Redis, MinIO |
+| Usage billing | Post v1.0 | Not needed |
+| VS Code Extension | Post v1.0 | CLI-first |
+| Slack Integration | Post v1.0 | Telegram/Zalo first |
 
 ---
 
-*EndiorBot Master Plan v2.0*
+## v1.0 Target: End of April 2026
+
+```
+Sprint 56: SDLC Control Plane (8h)
+Sprint 57: OTT Channels (8h)
+Sprint 58: Production Hardening (14h)
+Sprint 59: Advanced Features (12h)
+Sprint 60: Polish & Scale (10h)
+Sprint 61: v1.0 Release (8h)
+```
+
+---
+
+*EndiorBot Master Plan v3.1*
 *Identity: CEO Power Tool (LOCKED)*
-*4-Expert Panel Review: 2026-02-28*
+*Codebase-Verified: 2026-03-01*
 *SDLC Framework v6.1.1 compliant*

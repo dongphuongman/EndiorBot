@@ -1,16 +1,21 @@
 # Technical Specification: Agent Orchestration
 
 **ID:** TS-003
-**Status:** Proposed
-**Date:** 2026-02-22
+**Status:** Active
+**Date:** 2026-02-28
 **Related ADR:** ADR-001 (Multi-Model Orchestrator)
 **SDLC Stage:** 02-DESIGN
+**Updated:** Sprint 55 - Agent-Claude Code Bridge
 
 ---
 
 ## Overview
 
-The Agent module orchestrates AI model interactions, including multi-model consultation, response consolidation, and SDLC-aware routing.
+The Agent module orchestrates AI model interactions, including:
+1. Multi-model consultation (Sprint 54)
+2. Response consolidation
+3. SDLC-aware routing
+4. **Agent-Claude Code Bridge** (Sprint 55) - Wire 12 SDLC agents to Claude Code
 
 ---
 
@@ -21,11 +26,29 @@ src/agents/
 ├── index.ts                     # Re-exports
 ├── types.ts                     # Agent types
 ├── agent-scope.ts               # Permission boundaries
+├── types/
+│   └── handoff.ts               # Handoff JSON schema + guards (Sprint 55)
 ├── orchestrator/
 │   ├── index.ts
 │   ├── multi-model-orchestrator.ts
 │   ├── response-consolidator.ts
-│   └── task-classifier.ts
+│   ├── task-classifier.ts
+│   ├── mention-parser.ts        # Parse @agent mentions (Sprint 55)
+│   ├── agent-router.ts          # Route to SOUL templates (Sprint 55)
+│   ├── handoff-guards.ts        # Validate transitions (Sprint 55)
+│   └── workflow-engine.ts       # Agent chain state machine (Sprint 55)
+├── context/
+│   ├── context-manifest.ts      # Injection manifest (Sprint 55)
+│   └── context-injector.ts      # Brain → Claude prompt (Sprint 55)
+├── invoke/
+│   ├── claude-code-bridge.ts    # 3 modes: read/patch/interactive (Sprint 55)
+│   ├── patch-validator.ts       # Validate unified diff (Sprint 55)
+│   └── response-parser.ts       # Extract handoffs (Sprint 55)
+├── handoff/
+│   └── handoff-detector.ts      # Detect handoffs in responses (Sprint 55)
+├── safety/
+│   ├── risk-classifier.ts       # LOW/MEDIUM/HIGH/CRITICAL (Sprint 55)
+│   └── audit-logger.ts          # Log to JSONL (Sprint 55)
 ├── quality/
 │   ├── index.ts
 │   ├── reflect-step.ts          # Port from Python
@@ -35,6 +58,169 @@ src/agents/
     ├── index.ts
     ├── failover-classifier.ts   # Port from Python
     └── conversation-tracker.ts  # Port from Python
+```
+
+---
+
+## Agent-Claude Code Bridge (Sprint 55)
+
+### Flow Overview
+
+```
+CEO: @pm "plan payment gateway"
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  CLI agent.ts / OTT channel                      │
+│  Parse input, detect @agent mention              │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  mention-parser.ts                               │
+│  Formats: @pm "msg", [@pm: msg], [@pm,arch: msg] │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  agent-router.ts                                 │
+│  1. Load SOUL template from docs/reference/souls │
+│  2. Validate agent in current tier              │
+│  3. Classify task complexity                    │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  context-injector.ts                             │
+│  1. Load Brain L1-L4 context                    │
+│  2. Build context manifest                      │
+│  3. Inject into Claude Code prompt              │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  claude-code-bridge.ts                           │
+│  Mode: READ | PATCH | INTERACTIVE               │
+│  Invoke: claude -p "prompt" [--allowedTools]    │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  response-parser.ts                              │
+│  Extract: handoff JSON, artifacts, output       │
+└─────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────┐
+│  workflow-engine.ts                              │
+│  1. Validate handoff transition                 │
+│  2. Check guards (depth, total, timeout)        │
+│  3. Prompt CEO for confirmation                 │
+│  4. Route to next agent or complete             │
+└─────────────────────────────────────────────────┘
+```
+
+### Handoff Protocol
+
+```typescript
+// 12 SDLC Roles
+type SE4ARole = "researcher" | "pm" | "pjm" | "architect" | "coder" | "reviewer" | "tester" | "devops";
+type SE4HRole = "ceo" | "cpo" | "cto";
+type RouterRole = "assistant";
+type AgentRole = SE4ARole | SE4HRole | RouterRole;
+
+// Handoff JSON Schema
+interface HandoffItem {
+  to: AgentRole;
+  intent: string;
+  priority: "P0" | "P1" | "P2";
+  inputs: Record<string, unknown>;
+  reason: string;
+}
+
+interface HandoffRequest {
+  handoff: HandoffItem[];
+}
+
+// Allowed Transitions
+const ALLOWED_TRANSITIONS: Record<AgentRole, AgentRole[]> = {
+  researcher: ["pm"],
+  pm: ["architect", "pjm"],
+  pjm: ["coder", "tester"],
+  architect: ["coder", "reviewer"],
+  coder: ["reviewer", "tester"],
+  reviewer: ["coder", "pm"],
+  tester: ["coder", "devops"],
+  devops: ["tester"],
+  ceo: [], cpo: [], cto: [],  // Advisors cannot delegate
+  assistant: ["researcher", "pm", "pjm", "architect", "coder", "reviewer", "tester", "devops"],
+};
+
+// Handoff Guards
+const HANDOFF_GUARDS = {
+  maxDepth: 3,
+  maxTotalPerRequest: 5,
+  timeoutPerAgent: 300,  // seconds
+  maxRetries: 2,
+  retryCooldownMs: 1000,
+};
+```
+
+### Claude Code Bridge Modes
+
+| Mode | Flag | Description | Use Case |
+|------|------|-------------|----------|
+| READ | (default) | No file changes | Research, planning, review |
+| PATCH | --patch | Unified diff + CEO confirm | Code changes |
+| INTERACTIVE | --interactive | Human takes over | Complex refactoring |
+
+```typescript
+interface ClaudeCodeBridge {
+  // READ mode - safe, no file changes
+  invokeRead(prompt: string, workspace: string): Promise<ClaudeResponse>;
+
+  // PATCH mode - diff preview + confirm
+  invokePatch(prompt: string, workspace: string): Promise<PatchResponse>;
+
+  // INTERACTIVE mode - human takeover
+  invokeInteractive(prompt: string, workspace: string): Promise<void>;
+}
+
+interface PatchResponse {
+  diff: string;
+  affectedFiles: string[];
+  validation: PatchValidation;
+  applied: boolean;
+}
+
+interface PatchValidation {
+  allowed: boolean;
+  risks: string[];
+  dangerousPatterns: string[];  // e.g., "rm -rf", "DROP TABLE"
+}
+```
+
+### Risk Classification
+
+```typescript
+const RISK_LEVELS = {
+  LOW: {
+    actions: ["read_file", "search", "generate_spec", "generate_plan"],
+    confirmation: "none",
+  },
+  MEDIUM: {
+    actions: ["create_test", "update_docs", "create_draft_pr"],
+    confirmation: "batch",
+  },
+  HIGH: {
+    actions: ["modify_source", "apply_patch", "merge_pr"],
+    confirmation: "explicit",
+  },
+  CRITICAL: {
+    actions: ["delete_file", "db_migration", "deploy", "push_main"],
+    confirmation: "explicit_with_audit",
+  },
+};
 ```
 
 ---

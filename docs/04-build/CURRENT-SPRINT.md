@@ -1,98 +1,90 @@
-# Current Sprint: Sprint 54
+# Current Sprint: Sprint 55
 
-**Status**: ✅ COMPLETE
-**Duration**: 8-10 hours (~1 day)
-**Goal**: CEO Tool MVP - 3-Model Consultation
-**Completed**: 2026-02-28
+**Status**: IN PROGRESS
+**Duration**: 16-20 hours (55A: Day 1, 55B: Day 2)
+**Goal**: Agent Orchestration Layer - Wire 12 agents to Claude Code
+**Start Date**: 2026-02-28
 
 ---
 
 ## Sprint Summary
 
-Implement MVP features per Master Plan v2.0:
-- 3-model consultation (Claude + OpenAI + Gemini) with **configurable model selection**
-- CEO can choose latest models (o3, gemini-2.5-pro, etc.) via CLI or config
-- Gate status read-only
-- ActionControlPlane stub
-- Context Budget governance
+Wire existing 12 agents into orchestration layer for Claude Code workflow:
+
+```bash
+endiorbot @pm "plan payment gateway"
+  → PM executes via Claude Code
+  → Handoff JSON to @architect
+  → Architect executes
+  → Handoff to @coder
+  → CEO confirms patch
+  → Handoff to @reviewer
+```
 
 ---
 
-## Tasks
+## Sprint 55A Tasks (Day 1) - COMPLETE ✅
 
 | # | Task | Hours | Priority | Status |
 |---|------|-------|----------|--------|
-| 1 | ChatHandler with 3-model consultation | 2h | P0 | ✅ DONE |
-| 2 | AIRouter (Claude + OpenAI + Gemini) | 2h | P0 | ✅ DONE (integrated in ChatHandler) |
-| 3 | Task type classifier (coding vs research) | 1h | P0 | ✅ DONE |
-| 4 | primary_with_notes consolidation | 1h | P0 | ✅ DONE |
-| 5 | ActionControlPlane stub | 1h | P0 | ✅ DONE |
-| 6 | Context Budget governance | 1h | P0 | ✅ DONE |
-| 7 | Gate status read-only | 0.5h | P0 | ✅ DONE (already existed) |
-| 8 | CLI `consult` command enhanced | 1h | P0 | ✅ DONE (--openai, --gemini flags) |
-| 9 | Testing & documentation | 1.5h | P0 | ✅ DONE |
-| **Total** | | **12h** | | |
+| 1 | Handoff Types + Schema | 0.5h | P0 | ✅ DONE |
+| 2 | Mention Parser | 0.5h | P0 | ✅ DONE |
+| 3 | Agent Router | 1h | P0 | ✅ DONE |
+| 4 | Handoff Guards | 0.5h | P0 | ✅ DONE |
+| 5 | Context Manifest | 0.5h | P0 | ✅ DONE |
+| 6 | Context Injector | 1.5h | P0 | ✅ DONE |
+| 7 | Claude Code Bridge (3 modes) | 2.5h | P0 | ✅ DONE |
+| 8 | Patch Validator | 1h | P0 | ✅ DONE |
+| 9 | Response Parser | 1h | P0 | ✅ DONE |
+| 10 | CLI @agent command | 1h | P0 | ✅ DONE |
+| **Total** | | **~10h** | | **10/10** |
+
+---
+
+## Sprint 55B Tasks (Day 2)
+
+| # | Task | Hours | Priority | Status |
+|---|------|-------|----------|--------|
+| 1 | Workflow Engine | 2h | P0 | PENDING |
+| 2 | Risk Classifier | 1.5h | P1 | PENDING |
+| 3 | Audit Logger | 1h | P1 | PENDING |
+| 4 | Resilience | 1h | P1 | PENDING |
+| 5 | Handoff Detector | 0.5h | P0 | PENDING |
+| 6 | Project Verifier | 1h | P1 | PENDING |
+| 7 | Integration Tests | 1h | P0 | PENDING |
+| 8 | Wire to existing CLI | 1h | P0 | PENDING |
+| **Total** | | **~10h** | | |
 
 ---
 
 ## Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| `endiorbot consult` | Returns 3-model response (Claude + OpenAI + Gemini) |
-| Task routing | Coding → Claude only, Research → All 3 |
-| Consolidation | primary_with_notes works |
-| Token budget | 2K/turn enforced |
-| ActionControlPlane | Risk evaluation works |
-| Gate status | Read-only checklist |
+| Test | Expected |
+|------|----------|
+| `endiorbot @pm "plan feature"` | Loads SOUL, invokes Claude Code, returns plan |
+| `endiorbot @coder --patch "fix"` | Patch mode with CEO confirm |
+| PM → Architect handoff | Validates transition, prompts CEO |
+| PM → DevOps handoff | BLOCKED (invalid transition) |
+| Context manifest | Logs injected files + token count |
 
 ---
 
-## Architecture (MVP)
+## Key Files (Sprint 55A) - ALL CREATED ✅
 
-```
-CEO: endiorbot consult "design payment gateway"
-      │
-      ▼
-┌─────────────────────────────────────────────────┐
-│               Chat Handler                       │
-│  1. Detect task type (coding vs research)       │
-│  2. Inject Brain L4 (max 2K tokens)             │
-│  3. Route to appropriate models                  │
-│  4. Consolidate with primary_with_notes          │
-└─────────────────────────────────────────────────┘
-      │
-      ▼
-┌─────────────────────────────────────────────────┐
-│           AI Router (3 Models)                   │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐         │
-│  │ Claude  │  │ o3-mini │  │Gemini   │         │
-│  │(Primary)│  │(Critique│  │Thinking │         │
-│  │Coding   │  │Reasoning│  │(Critique│         │
-│  └─────────┘  └─────────┘  └─────────┘         │
-└─────────────────────────────────────────────────┘
-      │
-      ▼
-┌─────────────────────────────────────────────────┐
-│         ActionControlPlane (Stub)                │
-│  READ/WRITE → auto-approve                       │
-│  DESTRUCTIVE/MONEY/ADMIN → require CEO           │
-└─────────────────────────────────────────────────┘
-```
-
----
-
-## Key Files
-
-| File | Action | Status |
-|------|--------|--------|
-| `src/gateway/chat-handler.ts` | CREATE | ✅ Created |
-| `src/control-plane/action-control.ts` | CREATE | ✅ Created |
-| `src/control-plane/index.ts` | CREATE | ✅ Created |
-| `src/brain/context-budget.ts` | CREATE | ✅ Created |
-| `src/cli/commands/consult.ts` | MODIFY | ✅ Enhanced with --openai, --gemini |
-| `src/gateway/index.ts` | MODIFY | ✅ Added ChatHandler exports |
-| `src/brain/index.ts` | MODIFY | ✅ Added ContextBudget exports |
+| File | Status |
+|------|--------|
+| `src/agents/types/handoff.ts` | ✅ Created |
+| `src/agents/orchestrator/mention-parser.ts` | ✅ Created |
+| `src/agents/orchestrator/agent-router.ts` | ✅ Created |
+| `src/agents/orchestrator/handoff-guards.ts` | ✅ Created |
+| `src/agents/context/context-manifest.ts` | ✅ Created |
+| `src/agents/context/context-injector.ts` | ✅ Created |
+| `src/agents/invoke/claude-code-bridge.ts` | ✅ Created |
+| `src/agents/invoke/patch-validator.ts` | ✅ Created |
+| `src/agents/invoke/response-parser.ts` | ✅ Created |
+| `src/cli/commands/agent.ts` | ✅ Created |
+| `src/agents/context/index.ts` | ✅ Created |
+| `src/agents/invoke/index.ts` | ✅ Created |
 
 ---
 
@@ -104,11 +96,11 @@ None currently.
 
 ## References
 
-- [Sprint 54 Plan](./sprints/sprint-54-ai-chat-integration.md)
-- [Master Plan v2.0](../00-foundation/master-plan.md)
-- [ADR-001: 3-Model Consultation](../02-design/01-ADRs/ADR-001-Multi-Model-Orchestrator.md)
-- [ADR-012: ActionControlPlane](../02-design/01-ADRs/ADR-012-ActionControlPlane.md)
+- [Sprint 55 Plan](./sprints/sprint-55-agent-orchestration.md)
+- [TS-003 Agent Orchestration](../02-design/14-Technical-Specs/TS-003-Agent-Orchestration.md)
+- [SOUL Templates](../reference/templates/souls/)
+- [Tier Configs](../reference/templates/configs/)
 
 ---
 
-*Sprint 54 | CEO Power Tool MVP | 2026-02-28*
+*Sprint 55 | Agent Orchestration Layer | 2026-02-28*
