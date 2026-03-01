@@ -29,3 +29,6 @@ export { registerBrainCommand } from "./brain.js";
 export { registerEvalCommand } from "./eval.js";
 export { registerSetupCommand } from "./setup.js";
 export { registerSecretsCommand } from "./secrets.js";
+export { registerAgentCommand } from "./agent.js";
+export { registerEvidenceCommand } from "./evidence.js";
+export { registerContextCommand } from "./context.js";

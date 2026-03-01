@@ -1,19 +1,23 @@
 /**
  * Gate Command
  *
- * SDLC gate operations: status, propose, approve.
+ * SDLC gate operations: status, recommend, confirm.
  * Integrates with the gate engine for evaluation.
+ *
+ * INVARIANT (Master Plan v3.1):
+ *   Agent ≠ Authority: EndiorBot RECOMMENDS, CEO CONFIRMS
+ *   Approval = Human Confirm: Explicit --confirm flag required
  *
  * Usage:
  *   endiorbot gate status
- *   endiorbot gate propose G2 --feature AR-457
- *   endiorbot gate approve G2 --feature AR-457
+ *   endiorbot gate recommend G2 --feature AR-457
+ *   endiorbot gate confirm G2 --feature AR-457 --confirm
  *
  * @module cli/commands/gate
- * @version 1.0.0
- * @date 2026-02-22
- * @status ACTIVE - Phase 6 Implementation
- * @authority ADR-004 SDLC Gate Engine
+ * @version 1.1.0
+ * @date 2026-03-01
+ * @status ACTIVE - Sprint 56 Update
+ * @authority ADR-004 SDLC Gate Engine + Master Plan v3.1
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
  * @sdlc SDLC Framework 6.1.1
@@ -149,9 +153,10 @@ async function gateStatusAction(options: { gate?: string }): Promise<void> {
 }
 
 /**
- * Gate propose action - evaluate a gate for a feature.
+ * Gate recommend action - evaluate a gate and show recommendation.
+ * READ-ONLY: Does not approve, just recommends.
  */
-async function gateProposeAction(
+async function gateRecommendAction(
   gateId: string,
   options: { feature?: string },
 ): Promise<void> {
@@ -218,10 +223,12 @@ async function gateProposeAction(
     console.log("");
 
     if (evaluation.result === "PASS") {
-      console.log("🎉 Gate evaluation passed!");
-      console.log(`   Run 'endiorbot gate approve ${gateId} --feature ${featureId}' to approve.`);
+      console.log("🎉 RECOMMENDATION: Gate ready for approval");
+      console.log("");
+      console.log("   To confirm, run:");
+      console.log(`   endiorbot gate confirm ${gateId} --feature ${featureId} --confirm`);
     } else {
-      console.log("⚠️  Gate evaluation failed. Address the issues above.");
+      console.log("⚠️  RECOMMENDATION: Gate NOT ready. Address the issues above.");
     }
     console.log("");
   } catch (err) {
@@ -232,12 +239,27 @@ async function gateProposeAction(
 }
 
 /**
- * Gate approve action - approve a gate (CEO action).
+ * Gate confirm action - confirm a gate (CEO action).
+ * REQUIRES --confirm flag to enforce explicit human approval.
  */
-async function gateApproveAction(
+async function gateConfirmAction(
   gateId: string,
-  options: { feature?: string; force?: boolean },
+  options: { feature?: string; force?: boolean; confirm?: boolean },
 ): Promise<void> {
+  // INVARIANT: Explicit --confirm flag required
+  if (!options.confirm) {
+    console.log("");
+    console.log("❌ Missing --confirm flag");
+    console.log("");
+    console.log("   Gate confirmation requires explicit human approval.");
+    console.log("   This is an SDLC invariant: Agent ≠ Authority");
+    console.log("");
+    console.log("   To confirm, run:");
+    console.log(`   endiorbot gate confirm ${gateId} --confirm`);
+    console.log("");
+    process.exit(1);
+  }
+
   const project = getCurrentProject();
 
   if (!project) {
@@ -249,7 +271,7 @@ async function gateApproveAction(
   const tier = (project.tier as ProjectTier) ?? "STANDARD";
 
   console.log("");
-  console.log(`🔐 Approving ${gateId} for ${featureId}...`);
+  console.log(`🔐 Confirming ${gateId} for ${featureId}...`);
 
   // Create gate engine
   const engine = new GateEngine({ projectRoot: project.path, tier });
@@ -264,7 +286,7 @@ async function gateApproveAction(
 
     if (evaluation.result !== "PASS" && !options.force) {
       console.log("");
-      console.log("❌ Cannot approve - gate evaluation failed.");
+      console.log("❌ Cannot confirm - gate evaluation failed.");
       console.log("   Use --force to override (CEO only).");
       console.log("");
       process.exit(1);
@@ -284,15 +306,16 @@ async function gateApproveAction(
 
     console.log("");
     console.log("┌─────────────────────────────────────────────────────────────┐");
-    console.log(`│  ✅ ${gateId} APPROVED                                       │`);
+    console.log(`│  ✅ ${gateId} CONFIRMED                                      │`);
     console.log("├─────────────────────────────────────────────────────────────┤");
     console.log(`│  Feature: ${featureId.padEnd(49)}│`);
     console.log(`│  Project: ${project.name.slice(0, 49).padEnd(49)}│`);
-    console.log(`│  Approved: ${new Date().toISOString().slice(0, 19).padEnd(48)}│`);
+    console.log(`│  Confirmed: ${new Date().toISOString().slice(0, 19).padEnd(47)}│`);
+    console.log(`│  By: CEO (explicit --confirm flag)`.padEnd(62) + "│");
     console.log("└─────────────────────────────────────────────────────────────┘");
     console.log("");
 
-    // TODO: Create git tag, save evidence
+    // TODO: Create git tag, save evidence, audit log
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`❌ Approval failed: ${message}`);
@@ -319,15 +342,36 @@ export function registerGateCommand(program: Command): void {
     .action(gateStatusAction);
 
   gate
-    .command("propose <gateId>")
-    .description("Evaluate a gate for approval")
+    .command("recommend <gateId>")
+    .description("Evaluate a gate and show recommendation (read-only)")
     .option("-f, --feature <featureId>", "Feature ID", "default")
-    .action(gateProposeAction);
+    .action(gateRecommendAction);
+
+  gate
+    .command("confirm <gateId>")
+    .description("Confirm a gate (CEO action, requires --confirm flag)")
+    .option("-f, --feature <featureId>", "Feature ID", "default")
+    .option("--confirm", "Explicit confirmation (required)")
+    .option("--force", "Force confirmation even if checks fail")
+    .action(gateConfirmAction);
+
+  // Legacy aliases (deprecated, will be removed in v2.0)
+  gate
+    .command("propose <gateId>")
+    .description("[DEPRECATED] Use 'gate recommend' instead")
+    .option("-f, --feature <featureId>", "Feature ID", "default")
+    .action(async (gateId: string, options: { feature?: string }) => {
+      console.log("⚠️  'gate propose' is DEPRECATED. Use 'gate recommend' instead.\n");
+      await gateRecommendAction(gateId, options);
+    });
 
   gate
     .command("approve <gateId>")
-    .description("Approve a gate (CEO action)")
+    .description("[DEPRECATED] Use 'gate confirm --confirm' instead")
     .option("-f, --feature <featureId>", "Feature ID", "default")
     .option("--force", "Force approval even if checks fail")
-    .action(gateApproveAction);
+    .action(async (gateId: string, options: { feature?: string; force?: boolean }) => {
+      console.log("⚠️  'gate approve' is DEPRECATED. Use 'gate confirm --confirm' instead.\n");
+      await gateConfirmAction(gateId, { ...options, confirm: true });
+    });
 }

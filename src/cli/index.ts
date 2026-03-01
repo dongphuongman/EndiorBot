@@ -35,6 +35,9 @@ import {
   registerEvalCommand,
   registerSetupCommand,
   registerSecretsCommand,
+  registerAgentCommand,
+  registerEvidenceCommand,
+  registerContextCommand,
 } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
 import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.js";
@@ -105,6 +108,9 @@ export async function run(): Promise<void> {
   registerEvalCommand(program);
   registerSetupCommand(program);
   registerSecretsCommand(program);
+  registerAgentCommand(program);
+  registerEvidenceCommand(program);
+  registerContextCommand(program);
 
   await program.parseAsync(process.argv);
 }

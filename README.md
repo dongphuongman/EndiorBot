@@ -1,11 +1,11 @@
 # EndiorBot
 
-> **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
+> **SDLC Control Plane + Agent Orchestrator** — AI assistant that answers in <30s instead of 30-60 min
 
 EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects (~1M LOC).
-It eliminates copy/paste between AI apps by querying 3 models and consolidating responses automatically.
+It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance.
 
-**Identity**: CEO Tool (not a platform, not an SDLC enforcer)
+**Identity**: SDLC Control Plane + Agent Orchestrator for Claude Code workflow (not a platform, not an SDLC enforcer)
 
 ## Quick Start
 
@@ -13,10 +13,16 @@ It eliminates copy/paste between AI apps by querying 3 models and consolidating 
 # Install
 pnpm install && pnpm build
 
-# MVP Commands
-endiorbot consult "design payment gateway"  # 3-model consultation
-endiorbot gate status G2                    # Read-only SDLC checklist
-endiorbot switch bflow                      # Project context switch
+# Agent Orchestration (Sprint 55)
+endiorbot @pm "plan payment gateway"        # PM agent → structured plan
+endiorbot @coder --patch "fix auth bug"     # Coder agent → applies patch
+endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
+
+# SDLC Control Plane (Sprint 56)
+endiorbot gate recommend G2                 # Show gate recommendation
+endiorbot gate confirm G2 --confirm         # Human confirmation (invariant)
+endiorbot evidence add ./ADR.md --gate G2 --type adr  # Attach evidence
+endiorbot context inject                    # Generate context for Claude Code
 ```
 
 ## Architecture
@@ -25,27 +31,56 @@ endiorbot switch bflow                      # Project context switch
 ┌─────────────────────────────────────────────────────────────────┐
 │                    EndiorBot CLI                                │
 │                                                                 │
-│   Ask → Context → 3 Models → Consolidate → Propose → Approve   │
+│   @agent → Orchestration → Claude Code → Patch/Interactive      │
+│                                                                 │
+│   ┌──────────────────────────────────────────────────────┐      │
+│   │              Agent Orchestration Layer               │      │
+│   │  @pm → @architect → @coder → @reviewer → @tester     │      │
+│   │  (READ mode)  (READ)    (PATCH)   (READ)   (READ)    │      │
+│   └──────────────────────────────────────────────────────┘      │
 │                                                                 │
 │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│   │   Claude    │  │   o3-mini   │  │   Gemini    │            │
-│   │  (Primary)  │  │ (Critique)  │  │  Thinking   │            │
-│   │  Coding &   │  │  Reasoning  │  │ (Critique)  │            │
-│   │   Docs      │  │  & Debate   │  │  Reasoning  │            │
+│   │   Claude    │  │   GPT-4o    │  │   Gemini    │            │
+│   │  (Primary)  │  │ (Critique)  │  │  (Review)   │            │
 │   └─────────────┘  └─────────────┘  └─────────────┘            │
 │                                                                 │
-│   Routing: Coding → Claude only | Research → All 3             │
+│   Brain: L4 Mental Models → L3 Structures → L2 Patterns        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## MVP Features (Tier 1)
+## Core Features (Sprint 55-56)
+
+### Agent Orchestration (Sprint 55)
+
+| Command | Mode | Description |
+|---------|------|-------------|
+| `endiorbot @pm "task"` | READ | Planning, requirements analysis |
+| `endiorbot @architect "task"` | READ | Design decisions, ADRs |
+| `endiorbot @coder --patch "task"` | PATCH | Code generation, applies patch |
+| `endiorbot @reviewer "task"` | READ | Code review, suggestions |
+| `endiorbot @consult "query"` | READ | Multi-model consultation |
+
+### SDLC Control Plane (Sprint 56)
+
+| Command | Description |
+|---------|-------------|
+| `endiorbot gate recommend G2` | Show gate recommendation (read-only) |
+| `endiorbot gate confirm G2 --confirm` | Human confirmation (invariant: Agent ≠ Authority) |
+| `endiorbot evidence list` | List evidence for current project |
+| `endiorbot evidence add <uri> --gate G2 --type adr` | Attach evidence to gate |
+| `endiorbot evidence verify` | Verify all evidence still valid |
+| `endiorbot context status` | Show Brain layers and token budget |
+| `endiorbot context inject` | Generate context for Claude Code |
+| `endiorbot context search "query"` | RAG search across Brain layers |
+
+### Other Features
 
 | Feature | Command | Status |
 |---------|---------|--------|
-| 3-Model Consultation | `endiorbot consult` | In Progress |
-| Gate Status | `endiorbot gate status` | In Progress |
-| Project Switch | `endiorbot switch` | Implemented |
-| Brain L4 Injection | Auto at session start | In Progress |
+| 3-Model Consultation | `endiorbot consult` | ✅ Implemented |
+| Gate Status | `endiorbot gate status` | ✅ Implemented |
+| Project Switch | `endiorbot switch` | ✅ Implemented |
+| Brain L4 Injection | Auto at session start | ✅ Implemented |
 
 ## Brain (4-Layer Iceberg)
 
@@ -72,26 +107,39 @@ endiorbot switch bflow                      # Project context switch
 | Gate evaluation | 20 min | 1 min | 95% |
 | Context switch | 5 min | <2s | 99% |
 
-## What's NOT in MVP
+## Roadmap (Sprint 57-61)
 
-- Desktop shell (Tier 3)
-- Full multi-model 4+ (Tier 3)
-- SDLC enforcement (Tier 3)
-- Skills gateway (Tier 3)
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| 57 | OTT Agent Integration (Telegram/Zalo) | Planned |
+| 58 | Production Hardening & Desktop App | Planned |
+| 59 | Cross-Project Workflows & SE4H Roles | Planned |
+| 60 | Performance & Polish | Planned |
+| 61 | v1.0 Release | Target: End April 2026 |
 
 ## Documentation
 
-- [Master Plan v2.0](./docs/00-foundation/master-plan.md) - Identity & roadmap
+- [Master Plan v3.1](./docs/00-foundation/master-plan.md) - Identity & full roadmap
 - [IDENTITY.md](./IDENTITY.md) - Who am I
 - [CLAUDE.md](./CLAUDE.md) - Claude Code integration
-- [Sprint 54](./docs/04-build/sprints/sprint-54-ai-chat-integration.md) - Current sprint
+- [Sprint 56-60 Plan](./docs/04-build/sprints/SPRINT-56-60-PLAN.md) - Current sprint plan
 
 ## Development
 
 ```bash
 pnpm dev          # Watch mode
-pnpm test         # Run tests (315 passing)
+pnpm build        # Build TypeScript
+pnpm test         # Run tests (641+ passing)
 pnpm lint         # Check style
+```
+
+## Invariants
+
+```
+1. THIN CLIENT PATTERN: Commands call ./endiorbot.mjs core
+2. STDIN JSON FOR HOOKS: Hooks receive JSON via stdin
+3. ENDIORBOT SOUL = GOVERNANCE: EndiorBot decides WHAT, Claude Code executes HOW
+4. AGENT ≠ AUTHORITY: EndiorBot RECOMMENDS, CEO CONFIRMS
 ```
 
 ## Links
@@ -105,4 +153,4 @@ UNLICENSED - Private repository
 
 ---
 
-*EndiorBot v2.0 | CEO Power Tool | SDLC Framework v6.1.1*
+*EndiorBot v3.1 | SDLC Control Plane + Agent Orchestrator | SDLC Framework v6.1.1*

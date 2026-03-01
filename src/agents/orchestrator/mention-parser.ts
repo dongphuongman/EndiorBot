@@ -111,16 +111,16 @@ export function parseCLIMention(input: string): ParseResult {
 
   // Try quoted format first: @agent "message"
   const cliMatch = trimmed.match(CLI_PATTERN);
-  if (cliMatch) {
+  if (cliMatch && cliMatch[1]) {
     const agentPart = cliMatch[1].toLowerCase();
-    const message = cliMatch[2] ?? cliMatch[3]; // Quoted or unquoted
+    const message = cliMatch[2] ?? cliMatch[3] ?? ""; // Quoted or unquoted
 
     return parseAgentPart(agentPart, message.trim(), input);
   }
 
   // Try simple format: @agent message
   const simpleMatch = trimmed.match(SIMPLE_MENTION_PATTERN);
-  if (simpleMatch) {
+  if (simpleMatch && simpleMatch[1] && simpleMatch[2]) {
     const agentPart = simpleMatch[1].toLowerCase();
     const message = simpleMatch[2].trim();
 
@@ -152,6 +152,7 @@ export function parseOTTMention(input: string): ParseResult {
   let match: RegExpExecArray | null;
 
   while ((match = OTT_PATTERN.exec(input)) !== null) {
+    if (!match[1] || !match[2]) continue;
     const agentPart = match[1].toLowerCase();
     const message = match[2].trim();
 
