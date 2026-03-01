@@ -142,7 +142,9 @@ export type StructureType =
   | 'file_tree'
   | 'dependency_graph'
   | 'api_schema'
-  | 'component_tree';
+  | 'component_tree'
+  | 'context_anchor'   // Sprint 65: Context anchoring state
+  | 'code_index';       // Sprint 63-64: Code search index
 
 // =============================================================================
 // Layer 4: Mental Models

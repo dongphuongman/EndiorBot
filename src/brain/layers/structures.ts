@@ -385,6 +385,137 @@ export function getComponentTree(
 }
 
 // =============================================================================
+// Context Anchoring (Sprint 65)
+// =============================================================================
+
+/**
+ * Context anchor state stored in Brain L3.
+ */
+export interface ContextAnchorState {
+  /** Anchor store version */
+  version: string;
+  /** Last saved timestamp */
+  lastSaved: string;
+  /** Active anchor IDs by type */
+  activeAnchors: {
+    sprint_goal?: string[];
+    checkpoint?: string[];
+    spec_snapshot?: string[];
+    decision?: string[];
+    blocker?: string[];
+  };
+  /** Current sprint goal ID */
+  currentSprintGoal?: string;
+  /** Current checkpoint ID */
+  currentCheckpoint?: string;
+}
+
+/**
+ * Set context anchor state for a project.
+ *
+ * Stores the current state of context anchoring in Brain L3
+ * for persistence across sessions.
+ */
+export function setContextAnchorState(
+  projectId: string,
+  state: ContextAnchorState
+): StructureEntry {
+  return setStructure(projectId, 'context_anchor', state as unknown as Record<string, unknown>);
+}
+
+/**
+ * Get context anchor state for a project.
+ */
+export function getContextAnchorState(
+  projectId: string
+): ContextAnchorState | undefined {
+  const structure = getStructure(projectId, 'context_anchor');
+  return structure?.data as ContextAnchorState | undefined;
+}
+
+/**
+ * Update current sprint goal in anchor state.
+ */
+export function setCurrentSprintGoal(
+  projectId: string,
+  goalId: string
+): StructureEntry {
+  const existing = getContextAnchorState(projectId);
+  const state: ContextAnchorState = existing ?? {
+    version: '1.0.0',
+    lastSaved: new Date().toISOString(),
+    activeAnchors: {},
+  };
+
+  state.currentSprintGoal = goalId;
+  state.lastSaved = new Date().toISOString();
+
+  return setContextAnchorState(projectId, state);
+}
+
+/**
+ * Update current checkpoint in anchor state.
+ */
+export function setCurrentCheckpoint(
+  projectId: string,
+  checkpointId: string
+): StructureEntry {
+  const existing = getContextAnchorState(projectId);
+  const state: ContextAnchorState = existing ?? {
+    version: '1.0.0',
+    lastSaved: new Date().toISOString(),
+    activeAnchors: {},
+  };
+
+  state.currentCheckpoint = checkpointId;
+  state.lastSaved = new Date().toISOString();
+
+  return setContextAnchorState(projectId, state);
+}
+
+// =============================================================================
+// Code Search Index (Sprint 63-64)
+// =============================================================================
+
+/**
+ * Code search index state stored in Brain L3.
+ */
+export interface CodeIndexState {
+  /** Index version */
+  version: string;
+  /** Last indexed timestamp */
+  lastIndexed: string;
+  /** Total files indexed */
+  fileCount: number;
+  /** Index size in bytes */
+  indexSizeBytes: number;
+  /** Provider used */
+  provider: 'ripgrep' | 'zoekt' | 'ast-grep';
+  /** Index hash for integrity */
+  hash?: string;
+}
+
+/**
+ * Set code index state for a project.
+ */
+export function setCodeIndexState(
+  projectId: string,
+  state: CodeIndexState
+): StructureEntry {
+  return setStructure(projectId, 'code_index', state as unknown as Record<string, unknown>);
+}
+
+/**
+ * Get code index state for a project.
+ */
+export function getCodeIndexState(
+  projectId: string
+): CodeIndexState | undefined {
+  const structure = getStructure(projectId, 'code_index');
+  return structure?.data as CodeIndexState | undefined;
+}
+
+// =============================================================================
 // Project Summary
 // =============================================================================
 

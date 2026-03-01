@@ -48,6 +48,11 @@ import {
   getRetrievalLogger,
   type SearchResponse,
 } from "../../search/index.js";
+import {
+  getContextAnchor,
+  getSprintGoalManager,
+  type Checkpoint,
+} from "../../context/index.js";
 
 // ============================================================================
 // Types
@@ -268,7 +273,22 @@ export class ContextInjector {
       }
     }
 
-    // 2g. Additional context (USEFUL)
+    // 2g. Context anchoring (MUST for sprint goals, USEFUL for checkpoints) - Sprint 65
+    if (isFeatureEnabled("CONTEXT_ANCHORING")) {
+      const anchorContext = await this.loadAnchorContext();
+      if (anchorContext) {
+        items.push(
+          createContextItem(
+            "anchor",
+            "MUST",
+            "Sprint goals and context anchors",
+            anchorContext
+          )
+        );
+      }
+    }
+
+    // 2h. Additional context (USEFUL)
     if (request.additionalContext) {
       items.push(
         createContextItem(
@@ -578,6 +598,64 @@ export class ContextInjector {
     }
 
     return lines.join("\n");
+  }
+
+  /**
+   * Load context anchoring state.
+   * Sprint 65: Context Anchoring integration.
+   *
+   * Injects:
+   * - Current sprint goal (prevents context drift)
+   * - Recent checkpoint info
+   * - Active blockers
+   */
+  private async loadAnchorContext(): Promise<string | undefined> {
+    try {
+      const sprintManager = getSprintGoalManager();
+      const anchor = getContextAnchor();
+
+      const sections: string[] = [];
+
+      // 1. Current sprint goal (critical for context)
+      const currentGoal = await sprintManager.getCurrent();
+      if (currentGoal) {
+        sections.push(sprintManager.formatForContext(currentGoal));
+      }
+
+      // 2. Recent checkpoint info
+      const checkpoints = await anchor.getCheckpoints();
+      if (checkpoints.length > 0) {
+        const recent = checkpoints[0] as Checkpoint;
+        sections.push("");
+        sections.push("## Last Checkpoint");
+        sections.push("");
+        sections.push(`**Name:** ${recent.name}`);
+        sections.push(`**Created:** ${recent.createdAt.toISOString()}`);
+        sections.push(`**Trigger:** ${recent.trigger}`);
+      }
+
+      // 3. Active blockers
+      const blockers = await anchor.getBlockers();
+      if (blockers.length > 0) {
+        sections.push("");
+        sections.push("## Active Blockers");
+        sections.push("");
+        for (const blocker of blockers) {
+          sections.push(`- ⚠️ ${blocker.title}: ${blocker.description}`);
+        }
+      }
+
+      if (sections.length === 0) {
+        return undefined;
+      }
+
+      return sections.join("\n");
+    } catch (error) {
+      this.log.debug("Failed to load anchor context", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
   }
 
   // ==========================================================================
