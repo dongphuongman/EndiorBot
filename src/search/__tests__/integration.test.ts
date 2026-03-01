@@ -128,7 +128,8 @@ describe("RetrievalPolicy", () => {
       const options = policy.applyToSearchOptions({ query: "test" });
 
       expect(options.query).toBe("test");
-      expect(options.fileTypes).toEqual(["ts", "tsx", "js", "jsx"]);
+      // Note: ripgrep's --type ts includes .tsx, --type js includes .jsx
+      expect(options.fileTypes).toEqual(["ts", "js"]);
       expect(options.contextLines).toBe(4);
       expect(options.role).toBe("@coder");
     });

@@ -233,9 +233,9 @@ describe("RgProvider", () => {
         topK: 10,
       });
 
-      // All results should be .ts files
+      // All results should be TypeScript files (.ts or .tsx - ripgrep includes both)
       for (const hit of response.hits) {
-        expect(hit.path).toMatch(/\.ts$/);
+        expect(hit.path).toMatch(/\.tsx?$/);
       }
     });
 
