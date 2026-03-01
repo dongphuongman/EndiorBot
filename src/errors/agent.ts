@@ -29,7 +29,7 @@ export type AgentErrorCode =
   | "INVOCATION_FAILED"
   | "INVOCATION_TIMEOUT"
   | "CONTEXT_TOO_LARGE"
-  | "RESPONSE_PARSE_error"
+  | "RESPONSE_PARSE_ERROR"
   | "RISK_THRESHOLD_EXCEEDED"
   | "MODE_NOT_ALLOWED";
 
@@ -299,7 +299,7 @@ export function responseParseError(
   reason: string
 ): AgentError {
   return new AgentError(`Failed to parse @${agent} response: ${reason}`, {
-    code: "RESPONSE_PARSE_error",
+    code: "RESPONSE_PARSE_ERROR",
     severity: "warning",
     retryable: false,
     agent,
