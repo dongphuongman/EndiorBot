@@ -239,11 +239,13 @@ export class CrossProjectManager {
     }
 
     // Treat as project ID - look in common locations
+    // Configurable via ENDIORBOT_PROJECT_PATHS environment variable (colon-separated)
     const homeDir = process.env.HOME ?? "";
+    const customPaths = process.env.ENDIORBOT_PROJECT_PATHS?.split(":") ?? [];
     const locations = [
+      ...customPaths.map((p) => join(p, projectRef)),
       join(homeDir, "Projects", projectRef),
       join(homeDir, "Documents", projectRef),
-      join(homeDir, "Documents", "Python", "01.NQH", projectRef),
       join(process.cwd(), "..", projectRef),
     ];
 

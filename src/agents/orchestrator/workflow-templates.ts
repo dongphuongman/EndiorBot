@@ -33,7 +33,7 @@ export interface TemplateStep {
   taskTemplate: string;
   /** Whether this step is optional */
   optional?: boolean;
-  /** Condition to run this step */
+  /** Condition to run this step (FUTURE: not yet evaluated, reserved for Sprint 60+) */
   condition?: string;
   /** Mode for this step */
   mode?: "READ" | "PATCH" | "INTERACTIVE";

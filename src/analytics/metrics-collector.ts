@@ -69,7 +69,9 @@ export interface DailyMetrics {
     avgResponseTimeMs: number;
     successRate: number;
     errors: number;
+    /** TODO: Requires storing response time array for proper calculation (Sprint 60+) */
     p50ResponseTimeMs: number;
+    /** TODO: Requires storing response time array for proper calculation (Sprint 60+) */
     p95ResponseTimeMs: number;
   };
 }
