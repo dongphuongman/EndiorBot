@@ -38,6 +38,7 @@ import {
   registerAgentCommand,
   registerEvidenceCommand,
   registerContextCommand,
+  registerWorkflowCommand,
 } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
 import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.js";
@@ -111,6 +112,7 @@ export async function run(): Promise<void> {
   registerAgentCommand(program);
   registerEvidenceCommand(program);
   registerContextCommand(program);
+  registerWorkflowCommand(program);
 
   await program.parseAsync(process.argv);
 }

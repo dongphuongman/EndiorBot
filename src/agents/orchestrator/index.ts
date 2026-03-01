@@ -37,3 +37,14 @@ export {
   resetTaskClassifier,
   createTaskClassifier,
 } from "./task-classifier.js";
+
+// Workflow Templates
+export {
+  WorkflowTemplateManager,
+  getWorkflowTemplateManager,
+  resetWorkflowTemplateManager,
+  WORKFLOW_TEMPLATES,
+  type WorkflowTemplate,
+  type TemplateStep,
+  type TemplateExecutionOptions,
+} from "./workflow-templates.js";
