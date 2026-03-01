@@ -140,8 +140,8 @@ $ ./endiorbot.mjs status
 
 ### Short-term
 - [x] Add integration test: `switch + status` workflow *(Completed 2026-03-01 - tests/integration/project-context.test.ts)*
-- [ ] Document active project state format in ADR
-- [ ] Validate file existence in status command
+- [x] Document active project state format in ADR *(Already in ADR-002 lines 201-218)*
+- [x] Validate file existence in status command *(Already in status.ts lines 208-213, paths.ts handles corrupted JSON)*
 
 ### Long-term
 - [ ] Unify state file handling
