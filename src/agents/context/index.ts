@@ -50,3 +50,13 @@ export {
   type VerifierConfig,
   DEFAULT_VERIFIER_CONFIG,
 } from "./project-verifier.js";
+
+// Cross-Project (Sprint 59)
+export {
+  CrossProjectManager,
+  getCrossProjectManager,
+  resetCrossProjectManager,
+  type ProjectContext,
+  type CrossProjectContext,
+  type CrossProjectOptions,
+} from "./cross-project.js";

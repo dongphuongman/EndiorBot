@@ -36,6 +36,7 @@ import type { AgentRole } from "../../agents/types/handoff.js";
 import { getWorkflowEngine } from "../../agents/orchestrator/workflow-engine.js";
 import { getRiskClassifier } from "../../agents/safety/risk-classifier.js";
 import { auditLog } from "../../agents/safety/audit-logger.js";
+import { getCrossProjectManager, type CrossProjectContext } from "../../agents/context/cross-project.js";
 
 // ============================================================================
 // Types
@@ -51,6 +52,10 @@ interface AgentOptions {
   dryRun?: boolean;
   tier?: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE";
   timeout?: number;
+  /** Cross-project mode: comma-separated project paths/IDs */
+  projects?: string;
+  /** Output file for cross-project results */
+  output?: string;
 }
 
 // ============================================================================
@@ -176,6 +181,28 @@ async function agentAction(
     console.log("⚠️  No .sdlc-config.json found (using defaults)");
   }
 
+  // Handle cross-project mode (Sprint 59)
+  let crossProjectContext: CrossProjectContext | undefined;
+  if (options.projects) {
+    console.log("\n🔗 Cross-project mode enabled");
+    const crossProjectManager = getCrossProjectManager();
+    const secondaryProjects = options.projects.split(",").map((p) => p.trim());
+
+    try {
+      crossProjectContext = await crossProjectManager.loadCrossProjectContext({
+        primaryPath: workspace,
+        secondaryProjects,
+        tokenBudget: 50000,
+        mergeStrategy: "primary-first",
+      });
+
+      console.log(crossProjectManager.formatContext(crossProjectContext));
+    } catch (err) {
+      console.error(`❌ Cross-project load failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  }
+
   // Parse mention
   const parseResult = parseMention(input);
   if (!parseResult.success) {
@@ -210,11 +237,45 @@ async function agentAction(
     verbose: options.verbose ?? false,
   });
 
+  // Build additional context from cross-project if enabled
+  let additionalContext: string | undefined;
+  if (crossProjectContext) {
+    const contextLines = [
+      "## Cross-Project Context",
+      "",
+      `Primary Project: ${crossProjectContext.primary.name}`,
+      `Secondary Projects: ${crossProjectContext.secondary.map((p: { name: string }) => p.name).join(", ") || "None"}`,
+      `Token Budget: ${crossProjectContext.totalTokens}/${crossProjectContext.tokenBudget}`,
+      "",
+    ];
+
+    // Include project summaries
+    if (crossProjectContext.summaries.length > 0) {
+      contextLines.push("### Project Summaries");
+      for (const summary of crossProjectContext.summaries) {
+        contextLines.push(summary);
+        contextLines.push("");
+      }
+    }
+
+    // Include warnings if any
+    if (crossProjectContext.warnings.length > 0) {
+      contextLines.push("### Warnings");
+      for (const warning of crossProjectContext.warnings) {
+        contextLines.push(`- ⚠️ ${warning}`);
+      }
+      contextLines.push("");
+    }
+
+    additionalContext = contextLines.join("\n");
+  }
+
   const injection = await injector.inject({
     agent: decision.agent,
     task: decision.message,
     classification: decision.classification,
     workspace,
+    ...(additionalContext ? { additionalContext } : {}),
   });
 
   if (options.verbose) {
@@ -500,6 +561,8 @@ export function registerAgentCommand(program: Command): void {
       "LITE"
     )
     .option("--timeout <seconds>", "Set timeout in seconds", "300")
+    .option("--projects <projects>", "Cross-project mode: comma-separated project paths (e.g., bflow,nqh-bot)")
+    .option("--output <file>", "Output file for results (cross-project mode)")
     .action(async (inputParts: string[], options: AgentOptions) => {
       // Join input parts back together
       let input = inputParts.join(" ");
