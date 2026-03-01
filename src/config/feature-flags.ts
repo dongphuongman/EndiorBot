@@ -69,8 +69,9 @@ export const FEATURE_FLAGS = {
    * Enable context anchoring for session state persistence.
    * Includes Sprint Goals, Checkpoints, and Spec Snapshots.
    * @sprint 65
+   * @enabled 2026-03-01 - Sprint 65 Complete
    */
-  CONTEXT_ANCHORING: false,
+  CONTEXT_ANCHORING: true,
 
   // =========================================================================
   // Observability
