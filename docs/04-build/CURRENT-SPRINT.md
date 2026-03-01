@@ -1,8 +1,8 @@
-# Current Sprint: Sprint 59
+# Current Sprint: Sprint 60
 
 **Status**: PENDING
-**Duration**: 12 hours
-**Goal**: Advanced Features - Cross-Project Workflows + SE4H Roles
+**Duration**: 10 hours
+**Goal**: Polish & Scale - Performance, UX, Internationalization
 **Start Date**: 2026-03-01
 
 ---
@@ -15,22 +15,18 @@
 | Sprint 56 | SDLC Control Plane | ✅ COMPLETE |
 | Sprint 57 | OTT Agent Integration | ✅ COMPLETE |
 | Sprint 58 | Production Hardening | ✅ COMPLETE |
+| Sprint 59 | Advanced Features | ✅ COMPLETE |
 
 ---
 
-## Sprint 59 Tasks
+## Sprint 59 Deliverables (Complete)
 
-| # | Task | Hours | Priority | Status |
-|---|------|-------|----------|--------|
-| 1 | Cross-Project Workflows | 4h | P0 | PENDING |
-| 2 | SE4H Roles (CEO/CPO/CTO) | 3h | P1 | PENDING |
-| 3 | Workflow Templates | 2h | P2 | PENDING |
-| 4 | Analytics Dashboard | 3h | P2 | PENDING |
-| **Total** | | **12h** | | |
-
----
-
-## Sprint 59 Features
+| Deliverable | Status | Files |
+|-------------|--------|-------|
+| Cross-Project Workflows | ✅ | `src/agents/context/cross-project.ts` |
+| SE4H Roles (CEO/CPO/CTO) | ✅ | Tier configs, `src/cli/commands/agent.ts` |
+| Workflow Templates (5) | ✅ | `src/agents/orchestrator/workflow-templates.ts` |
+| Analytics Dashboard | ✅ | `src/analytics/metrics-collector.ts` |
 
 ### Cross-Project Workflows
 
@@ -44,9 +40,6 @@ endiorbot @architect "design shared auth service" \
 ### SE4H Roles (STANDARD+ Tier)
 
 ```bash
-# Upgrade to STANDARD tier
-endiorbot config set tier STANDARD
-
 # SE4H Advisory Agents (cannot delegate)
 endiorbot @ceo "review Q1 roadmap"
 endiorbot @cpo "prioritize feature backlog"
@@ -55,18 +48,55 @@ endiorbot @cto "evaluate architecture options"
 
 ### Workflow Templates
 
-Pre-built agent chains:
-- `feature-planning`: PM → Architect → Coder
-- `bug-fix`: Tester → Coder → Reviewer
-- `release`: DevOps → Tester → PM
+```bash
+endiorbot workflow list
+endiorbot workflow show feature-development
+endiorbot workflow run bug-fix --var "bug=login issue" --dry-run
+```
 
 ### Analytics Dashboard
 
-Usage and cost metrics:
-- Token usage by agent
-- Cost by project
-- Handoff success rate
-- Response time percentiles
+```bash
+endiorbot analytics              # Today's summary
+endiorbot analytics --week       # Weekly summary
+endiorbot analytics cost         # Cost breakdown
+endiorbot analytics agents       # Agent usage
+```
+
+---
+
+## Sprint 60 Tasks
+
+| # | Task | Hours | Priority | Status |
+|---|------|-------|----------|--------|
+| 1 | Performance Optimization | 3h | P0 | PENDING |
+| 2 | UX Improvements | 2h | P1 | PENDING |
+| 3 | Edge Case Handling | 2h | P1 | PENDING |
+| 4 | Internationalization (Vietnamese) | 2h | P2 | PENDING |
+| 5 | Beta Testing | 1h | P2 | PENDING |
+| **Total** | | **10h** | | |
+
+---
+
+## Sprint 60 Scope
+
+### Performance Targets
+
+- Context inject: < 1s
+- Agent invocation start: < 2s
+- Gate status: < 500ms
+- Project switch: < 1s
+
+### UX Improvements
+
+- Better CLI output formatting
+- Progress bars for long operations
+- Clearer error messages
+
+### Internationalization
+
+- Vietnamese language support for CLI
+- Localized error messages
 
 ---
 
@@ -74,22 +104,10 @@ Usage and cost metrics:
 
 | Test | Expected |
 |------|----------|
-| Cross-project handoff | Context from multiple projects merged |
-| SE4H @ceo invocation | Advisory response, no delegation |
-| Workflow template | Full chain executes with handoffs |
-| Analytics query | Returns accurate metrics |
-
----
-
-## Sprint 58 Deliverables (Complete)
-
-| Deliverable | Status |
-|-------------|--------|
-| E2E Tests (26) | ✅ |
-| Agent Error Types (13) | ✅ |
-| Security Audit | ✅ PASSED |
-| CLI Reference Docs | ✅ |
-| Desktop App Integration | ✅ |
+| Context inject time | < 1 second |
+| Agent start time | < 2 seconds |
+| Vietnamese messages | Displayed correctly |
+| Edge case handling | No crashes on network/file errors |
 
 ---
 
@@ -101,4 +119,4 @@ Usage and cost metrics:
 
 ---
 
-*Sprint 59 | Advanced Features | 2026-03-01*
+*Sprint 60 | Polish & Scale | 2026-03-01*
