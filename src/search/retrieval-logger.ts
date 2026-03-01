@@ -21,6 +21,7 @@ import {
   type SearchResponse,
   type RetrievalEvidence,
   type RetrievalEvidenceResult,
+  type DecisionContext,
   formatRetrievalEvidence,
 } from "./types.js";
 
@@ -87,10 +88,17 @@ export class RetrievalLogger {
   /**
    * Log search evidence.
    * Creates evidence pack and appends to SESSION-PROGRESS.md.
+   *
+   * Sprint 64 T4.3: Enhanced with decision context support.
+   *
+   * @param response - Search response to log
+   * @param query - Search query string
+   * @param context - Optional decision context for enrichment
    */
   async logSearchEvidence(
     response: SearchResponse,
-    query: string
+    query: string,
+    context?: DecisionContext
   ): Promise<void> {
     // Check feature flag
     if (!isFeatureEnabled("RETRIEVAL_LOGGER")) {
@@ -98,7 +106,7 @@ export class RetrievalLogger {
       return;
     }
 
-    const evidence = this.createEvidence(response, query);
+    const evidence = this.createEvidence(response, query, context);
 
     // Log to SESSION-PROGRESS.md
     await this.appendToProgress(evidence);
@@ -112,14 +120,21 @@ export class RetrievalLogger {
         provider: response.provider,
         hits: response.hits.length,
         totalHits: response.totalHits,
+        context: context ? { stage: context.stage, role: context.role } : undefined,
       });
     }
   }
 
   /**
    * Create evidence pack from search response.
+   *
+   * Sprint 64 T4.3: Enhanced with decision context.
    */
-  private createEvidence(response: SearchResponse, query: string): RetrievalEvidence {
+  private createEvidence(
+    response: SearchResponse,
+    query: string,
+    context?: DecisionContext
+  ): RetrievalEvidence {
     const results: RetrievalEvidenceResult[] = response.hits.slice(0, 10).map((hit) => ({
       path: hit.path,
       line: hit.line,
@@ -128,7 +143,8 @@ export class RetrievalLogger {
       sourceExcerpt: hit.content.slice(0, 100) + (hit.content.length > 100 ? "..." : ""),
     }));
 
-    return {
+    // Build evidence object (exactOptionalPropertyTypes compliant)
+    const evidence: RetrievalEvidence = {
       timestamp: new Date().toISOString(),
       query,
       provider: response.provider,
@@ -140,6 +156,13 @@ export class RetrievalLogger {
       tokensUsed: response.tokensUsed,
       results,
     };
+
+    // Add context if provided
+    if (context) {
+      evidence.context = context;
+    }
+
+    return evidence;
   }
 
   /**

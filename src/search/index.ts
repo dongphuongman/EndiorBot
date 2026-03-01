@@ -2,14 +2,14 @@
  * Code Search Module
  *
  * Unified entry point for code search functionality.
- * Provides search providers, types, and budget management.
+ * Provides search providers, types, budget management, and result ranking.
  *
  * @module search
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-03-01
- * @status ACTIVE - Sprint 63
+ * @status ACTIVE - Sprint 64
  * @authority Master Plan v4.2, TS-007
- * @sprint 63
+ * @sprint 64
  */
 
 // ============================================================================
@@ -28,7 +28,8 @@ export type {
   AstNodeKind,
   ProviderName,
 
-  // Evidence types
+  // Evidence types (Sprint 64 T4.3 enhanced)
+  DecisionContext,
   RetrievalEvidence,
   RetrievalEvidenceResult,
 } from "./types.js";
@@ -76,6 +77,9 @@ export {
 export {
   AstGrepProvider,
   shouldUseAstGrep,
+  getStructuralPatterns,
+  getPattern,
+  STRUCTURAL_PATTERNS,
 } from "./providers/ast-grep-provider.js";
 
 // ============================================================================
@@ -119,6 +123,37 @@ export {
   DEFAULT_RETRIEVAL_LOGGER_CONFIG,
   type RetrievalLoggerConfig,
 } from "./retrieval-logger.js";
+
+// ============================================================================
+// Result Ranker (Sprint 64)
+// ============================================================================
+
+export {
+  ResultRanker,
+  createRanker,
+  rankResults,
+  getScoreBreakdown,
+  createRankerWithSpecSnapshots,
+  rankWithSpecSnapshotBoost,
+  DEFAULT_RANKING_CONFIG,
+  type RankingConfig,
+  type ScoreBreakdown,
+} from "./result-ranker.js";
+
+// ============================================================================
+// Spec Snapshot Manager (Sprint 64)
+// ============================================================================
+
+export {
+  SpecSnapshotManager,
+  getSpecSnapshotManager,
+  resetSpecSnapshotManager,
+  loadSpecSnapshotPaths,
+  isSpecSourceFile,
+  DEFAULT_SPEC_SOURCES,
+  type SpecSnapshotConfig,
+  type SpecSnapshotState,
+} from "./spec-snapshot.js";
 
 // ============================================================================
 // Convenience Functions

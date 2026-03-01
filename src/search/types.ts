@@ -259,12 +259,37 @@ export interface ProviderHealth {
 }
 
 // ============================================================================
+// Decision Context (Sprint 64 - T4.3)
+// ============================================================================
+
+/**
+ * Context about the decision being made.
+ * Sprint 64: T4.3 - Decision Packet enrichment.
+ */
+export interface DecisionContext {
+  /** SDLC stage (e.g., "04-BUILD", "05-TEST") */
+  stage?: string;
+  /** Agent role (e.g., "@coder", "@architect") */
+  role?: string;
+  /** Decision intent (e.g., "find related tests", "locate API handlers") */
+  intent?: string;
+  /** Task ID or reference */
+  taskRef?: string;
+  /** Sprint number */
+  sprint?: string;
+  /** Spec snapshot ID if applicable */
+  specSnapshotId?: string;
+}
+
+// ============================================================================
 // Retrieval Evidence (for Retrieval Logger)
 // ============================================================================
 
 /**
  * Evidence pack for anti-hallucination logging.
  * Logs what the agent relied on for context.
+ *
+ * Sprint 64: Enhanced with DecisionContext for decision packet enrichment.
  */
 export interface RetrievalEvidence {
   timestamp: string;
@@ -277,6 +302,8 @@ export interface RetrievalEvidence {
   truncated: boolean;
   tokensUsed: number;
   results: RetrievalEvidenceResult[];
+  /** Decision context (Sprint 64 - T4.3) */
+  context?: DecisionContext;
 }
 
 export interface RetrievalEvidenceResult {
@@ -294,15 +321,43 @@ export function formatRetrievalEvidence(evidence: RetrievalEvidence): string {
   const lines = [
     `## Search Evidence [${evidence.timestamp}]`,
     "",
-    `- **Query:** \`${evidence.query}\``,
-    `- **Provider:** ${evidence.provider} (${evidence.providerVersion})`,
-    `- **Latency:** ${evidence.elapsed_ms}ms`,
-    `- **Results:** ${evidence.topKReturned}/${evidence.totalHits} (truncated: ${evidence.truncated})`,
-    `- **Tokens:** ${evidence.tokensUsed}`,
-    "",
-    "### Top Results",
-    "",
   ];
+
+  // Add decision context if present (Sprint 64 - T4.3)
+  if (evidence.context) {
+    lines.push("### Decision Context");
+    lines.push("");
+    if (evidence.context.stage) {
+      lines.push(`- **Stage:** ${evidence.context.stage}`);
+    }
+    if (evidence.context.role) {
+      lines.push(`- **Role:** ${evidence.context.role}`);
+    }
+    if (evidence.context.intent) {
+      lines.push(`- **Intent:** ${evidence.context.intent}`);
+    }
+    if (evidence.context.taskRef) {
+      lines.push(`- **Task:** ${evidence.context.taskRef}`);
+    }
+    if (evidence.context.sprint) {
+      lines.push(`- **Sprint:** ${evidence.context.sprint}`);
+    }
+    if (evidence.context.specSnapshotId) {
+      lines.push(`- **Spec Snapshot:** ${evidence.context.specSnapshotId}`);
+    }
+    lines.push("");
+    lines.push("### Search Details");
+    lines.push("");
+  }
+
+  lines.push(`- **Query:** \`${evidence.query}\``);
+  lines.push(`- **Provider:** ${evidence.provider} (${evidence.providerVersion})`);
+  lines.push(`- **Latency:** ${evidence.elapsed_ms}ms`);
+  lines.push(`- **Results:** ${evidence.topKReturned}/${evidence.totalHits} (truncated: ${evidence.truncated})`);
+  lines.push(`- **Tokens:** ${evidence.tokensUsed}`);
+  lines.push("");
+  lines.push("### Top Results");
+  lines.push("");
 
   for (const result of evidence.results.slice(0, 5)) {
     lines.push(`- \`${result.path}:${result.line}\` [${result.ranking_reason}]`);

@@ -19,6 +19,9 @@ export { RgProvider, type RgProviderConfig } from "./rg-provider.js";
 export {
   AstGrepProvider,
   shouldUseAstGrep,
+  getStructuralPatterns,
+  getPattern,
+  STRUCTURAL_PATTERNS,
 } from "./ast-grep-provider.js";
 
 // ZoektProvider will be added in Sprint 66-67 (conditional)
