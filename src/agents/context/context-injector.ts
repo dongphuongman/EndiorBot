@@ -51,6 +51,10 @@ import {
 import {
   getContextAnchor,
   getSprintGoalManager,
+  getGitContextManager,
+  getAnchorBudget,
+  formatCheckpointCompact,
+  formatBlockerCompact,
   type Checkpoint,
 } from "../../context/index.js";
 
@@ -603,51 +607,115 @@ export class ContextInjector {
   /**
    * Load context anchoring state.
    * Sprint 65: Context Anchoring integration.
+   * Sprint 65 T5.14: Token budget optimization.
    *
    * Injects:
    * - Current sprint goal (prevents context drift)
    * - Recent checkpoint info
    * - Active blockers
+   *
+   * Uses budget-aware loading to optimize token usage:
+   * - Full mode: Complete formatting
+   * - Compact mode: Abbreviated formatting
+   * - Minimal mode: Single-line summaries
    */
   private async loadAnchorContext(): Promise<string | undefined> {
     try {
       const sprintManager = getSprintGoalManager();
       const anchor = getContextAnchor();
+      const gitManager = getGitContextManager();
+      const anchorBudget = getAnchorBudget();
+
+      // Collect components first to estimate tokens
+      const currentGoal = await sprintManager.getCurrent();
+      const checkpoints = await anchor.getCheckpoints();
+      const blockers = await anchor.getBlockers();
+      const gitContext = await gitManager.getContext(3);
+
+      // Estimate tokens for each component
+      const gitTokens = gitContext.isGitRepo
+        ? anchorBudget.estimateTokens(gitManager.formatForContext(gitContext))
+        : 0;
+      const sprintGoalTokens = currentGoal
+        ? sprintManager.estimateTokens(currentGoal, false)
+        : 0;
+      const checkpointTokens = checkpoints.length > 0 ? 50 : 0; // ~50 tokens for checkpoint
+      const blockerTokens = blockers.length * 30; // ~30 tokens per blocker
+
+      // Allocate budget
+      const allocation = anchorBudget.allocate({
+        gitTokens,
+        sprintGoalTokens,
+        checkpointTokens,
+        blockerTokens,
+      });
 
       const sections: string[] = [];
+      const useCompact = allocation.strategy !== "full";
+
+      // 0. Git context (T5.10 - branch context)
+      if (gitContext.isGitRepo && !allocation.droppedItems.includes("git")) {
+        if (useCompact) {
+          sections.push(gitManager.getCompactContext(gitContext));
+        } else {
+          sections.push(gitManager.formatForContext(gitContext));
+        }
+      }
 
       // 1. Current sprint goal (critical for context)
-      const currentGoal = await sprintManager.getCurrent();
-      if (currentGoal) {
-        sections.push(sprintManager.formatForContext(currentGoal));
+      if (currentGoal && !allocation.droppedItems.includes("sprintGoal")) {
+        sections.push("");
+        if (useCompact) {
+          sections.push(sprintManager.formatCompact(currentGoal));
+        } else {
+          sections.push(sprintManager.formatForContext(currentGoal));
+        }
       }
 
       // 2. Recent checkpoint info
-      const checkpoints = await anchor.getCheckpoints();
-      if (checkpoints.length > 0) {
+      if (
+        checkpoints.length > 0 &&
+        !allocation.droppedItems.includes("checkpoint")
+      ) {
         const recent = checkpoints[0] as Checkpoint;
         sections.push("");
-        sections.push("## Last Checkpoint");
-        sections.push("");
-        sections.push(`**Name:** ${recent.name}`);
-        sections.push(`**Created:** ${recent.createdAt.toISOString()}`);
-        sections.push(`**Trigger:** ${recent.trigger}`);
+        if (useCompact) {
+          sections.push(formatCheckpointCompact(recent));
+        } else {
+          sections.push("## Last Checkpoint");
+          sections.push("");
+          sections.push(`**Name:** ${recent.name}`);
+          sections.push(`**Created:** ${recent.createdAt.toISOString()}`);
+          sections.push(`**Trigger:** ${recent.trigger}`);
+        }
       }
 
       // 3. Active blockers
-      const blockers = await anchor.getBlockers();
-      if (blockers.length > 0) {
+      if (blockers.length > 0 && !allocation.droppedItems.includes("blockers")) {
         sections.push("");
-        sections.push("## Active Blockers");
-        sections.push("");
-        for (const blocker of blockers) {
-          sections.push(`- ⚠️ ${blocker.title}: ${blocker.description}`);
+        if (useCompact) {
+          const blockerLines = blockers.slice(0, 3).map(formatBlockerCompact);
+          sections.push(`Blockers: ${blockerLines.join("; ")}`);
+        } else {
+          sections.push("## Active Blockers");
+          sections.push("");
+          for (const blocker of blockers.slice(0, 5)) {
+            sections.push(`- ⚠️ ${blocker.title}: ${blocker.description}`);
+          }
         }
       }
 
       if (sections.length === 0) {
         return undefined;
       }
+
+      // Log budget usage
+      this.log.debug("Anchor context loaded", {
+        strategy: allocation.strategy,
+        totalTokens: allocation.totalTokens,
+        truncated: allocation.truncated,
+        droppedItems: allocation.droppedItems,
+      });
 
       return sections.join("\n");
     } catch (error) {

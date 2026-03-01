@@ -565,6 +565,192 @@ export class ContextAnchor {
   }
 
   // =========================================================================
+  // Cleanup & Expiration (T5.11)
+  // =========================================================================
+
+  /**
+   * Clean up expired anchors.
+   *
+   * Archives anchors that have passed their expiration date.
+   *
+   * @returns Number of anchors cleaned up
+   */
+  async cleanupExpired(): Promise<number> {
+    await this.ensureInitialized();
+
+    const now = new Date();
+    let cleanedCount = 0;
+
+    for (const [id, anchor] of this.anchors) {
+      if (anchor.expiresAt && anchor.expiresAt < now && anchor.state === "active") {
+        await this.archive(id);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      this.logger.info("Cleaned up expired anchors", { count: cleanedCount });
+    }
+
+    return cleanedCount;
+  }
+
+  /**
+   * Clean up old archived anchors.
+   *
+   * Deletes archived anchors older than the specified days.
+   *
+   * @param olderThanDays - Delete archived anchors older than this many days
+   * @returns Number of anchors deleted
+   */
+  async cleanupArchived(olderThanDays = 30): Promise<number> {
+    await this.ensureInitialized();
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+    let deletedCount = 0;
+
+    for (const [id, anchor] of this.anchors) {
+      if (
+        anchor.state === "archived" &&
+        anchor.updatedAt < cutoffDate
+      ) {
+        this.anchors.delete(id);
+        this.dirty = true;
+        deletedCount++;
+      }
+    }
+
+    if (deletedCount > 0) {
+      this.logger.info("Deleted old archived anchors", {
+        count: deletedCount,
+        olderThanDays,
+      });
+    }
+
+    return deletedCount;
+  }
+
+  /**
+   * Clean up anchors by type with limit.
+   *
+   * Keeps only the most recent N anchors of a type, archives the rest.
+   *
+   * @param type - Anchor type to clean
+   * @param keepCount - Number of anchors to keep
+   * @returns Number of anchors archived
+   */
+  async cleanupByType(type: AnchorType, keepCount = 50): Promise<number> {
+    await this.ensureInitialized();
+
+    // Get all anchors of this type
+    const anchorsOfType = Array.from(this.anchors.values())
+      .filter((a) => a.type === type && a.state === "active")
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Keep the most recent, archive the rest
+    const toArchive = anchorsOfType.slice(keepCount);
+
+    for (const anchor of toArchive) {
+      await this.archive(anchor.id);
+    }
+
+    if (toArchive.length > 0) {
+      this.logger.info("Archived excess anchors by type", {
+        type,
+        archived: toArchive.length,
+        kept: keepCount,
+      });
+    }
+
+    return toArchive.length;
+  }
+
+  /**
+   * Set expiration for an anchor.
+   *
+   * @param id - Anchor ID
+   * @param expiresAt - Expiration date
+   */
+  async setExpiration(id: string, expiresAt: Date): Promise<AnchorPoint | null> {
+    await this.ensureInitialized();
+
+    const anchor = this.anchors.get(id);
+    if (!anchor) {
+      return null;
+    }
+
+    const updated = await this.update(id, { expiresAt });
+    return updated;
+  }
+
+  /**
+   * Clear expiration for an anchor.
+   */
+  async clearExpiration(id: string): Promise<AnchorPoint | null> {
+    await this.ensureInitialized();
+
+    const anchor = this.anchors.get(id);
+    if (!anchor || !anchor.expiresAt) {
+      return anchor ?? null;
+    }
+
+    // Remove expiresAt by setting a new anchor object without it
+    const updated: AnchorPoint = {
+      ...anchor,
+      updatedAt: new Date(),
+    };
+    delete updated.expiresAt;
+
+    this.anchors.set(id, updated);
+    this.dirty = true;
+    await this.emit("anchor_updated", updated);
+
+    return updated;
+  }
+
+  /**
+   * Run full cleanup: expired + archived + type limits.
+   *
+   * @returns Cleanup summary
+   */
+  async runFullCleanup(options: {
+    archivedOlderThanDays?: number;
+    typeLimits?: Partial<Record<AnchorType, number>>;
+  } = {}): Promise<{
+    expired: number;
+    archived: number;
+    byType: Record<string, number>;
+  }> {
+    const { archivedOlderThanDays = 30, typeLimits = {} } = options;
+
+    // Default type limits
+    const defaultLimits: Partial<Record<AnchorType, number>> = {
+      checkpoint: 50,
+      decision: 100,
+      blocker: 50,
+      ...typeLimits,
+    };
+
+    const expired = await this.cleanupExpired();
+    const archived = await this.cleanupArchived(archivedOlderThanDays);
+
+    const byType: Record<string, number> = {};
+    for (const [type, limit] of Object.entries(defaultLimits)) {
+      byType[type] = await this.cleanupByType(type as AnchorType, limit);
+    }
+
+    this.logger.info("Full cleanup complete", {
+      expired,
+      archived,
+      byType,
+    });
+
+    return { expired, archived, byType };
+  }
+
+  // =========================================================================
   // Helpers
   // =========================================================================
 

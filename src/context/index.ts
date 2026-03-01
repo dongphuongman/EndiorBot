@@ -119,3 +119,39 @@ export {
   type DriftCheckResult,
   type DriftedFile,
 } from "./spec-snapshot-anchor.js";
+
+// ============================================================================
+// Git Context (Sprint 65 T5.10)
+// ============================================================================
+
+export {
+  GitContextManager,
+  getGitContextManager,
+  resetGitContextManager,
+  getGitContext,
+  getFileAtRef,
+  formatGitContext,
+  type GitBranchInfo,
+  type GitCommitInfo,
+  type GitContext,
+  type TimeTravelResult,
+} from "./git-context.js";
+
+// ============================================================================
+// Anchor Budget (Sprint 65 T5.14)
+// ============================================================================
+
+export {
+  AnchorBudget,
+  getAnchorBudget,
+  resetAnchorBudget,
+  formatWithinBudget,
+  formatCheckpointCompact,
+  formatBlockerCompact,
+  DEFAULT_ANCHOR_BUDGET,
+  COMPACT_ANCHOR_BUDGET,
+  MINIMAL_ANCHOR_BUDGET,
+  type AnchorBudgetConfig,
+  type AnchorBudgetAllocation,
+  type BudgetStrategy,
+} from "./anchor-budget.js";

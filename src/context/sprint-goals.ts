@@ -387,6 +387,42 @@ export class SprintGoalManager {
   }
 
   /**
+   * Format sprint goal in compact form (for token budget optimization).
+   *
+   * Returns a single-line summary when budget is tight.
+   * T5.14: Token budget optimization.
+   */
+  formatCompact(goal: SprintGoal): string {
+    const completed = goal.objectives.filter((o) => o.status === "completed").length;
+    const blocked = goal.objectives.filter((o) => o.status === "blocked").length;
+    const total = goal.objectives.length;
+
+    const parts: string[] = [
+      `S${goal.sprintNumber}:${goal.title}`,
+      `${goal.progress}%`,
+      `${completed}/${total}done`,
+    ];
+
+    if (blocked > 0) {
+      parts.push(`${blocked}blocked`);
+    }
+
+    return `Sprint: ${parts.join(" | ")}`;
+  }
+
+  /**
+   * Estimate tokens for a sprint goal.
+   * T5.14: Token budget optimization.
+   */
+  estimateTokens(goal: SprintGoal, compact: boolean = false): number {
+    const content = compact
+      ? this.formatCompact(goal)
+      : this.formatForContext(goal);
+    // ~4 chars per token
+    return Math.ceil(content.length / 4);
+  }
+
+  /**
    * Get status emoji for display.
    */
   private getStatusEmoji(
