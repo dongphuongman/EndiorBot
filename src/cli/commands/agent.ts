@@ -580,8 +580,8 @@ export function registerAgentCommand(program: Command): void {
       await agentAction(input, options);
     });
 
-  // Also register shorthand commands for each agent
-  const agents: AgentRole[] = [
+  // Register shorthand commands for SE4A agents (all tiers)
+  const se4aAgents: AgentRole[] = [
     "researcher",
     "pm",
     "pjm",
@@ -592,15 +592,36 @@ export function registerAgentCommand(program: Command): void {
     "devops",
   ];
 
+  // SE4H agents (STANDARD+ tier only - advisor roles)
+  const se4hAgents: AgentRole[] = [
+    "ceo",
+    "cpo",
+    "cto",
+  ];
+
+  const agents = [...se4aAgents, ...se4hAgents];
+
+  // SE4H agent descriptions with tier requirement
+  const se4hDescriptions: Record<string, string> = {
+    ceo: "Strategic direction and executive review (STANDARD+ tier)",
+    cpo: "Product vision and prioritization (STANDARD+ tier)",
+    cto: "Technical standards and architecture review (STANDARD+ tier)",
+  };
+
   for (const agent of agents) {
+    const isSe4h = se4hAgents.includes(agent);
+    const description = isSe4h
+      ? se4hDescriptions[agent] ?? `Invoke @${agent} agent`
+      : `Invoke @${agent} agent`;
+
     program
       .command(`${agent} <message...>`)
-      .description(`Invoke @${agent} agent`)
+      .description(description)
       .option("--patch", "Enable PATCH mode")
       .option("--interactive", "Enable INTERACTIVE mode")
       .option("-v, --verbose", "Show detailed output")
       .option("--dry-run", "Show what would be done")
-      .option("--tier <tier>", "Set tier", "LITE")
+      .option("--tier <tier>", "Set tier", isSe4h ? "STANDARD" : "LITE")
       .option("--timeout <seconds>", "Set timeout", "300")
       .action(async (messageParts: string[], options: AgentOptions) => {
         const message = messageParts.join(" ");
@@ -614,3 +635,4 @@ export function registerAgentCommand(program: Command): void {
       });
   }
 }
+

@@ -65,6 +65,11 @@
         "description": "SE4A - Stage 05 Testing and quality assurance"
       },
       {
+        "id": "ceo",
+        "role": "ceo",
+        "description": "SE4H - Strategic direction and executive review (advisor only)"
+      },
+      {
         "id": "cpo",
         "role": "cpo",
         "description": "SE4H - Product advisor, approves G0.1 and G1"

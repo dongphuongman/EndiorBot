@@ -34,17 +34,39 @@ endiorbot @consult "Redis vs PostgreSQL for sessions?"
 
 ### Available Agents
 
+#### SE4A Agents (All Tiers)
+
 | Agent | Role | Default Mode | Can Hand Off To |
 |-------|------|--------------|-----------------|
-| `@pm` | Product Manager | READ | architect, pjm, researcher |
-| `@pjm` | Project Manager | READ | pm, architect, coder |
-| `@architect` | System Architect | READ | coder, pm |
+| `@pm` | Product Manager | READ | architect, pjm |
+| `@pjm` | Project Manager | READ | coder, tester |
+| `@architect` | System Architect | READ | coder, reviewer |
 | `@coder` | Developer | PATCH | reviewer, tester |
-| `@reviewer` | Code Reviewer | READ | coder, tester |
-| `@tester` | QA Engineer | READ | coder, reviewer |
-| `@researcher` | Research Analyst | READ | pm, architect |
-| `@devops` | DevOps Engineer | INTERACTIVE | coder |
-| `@assistant` | General Assistant | READ | any |
+| `@reviewer` | Code Reviewer | READ | coder, pm |
+| `@tester` | QA Engineer | READ | coder, devops |
+| `@researcher` | Research Analyst | READ | pm |
+| `@devops` | DevOps Engineer | INTERACTIVE | tester |
+| `@assistant` | General Assistant | READ | all SE4A agents |
+
+#### SE4H Agents (STANDARD+ Tier - Advisors Only)
+
+| Agent | Role | Description |
+|-------|------|-------------|
+| `@ceo` | Chief Executive Officer | Strategic direction, executive review |
+| `@cpo` | Chief Product Officer | Product vision, prioritization |
+| `@cto` | Chief Technology Officer | Technical standards, architecture review |
+
+> **Note:** SE4H agents are advisors - they provide guidance but cannot delegate to other agents.
+
+```bash
+# SE4H invocation (requires STANDARD+ tier)
+endiorbot @ceo "review Q1 roadmap"
+endiorbot @cpo "prioritize feature backlog"
+endiorbot @cto "evaluate architecture options"
+
+# Set tier for SE4H
+endiorbot config set tier STANDARD
+```
 
 ---
 
