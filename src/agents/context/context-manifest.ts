@@ -29,6 +29,8 @@ export type ContextTier = "MUST" | "USEFUL" | "OPTIONAL";
 
 /**
  * Context source types.
+ *
+ * Sprint 63: Added "search" and "anchor" for Code Search Layer and Context Anchoring.
  */
 export type ContextSource =
   | "brain_l4"      // Mental models
@@ -40,7 +42,9 @@ export type ContextSource =
   | "project"       // Project context (active.json)
   | "sdlc_stage"    // Current SDLC stage
   | "git"           // Git context (branch, recent commits)
-  | "codebase"      // Relevant code files
+  | "codebase"      // Relevant code files (Sprint 63: via search)
+  | "search"        // Code search results (Sprint 63)
+  | "anchor"        // Context anchors (Sprint 65)
   | "custom";       // Custom injected context
 
 /**

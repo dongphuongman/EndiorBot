@@ -41,6 +41,13 @@ import {
 } from "../../brain/index.js";
 import { getContextBudget, type ContextBudget } from "../../brain/context-budget.js";
 import { createLogger, type Logger } from "../../logging/index.js";
+import { isFeatureEnabled } from "../../config/feature-flags.js";
+import {
+  RgProvider,
+  createPolicy,
+  getRetrievalLogger,
+  type SearchResponse,
+} from "../../search/index.js";
 
 // ============================================================================
 // Types
@@ -241,7 +248,27 @@ export class ContextInjector {
       }
     }
 
-    // 2f. Additional context (USEFUL)
+    // 2f. Codebase search results (USEFUL for BUILD/TEST stages) - Sprint 63
+    if (isFeatureEnabled("SEARCH_ENABLED")) {
+      const searchContext = await this.loadCodebaseContext(
+        request.workspace,
+        request.task,
+        request.classification.complexity,
+        request.agent
+      );
+      if (searchContext) {
+        items.push(
+          createContextItem(
+            "search",
+            "USEFUL",
+            "Relevant code from codebase search",
+            searchContext
+          )
+        );
+      }
+    }
+
+    // 2g. Additional context (USEFUL)
     if (request.additionalContext) {
       items.push(
         createContextItem(
@@ -414,6 +441,143 @@ export class ContextInjector {
       this.log.warn(`Failed to load project context: ${contextPath}`);
       return undefined;
     }
+  }
+
+  /**
+   * Load codebase context via code search.
+   * Sprint 63: Code Search Layer integration.
+   *
+   * @param workspace - Workspace path
+   * @param task - Task description (used as search query)
+   * @param complexity - Task complexity
+   * @param agent - Agent role
+   */
+  private async loadCodebaseContext(
+    workspace: string,
+    task: string,
+    complexity: TaskComplexity,
+    agent: AgentRole
+  ): Promise<string | undefined> {
+    // Only search for non-simple tasks
+    if (complexity === "simple") {
+      return undefined;
+    }
+
+    try {
+      // Extract search terms from task
+      const searchQuery = this.extractSearchTerms(task);
+      if (!searchQuery) {
+        return undefined;
+      }
+
+      // Create search provider
+      const provider = new RgProvider({ cwd: workspace });
+
+      // Check if provider is available
+      const health = await provider.healthCheck();
+      if (!health.available) {
+        this.log.debug("RgProvider not available, skipping codebase search");
+        return undefined;
+      }
+
+      // Create retrieval policy based on stage and role
+      const policy = createPolicy(undefined, `@${agent}`);
+
+      // Apply policy to search options
+      const searchOptions = policy.applyToSearchOptions({
+        query: searchQuery,
+        topK: 5, // Limit results for context injection
+        contextLines: 2,
+      });
+
+      // Execute search
+      const response: SearchResponse = await provider.search(searchOptions);
+
+      // Log evidence if enabled
+      const logger = getRetrievalLogger();
+      await logger.logSearchEvidence(response, searchQuery);
+
+      // Check if we have results
+      if (response.hits.length === 0) {
+        return undefined;
+      }
+
+      // Enrich results with policy
+      const enrichedHits = policy.enrichResults(response.hits);
+
+      // Format results for injection
+      const formatted = this.formatSearchResults(enrichedHits, response);
+
+      return formatted;
+    } catch (error) {
+      this.log.debug("Codebase search failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract search terms from task description.
+   */
+  private extractSearchTerms(task: string): string | null {
+    // Extract key terms from task
+    // Remove common words and keep technical terms
+    const stopWords = new Set([
+      "the", "a", "an", "is", "are", "was", "were", "be", "been",
+      "being", "have", "has", "had", "do", "does", "did", "will",
+      "would", "could", "should", "may", "might", "must", "can",
+      "and", "or", "but", "if", "then", "else", "when", "where",
+      "what", "which", "who", "how", "why", "this", "that", "these",
+      "those", "it", "its", "to", "of", "in", "for", "on", "with",
+      "at", "by", "from", "as", "into", "through", "during", "before",
+      "after", "above", "below", "between", "under", "again", "further",
+      "once", "here", "there", "all", "each", "few", "more", "most",
+      "other", "some", "such", "no", "not", "only", "same", "so",
+      "than", "too", "very", "just", "also", "now", "please", "help",
+      "need", "want", "create", "add", "update", "modify", "change",
+      "fix", "implement", "make", "build", "write", "read",
+    ]);
+
+    const words = task
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter((word) => word.length > 2 && !stopWords.has(word));
+
+    if (words.length === 0) {
+      return null;
+    }
+
+    // Take first 5 meaningful words
+    return words.slice(0, 5).join(" ");
+  }
+
+  /**
+   * Format search results for context injection.
+   */
+  private formatSearchResults(
+    hits: Array<{ path: string; line: number; content: string; specSnapshotMatch: boolean }>,
+    response: SearchResponse
+  ): string {
+    const lines: string[] = [
+      `## Relevant Code (${response.totalHits} matches, ${response.elapsed_ms}ms)`,
+      "",
+    ];
+
+    for (const hit of hits.slice(0, 5)) {
+      lines.push(`### ${hit.path}:${hit.line}${hit.specSnapshotMatch ? " ⭐" : ""}`);
+      lines.push("```");
+      lines.push(hit.content.trim());
+      lines.push("```");
+      lines.push("");
+    }
+
+    if (response.truncated) {
+      lines.push(`*${response.totalHits - hits.length} more results truncated*`);
+    }
+
+    return lines.join("\n");
   }
 
   // ==========================================================================

@@ -90,6 +90,37 @@ export {
 } from "./search-budget.js";
 
 // ============================================================================
+// Retrieval Policy
+// ============================================================================
+
+export {
+  RetrievalPolicy,
+  STAGE_FILTERS,
+  ROLE_FILTERS,
+  createStagePolicy,
+  createRolePolicy,
+  createPolicy,
+  getAvailableStages,
+  getAvailableRoles,
+  type StageFilter,
+  type RoleFilter,
+  type RetrievalPolicyConfig,
+} from "./retrieval-policy.js";
+
+// ============================================================================
+// Retrieval Logger
+// ============================================================================
+
+export {
+  RetrievalLogger,
+  getRetrievalLogger,
+  resetRetrievalLogger,
+  createRetrievalLogger,
+  DEFAULT_RETRIEVAL_LOGGER_CONFIG,
+  type RetrievalLoggerConfig,
+} from "./retrieval-logger.js";
+
+// ============================================================================
 // Convenience Functions
 // ============================================================================
 

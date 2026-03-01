@@ -1,20 +1,22 @@
 /**
  * Context CLI Command
  *
- * Exposes Brain context management to CEO.
- * EXPOSES existing context-injector.ts (per Sprint 56 plan).
+ * Exposes Brain context management and code search to CEO.
+ * Sprint 63: Added codebase search using RgProvider.
  *
  * Usage:
- *   endiorbot context status       - Show context state
- *   endiorbot context inject       - Generate context for Claude Code
- *   endiorbot context search       - Search context (RAG query)
- *   endiorbot context clear        - Clear context layer
+ *   endiorbot context status                    - Show context state
+ *   endiorbot context inject                    - Generate context for Claude Code
+ *   endiorbot context search <query>            - Search brain context
+ *   endiorbot context search <query> --codebase - Search codebase files
+ *   endiorbot context search <query> --type ts  - Search with file type filter
+ *   endiorbot context clear                     - Clear context layer
  *
  * @module cli/commands/context
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-03-01
- * @status ACTIVE - Sprint 56 Implementation
- * @authority Master Plan v3.1
+ * @status ACTIVE - Sprint 63 Code Search
+ * @authority Master Plan v4.2, CTO Amendments
  * @stage 04 - BUILD
  * @sdlc SDLC Framework 6.1.1
  */
@@ -31,6 +33,12 @@ import {
 } from "../../brain/index.js";
 import { getContextBudget } from "../../brain/context-budget.js";
 import { resolveStateDir } from "../../config/paths.js";
+import {
+  RgProvider,
+  createPolicy,
+  getRetrievalLogger,
+  type SearchResult,
+} from "../../search/index.js";
 
 // ============================================================================
 // Terminal Colors
@@ -276,11 +284,111 @@ async function contextInjectAction(options: { output?: string; agent?: string })
 // ============================================================================
 
 /**
- * Search context (RAG query).
+ * Search options for context search command.
  */
-async function contextSearchAction(query: string): Promise<void> {
+interface ContextSearchOptions {
+  codebase?: boolean;
+  type?: string;
+  stage?: string;
+  role?: string;
+  topK?: string;
+  verbose?: boolean;
+}
+
+/**
+ * Format a codebase search result for display.
+ */
+function formatCodebaseResult(result: SearchResult, verbose: boolean): void {
+  const location = `${result.path}:${result.line}`;
+  console.log(`${cyan(location)}`);
+  console.log(`  ${result.content.trim().slice(0, 100)}`);
+  if (verbose) {
+    console.log(`  ${dim(`score: ${result.score.toFixed(1)}, reason: ${result.ranking_reason}`)}`);
+    if (result.specSnapshotMatch) {
+      console.log(`  ${yellow("★ Spec Snapshot Match")}`);
+    }
+  }
   console.log("");
-  console.log(`🔍 Searching: "${query}"`);
+}
+
+/**
+ * Search codebase using RgProvider.
+ */
+async function searchCodebase(
+  query: string,
+  options: ContextSearchOptions
+): Promise<void> {
+  const project = getCurrentProjectContext();
+  const stage = options.stage ?? project?.stage;
+  const role = options.role;
+  const topK = options.topK ? parseInt(options.topK, 10) : 15;
+
+  console.log("");
+  console.log(`🔍 Codebase Search: "${query}"`);
+  console.log("─".repeat(60));
+  if (stage) console.log(`${dim(`Stage: ${stage}`)}`);
+  if (role) console.log(`${dim(`Role: ${role}`)}`);
+  if (options.type) console.log(`${dim(`File type: ${options.type}`)}`);
+  console.log("");
+
+  // Create provider and policy
+  const provider = new RgProvider({ cwd: process.cwd() });
+
+  // Check if provider is available
+  const health = await provider.healthCheck();
+  if (!health.available) {
+    console.log(`${colors.red}❌ ripgrep not available.${colors.reset}`);
+    console.log(`${dim("Install ripgrep: brew install ripgrep (macOS) or apt install ripgrep (Linux)")}`);
+    return;
+  }
+
+  // Apply retrieval policy
+  const policy = createPolicy(stage, role ? `@${role}` : undefined);
+  const searchOptions = policy.applyToSearchOptions({
+    query,
+    topK,
+  });
+
+  // Add file type filter if specified
+  if (options.type) {
+    searchOptions.fileTypes = [options.type];
+  }
+
+  // Execute search
+  const startTime = Date.now();
+  const response = await provider.search(searchOptions);
+  const elapsed = Date.now() - startTime;
+
+  // Log evidence
+  const logger = getRetrievalLogger();
+  await logger.logSearchEvidence(response, query);
+
+  // Display results
+  if (response.hits.length === 0) {
+    console.log(`${yellow("No matches found.")}`);
+    console.log(`${dim("Try different search terms or remove file type filter.")}`);
+  } else {
+    console.log(`Found ${response.totalHits} matches (showing ${response.hits.length}):\n`);
+
+    for (const hit of response.hits) {
+      formatCodebaseResult(hit, options.verbose ?? false);
+    }
+
+    // Summary
+    console.log("─".repeat(60));
+    console.log(`${dim(`Elapsed: ${elapsed}ms | Tokens: ${response.tokensUsed} | Provider: ${response.providerVersion}`)}`);
+    if (response.truncated) {
+      console.log(`${yellow(`Results truncated at ${response.truncatedAt ?? response.hits.length} (budget limit)`)}`);
+    }
+  }
+}
+
+/**
+ * Search Brain context (L2-L4 layers).
+ */
+async function searchBrainContext(query: string): Promise<void> {
+  console.log("");
+  console.log(`🔍 Brain Context Search: "${query}"`);
   console.log("─".repeat(60));
 
   const results: { type: string; name: string; match: string }[] = [];
@@ -358,6 +466,22 @@ async function contextSearchAction(query: string): Promise<void> {
   }
 }
 
+/**
+ * Search context (RAG query) - supports both brain and codebase search.
+ */
+async function contextSearchAction(
+  query: string,
+  options: ContextSearchOptions
+): Promise<void> {
+  if (options.codebase || options.type) {
+    // Codebase search using RgProvider
+    await searchCodebase(query, options);
+  } else {
+    // Brain context search (legacy behavior)
+    await searchBrainContext(query);
+  }
+}
+
 // ============================================================================
 // Context Clear
 // ============================================================================
@@ -424,7 +548,13 @@ export function registerContextCommand(program: Command): void {
 
   context
     .command("search <query>")
-    .description("Search context (RAG query)")
+    .description("Search context (brain layers or codebase)")
+    .option("-c, --codebase", "Search codebase files using ripgrep")
+    .option("-t, --type <type>", "File type filter (ts, tsx, js, md, etc.)")
+    .option("-s, --stage <stage>", "SDLC stage for filtering (04-BUILD, 01-PLANNING, etc.)")
+    .option("-r, --role <role>", "Agent role for filtering (coder, architect, reviewer, etc.)")
+    .option("-k, --topK <number>", "Maximum results to return (default: 15)")
+    .option("-v, --verbose", "Show detailed result information")
     .action(contextSearchAction);
 
   context
