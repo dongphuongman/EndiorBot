@@ -27,6 +27,7 @@ export type ErrorCategory =
   | "SECURITY"
   | "CONFIG"
   | "BUDGET"
+  | "AGENT"
   | "SYSTEM";
 
 /**

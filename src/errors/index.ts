@@ -112,6 +112,29 @@ export {
 } from "./budget.js";
 
 // ============================================================================
+// Agent Errors
+// ============================================================================
+
+export {
+  AgentError,
+  isAgentError,
+  agentNotFoundError,
+  agentInactiveError,
+  handoffBlockedError,
+  handoffDepthExceededError,
+  invalidTransitionError,
+  workflowFailedError,
+  workflowTimeoutError,
+  invocationFailedError,
+  invocationTimeoutError,
+  contextTooLargeError,
+  responseParseError,
+  riskThresholdExceededError,
+  modeNotAllowedError,
+  type AgentErrorCode,
+} from "./agent.js";
+
+// ============================================================================
 // Global Error Handler Setup
 // ============================================================================
 
@@ -256,6 +279,8 @@ function getJsonRpcCode(category: string): number {
       return -32004; // Config error
     case "BRAIN":
       return -32005; // Brain error
+    case "AGENT":
+      return -32006; // Agent error
     default:
       return -32603; // Internal error
   }
