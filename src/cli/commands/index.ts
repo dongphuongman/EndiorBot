@@ -34,3 +34,4 @@ export { registerEvidenceCommand } from "./evidence.js";
 export { registerContextCommand } from "./context.js";
 export { registerWorkflowCommand } from "./workflow.js";
 export { registerAnalyticsCommand } from "./analytics.js";
+export { registerPerformanceCommand } from "./performance.js";
