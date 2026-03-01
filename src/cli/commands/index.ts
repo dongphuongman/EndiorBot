@@ -35,3 +35,5 @@ export { registerContextCommand } from "./context.js";
 export { registerWorkflowCommand } from "./workflow.js";
 export { registerAnalyticsCommand } from "./analytics.js";
 export { registerPerformanceCommand } from "./performance.js";
+export { registerInitCommand } from "./init.js";
+export { registerComplianceCommand } from "./compliance.js";

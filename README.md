@@ -13,6 +13,12 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 # Install
 pnpm install && pnpm build
 
+# Project Setup (Sprint 61)
+endiorbot init                              # Initialize SDLC structure
+endiorbot init --tier STANDARD             # Specify tier
+endiorbot compliance check                  # Verify SDLC compliance
+endiorbot compliance score                  # Quick compliance score
+
 # Agent Orchestration (Sprint 55)
 endiorbot @pm "plan payment gateway"        # PM agent → structured plan
 endiorbot @coder --patch "fix auth bug"     # Coder agent → applies patch
@@ -107,7 +113,7 @@ endiorbot context inject                    # Generate context for Claude Code
 | Gate evaluation | 20 min | 1 min | 95% |
 | Context switch | 5 min | <2s | 99% |
 
-## Roadmap (Sprint 57-61)
+## Roadmap (Sprint 57-62)
 
 | Sprint | Focus | Status |
 |--------|-------|--------|
@@ -115,7 +121,8 @@ endiorbot context inject                    # Generate context for Claude Code
 | 58 | Production Hardening & Desktop App | Planned |
 | 59 | Cross-Project Workflows & SE4H Roles | Planned |
 | 60 | Performance & Polish | Planned |
-| 61 | v1.0 Release | Target: End April 2026 |
+| 61 | Project Setup (`init`, `compliance`) | ✅ Complete |
+| 62 | v1.0 Stabilization | 🎯 In Progress |
 
 ## Documentation
 
@@ -129,7 +136,7 @@ endiorbot context inject                    # Generate context for Claude Code
 ```bash
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (641+ passing)
+pnpm test         # Run tests (810+ passing)
 pnpm lint         # Check style
 ```
 

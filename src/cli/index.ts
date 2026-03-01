@@ -41,6 +41,8 @@ import {
   registerWorkflowCommand,
   registerAnalyticsCommand,
   registerPerformanceCommand,
+  registerInitCommand,
+  registerComplianceCommand,
 } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
 import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.js";
@@ -117,6 +119,8 @@ export async function run(): Promise<void> {
   registerWorkflowCommand(program);
   registerAnalyticsCommand(program);
   registerPerformanceCommand(program);
+  registerInitCommand(program);
+  registerComplianceCommand(program);
 
   await program.parseAsync(process.argv);
 }
