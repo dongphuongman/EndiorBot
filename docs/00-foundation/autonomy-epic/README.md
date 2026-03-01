@@ -1,9 +1,26 @@
 # Autonomy Epic - SDLC Documentation Index
 
-**Version**: 1.0.0
-**Date**: 2026-02-22
-**Status**: COMPLETE
+**Version**: 1.1.0
+**Date**: 2026-03-01
+**Status**: ACTIVE
 **SDLC**: Framework 6.1.1
+
+---
+
+## Related Documents (v3.2 Update)
+
+The Autonomy Epic vision has evolved and is now consolidated in:
+
+| Document | Description | Status |
+|----------|-------------|--------|
+| [Master Plan](../master-plan.md) | v3.2 FINAL - Full roadmap v1.0→v2.0 | ✅ APPROVED |
+| [Product Vision](../product-vision.md) | v2.2 - Autonomous SDLC Agent vision | ✅ APPROVED |
+
+**Key Updates**:
+- **4 Autonomy Levels**: L1 (Assisted) → L4 (Autonomous)
+- **12 P0 Requirements**: 6 Expert Fixes + 6 CTO Additions
+- **Roadmap**: v1.0 (Sprint 61) → v2.0 (Sprint 72)
+- **ADRs**: ADR-006 to ADR-011
 
 ---
 
@@ -356,6 +373,7 @@ All documents follow semantic versioning:
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
+| 2026-03-01 | 1.1.0 | Added Master Plan v3.2 and Product Vision v2.2 references | @pm + @architect |
 | 2026-02-22 | 1.0.0 | Initial SDLC documentation for Autonomy Epic | @pm + @architect |
 
 ---
@@ -425,11 +443,11 @@ All documents follow semantic versioning:
 
 ---
 
-**Status**: COMPLETE - Comprehensive SDLC documentation delivered
-**Next Review**: Sprint 35 Day 1 (March 17, 2026)
+**Status**: ACTIVE - Living documentation, vision evolved to v2.2
+**Current Focus**: Sprint 61 (v1.0 Init + Compliance)
 **Maintenance**: Living documents, updated per sprint
 
 ---
 
-*Autonomy Epic - SDLC Documentation Index v1.0.0*
+*Autonomy Epic - SDLC Documentation Index v1.1.0*
 *EndiorBot SDLC Framework 6.1.1*
