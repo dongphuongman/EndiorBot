@@ -566,9 +566,9 @@ class ConversationTracker {
 
 ---
 
-## Migration from OpenClaw
+## Migration from MTS-OpenClaw
 
-| OpenClaw File | EndiorBot Target | Changes |
+| MTS-OpenClaw File | EndiorBot Target | Changes |
 |---------------|------------------|---------|
 | src/agents/agent-scope.ts | src/agents/agent-scope.ts | - |
 | src/agents/schema.ts | src/agents/types.ts | Rename |

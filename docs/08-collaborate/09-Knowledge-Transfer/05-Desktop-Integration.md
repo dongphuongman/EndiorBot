@@ -84,7 +84,7 @@ src/
 
 ### Adaptation Required
 
-1. **Replace OpenClaw Gateway** → EndiorBot Gateway
+1. **Replace MTS-OpenClaw Gateway** → EndiorBot Gateway
    - Same WebSocket protocol (JSON-RPC 2.0)
    - Port 18789 → configurable
 
@@ -105,7 +105,7 @@ src/
 
 3. **Port UI Components** → Minimal changes
    - Keep React 19, Tailwind, Lucide icons
-   - Update imports, remove OpenClaw-specific code
+   - Update imports, remove MTS-OpenClaw-specific code
 
 4. **IPC Handlers** → Map to EndiorBot services
    ```typescript

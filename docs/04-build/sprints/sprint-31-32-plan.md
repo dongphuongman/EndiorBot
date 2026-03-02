@@ -274,7 +274,7 @@ src/agents/orchestrator/multi-model-orchestrator.ts
 | Risk | Probability | Mitigation |
 |------|-------------|------------|
 | Gate complexity | Medium | Start with basic checklist, iterate |
-| Skill compatibility | Low | Use OpenClaw skill format |
+| Skill compatibility | Low | Use MTS-OpenClaw skill format |
 | Multi-model latency | Medium | Configurable timeouts, parallel queries |
 | Test coverage gap | Medium | TDD approach, CI enforcement |
 

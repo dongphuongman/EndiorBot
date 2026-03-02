@@ -1,4 +1,4 @@
-# OpenClaw to EndiorBot Migration Guide
+# MTS-OpenClaw to EndiorBot Migration Guide
 
 **Date**: 2026-02-25
 **Status**: Active Migration
@@ -8,9 +8,9 @@
 
 ## Overview
 
-EndiorBot replaces OpenClaw as the primary AI development assistant with enhanced capabilities:
+EndiorBot replaces MTS-OpenClaw as the primary AI development assistant with enhanced capabilities:
 
-| Feature | OpenClaw | EndiorBot |
+| Feature | MTS-OpenClaw | EndiorBot |
 |---------|----------|-----------|
 | Gateway Protocol | Proprietary | JSON-RPC 2.0 WebSocket |
 | Desktop UI | Web-based | Electron Native |
@@ -27,7 +27,7 @@ EndiorBot replaces OpenClaw as the primary AI development assistant with enhance
 
 ### Gateway Commands
 
-| OpenClaw | EndiorBot | Notes |
+| MTS-OpenClaw | EndiorBot | Notes |
 |----------|-----------|-------|
 | `pnpm openclaw gateway run` | `./endiorbot.mjs gateway start` | JSON-RPC 2.0 |
 | `--port 18789` | `--port 19000` | New default port |
@@ -37,7 +37,7 @@ EndiorBot replaces OpenClaw as the primary AI development assistant with enhance
 
 ### Desktop App
 
-| OpenClaw | EndiorBot | Notes |
+| MTS-OpenClaw | EndiorBot | Notes |
 |----------|-----------|-------|
 | Web UI at `http://localhost:18789` | Native Electron app | Better performance |
 | N/A | `cd apps/desktop && pnpm dev` | Dev mode |
@@ -45,7 +45,7 @@ EndiorBot replaces OpenClaw as the primary AI development assistant with enhance
 
 ### CLI Commands
 
-| OpenClaw | EndiorBot | Notes |
+| MTS-OpenClaw | EndiorBot | Notes |
 |----------|-----------|-------|
 | N/A | `./endiorbot.mjs gate status` | SDLC gate evaluation |
 | N/A | `./endiorbot.mjs brain status` | Brain layer status |
@@ -57,10 +57,10 @@ EndiorBot replaces OpenClaw as the primary AI development assistant with enhance
 
 ## Migration Steps
 
-### 1. Stop OpenClaw
+### 1. Stop MTS-OpenClaw
 
 ```bash
-# Kill all OpenClaw processes
+# Kill all MTS-OpenClaw processes
 pkill -f "openclaw"
 
 # Verify stopped
@@ -72,7 +72,7 @@ ps aux | grep openclaw
 Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-# EndiorBot (replaces OpenClaw)
+# EndiorBot (replaces MTS-OpenClaw)
 source ~/Documents/Python/01.NQH/EndiorBot/.endiorbot-aliases
 ```
 
@@ -111,7 +111,7 @@ eb secrets list
 
 ## Port Changes
 
-| Service | OpenClaw Port | EndiorBot Port |
+| Service | MTS-OpenClaw Port | EndiorBot Port |
 |---------|---------------|----------------|
 | Gateway | 18789 | 19000 |
 | Desktop | 18789 (web) | N/A (native) |
@@ -182,7 +182,7 @@ eb consult "Quick bug fix" --explain
 
 ## Configuration Files
 
-### OpenClaw Config
+### MTS-OpenClaw Config
 
 ```
 ~/.openclaw/config.json  ❌ (deprecated)
@@ -250,7 +250,7 @@ eb eval "test" --provider anthropic
 
 ## Performance Comparison
 
-| Metric | OpenClaw | EndiorBot |
+| Metric | MTS-OpenClaw | EndiorBot |
 |--------|----------|-----------|
 | Startup Time | ~3s | ~1.5s |
 | Memory Usage | ~200MB | ~150MB |
@@ -262,13 +262,13 @@ eb eval "test" --provider anthropic
 
 ## Rollback Plan
 
-If you need to rollback to OpenClaw:
+If you need to rollback to MTS-OpenClaw:
 
 ```bash
 # Stop EndiorBot
 eb-stop
 
-# Restart OpenClaw
+# Restart MTS-OpenClaw
 pnpm openclaw gateway run --bind loopback --port 18789
 ```
 

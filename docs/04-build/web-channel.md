@@ -4,7 +4,7 @@
 
 ## Overview
 
-Web Channel cung cấp browser-based chat interface cho EndiorBot Gateway, tương tự OpenClaw/picoclaw web channel. Hỗ trợ HTTP + WebSocket hybrid server.
+Web Channel cung cấp browser-based chat interface cho EndiorBot Gateway, tương tự MTS-OpenClaw/picoclaw web channel. Hỗ trợ HTTP + WebSocket hybrid server.
 
 ## Architecture
 
@@ -269,9 +269,9 @@ this.registerMethod('chat', async (params, client) => {
 });
 ```
 
-## Comparison with OpenClaw
+## Comparison with MTS-OpenClaw
 
-| Feature | OpenClaw (18789) | EndiorBot (18790) |
+| Feature | MTS-OpenClaw (18789) | EndiorBot (18790) |
 |---------|------------------|-------------------|
 | Port | 18789 | 18790 |
 | Protocol | JSON-RPC 2.0 | JSON-RPC 2.0 |

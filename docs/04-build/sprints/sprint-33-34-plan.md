@@ -87,7 +87,7 @@ Sprint 33-34 focuses on **Phase 2 Core Infrastructure Completion** before procee
 - [ ] Build passes
 
 **Reference:**
-- OpenClaw: `src/config/zod-schema.ts` (adapt, not copy)
+- MTS-OpenClaw: `src/config/zod-schema.ts` (adapt, not copy)
 - Simplify for solo developer use (no enterprise team features)
 
 #### Day 3-4: Config I/O & Defaults
@@ -544,10 +544,10 @@ The following are explicitly **deferred to Sprint 35+**:
  */
 ```
 
-### OpenClaw Reference
+### MTS-OpenClaw Reference
 
-When porting from OpenClaw:
-1. Transform: `openclaw` → `endiorbot`, `OpenClaw` → `EndiorBot`
+When porting from MTS-OpenClaw:
+1. Transform: `openclaw` → `endiorbot`, `MTS-OpenClaw` → `EndiorBot`
 2. Update paths: `~/.openclaw/` → `~/.endiorbot/`
 3. Update env vars: `OPENCLAW_*` → `ENDIORBOT_*`
 4. Simplify: Remove enterprise team features

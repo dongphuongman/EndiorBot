@@ -502,10 +502,10 @@ interface ApprovalToken {
 - **Cons**: Heavy dependency, less TypeScript-friendly, no MCP
 - **Verdict**: ⚠️ Possible but Composio better fit
 
-### Alternative 3: Use OpenClaw's Tool System
+### Alternative 3: Use MTS-OpenClaw's Tool System
 - **Pros**: Already tested with EndiorBot's predecessor
-- **Cons**: OpenClaw deprecated, limited integrations
-- **Verdict**: ❌ Not viable - migration away from OpenClaw
+- **Cons**: MTS-OpenClaw deprecated, limited integrations
+- **Verdict**: ❌ Not viable - migration away from MTS-OpenClaw
 
 ---
 

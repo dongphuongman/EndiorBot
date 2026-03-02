@@ -270,9 +270,9 @@ class FileSessionStore implements SessionStore {
 
 ---
 
-## Migration from OpenClaw
+## Migration from MTS-OpenClaw
 
-| OpenClaw File | EndiorBot Target | Changes |
+| MTS-OpenClaw File | EndiorBot Target | Changes |
 |---------------|------------------|---------|
 | src/sessions/index.ts | src/sessions/index.ts | - |
 | src/sessions/session.ts | src/sessions/session-manager.ts | Rename |

@@ -1,8 +1,8 @@
-# OpenClaw → EndiorBot Migration Checklist
+# MTS-OpenClaw → EndiorBot Migration Checklist
 
 ## Overview
 
-This document tracks the migration of OpenClaw core modules to EndiorBot.
+This document tracks the migration of MTS-OpenClaw core modules to EndiorBot.
 Following Option B: Sprint 29 parallel execution (code + ADRs).
 
 ---
@@ -38,15 +38,15 @@ Following Option B: Sprint 29 parallel execution (code + ADRs).
 |------|---------|-----|
 | cli-name.ts | `DEFAULT_CLI_NAME = "openclaw"` | `"endiorbot"` |
 | cli-name.ts | `/(openclaw)\b/` | `/(endiorbot)\b/` |
-| banner.ts | `"🦞 OpenClaw"` | `"🤖 EndiorBot"` |
+| banner.ts | `"🦞 MTS-OpenClaw"` | `"🤖 EndiorBot"` |
 | zod-schema.ts | `z.literal("openclaw")` | `z.literal("endiorbot")` |
 
 ## Type Names (Optional Refactoring)
 
 | Current | New |
 |---------|-----|
-| `OpenClawConfig` | `EndiorBotConfig` |
-| `OpenClawSchema` | `EndiorBotSchema` |
+| `MTS-OpenClawConfig` | `EndiorBotConfig` |
+| `MTS-OpenClawSchema` | `EndiorBotSchema` |
 
 ---
 
@@ -108,7 +108,7 @@ grep -r "openclaw\.json" src/ --include="*.ts"
 
 ---
 
-## Module Statistics (from OpenClaw)
+## Module Statistics (from MTS-OpenClaw)
 
 | Module | Files | LOC | Priority |
 |--------|-------|-----|----------|
