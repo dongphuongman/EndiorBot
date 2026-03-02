@@ -284,7 +284,8 @@ async function resumeAction(
 
     // Show checkpoint info
     console.log(`  Checkpoint: ${checkpoint.meta.id.slice(0, 8)}...`);
-    console.log(`  Created:    ${checkpoint.meta.createdAt.toLocaleString()}`);
+    const metaCreatedAt = checkpoint.meta.createdAt instanceof Date ? checkpoint.meta.createdAt : new Date(checkpoint.meta.createdAt);
+    console.log(`  Created:    ${metaCreatedAt.toLocaleString()}`);
     console.log(`  Reason:     ${checkpoint.meta.reason}`);
 
     if (checkpoint.meta.description) {
@@ -426,7 +427,8 @@ async function listAction(options: ListCommandOptions): Promise<void> {
     for (const cp of displayedCheckpoints) {
       console.log("");
       console.log(`  ID: ${cp.id.slice(0, 8)}...`);
-      console.log(`  Created: ${cp.createdAt.toLocaleString()}`);
+      const createdDate = cp.createdAt instanceof Date ? cp.createdAt : new Date(cp.createdAt);
+      console.log(`  Created: ${createdDate.toLocaleString()}`);
       console.log(`  Reason:  ${cp.reason}`);
 
       if (options.verbose) {
@@ -504,7 +506,8 @@ async function showAction(
     console.log("");
     console.log(`  ID:            ${checkpoint.meta.id}`);
     console.log(`  Schema Version: ${checkpoint.meta.schemaVersion}`);
-    console.log(`  Created:       ${checkpoint.meta.createdAt.toLocaleString()}`);
+    const showCreatedAt = checkpoint.meta.createdAt instanceof Date ? checkpoint.meta.createdAt : new Date(checkpoint.meta.createdAt);
+    console.log(`  Created:       ${showCreatedAt.toLocaleString()}`);
     console.log(`  Reason:        ${checkpoint.meta.reason}`);
 
     if (checkpoint.meta.description) {

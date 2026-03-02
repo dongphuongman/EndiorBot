@@ -22,7 +22,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import type { Command } from "commander";
-import { STATE_DIR } from "../../config/paths.js";
+import { STATE_DIR, saveActiveProject } from "../../config/paths.js";
 
 // ============================================================================
 // Types
@@ -176,6 +176,14 @@ async function switchAction(
 
   // Save state
   saveState(state);
+
+  // Save active project (for status command)
+  saveActiveProject({
+    path: projectPath,
+    name: sdlcInfo.name,
+    tier: sdlcInfo.tier,
+    startedAt: Date.now(),
+  });
 
   // Display switch info
   console.log("");

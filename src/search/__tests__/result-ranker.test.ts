@@ -21,7 +21,7 @@ import {
   rankWithSpecSnapshotBoost,
   DEFAULT_RANKING_CONFIG,
 } from "../result-ranker.js";
-import type { SearchResult } from "../types.js";
+import { RankingReason, type SearchResult } from "../types.js";
 
 // ============================================================================
 // Test Data
@@ -40,7 +40,7 @@ function createTestResult(
     contextBefore: [],
     contextAfter: [],
     score,
-    ranking_reason: "default",
+    ranking_reason: [RankingReason.DEFAULT],
     provider: "ripgrep",
     specSnapshotMatch: false,
   };
@@ -111,7 +111,7 @@ describe("ResultRanker", () => {
       const results = [createTestResult("src/spec.ts", 10)];
       const ranked = ranker.rank(results);
 
-      expect(ranked[0]?.ranking_reason).toBe("spec_snapshot_match");
+      expect(ranked[0]?.ranking_reason).toEqual([RankingReason.SPEC_SNAPSHOT_MATCH]);
     });
 
     it("should preserve score in result", () => {
@@ -174,7 +174,7 @@ describe("ResultRanker", () => {
       const ranker = new ResultRanker();
       const result: SearchResult = {
         ...createTestResult("src/test.ts", 10),
-        ranking_reason: "exact_match",
+        ranking_reason: [RankingReason.EXACT_MATCH],
       };
 
       const breakdown = ranker.scoreResult(result);
@@ -186,7 +186,7 @@ describe("ResultRanker", () => {
       const ranker = new ResultRanker();
       const result: SearchResult = {
         ...createTestResult("src/test.ts", 10),
-        ranking_reason: "structural_match",
+        ranking_reason: [RankingReason.STRUCTURAL_MATCH],
       };
 
       const breakdown = ranker.scoreResult(result);
@@ -253,7 +253,7 @@ describe("Spec Snapshot Cross-Ref Boost (T3.6)", () => {
     // Spec: 50 + 50 (spec boost) + 20 (position) = 120
     // Non-spec: 70 + 20 (position) = 90
     expect(ranked[0]?.path).toBe("src/api/routes.ts");
-    expect(ranked[0]?.ranking_reason).toBe("spec_snapshot_match");
+    expect(ranked[0]?.ranking_reason).toEqual([RankingReason.SPEC_SNAPSHOT_MATCH]);
   });
 
   it("should mark spec snapshot match in ranking reason", () => {
@@ -262,7 +262,7 @@ describe("Spec Snapshot Cross-Ref Boost (T3.6)", () => {
 
     const ranked = rankWithSpecSnapshotBoost(results, specPaths);
 
-    expect(ranked[0]?.ranking_reason).toBe("spec_snapshot_match");
+    expect(ranked[0]?.ranking_reason).toEqual([RankingReason.SPEC_SNAPSHOT_MATCH]);
   });
 
   it("should combine spec snapshot boost with stage boost", () => {
@@ -338,7 +338,7 @@ describe("rankResults", () => {
       specSnapshotPaths: new Set(["src/spec.ts"]),
     });
 
-    expect(ranked[0]?.ranking_reason).toBe("spec_snapshot_match");
+    expect(ranked[0]?.ranking_reason).toEqual([RankingReason.SPEC_SNAPSHOT_MATCH]);
   });
 });
 

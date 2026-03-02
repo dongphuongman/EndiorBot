@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:04:08.969Z",
+  "query": "Sprint",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 97,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 344,
+  "results": [
+    {
+      "path": "./src/context/sprint-goals.ts",
+      "line": 2,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint Goals Manager"
+    },
+    {
+      "path": "./src/context/__tests__/sprint-goals.test.ts",
+      "line": 2,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint Goals Manager Tests"
+    },
+    {
+      "path": "./src/evaluator/dimensions/tool-effectiveness.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 51 - Day 3-4 - Composio Integration Phase 2"
+    },
+    {
+      "path": "./src/tools/tool-executor.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 50 - Day 5-6 - Real Composio API Integration"
+    },
+    {
+      "path": "./src/tools/index.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 50 - Security Foundation + Real API Integration"
+    },
+    {
+      "path": "./src/tools/auth-manager.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 50 - Day 5-6 + Day 9 - Real Composio API Integration"
+    },
+    {
+      "path": "./src/tools/composio-client.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 50 - Day 5-6 - Real Composio API Integration"
+    },
+    {
+      "path": "./src/tools/tool-patterns.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 51 - Day 7-8 - Composio Integration Phase 2"
+    },
+    {
+      "path": "./src/tools/ott-approval.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 51 - Day 5-6 - Composio Integration Phase 2"
+    },
+    {
+      "path": "./src/tools/orchestrator.ts",
+      "line": 3,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Sprint 51 - Day 1-2 - Composio Integration Phase 2"
+    }
+  ]
+}

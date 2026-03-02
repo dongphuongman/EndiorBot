@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:03:50.456Z",
+  "query": "SEARCH_BUDGET",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 61,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 317,
+  "results": [
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Tests CTO Amendment A3 (SEARCH_BUDGET constants)."
+    },
+    {
+      "path": "./src/search/types.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Includes CTO amendments A1 (providerVersion) and A3 (SEARCH_BUDGET)."
+    },
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 16,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  SEARCH_BUDGET,"
+    },
+    {
+      "path": "./src/search/__tests__/rg-provider.test.ts",
+      "line": 16,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { SEARCH_BUDGET } from \"../types.js\";"
+    },
+    {
+      "path": "./src/search/search-budget.ts",
+      "line": 16,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  SEARCH_BUDGET,"
+    },
+    {
+      "path": "./src/search/providers/ast-grep-provider.ts",
+      "line": 25,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  SEARCH_BUDGET,"
+    },
+    {
+      "path": "./src/search/providers/rg-provider.ts",
+      "line": 26,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  SEARCH_BUDGET,"
+    },
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 30,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "describe(\"SEARCH_BUDGET constants (CTO A3)\", () => {"
+    },
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 32,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "    expect(SEARCH_BUDGET.DEFAULT_TOP_K).toBe(15);"
+    },
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 36,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "    expect(SEARCH_BUDGET.DEFAULT_MAX_BYTES).toBe(50_000);"
+    }
+  ]
+}

@@ -20,7 +20,7 @@ import {
   type SearchResponse,
   type SearchResult,
   type ProviderHealth,
-  type RankingReason,
+  RankingReason,
   createEmptyResponse,
   DEFAULT_SEARCH_OPTIONS,
   SEARCH_BUDGET,
@@ -443,17 +443,25 @@ export class RgProvider extends BaseSearchProvider {
 
     // Sort by relevance (exact matches first, then by line number)
     results.sort((a, b) => {
-      if (a.ranking_reason !== b.ranking_reason) {
+      // Compare primary ranking reasons (first in array)
+      const aPrimary = a.ranking_reason[0] || RankingReason.DEFAULT;
+      const bPrimary = b.ranking_reason[0] || RankingReason.DEFAULT;
+
+      if (aPrimary !== bPrimary) {
         const priority: Record<RankingReason, number> = {
-          exact_match: 0,
-          spec_snapshot_match: 1,
-          stage_boost: 2,
-          regex_match: 3,
-          structural_match: 4,
-          recency: 5,
-          default: 10,
+          [RankingReason.EXACT_MATCH]: 0,
+          [RankingReason.EXACT_SYMBOL_MATCH]: 0,
+          [RankingReason.SPEC_SNAPSHOT_MATCH]: 1,
+          [RankingReason.STAGE_BOOST]: 2,
+          [RankingReason.REGEX_MATCH]: 3,
+          [RankingReason.STRUCTURAL_MATCH]: 4,
+          [RankingReason.AST_STRUCTURAL_MATCH]: 4,
+          [RankingReason.RECENCY_BOOST]: 5,
+          [RankingReason.ROLE_BOOST]: 6,
+          [RankingReason.TRIGRAM_MATCH]: 7,
+          [RankingReason.DEFAULT]: 10,
         };
-        return priority[a.ranking_reason] - priority[b.ranking_reason];
+        return priority[aPrimary] - priority[bPrimary];
       }
       return a.line - b.line;
     });
@@ -468,12 +476,12 @@ export class RgProvider extends BaseSearchProvider {
     const query = options.query.toLowerCase();
     const content = data.lines.text.toLowerCase();
 
-    // Determine ranking reason
-    let ranking_reason: RankingReason = "default";
+    // Determine ranking reason (ADR-015: array of reasons)
+    let ranking_reason: RankingReason[] = [RankingReason.DEFAULT];
     if (content.includes(query)) {
-      ranking_reason = "exact_match";
+      ranking_reason = [RankingReason.EXACT_MATCH];
     } else if (options.isRegex !== false) {
-      ranking_reason = "regex_match";
+      ranking_reason = [RankingReason.REGEX_MATCH];
     }
 
     return {

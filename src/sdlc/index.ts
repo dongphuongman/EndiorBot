@@ -88,3 +88,75 @@ export {
   type MergeReadinessPackage,
   type MRPConfig,
 } from "./mrp-service.js";
+
+// Patches (Sprint 68)
+export {
+  // Types
+  type PatchState,
+  type ChangeType as PatchChangeType,
+  type DiffHunk,
+  type FileChange,
+  type Patch,
+  type CreatePatchOptions,
+  type RecordChangeOptions,
+  type PatchHistoryOptions,
+  type RollbackResult,
+  type PatchManagerConfig,
+  type PatchEventType,
+  type PatchEvent,
+  // Manager
+  PatchManager,
+  getPatchManager,
+  resetPatchManager,
+} from "./patches/index.js";
+
+// Stage Contracts (Sprint 68)
+export {
+  // Stage constants
+  SDLC_STAGES,
+  type SDLCStage,
+  // Contract types
+  type ArtifactRequirement,
+  type ArtifactProduction,
+  type ValidationRuleType,
+  type ValidationRule,
+  type StageContract,
+  type ArtifactEvaluation,
+  type ValidationResult,
+  type ContractEvaluation,
+  type StageContractEngineConfig,
+  // Default contracts
+  STAGE_CONTRACTS,
+  getStageContract,
+  getAllContracts,
+  getContractsForTier,
+  // Engine
+  StageContractEngine,
+  getStageContractEngine,
+  resetStageContractEngine,
+  // Helpers
+  isValidStage,
+  getNextStage,
+  getPreviousStage,
+} from "./contracts/index.js";
+
+// Dashboard (Sprint 68)
+export {
+  // Types
+  type ComplianceStatus,
+  type IssueSeverity,
+  type ComplianceIssue,
+  type StageCompliance,
+  type GateResult,
+  type ComplianceDashboard,
+  type ReportFormat,
+  type ReportOptions,
+  type ComplianceReport,
+  type DashboardConfig,
+  // Dashboard Engine
+  ComplianceDashboardEngine,
+  getComplianceDashboard,
+  resetComplianceDashboard,
+  // Report Generator
+  ReportGenerator,
+} from "./dashboard/index.js";

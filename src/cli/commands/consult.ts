@@ -34,6 +34,7 @@ import {
   type ChatHandlerRequest,
 } from "../../gateway/chat-handler.js";
 import { initializeProvidersFromEnv } from "../../providers/init.js";
+import { getClaudeCodeBridge } from "../../agents/invoke/claude-code-bridge.js";
 
 // ============================================================================
 // Constants - Available Models (per ADR-001)
@@ -224,17 +225,29 @@ function displayResult(result: ConsultationResult, verbose: boolean): void {
  */
 interface ConsultOptions {
   models?: string;
+  claude?: string;
   openai?: string;
   gemini?: string;
+  primary?: "claude" | "openai" | "gemini";
+  viaClaudeCode?: boolean;
   full?: boolean;
   verbose?: boolean;
 }
 
 /**
+ * Map short Claude aliases to full model IDs.
+ */
+const CLAUDE_MODEL_MAP: Record<string, string> = {
+  "claude-opus-4": "claude-opus-4-5-20251101",
+  "claude-sonnet-4": "claude-sonnet-4-5-20250929",
+  "claude-haiku-4": "claude-haiku-4-5-20251001",
+};
+
+/**
  * Validate model selection.
  */
 function validateModel(
-  provider: "openai" | "gemini",
+  provider: "openai" | "gemini" | "anthropic",
   model: string,
 ): boolean {
   const available = AVAILABLE_MODELS[provider] as readonly string[];
@@ -255,6 +268,12 @@ async function consultAction(
   await initializeProvidersFromEnv();
 
   // Validate model selections if provided
+  if (options.claude && !validateModel("anthropic", options.claude)) {
+    console.error(`❌ Invalid Claude model: ${options.claude}`);
+    console.log(`   Available: ${AVAILABLE_MODELS.anthropic.join(", ")}`);
+    process.exit(1);
+  }
+
   if (options.openai && !validateModel("openai", options.openai)) {
     console.error(`❌ Invalid OpenAI model: ${options.openai}`);
     console.log(`   Available: ${AVAILABLE_MODELS.openai.join(", ")}`);
@@ -267,10 +286,59 @@ async function consultAction(
     process.exit(1);
   }
 
+  // Handle --via-claude-code option (uses Max 200 subscription)
+  if (options.viaClaudeCode) {
+    // Note: Safe to use even if CLAUDECODE env var is set, because we use
+    // -p --no-session-persistence (non-interactive mode) which doesn't share
+    // runtime resources with any parent Claude Code session.
+
+    console.log("   Using Claude Code CLI (Max 200 subscription)");
+    console.log("");
+
+    try {
+      const bridge = getClaudeCodeBridge();
+
+      // Check availability
+      const isAvailable = await bridge.isAvailable();
+      if (!isAvailable) {
+        console.error("❌ Claude Code CLI not available. Install with:");
+        console.log("   npm install -g @anthropic-ai/claude-code");
+        process.exit(1);
+      }
+
+      const response = await bridge.invokeRead({
+        systemPrompt: "You are an expert consultant for software engineering decisions.",
+        userPrompt: query,
+        workspace: process.cwd(),
+        agent: "researcher",
+        timeout: 120,
+      });
+
+      if (response.success) {
+        displayClaudeCodeResponse(response.output, response.durationMs, options.verbose ?? false);
+      } else {
+        console.error(`❌ Claude Code failed: ${response.error}`);
+        process.exit(1);
+      }
+      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`❌ Claude Code bridge failed: ${message}`);
+      process.exit(1);
+    }
+  }
+
   // Show selected models
+  const claudeModel = options.claude ?? "claude-sonnet-4";
   const openaiModel = options.openai ?? DEFAULT_MODELS.openai;
   const geminiModel = options.gemini ?? DEFAULT_MODELS.gemini;
-  console.log(`   Claude (Primary) + ${openaiModel} + ${geminiModel}`);
+  const primaryProvider = options.primary ?? "claude";
+
+  // Display with correct primary indicator
+  const claudeLabel = primaryProvider === "claude" ? `${claudeModel} (Primary)` : claudeModel;
+  const openaiLabel = primaryProvider === "openai" ? `${openaiModel} (Primary)` : openaiModel;
+  const geminiLabel = primaryProvider === "gemini" ? `${geminiModel} (Primary)` : geminiModel;
+  console.log(`   ${claudeLabel} + ${openaiLabel} + ${geminiLabel}`);
   console.log("");
 
   try {
@@ -285,11 +353,18 @@ async function consultAction(
     };
 
     // Add optional model selections if provided
+    if (options.claude) {
+      // Map short alias to full model ID
+      request.claudeModel = CLAUDE_MODEL_MAP[options.claude] ?? options.claude;
+    }
     if (options.openai) {
       request.openaiModel = options.openai;
     }
     if (options.gemini) {
       request.geminiModel = options.gemini;
+    }
+    if (options.primary) {
+      request.primaryProvider = options.primary;
     }
     if (options.full) {
       request.forceConsultation = options.full;
@@ -382,6 +457,39 @@ function displayChatResponse(
   console.log("");
 }
 
+/**
+ * Display Claude Code bridge response.
+ */
+function displayClaudeCodeResponse(
+  output: string,
+  durationMs: number,
+  verbose: boolean,
+): void {
+  console.log("");
+  console.log("┌─────────────────────────────────────────────────────────────┐");
+  console.log(`│  🤖 Claude Code (Max 200 Subscription)                      │`);
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log("│  Provider: Claude Code CLI                                  │");
+  console.log(`│  Duration: ${durationMs}ms`.padEnd(62) + "│");
+  console.log("├─────────────────────────────────────────────────────────────┤");
+
+  // Show response
+  console.log("│  📝 Response:".padEnd(62) + "│");
+  const lines = output.split("\n").slice(0, verbose ? 30 : 10);
+  for (const line of lines) {
+    const truncated = line.slice(0, 55);
+    console.log(`│     ${truncated.padEnd(55)}│`);
+  }
+  if (lines.length < output.split("\n").length) {
+    console.log(`│     ...`.padEnd(62) + "│");
+  }
+
+  console.log("├─────────────────────────────────────────────────────────────┤");
+  console.log("│  ✅ Using Max 200 subscription (no API credits used)        │");
+  console.log("└─────────────────────────────────────────────────────────────┘");
+  console.log("");
+}
+
 // ============================================================================
 // Command Registration
 // ============================================================================
@@ -398,8 +506,11 @@ export function registerConsultCommand(program: Command): void {
   program
     .command("consult <query>")
     .description("Query 3 AI models for expert consultation (Claude + OpenAI + Gemini)")
+    .option("--claude <model>", `Claude model (${AVAILABLE_MODELS.anthropic.join(", ")})`, "claude-sonnet-4")
     .option("--openai <model>", `OpenAI model (${AVAILABLE_MODELS.openai.join(", ")})`, DEFAULT_MODELS.openai)
     .option("--gemini <model>", `Gemini model (${AVAILABLE_MODELS.gemini.join(", ")})`, DEFAULT_MODELS.gemini)
+    .option("--primary <provider>", "Primary provider: claude, openai, or gemini (default: claude)")
+    .option("--via-claude-code", "Use Claude Code CLI (Max 200 subscription) instead of API")
     .option("--full", "Force full 3-model consultation regardless of task type")
     .option("-v, --verbose", "Show detailed responses from each model")
     .option("-m, --models <models>", "Legacy: Specific models to query (comma-separated)")

@@ -27,6 +27,7 @@ import {
   createRetrievalLogger,
 } from "../retrieval-logger.js";
 import {
+  RankingReason,
   type SearchResponse,
   type SearchResult,
 } from "../types.js";
@@ -195,7 +196,7 @@ describe("RetrievalPolicy", () => {
           contextBefore: [],
           contextAfter: [],
           score: 100,
-          ranking_reason: "default",
+          ranking_reason: [RankingReason.DEFAULT],
           provider: "ripgrep",
           specSnapshotMatch: false,
         },
@@ -207,7 +208,7 @@ describe("RetrievalPolicy", () => {
           contextBefore: [],
           contextAfter: [],
           score: 90,
-          ranking_reason: "default",
+          ranking_reason: [RankingReason.DEFAULT],
           provider: "ripgrep",
           specSnapshotMatch: false,
         },
@@ -216,7 +217,7 @@ describe("RetrievalPolicy", () => {
       const enriched = policy.enrichResults(results);
 
       expect(enriched[0]!.specSnapshotMatch).toBe(true);
-      expect(enriched[0]!.ranking_reason).toBe("spec_snapshot_match");
+      expect(enriched[0]!.ranking_reason).toEqual([RankingReason.SPEC_SNAPSHOT_MATCH]);
       expect(enriched[1]!.specSnapshotMatch).toBe(false);
     });
 
@@ -232,7 +233,7 @@ describe("RetrievalPolicy", () => {
           contextBefore: [],
           contextAfter: [],
           score: 100,
-          ranking_reason: "default",
+          ranking_reason: [RankingReason.DEFAULT],
           provider: "ripgrep",
           specSnapshotMatch: false,
         },
@@ -240,7 +241,7 @@ describe("RetrievalPolicy", () => {
 
       const enriched = policy.enrichResults(results);
 
-      expect(enriched[0]!.ranking_reason).toBe("stage_boost");
+      expect(enriched[0]!.ranking_reason).toEqual([RankingReason.STAGE_BOOST]);
     });
   });
 });
@@ -278,7 +279,7 @@ describe("RetrievalLogger", () => {
             contextBefore: [],
             contextAfter: [],
             score: 100,
-            ranking_reason: "exact_match",
+            ranking_reason: [RankingReason.EXACT_MATCH],
             provider: "ripgrep",
             specSnapshotMatch: false,
           },

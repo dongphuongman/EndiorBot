@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "framework_version": "6.1.1",
+  "generator": "endiorbot",
+  "generated_at": "2026-03-01T09:09:40.695Z",
+  "project": {
+    "id": "endiorbot",
+    "name": "EndiorBot",
+    "description": ""
+  },
+  "tier": "STANDARD",
+  "stages": {
+    "00-foundation": "docs/00-foundation",
+    "01-planning": "docs/01-planning",
+    "02-design": "docs/02-design",
+    "04-build": "docs/04-build",
+    "05-test": "docs/05-test",
+    "06-deploy": "docs/06-deploy",
+    "08-collaborate": "docs/08-collaborate"
+  },
+  "gates": {
+    "current": "G0.1",
+    "passed": []
+  }
+}

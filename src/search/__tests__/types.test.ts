@@ -14,6 +14,7 @@
 import { describe, it, expect } from "vitest";
 import {
   SEARCH_BUDGET,
+  RankingReason,
   estimateTokens,
   isTokenBudgetExceeded,
   truncateToTokenBudget,
@@ -145,7 +146,7 @@ describe("SearchBudgetManager", () => {
       contextBefore: [],
       contextAfter: [],
       score: 100,
-      ranking_reason: "exact_match" as const,
+      ranking_reason: [RankingReason.EXACT_MATCH],
       provider: "ripgrep" as const,
       specSnapshotMatch: false,
     };
@@ -169,7 +170,7 @@ describe("SearchBudgetManager", () => {
       contextBefore: [],
       contextAfter: [],
       score: 100,
-      ranking_reason: "exact_match" as const,
+      ranking_reason: [RankingReason.EXACT_MATCH],
       provider: "ripgrep" as const,
       specSnapshotMatch: false,
     };
@@ -194,7 +195,7 @@ describe("SearchBudgetManager", () => {
       contextBefore: [],
       contextAfter: [],
       score: 100,
-      ranking_reason: "exact_match" as const,
+      ranking_reason: [RankingReason.EXACT_MATCH],
       provider: "ripgrep" as const,
       specSnapshotMatch: false,
     };
@@ -220,7 +221,7 @@ describe("SearchBudgetManager", () => {
         contextBefore: [],
         contextAfter: [],
         score: 100,
-        ranking_reason: "exact_match" as const,
+        ranking_reason: [RankingReason.EXACT_MATCH],
         provider: "ripgrep" as const,
         specSnapshotMatch: false,
       });
@@ -243,7 +244,7 @@ describe("SearchBudgetManager", () => {
       contextBefore: [],
       contextAfter: [],
       score: 100,
-      ranking_reason: "exact_match" as const,
+      ranking_reason: [RankingReason.EXACT_MATCH],
       provider: "ripgrep" as const,
       specSnapshotMatch: false,
     });
@@ -266,7 +267,7 @@ describe("applyBudgetToResponse", () => {
         contextBefore: [],
         contextAfter: [],
         score: 100,
-        ranking_reason: "exact_match" as const,
+        ranking_reason: [RankingReason.EXACT_MATCH],
         provider: "ripgrep" as const,
         specSnapshotMatch: false,
       })),
@@ -352,7 +353,8 @@ describe("formatRetrievalEvidence", () => {
         {
           path: "src/test.ts",
           line: 10,
-          ranking_reason: "exact_match",
+          score: 75,
+          ranking_reason: [RankingReason.EXACT_MATCH],
           specSnapshotMatch: false,
           sourceExcerpt: "function hello() {}",
         },
@@ -383,7 +385,8 @@ describe("formatRetrievalEvidence", () => {
         {
           path: "src/spec.ts",
           line: 1,
-          ranking_reason: "spec_snapshot_match",
+          score: 100,
+          ranking_reason: [RankingReason.SPEC_SNAPSHOT_MATCH],
           specSnapshotMatch: true,
           sourceExcerpt: "// spec",
         },

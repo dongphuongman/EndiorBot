@@ -34,6 +34,12 @@ import {
   getChecklist,
   getPreviousGate,
 } from "./gate-checklist.js";
+import {
+  StageContractEngine,
+  type SDLCStage,
+  type ContractEvaluation,
+  isValidStage,
+} from "../contracts/index.js";
 
 // ============================================================================
 // Types
@@ -120,6 +126,12 @@ export interface GateEngineConfig {
    * Function to run shell commands.
    */
   commandRunner?: (cmd: string) => Promise<{ success: boolean; output: string }>;
+
+  /**
+   * Stage Contract Engine for contract evaluation.
+   * If not provided, a default engine will be created on-demand.
+   */
+  stageContractEngine?: StageContractEngine;
 }
 
 // ============================================================================
@@ -133,6 +145,7 @@ export interface GateEngineConfig {
  * 1. Auto-checkable items (file existence, commands)
  * 2. Manual items (require CEO approval)
  * 3. Vibecoding Index integration
+ * 4. Stage Contract compliance (Sprint 68)
  */
 export class GateEngine {
   private readonly projectRoot: string;
@@ -143,6 +156,7 @@ export class GateEngine {
   private readonly commandRunner:
     | ((cmd: string) => Promise<{ success: boolean; output: string }>)
     | undefined;
+  private stageContractEngine: StageContractEngine | undefined;
 
   private evaluations: Map<string, GateEvaluation> = new Map();
 
@@ -151,6 +165,7 @@ export class GateEngine {
     this.tier = config.tier ?? "STANDARD";
     this.vibecodingCalculator = config.vibecodingCalculator;
     this.commandRunner = config.commandRunner;
+    this.stageContractEngine = config.stageContractEngine;
   }
 
   /**
@@ -362,6 +377,8 @@ export class GateEngine {
         return this.checkCoverage(parseInt(value, 10));
       case "version":
         return this.checkVersionBumped(value);
+      case "contract":
+        return this.checkContractPassed(value);
       default:
         return { status: "pending" };
     }
@@ -511,6 +528,65 @@ export class GateEngine {
     // Real implementation would parse coverage report
     // For now, return pending
     return { status: "pending" };
+  }
+
+  /**
+   * Check if a stage contract is satisfied.
+   * Uses StageContractEngine to evaluate stage compliance.
+   *
+   * @param stageId - The SDLC stage to check (e.g., "04-BUILD")
+   */
+  private async checkContractPassed(stageId: string): Promise<{
+    status: ChecklistStatus;
+    evidence?: Evidence;
+  }> {
+    // Validate stage ID
+    if (!isValidStage(stageId)) {
+      return { status: "fail" };
+    }
+
+    // Get or create StageContractEngine
+    if (!this.stageContractEngine) {
+      this.stageContractEngine = new StageContractEngine({
+        projectRoot: this.projectRoot,
+      });
+    }
+
+    try {
+      // Evaluate the stage contract
+      const evaluation: ContractEvaluation = await this.stageContractEngine.evaluate(
+        stageId as SDLCStage
+      );
+
+      // Map contract status to checklist status
+      let status: ChecklistStatus;
+      if (evaluation.status === "pass") {
+        status = "pass";
+      } else if (evaluation.status === "warning") {
+        status = "pending"; // Warnings are pending until resolved
+      } else {
+        status = "fail";
+      }
+
+      // Build evidence
+      const evidence: Evidence = {
+        type: "document",
+        path: `stage-contract:${stageId}`,
+        hash: `score:${evaluation.score}`,
+        description: `Stage ${stageId} contract: ${evaluation.status} (${evaluation.score}%)`,
+        collectedAt: new Date().toISOString(),
+      };
+
+      // Add missing artifacts to description if any
+      if (evaluation.missingArtifacts.length > 0) {
+        evidence.description += ` - Missing: ${evaluation.missingArtifacts.join(", ")}`;
+      }
+
+      return { status, evidence };
+    } catch (error) {
+      // Log error and return fail status
+      return { status: "fail" };
+    }
   }
 
   /**

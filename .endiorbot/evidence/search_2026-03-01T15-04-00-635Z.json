@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:04:00.635Z",
+  "query": "interface",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 64,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 329,
+  "results": [
+    {
+      "path": "./src/budget/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for budget control and cost tracking."
+    },
+    {
+      "path": "./src/search/code-search-provider.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Abstract interface for code search providers."
+    },
+    {
+      "path": "./src/sessions/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for session and project context management."
+    },
+    {
+      "path": "./src/gateway/web-server.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * HTTP server with WebSocket upgrade for web-based chat interface."
+    },
+    {
+      "path": "./src/channels/telegram/notification-adapter.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Adapts TelegramChannel (IChannel) to NotificationChannel interface"
+    },
+    {
+      "path": "./src/gateway/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for WebSocket gateway server."
+    },
+    {
+      "path": "./src/channels/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for notification channels."
+    },
+    {
+      "path": "./src/sessions/checkpoint/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Defines the CheckpointState interface and sub-interfaces for saving"
+    },
+    {
+      "path": "./src/agents/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for agent orchestration."
+    },
+    {
+      "path": "./src/providers/types.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Core interfaces for AI model providers."
+    }
+  ]
+}

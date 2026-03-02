@@ -192,3 +192,73 @@ export function resolveGatewayPort(
   }
   return DEFAULT_GATEWAY_PORT;
 }
+
+// ============================================================================
+// Active Project State
+// ============================================================================
+
+const ACTIVE_PROJECT_FILENAME = "active-project.json";
+
+/**
+ * Active project info stored in state dir.
+ */
+export interface ActiveProjectState {
+  name: string;
+  path: string;
+  tier: string;
+  startedAt: number;
+}
+
+/**
+ * Resolve active project file path.
+ */
+export function resolveActiveProjectPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return path.join(resolveStateDir(env), ACTIVE_PROJECT_FILENAME);
+}
+
+/**
+ * Save active project state.
+ */
+export function saveActiveProject(
+  state: ActiveProjectState,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const filePath = resolveActiveProjectPath(env);
+  const stateDir = resolveStateDir(env);
+  if (!fs.existsSync(stateDir)) {
+    fs.mkdirSync(stateDir, { recursive: true });
+  }
+  fs.writeFileSync(filePath, JSON.stringify(state, null, 2));
+}
+
+/**
+ * Load active project state.
+ */
+export function loadActiveProject(
+  env: NodeJS.ProcessEnv = process.env,
+): ActiveProjectState | undefined {
+  const filePath = resolveActiveProjectPath(env);
+  if (!fs.existsSync(filePath)) {
+    return undefined;
+  }
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(content) as ActiveProjectState;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Clear active project state.
+ */
+export function clearActiveProject(
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  const filePath = resolveActiveProjectPath(env);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-03-01T15:03:56.073Z",
+  "query": "Sprint 65",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 51,
+  "totalHits": 3,
+  "topKReturned": 3,
+  "truncated": false,
+  "tokensUsed": 70,
+  "results": [
+    {
+      "path": "./docs/01-planning/roadmap.md",
+      "line": 53,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "│  v1.5 Context Anchoring (Sprint 65) - 40h                              │"
+    },
+    {
+      "path": "./docs/01-planning/roadmap.md",
+      "line": 164,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "### Sprint 65: v1.5 Context Anchoring"
+    },
+    {
+      "path": "./docs/01-planning/roadmap.md",
+      "line": 265,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "| **M3: v1.5 Context Anchoring** | Sprint 65 | Planned |"
+    }
+  ]
+}

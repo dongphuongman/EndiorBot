@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:04:17.976Z",
+  "query": "Master Plan",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 68,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 299,
+  "results": [
+    {
+      "path": "./src/gateway/chat-handler.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Implements Sprint 54 requirements per Master Plan v2.0:"
+    },
+    {
+      "path": "./src/brain/context-budget.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Implements Master Plan v2.0 requirements:"
+    },
+    {
+      "path": "./src/cli/commands/gate.ts",
+      "line": 7,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * INVARIANT (Master Plan v3.1):"
+    },
+    {
+      "path": "./src/channels/ott/response-formatter.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v3.1"
+    },
+    {
+      "path": "./src/channels/telegram/keyboards.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v3.1"
+    },
+    {
+      "path": "./src/channels/telegram/agent-handler.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v3.1"
+    },
+    {
+      "path": "./src/search/code-search-provider.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v4.2, TS-007"
+    },
+    {
+      "path": "./src/channels/zalo/agent-handler.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v3.1"
+    },
+    {
+      "path": "./src/search/result-ranker.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v4.2, Sprint 64 T3.4"
+    },
+    {
+      "path": "./src/search/retrieval-logger.ts",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * @authority Master Plan v4.2, Sprint 63 T2.7"
+    }
+  ]
+}

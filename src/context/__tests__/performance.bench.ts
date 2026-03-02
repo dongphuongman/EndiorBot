@@ -32,7 +32,7 @@ import {
   resetAnchorBudget,
   formatWithinBudget,
 } from "../anchor-budget.js";
-import type { AnchorPoint, SprintGoal } from "../types.js";
+import type { AnchorPoint } from "../types.js";
 
 // ============================================================================
 // Test Setup

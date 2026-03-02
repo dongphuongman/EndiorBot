@@ -23,6 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import type { Command } from "commander";
 import { getCommandLogger } from "../logger.js";
+import { saveActiveProject } from "../../config/paths.js";
 
 // ============================================================================
 // Types
@@ -213,10 +214,15 @@ async function startAction(
   console.log("   endiorbot consult       - Query AI experts");
   console.log("");
 
-  log.info("Project started", { project: info.name, tier: info.tier });
+  // Save active project to state dir
+  saveActiveProject({
+    name: info.name,
+    path: info.path,
+    tier: info.tier,
+    startedAt: Date.now(),
+  });
 
-  // TODO: Save active project to ~/.endiorbot/active-project.json
-  // TODO: Load session state
+  log.info("Project started", { project: info.name, tier: info.tier });
 }
 
 // ============================================================================

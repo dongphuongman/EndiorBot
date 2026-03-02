@@ -12,7 +12,7 @@
  * @sprint 64
  */
 
-import type { SearchResult, RankingReason } from "./types.js";
+import { RankingReason, type SearchResult } from "./types.js";
 
 // ============================================================================
 // Types
@@ -113,11 +113,11 @@ export class ResultRanker {
     // Sort by total score descending
     scored.sort((a, b) => b.breakdown.totalScore - a.breakdown.totalScore);
 
-    // Update ranking reason based on score breakdown
+    // Update ranking reason based on score breakdown (ADR-015: array format)
     return scored.map(({ result, breakdown }) => ({
       ...result,
       score: breakdown.totalScore,
-      ranking_reason: breakdown.rankingReason,
+      ranking_reason: [breakdown.rankingReason],
     }));
   }
 
@@ -125,6 +125,9 @@ export class ResultRanker {
    * Score a single result.
    */
   scoreResult(result: SearchResult): ScoreBreakdown {
+    // Get primary ranking reason (first in array, or DEFAULT)
+    const primaryReason = result.ranking_reason?.[0] || RankingReason.DEFAULT;
+
     const breakdown: ScoreBreakdown = {
       baseScore: result.score || 50,
       matchTypeBoost: 0,
@@ -133,23 +136,23 @@ export class ResultRanker {
       positionBoost: 0,
       depthPenalty: 0,
       totalScore: 0,
-      rankingReason: result.ranking_reason || "default",
+      rankingReason: primaryReason,
     };
 
     // 1. Match type boost
-    breakdown.matchTypeBoost = this.getMatchTypeBoost(result.ranking_reason);
+    breakdown.matchTypeBoost = this.getMatchTypeBoost(primaryReason);
 
     // 2. Spec snapshot boost
     if (this.isSpecSnapshotMatch(result.path)) {
       breakdown.specSnapshotBoost = this.config.specSnapshotBoost;
-      breakdown.rankingReason = "spec_snapshot_match";
+      breakdown.rankingReason = RankingReason.SPEC_SNAPSHOT_MATCH;
     }
 
     // 3. Stage priority boost
     if (this.isStagePriorityMatch(result.path)) {
       breakdown.stageBoost = this.config.stageBoost;
-      if (breakdown.rankingReason === "default") {
-        breakdown.rankingReason = "stage_boost";
+      if (breakdown.rankingReason === RankingReason.DEFAULT) {
+        breakdown.rankingReason = RankingReason.STAGE_BOOST;
       }
     }
 
@@ -176,11 +179,12 @@ export class ResultRanker {
    */
   private getMatchTypeBoost(reason: RankingReason): number {
     switch (reason) {
-      case "exact_match":
+      case RankingReason.EXACT_MATCH:
         return this.config.exactMatchBoost;
-      case "structural_match":
+      case RankingReason.STRUCTURAL_MATCH:
+      case RankingReason.AST_STRUCTURAL_MATCH:
         return this.config.structuralBoost;
-      case "regex_match":
+      case RankingReason.REGEX_MATCH:
         return 10;
       default:
         return 0;

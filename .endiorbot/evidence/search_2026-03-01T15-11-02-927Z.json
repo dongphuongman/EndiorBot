@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-03-01T15:11:02.927Z",
+  "query": "ContextAnchor",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 60,
+  "totalHits": 5,
+  "topKReturned": 5,
+  "truncated": false,
+  "tokensUsed": 141,
+  "results": [
+    {
+      "path": "./src/context/__tests__/context-anchor.test.ts",
+      "line": 4,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Unit tests for the ContextAnchor class."
+    },
+    {
+      "path": "./src/context/context-anchor.ts",
+      "line": 7,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * The ContextAnchor class manages all anchor operations:"
+    },
+    {
+      "path": "./src/context/__tests__/checkpoint-manager.test.ts",
+      "line": 18,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { ContextAnchor, resetContextAnchor } from \"../context-anchor.js\";"
+    },
+    {
+      "path": "./src/context/__tests__/sprint-goals.test.ts",
+      "line": 18,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { ContextAnchor, resetContextAnchor } from \"../context-anchor.js\";"
+    },
+    {
+      "path": "./src/context/sprint-goals.ts",
+      "line": 19,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { getContextAnchor, type ContextAnchor } from \"./context-anchor.js\";"
+    }
+  ]
+}

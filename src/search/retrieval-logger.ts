@@ -138,6 +138,7 @@ export class RetrievalLogger {
     const results: RetrievalEvidenceResult[] = response.hits.slice(0, 10).map((hit) => ({
       path: hit.path,
       line: hit.line,
+      score: hit.score,
       ranking_reason: hit.ranking_reason,
       specSnapshotMatch: hit.specSnapshotMatch,
       sourceExcerpt: hit.content.slice(0, 100) + (hit.content.length > 100 ? "..." : ""),

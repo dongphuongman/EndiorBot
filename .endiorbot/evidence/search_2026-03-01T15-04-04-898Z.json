@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-01T15:04:04.898Z",
+  "query": "test plan",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 119,
+  "totalHits": 0,
+  "topKReturned": 0,
+  "truncated": false,
+  "tokensUsed": 0,
+  "results": []
+}

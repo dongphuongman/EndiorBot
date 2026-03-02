@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-03-01T14:50:53.129Z",
+  "query": "SEARCH_BUDGET",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 62,
+  "totalHits": 3,
+  "topKReturned": 3,
+  "truncated": false,
+  "tokensUsed": 72,
+  "results": [
+    {
+      "path": "./src/search/__tests__/types.test.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Tests CTO Amendment A3 (SEARCH_BUDGET constants)."
+    },
+    {
+      "path": "./src/search/types.ts",
+      "line": 5,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * Includes CTO amendments A1 (providerVersion) and A3 (SEARCH_BUDGET)."
+    },
+    {
+      "path": "./src/search/__tests__/rg-provider.test.ts",
+      "line": 16,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { SEARCH_BUDGET } from \"../types.js\";"
+    }
+  ]
+}

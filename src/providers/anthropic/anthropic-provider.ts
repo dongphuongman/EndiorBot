@@ -31,7 +31,29 @@ interface AnthropicResponse {
 
 // Anthropic model definitions (comprehensive list for compatibility)
 const ANTHROPIC_MODELS: ModelDefinition[] = [
-  // Claude 3.5 models
+  // Claude 4.5 models (latest - Max 200 plan)
+  {
+    id: "claude-opus-4-5-20251101",
+    name: "Claude 4.5 Opus",
+    contextWindow: 200000,
+    maxOutputTokens: 16384,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  {
+    id: "claude-sonnet-4-5-20250929",
+    name: "Claude 4.5 Sonnet",
+    contextWindow: 200000,
+    maxOutputTokens: 16384,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  {
+    id: "claude-haiku-4-5-20251001",
+    name: "Claude 4.5 Haiku",
+    contextWindow: 200000,
+    maxOutputTokens: 8192,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  // Claude 3.5 models (legacy)
   {
     id: "claude-3-5-sonnet-20241022",
     name: "Claude 3.5 Sonnet (Oct 2024)",
@@ -46,7 +68,7 @@ const ANTHROPIC_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
-  // Claude 3 models
+  // Claude 3 models (legacy)
   {
     id: "claude-3-opus-20240229",
     name: "Claude 3 Opus",

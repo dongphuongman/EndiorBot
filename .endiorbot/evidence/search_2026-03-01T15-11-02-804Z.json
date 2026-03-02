@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-01T15:11:02.804Z",
+  "query": "test query",
+  "provider": "ripgrep",
+  "providerVersion": "14.0.0",
+  "elapsed_ms": 50,
+  "totalHits": 1,
+  "topKReturned": 1,
+  "truncated": false,
+  "tokensUsed": 25,
+  "results": [
+    {
+      "path": "src/test.ts",
+      "line": 10,
+      "ranking_reason": "text_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "test content"
+    }
+  ]
+}

@@ -295,7 +295,6 @@ Output the diff in a code block with \`\`\`diff format.`,
     const claude = spawn(this.config.claudePath, args, {
       cwd: request.workspace,
       stdio: "inherit", // Connect to user's terminal
-      shell: true,
     });
 
     // Wait for process to exit
@@ -339,6 +338,13 @@ Output the diff in a code block with \`\`\`diff format.`,
       timeout: timeout / 1000,
     });
 
+    // Debug: log the command being executed
+    this.log.debug("Claude Code CLI command", {
+      cmd: this.config.claudePath,
+      args: args.map((arg) => (arg.length > 100 ? `${arg.slice(0, 100)}...` : arg)),
+      cwd: request.workspace,
+    });
+
     return new Promise((resolve) => {
       let output = "";
       let error = "";
@@ -346,12 +352,13 @@ Output the diff in a code block with \`\`\`diff format.`,
 
       const claude = spawn(this.config.claudePath, args, {
         cwd: request.workspace,
-        shell: true,
+        stdio: ["ignore", "pipe", "pipe"], // stdin=ignore (don't wait for input)
         env: {
           ...process.env,
-          // Pass prompt via environment to avoid shell escaping issues
-          ENDIORBOT_SYSTEM_PROMPT: request.systemPrompt,
-          ENDIORBOT_USER_PROMPT: request.userPrompt,
+          // Unset CLAUDECODE to allow invocation from within Claude Code session
+          CLAUDECODE: undefined,
+          // Unset ANTHROPIC_API_KEY to force OAuth (Max 200 subscription) usage
+          ANTHROPIC_API_KEY: undefined,
         },
       });
 
@@ -392,7 +399,8 @@ Output the diff in a code block with \`\`\`diff format.`,
         if (timedOut) {
           response.error = `Timed out after ${timeout / 1000}s`;
         } else if (code !== 0) {
-          response.error = error || `Exited with code ${code}`;
+          // Use stderr if available, otherwise stdout, otherwise generic message
+          response.error = error.trim() || output.trim() || `Exited with code ${code}`;
         }
 
         // Try to parse token usage from output
@@ -407,6 +415,16 @@ Output the diff in a code block with \`\`\`diff format.`,
           durationMs,
           outputLength: output.length,
         });
+
+        // Log error details if failed
+        if (!response.success) {
+          this.log.error("Claude Code error", {
+            exitCode: code,
+            stdout: output.trim() || "(empty)",
+            stderr: error.trim() || "(empty)",
+            error: response.error,
+          });
+        }
 
         resolve(response);
       });
@@ -432,6 +450,7 @@ Output the diff in a code block with \`\`\`diff format.`,
 
   /**
    * Build CLI arguments for Claude Code invocation.
+   * Note: Workspace is set via spawn's cwd option, not --cwd argument.
    */
   private buildArgs(request: InvokeRequest, interactive = false): string[] {
     const args: string[] = [];
@@ -439,40 +458,30 @@ Output the diff in a code block with \`\`\`diff format.`,
     // Print mode (non-interactive)
     if (!interactive) {
       args.push("-p");
+      args.push("--output-format", "text");
+      args.push("--no-session-persistence");
     }
 
-    // Combined prompt (system + user)
-    const fullPrompt = `${request.systemPrompt}\n\n---\n\n${request.userPrompt}`;
-    args.push(`"${this.escapeForShell(fullPrompt)}"`);
+    // Model selection - default to sonnet for cost efficiency
+    args.push("--model", "sonnet");
 
-    // Workspace
-    args.push("--cwd", request.workspace);
+    // Note: --max-budget-usd only works with API key, not OAuth subscription
+    // When using OAuth (Max 200), quota is managed by Anthropic, not USD budget
 
-    // Max tokens
-    if (request.maxTokens) {
-      args.push("--max-tokens", String(request.maxTokens));
-    }
-
-    // Tool restrictions (if supported by Claude CLI)
+    // Tool restrictions via --disallowed-tools (Claude Code supports this)
     if (request.disallowedTools && request.disallowedTools.length > 0) {
-      // Note: This would need to be supported by Claude Code CLI
-      // For now, we include it in the prompt as instructions
       args.push("--disallowed-tools", request.disallowedTools.join(","));
     }
 
-    return args;
-  }
+    // System prompt via --append-system-prompt
+    if (request.systemPrompt && request.systemPrompt.trim()) {
+      args.push("--append-system-prompt", request.systemPrompt);
+    }
 
-  /**
-   * Escape string for shell command.
-   */
-  private escapeForShell(str: string): string {
-    // Replace special characters
-    return str
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"')
-      .replace(/\$/g, "\\$")
-      .replace(/`/g, "\\`");
+    // User prompt as positional argument (must be last)
+    args.push(request.userPrompt);
+
+    return args;
   }
 
   /**
@@ -548,7 +557,7 @@ Output the diff in a code block with \`\`\`diff format.`,
   async isAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
       const claude = spawn(this.config.claudePath, ["--version"], {
-        shell: true,
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       claude.on("close", (code) => {

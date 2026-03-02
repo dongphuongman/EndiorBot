@@ -59,6 +59,8 @@ export interface ChatHandlerRequest {
   openaiModel?: string;
   geminiModel?: string;
   claudeModel?: string;
+  /** Primary provider (default: claude, use openai/gemini when Claude API credits low) */
+  primaryProvider?: "claude" | "openai" | "gemini";
   /** Force full consultation */
   forceConsultation?: boolean;
 }
@@ -112,7 +114,7 @@ export interface ChatHandlerResponse {
 
 /** Default models (configurable via CLI or config) */
 export const DEFAULT_MODELS = {
-  anthropic: "claude-3-5-sonnet-20241022",
+  anthropic: "claude-sonnet-4-5-20250929", // Claude 4.5 Sonnet (Max 200 plan)
   openai: "o3-mini",
   gemini: "gemini-2.0-flash-thinking",
 };
@@ -277,13 +279,31 @@ export class ChatHandler {
     // Query models based on routing
     const responses: ModelResponse[] = [];
 
-    // Always query primary (Claude)
-    const claudeResponse = await this.queryProvider(
-      "anthropic",
-      request.claudeModel ?? DEFAULT_MODELS.anthropic,
-      request.message,
-    );
-    responses.push(claudeResponse);
+    // Query primary provider (default: Claude, can be overridden for Max 200 users)
+    const primaryProvider = request.primaryProvider ?? "claude";
+    let primaryResponse: ModelResponse;
+
+    if (primaryProvider === "openai") {
+      primaryResponse = await this.queryProvider(
+        "openai",
+        request.openaiModel ?? DEFAULT_MODELS.openai,
+        request.message,
+      );
+    } else if (primaryProvider === "gemini") {
+      primaryResponse = await this.queryProvider(
+        "google",
+        request.geminiModel ?? DEFAULT_MODELS.gemini,
+        request.message,
+      );
+    } else {
+      // Default: Claude
+      primaryResponse = await this.queryProvider(
+        "anthropic",
+        request.claudeModel ?? DEFAULT_MODELS.anthropic,
+        request.message,
+      );
+    }
+    responses.push(primaryResponse);
 
     // Query critics if needed (parallel)
     if (routing.critics.length > 0) {
@@ -341,7 +361,7 @@ export class ChatHandler {
     }
 
     // Consolidate responses (primary_with_notes)
-    const consolidated = this.consolidate(claudeResponse, responses);
+    const consolidated = this.consolidate(primaryResponse, responses);
 
     // Calculate token usage
     const totalTokens = responses.reduce(
@@ -368,7 +388,7 @@ export class ChatHandler {
     const result: ChatHandlerResponse = {
       id: randomUUID(),
       taskType,
-      primary: claudeResponse.content,
+      primary: primaryResponse.content,
       consolidated,
       responses,
       totalLatencyMs: Date.now() - startTime,
@@ -628,7 +648,7 @@ export class ChatHandler {
     } = {
       text: response.consolidated.recommendation,
       model: response.responses[0]?.model ?? "unknown",
-      provider: "anthropic",
+      provider: response.responses[0]?.provider ?? "unknown",
       agreement: response.consolidated.agreement,
       tokenUsage: response.tokenUsage,
     };

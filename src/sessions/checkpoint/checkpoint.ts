@@ -480,7 +480,12 @@ export class FileCheckpointStore implements CheckpointStore {
     }
 
     // Sort by creation date (newest first)
-    summaries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    // Note: createdAt may be string (from JSON) or Date object
+    summaries.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
 
     return summaries;
   }

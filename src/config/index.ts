@@ -160,6 +160,26 @@ export {
 } from "./paths.js";
 
 // ============================================================================
+// Feature Flags (Sprint 63+)
+// ============================================================================
+
+export {
+  // Feature Flag Registry
+  FEATURE_FLAGS,
+  FEATURE_FLAG_SPRINTS,
+  // Type Definitions
+  type FeatureFlagKey,
+  type FeatureFlagValue,
+  // Utility Functions
+  isFeatureEnabled,
+  getEnabledFeatures,
+  getDisabledFeatures,
+  getFeatureFlagSummary,
+  getFeatureFlagWithEnvOverride,
+  getFeaturesForSprint,
+} from "./feature-flags.js";
+
+// ============================================================================
 // Convenience Re-exports
 // ============================================================================
 

@@ -21,6 +21,7 @@ import {
   type SearchResult,
   type ProviderHealth,
   type AstNodeKind,
+  RankingReason,
   createEmptyResponse,
   SEARCH_BUDGET,
   estimateTokens,
@@ -404,7 +405,7 @@ export class AstGrepProvider extends BaseSearchProvider {
         contextBefore,
         contextAfter,
         score: 100, // Structural matches get high base score
-        ranking_reason: "structural_match" as const,
+        ranking_reason: [RankingReason.AST_STRUCTURAL_MATCH],
         provider: this.name,
         specSnapshotMatch: false, // Will be enriched by RetrievalPolicy
       };

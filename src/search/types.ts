@@ -33,7 +33,7 @@ export interface SearchResult {
 
   // Ranking (for retrieval logging)
   score: number;
-  ranking_reason: RankingReason;
+  ranking_reason: RankingReason[];  // Array: multiple reasons possible (ADR-015)
 
   // Provider metadata (anti-hallucination)
   provider: ProviderName;
@@ -45,15 +45,34 @@ export interface SearchResult {
 
 /**
  * Ranking reasons for result ordering.
+ * Enum contract per ADR-015 (Sprint 65+).
+ *
+ * Results can have multiple reasons, use array: ranking_reason: RankingReason[]
  */
-export type RankingReason =
-  | "spec_snapshot_match"
-  | "stage_boost"
-  | "recency"
-  | "exact_match"
-  | "regex_match"
-  | "structural_match"
-  | "default";
+export enum RankingReason {
+  // Exact matches (highest priority)
+  EXACT_SYMBOL_MATCH = 'exact_symbol_match',
+  EXACT_MATCH = 'exact_match',
+
+  // Spec-based boosting (ADR-015)
+  SPEC_SNAPSHOT_MATCH = 'spec_snapshot_match',
+
+  // Context-aware boosting (Sprint 65+, ADR-015)
+  STAGE_BOOST = 'stage_boost',           // Stage-specific relevance (e.g., design stage → docs/02-design/**)
+  ROLE_BOOST = 'role_boost',             // Role-specific relevance (e.g., @coder → src/**)
+  RECENCY_BOOST = 'recency_boost',       // Git blame/mtime (newer = more relevant)
+
+  // Structural matching
+  AST_STRUCTURAL_MATCH = 'ast_structural_match',  // AST pattern match via ast-grep
+  STRUCTURAL_MATCH = 'structural_match',          // Legacy structural (deprecated)
+
+  // Text-based matching
+  REGEX_MATCH = 'regex_match',
+  TRIGRAM_MATCH = 'trigram_match',       // Zoekt indexing (Sprint 66-67 conditional)
+
+  // Fallback
+  DEFAULT = 'default'
+}
 
 /**
  * AST node kinds from ast-grep.
@@ -309,7 +328,8 @@ export interface RetrievalEvidence {
 export interface RetrievalEvidenceResult {
   path: string;
   line: number;
-  ranking_reason: RankingReason;
+  score: number;  // ADD: for machine-readable logs (ADR-015)
+  ranking_reason: RankingReason[];  // Array: multiple reasons (ADR-015)
   specSnapshotMatch: boolean;
   sourceExcerpt: string; // 1-3 lines context
 }

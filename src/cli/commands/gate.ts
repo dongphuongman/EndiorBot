@@ -23,10 +23,9 @@
  * @sdlc SDLC Framework 6.1.1
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { Command } from "commander";
-import { STATE_DIR } from "../../config/paths.js";
+import { loadActiveProject } from "../../config/paths.js";
 import {
   GateEngine,
   getChecklist,
@@ -55,23 +54,17 @@ interface ProjectContext {
  * Get current project from state.
  */
 function getCurrentProject(): ProjectContext | undefined {
-  const statePath = join(STATE_DIR, "projects.json");
-
-  if (!existsSync(statePath)) {
+  const active = loadActiveProject();
+  if (!active) {
     return undefined;
   }
 
-  try {
-    const content = readFileSync(statePath, "utf-8");
-    const state = JSON.parse(content);
-    if (state.currentProject && state.projects[state.currentProject]) {
-      return state.projects[state.currentProject] as ProjectContext;
-    }
-  } catch {
-    // Ignore
-  }
-
-  return undefined;
+  return {
+    id: active.name,
+    name: active.name,
+    path: active.path,
+    tier: active.tier,
+  };
 }
 
 /**

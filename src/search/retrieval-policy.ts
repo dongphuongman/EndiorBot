@@ -12,7 +12,7 @@
  * @sprint 63
  */
 
-import type { SearchOptions, SearchResult } from "./types.js";
+import { RankingReason, type SearchOptions, type SearchResult } from "./types.js";
 
 // ============================================================================
 // Types
@@ -105,7 +105,7 @@ export const STAGE_FILTERS: Record<string, StageFilter> = {
     priorityPatterns: ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "package.json"],
     excludePatterns: ["docs/**/*", "*.md", "node_modules/**", "dist/**"],
     contextDepth: 3,
-    priorityTypes: ["ts", "tsx", "js", "jsx"],
+    priorityTypes: ["ts", "js"], // Note: ts includes .tsx, js includes .jsx
   },
   "05-TEST": {
     priorityPatterns: ["tests/**/*", "*.test.ts", "*.spec.ts", "vitest.config.ts", "jest.config.*"],
@@ -181,13 +181,13 @@ export const ROLE_FILTERS: Record<string, RoleFilter> = {
     focusPaths: ["src/**/*", "tests/**/*", "*.ts", "*.tsx", "package.json"],
     contextDepth: 4,
     tokenBudget: 4000,
-    priorityTypes: ["ts", "tsx", "js", "jsx"],
+    priorityTypes: ["ts", "js"], // Note: ts includes .tsx, js includes .jsx
   },
   "@reviewer": {
     focusPaths: ["src/**/*", "tests/**/*", "docs/05-test/**/*"],
     contextDepth: 3,
     tokenBudget: 3500,
-    priorityTypes: ["ts", "tsx"],
+    priorityTypes: ["ts"], // Note: ts includes .tsx files
   },
   "@tester": {
     focusPaths: ["tests/**/*", "*.test.ts", "*.spec.ts", "src/**/*"],
@@ -331,11 +331,11 @@ export class RetrievalPolicy {
       // Check for spec snapshot match
       const specSnapshotMatch = specPaths.has(result.path);
 
-      // Boost ranking reason if spec match
+      // Boost ranking reason if spec match (ADR-015: array format)
       const ranking_reason = specSnapshotMatch
-        ? "spec_snapshot_match"
+        ? [RankingReason.SPEC_SNAPSHOT_MATCH]
         : this.getStageBoost(result.path)
-          ? "stage_boost"
+          ? [RankingReason.STAGE_BOOST]
           : result.ranking_reason;
 
       return {

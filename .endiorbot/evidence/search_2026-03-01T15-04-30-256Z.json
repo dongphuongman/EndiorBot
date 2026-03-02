@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:04:30.256Z",
+  "query": "GitContextManager",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 55,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 300,
+  "results": [
+    {
+      "path": "./src/context/__tests__/performance.bench.ts",
+      "line": 29,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "import { GitContextManager, resetGitContextManager } from \"../git-context.js\";"
+    },
+    {
+      "path": "./src/context/__tests__/performance.bench.ts",
+      "line": 45,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "let gitManager: GitContextManager;"
+    },
+    {
+      "path": "./src/context/__tests__/performance.bench.ts",
+      "line": 53,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  resetGitContextManager();"
+    },
+    {
+      "path": "./src/agents/context/context-injector.ts",
+      "line": 54,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  getGitContextManager,"
+    },
+    {
+      "path": "./src/context/__tests__/performance.bench.ts",
+      "line": 59,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  gitManager = new GitContextManager(process.cwd());"
+    },
+    {
+      "path": "./src/context/__tests__/performance.bench.ts",
+      "line": 67,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  resetGitContextManager();"
+    },
+    {
+      "path": "./src/context/git-context.ts",
+      "line": 118,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "// GitContextManager Class"
+    },
+    {
+      "path": "./src/context/git-context.ts",
+      "line": 128,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": " * const manager = new GitContextManager();"
+    },
+    {
+      "path": "./src/context/index.ts",
+      "line": 128,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  GitContextManager,"
+    },
+    {
+      "path": "./src/context/index.ts",
+      "line": 129,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "  getGitContextManager,"
+    }
+  ]
+}

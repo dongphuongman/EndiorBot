@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-01T15:04:23.049Z",
+  "query": "Master Plan",
+  "provider": "ripgrep",
+  "providerVersion": "ripgrep 15.1.0",
+  "elapsed_ms": 58,
+  "totalHits": 15,
+  "topKReturned": 15,
+  "truncated": false,
+  "tokensUsed": 364,
+  "results": [
+    {
+      "path": "./docs/00-foundation/master-plan.md",
+      "line": 1,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "# EndiorBot Master Plan"
+    },
+    {
+      "path": "./ROADMAP.md",
+      "line": 7,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "## Three Tiers (Scope-Locked per Master Plan v2.0)"
+    },
+    {
+      "path": "./docs/04-build/CURRENT-SPRINT.md",
+      "line": 7,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "**Master Plan**: v4.2"
+    },
+    {
+      "path": "./docs/01-planning/roadmap.md",
+      "line": 8,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "**Master Plan:** v4.0"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-54-ai-chat-integration.md",
+      "line": 9,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "## Alignment with Master Plan v2.0"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-55-agent-orchestration.md",
+      "line": 10,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "## Alignment with Master Plan v3.1"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-68-compliance.md",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "| **Master Plan Version** | v4.2 |"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-65-context-anchoring.md",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "| **Master Plan Version** | v4.2 |"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-66-67-search-scale-up.md",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "| **Master Plan Version** | v4.2 |"
+    },
+    {
+      "path": "./docs/04-build/sprints/sprint-64-retrieval-intelligence.md",
+      "line": 11,
+      "ranking_reason": "exact_match",
+      "specSnapshotMatch": false,
+      "sourceExcerpt": "| **Master Plan Version** | v4.2 |"
+    }
+  ]
+}
