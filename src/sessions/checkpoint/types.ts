@@ -40,7 +40,19 @@ export type CheckpointReason =
   | "manual" // User `endiorbot checkpoint`
   | "crash" // Unexpected error
   | "timeout" // Session timeout
-  | "auto"; // Auto-checkpoint interval
+  | "auto" // Auto-checkpoint interval
+  // Session lifecycle (Sprint 69-71)
+  | "session_start" // Session started
+  | "session_end" // Session ended
+  | "session_complete" // Session completed
+  | "stage_complete" // Stage completed
+  | "milestone" // Stage/task completed
+  | "escalation" // Issue escalated to human
+  | "error_recovery" // Error recovery point
+  | "before_risky_action" // Before risky operation
+  | "before_rollback" // Before rollback operation
+  | "user_pause" // User paused session
+  | "time_interval"; // Time-based checkpoint
 
 // ============================================================================
 // Soul Types (Agent Personas)
@@ -58,7 +70,16 @@ export type SoulType = "pm" | "architect" | "coder" | "reviewer" | "researcher" 
 /**
  * Current SDLC execution phase.
  */
-export type ExecutionPhase = "research" | "design" | "implement" | "test" | "review";
+export type ExecutionPhase =
+  | "research"
+  | "planning"
+  | "design"
+  | "implement"
+  | "implementation"
+  | "test"
+  | "testing"
+  | "review"
+  | "completion";
 
 // ============================================================================
 // Tool Call State

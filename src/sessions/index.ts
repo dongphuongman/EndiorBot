@@ -135,4 +135,95 @@ export {
   restoreFromBackup,
   getAvailableResolutions,
   getRecommendedResolution,
+  // Checkpoint Scheduler (Sprint 69-71)
+  type CheckpointTriggerType,
+  type CheckpointTrigger,
+  type TimeCondition,
+  type EventCondition,
+  type PatchCountCondition,
+  type CheckpointCondition,
+  type CheckpointEvent,
+  type CheckpointEventData,
+  type CheckpointSchedulerConfig,
+  type CheckpointReasonContext,
+  DEFAULT_CHECKPOINT_TRIGGERS,
+  CheckpointScheduler,
+  getCheckpointScheduler,
+  resetCheckpointScheduler,
+  createCheckpointScheduler,
 } from "./checkpoint/index.js";
+
+// ============================================================================
+// Session State Machine (Sprint 69-71)
+// ============================================================================
+
+export {
+  // Types
+  ResilienceState,
+  type StateTransition,
+  type StateHistoryEntry,
+  type StateMachineConfig,
+  // Constants
+  DEFAULT_STATE_TRANSITIONS,
+  // State Machine
+  ResilienceStateMachine,
+  createStateMachine,
+  // Utilities
+  stateToSDLCStage,
+  sdlcStageToState,
+} from "./state-machine.js";
+
+// ============================================================================
+// Session Resilience (Sprint 69-71)
+// ============================================================================
+
+export {
+  // Types
+  type SessionResilienceConfig,
+  type StageResult,
+  type SessionStatus,
+  type StartOptions,
+  // Manager
+  SessionResilienceManager,
+  getSessionResilienceManager,
+  setSessionResilienceManager,
+  createSessionResilienceManager,
+  resetSessionResilienceManager,
+} from "./session-resilience.js";
+
+// ============================================================================
+// Failure Module (Sprint 69-71)
+// ============================================================================
+
+export {
+  // Types
+  FailureType,
+  type EvidenceType,
+  type FailureEvidence,
+  type ClassificationResult as FailureClassificationResult,
+  type FailureClassifierConfig,
+  // Classifier
+  FailureClassifier,
+  getFailureClassifier,
+  resetFailureClassifier,
+  createFailureClassifier,
+} from "./failure/index.js";
+
+// ============================================================================
+// Recovery Module (Sprint 69-71)
+// ============================================================================
+
+export {
+  // Types
+  type RecoveryAction,
+  type RecoveryResult,
+  type EscalationDetails,
+  type RecoveryEngineConfig,
+  type RecoveryContext,
+  // Engine
+  RecoveryEngine,
+  getRecoveryEngine,
+  setRecoveryEngine,
+  createRecoveryEngine,
+  resetRecoveryEngine,
+} from "./recovery/index.js";

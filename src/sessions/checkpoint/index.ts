@@ -276,3 +276,28 @@ export {
   commitAndCheckpoint,
   gitRollback,
 } from "./git-automation.js";
+
+// ============================================================================
+// Checkpoint Scheduler (Sprint 69-71)
+// ============================================================================
+
+export {
+  // Types
+  type CheckpointTriggerType,
+  type CheckpointTrigger,
+  type TimeCondition,
+  type EventCondition,
+  type PatchCountCondition,
+  type CheckpointCondition,
+  type CheckpointEvent,
+  type CheckpointEventData,
+  type CheckpointSchedulerConfig,
+  type CheckpointReasonContext,
+  // Constants
+  DEFAULT_CHECKPOINT_TRIGGERS,
+  // Scheduler
+  CheckpointScheduler,
+  getCheckpointScheduler,
+  resetCheckpointScheduler,
+  createCheckpointScheduler,
+} from "./scheduler.js";
