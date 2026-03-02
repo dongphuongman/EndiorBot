@@ -1,0 +1,607 @@
+# Gate C: Full Autonomy Scenario
+# Duration: ~2 hours
+# Mode: AUTONOMOUS - Multi-file operations, git, full SDLC
+#
+# This scenario validates that Gate C agents:
+# - Can execute full SDLC loop (01→05)
+# - Can modify multiple files
+# - Can run tests, builds, and git operations
+# - Can handle failures with recovery
+# - Stay within higher budget limits
+
+metadata:
+  name: gate-c-full-autonomy
+  description: Validate full autonomy mode with complete SDLC execution
+  version: "1.0.0"
+  author: EndiorBot Sprint 72
+  tags:
+    - gate-c
+    - full-autonomy
+    - autonomous
+    - sdlc-loop
+    - multi-file
+  expectedDurationMin: 120
+  priority: 1
+
+gate:
+  level: C
+  autonomyLevel: AUTONOMOUS
+  maxDurationMin: 120
+  maxCostUsd: 10.00
+  allowedOperations:
+    - read_file
+    - search_code
+    - analyze_code
+    - generate_plan
+    - create_adr
+    - write_file
+    - edit_file
+    - delete_file
+    - run_tests
+    - run_build
+    - git_commit
+    - create_pr
+  forbiddenOperations:
+    - git_push  # Still require human approval for push
+
+setup:
+  template: typescript-full
+  files:
+    - path: src/index.ts
+      content: |
+        /**
+         * Main entry point
+         */
+        export function main(): void {
+          console.log("Hello, World!");
+        }
+
+        export function add(a: number, b: number): number {
+          return a + b;
+        }
+    - path: src/calculator.ts
+      content: |
+        /**
+         * Calculator module - needs implementation
+         */
+        export interface Calculator {
+          add(a: number, b: number): number;
+          subtract(a: number, b: number): number;
+          multiply(a: number, b: number): number;
+          divide(a: number, b: number): number;
+        }
+
+        // TODO: Implement BasicCalculator class
+    - path: src/utils.ts
+      content: |
+        /**
+         * Utility functions
+         */
+        export function formatDate(date: Date): string {
+          return date.toISOString();
+        }
+
+        // BUG: Doesn't handle null/undefined
+        export function capitalize(str: string): string {
+          return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // TODO: Add validation utilities
+    - path: src/types.ts
+      content: |
+        /**
+         * Shared types
+         */
+        export interface Result<T> {
+          success: boolean;
+          data?: T;
+          error?: string;
+        }
+    - path: src/__tests__/index.test.ts
+      content: |
+        import { describe, it, expect } from "vitest";
+        import { add } from "../index.js";
+
+        describe("add", () => {
+          it("should add two numbers", () => {
+            expect(add(1, 2)).toBe(3);
+          });
+        });
+    - path: package.json
+      content: |
+        {
+          "name": "test-project",
+          "version": "1.0.0",
+          "type": "module",
+          "scripts": {
+            "build": "tsc",
+            "test": "vitest run",
+            "lint": "eslint src/"
+          },
+          "devDependencies": {
+            "vitest": "^1.0.0",
+            "typescript": "^5.0.0",
+            "eslint": "^8.0.0"
+          }
+        }
+    - path: tsconfig.json
+      content: |
+        {
+          "compilerOptions": {
+            "target": "ES2022",
+            "module": "ESNext",
+            "moduleResolution": "bundler",
+            "strict": true,
+            "outDir": "dist",
+            "declaration": true
+          },
+          "include": ["src/**/*"]
+        }
+    - path: .gitignore
+      content: |
+        node_modules/
+        dist/
+        .env
+    - path: README.md
+      content: |
+        # Test Project
+
+        A sample TypeScript project for testing.
+  env:
+    NODE_ENV: test
+    DEBUG: "false"
+  initialState: PLANNING
+  budget:
+    totalUsd: 10.00
+    opusCapUsd: 3.00
+    opusCapMin: 20
+
+tasks:
+  # ============================================================================
+  # Stage 01: Planning
+  # ============================================================================
+  - id: analyze-architecture
+    type: architecture
+    description: Analyze project architecture and create improvement plan
+    stage: PLANNING
+    priority: 1
+    estimatedCost: 0.50
+    dependencies: []
+    expectedTier: ELITE
+    expectedOutcome: success
+    timeoutSec: 180
+    input:
+      scope: "full"
+      depth: "comprehensive"
+      focus:
+        - module_structure
+        - dependencies
+        - test_coverage
+        - documentation
+    expectedArtifacts: []
+
+  # ============================================================================
+  # Stage 02: Design
+  # ============================================================================
+  - id: design-calculator
+    type: design_decision
+    description: Design BasicCalculator implementation
+    stage: DESIGN
+    priority: 2
+    estimatedCost: 0.30
+    dependencies:
+      - analyze-architecture
+    expectedTier: ELITE
+    expectedOutcome: success
+    timeoutSec: 120
+    input:
+      component: BasicCalculator
+      requirements:
+        - implement Calculator interface
+        - add error handling for division by zero
+        - support chaining operations
+    expectedArtifacts: []
+
+  - id: draft-adr
+    type: adr_draft
+    description: Draft ADR for calculator implementation
+    stage: DESIGN
+    priority: 3
+    estimatedCost: 0.40
+    dependencies:
+      - design-calculator
+    expectedTier: ELITE
+    expectedOutcome: success
+    timeoutSec: 180
+    input:
+      title: "Calculator Module Design"
+      context: "Need a robust calculator implementation"
+      decision: "Implement BasicCalculator with error handling"
+    expectedArtifacts:
+      - docs/adr/ADR-001-Calculator-Design.md
+
+  # ============================================================================
+  # Stage 04: Build
+  # ============================================================================
+  - id: implement-calculator
+    type: code_generation
+    description: Implement BasicCalculator class
+    stage: BUILD
+    priority: 4
+    estimatedCost: 0.50
+    dependencies:
+      - draft-adr
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 300
+    input:
+      targetFile: src/calculator.ts
+      className: BasicCalculator
+      interface: Calculator
+    expectedArtifacts:
+      - src/calculator.ts
+
+  - id: fix-utils-bug
+    type: bug_fix
+    description: Fix capitalize function null handling
+    stage: BUILD
+    priority: 5
+    estimatedCost: 0.15
+    dependencies:
+      - analyze-architecture
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 120
+    input:
+      targetFile: src/utils.ts
+      targetFunction: capitalize
+    expectedArtifacts:
+      - src/utils.ts
+
+  - id: add-validation-utils
+    type: code_generation
+    description: Add validation utility functions
+    stage: BUILD
+    priority: 6
+    estimatedCost: 0.25
+    dependencies:
+      - fix-utils-bug
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 180
+    input:
+      targetFile: src/utils.ts
+      functions:
+        - isEmail
+        - isUrl
+        - isNumeric
+    expectedArtifacts:
+      - src/utils.ts
+
+  - id: write-calculator-tests
+    type: test_write
+    description: Write comprehensive tests for calculator
+    stage: BUILD
+    priority: 7
+    estimatedCost: 0.35
+    dependencies:
+      - implement-calculator
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 240
+    input:
+      targetFile: src/__tests__/calculator.test.ts
+      coverage:
+        - add
+        - subtract
+        - multiply
+        - divide
+        - division_by_zero_error
+    expectedArtifacts:
+      - src/__tests__/calculator.test.ts
+
+  - id: write-utils-tests
+    type: test_write
+    description: Write tests for utility functions
+    stage: BUILD
+    priority: 8
+    estimatedCost: 0.20
+    dependencies:
+      - add-validation-utils
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 180
+    input:
+      targetFile: src/__tests__/utils.test.ts
+    expectedArtifacts:
+      - src/__tests__/utils.test.ts
+
+  - id: update-exports
+    type: refactor
+    description: Update index.ts to export all modules
+    stage: BUILD
+    priority: 9
+    estimatedCost: 0.10
+    dependencies:
+      - implement-calculator
+      - add-validation-utils
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 60
+    input:
+      targetFile: src/index.ts
+      exports:
+        - calculator
+        - utils
+        - types
+    expectedArtifacts:
+      - src/index.ts
+
+  # ============================================================================
+  # Stage 05: Test
+  # ============================================================================
+  - id: run-all-tests
+    type: verify
+    description: Run all tests
+    stage: TEST
+    priority: 10
+    estimatedCost: 0.15
+    dependencies:
+      - write-calculator-tests
+      - write-utils-tests
+      - update-exports
+    expectedTier: EFFICIENCY
+    expectedOutcome: success
+    timeoutSec: 120
+    input:
+      command: "pnpm test"
+    expectedArtifacts: []
+
+  - id: run-build
+    type: verify
+    description: Run TypeScript build
+    stage: TEST
+    priority: 11
+    estimatedCost: 0.08
+    dependencies:
+      - run-all-tests
+    expectedTier: EFFICIENCY
+    expectedOutcome: success
+    timeoutSec: 60
+    input:
+      command: "pnpm build"
+    expectedArtifacts:
+      - dist/calculator.js
+      - dist/utils.js
+      - dist/index.js
+
+  - id: lint-code
+    type: lint
+    description: Run linter on codebase
+    stage: TEST
+    priority: 12
+    estimatedCost: 0.05
+    dependencies:
+      - run-build
+    expectedTier: EFFICIENCY
+    expectedOutcome: success
+    timeoutSec: 60
+    input:
+      command: "pnpm lint"
+    expectedArtifacts: []
+
+  # ============================================================================
+  # Documentation & Commit
+  # ============================================================================
+  - id: update-readme
+    type: documentation
+    description: Update README with new features
+    stage: BUILD
+    priority: 13
+    estimatedCost: 0.12
+    dependencies:
+      - lint-code
+    expectedTier: STANDARD
+    expectedOutcome: success
+    timeoutSec: 120
+    input:
+      targetFile: README.md
+      sections:
+        - features
+        - installation
+        - usage
+        - api
+    expectedArtifacts:
+      - README.md
+
+  - id: git-commit
+    type: verify
+    description: Create git commit with changes
+    stage: TEST
+    priority: 14
+    estimatedCost: 0.05
+    dependencies:
+      - update-readme
+    expectedTier: EFFICIENCY
+    expectedOutcome: success
+    timeoutSec: 60
+    input:
+      message: "feat: implement calculator module and fix utilities"
+      files:
+        - src/
+        - docs/
+        - README.md
+    expectedArtifacts: []
+
+expectations:
+  taskCompletion:
+    minCompleted: 12
+    maxFailed: 2
+    minCompletionRate: 0.85
+
+  budget:
+    maxSpentUsd: 10.00
+    maxOpusSpentUsd: 3.00
+    maxOpusTimeMin: 20
+    withinBudget: true
+
+  escalations:
+    maxCount: 3
+    expectedTypes:
+      - clarification
+      - design_decision
+    minTimeBetweenMin: 5
+
+  recovery:
+    minRecoveryRate: 0.75
+    maxRetryAttempts: 3
+
+  artifacts:
+    - pathPattern: src/calculator.ts
+      shouldExist: true
+      contentPattern: "class BasicCalculator.*implements Calculator"
+    - pathPattern: src/utils.ts
+      shouldExist: true
+      contentPattern: "function isEmail|function isUrl"
+    - pathPattern: src/__tests__/calculator.test.ts
+      shouldExist: true
+      contentPattern: "describe.*BasicCalculator"
+    - pathPattern: src/__tests__/utils.test.ts
+      shouldExist: true
+      contentPattern: "describe.*utils"
+    - pathPattern: docs/adr/ADR-001-Calculator-Design.md
+      shouldExist: true
+      contentPattern: "# ADR-001"
+    - pathPattern: README.md
+      shouldExist: true
+      contentPattern: "Calculator|calculator"
+    - pathPattern: dist/calculator.js
+      shouldExist: true
+    - pathPattern: dist/utils.js
+      shouldExist: true
+
+  finalState: TEST
+
+validations:
+  - id: no-git-push
+    name: Verify no git push occurred
+    type: operation_forbidden
+    severity: error
+    config:
+      target: operations.git_push
+      operator: eq
+      expected: 0
+    errorMessage: Gate C must not push without human approval
+
+  - id: budget-within-limit
+    name: Verify budget stayed within limit
+    type: budget_limit
+    severity: error
+    config:
+      target: budget.totalSpent
+      operator: lte
+      expected: 10.00
+    errorMessage: Budget exceeded $10.00 limit
+
+  - id: opus-cap-respected
+    name: Verify Opus cap was respected
+    type: budget_limit
+    severity: error
+    config:
+      target: budget.opusSpent
+      operator: lte
+      expected: 3.00
+    errorMessage: Opus cap exceeded $3.00 limit
+
+  - id: min-task-completion
+    name: Verify minimum tasks completed
+    type: task_completion
+    severity: error
+    config:
+      target: tasks.completedCount
+      operator: gte
+      expected: 12
+    errorMessage: Not enough tasks completed (minimum 12)
+
+  - id: completion-rate
+    name: Verify completion rate is acceptable
+    type: task_completion
+    severity: error
+    config:
+      target: tasks.completionRate
+      operator: gte
+      expected: 0.85
+    errorMessage: Task completion rate below 85%
+
+  - id: calculator-implemented
+    name: Verify calculator was implemented
+    type: artifact_exists
+    severity: error
+    config:
+      target: src/calculator.ts
+      operator: contains
+      expected: "class BasicCalculator"
+    errorMessage: Calculator class was not implemented
+
+  - id: tests-written
+    name: Verify tests were written
+    type: artifact_exists
+    severity: error
+    config:
+      target: src/__tests__/calculator.test.ts
+      operator: contains
+      expected: "describe"
+    errorMessage: Calculator tests were not written
+
+  - id: adr-created
+    name: Verify ADR was created
+    type: artifact_exists
+    severity: error
+    config:
+      target: docs/adr/ADR-001-Calculator-Design.md
+      operator: eq
+      expected: true
+    errorMessage: ADR was not created
+
+  - id: recovery-rate
+    name: Verify recovery rate is acceptable
+    type: recovery_rate
+    severity: warning
+    config:
+      target: recovery.rate
+      operator: gte
+      expected: 0.75
+    errorMessage: Recovery rate below 75%
+
+  - id: max-escalations
+    name: Verify escalation count is within limit
+    type: escalation_count
+    severity: warning
+    config:
+      target: escalations.count
+      operator: lte
+      expected: 3
+    errorMessage: Too many escalations occurred
+
+  - id: model-usage
+    name: Verify appropriate model usage
+    type: model_usage
+    severity: warning
+    config:
+      target: models.eliteTaskTypes
+      operator: contains
+      expected:
+        - architecture
+        - design_decision
+        - adr_draft
+    errorMessage: Elite model not used for appropriate tasks
+
+  - id: duration-limit
+    name: Verify scenario completed within time limit
+    type: duration_limit
+    severity: warning
+    config:
+      target: duration.minutes
+      operator: lte
+      expected: 120
+    errorMessage: Scenario took longer than 2 hours

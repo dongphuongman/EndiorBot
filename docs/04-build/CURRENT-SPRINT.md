@@ -1,8 +1,8 @@
-# Current Sprint: Sprint 69-71 - IN PROGRESS
+# Current Sprint: Sprint 72 - COMPLETE
 
-**Status**: 🚧 IN PROGRESS
-**Duration**: 30 hours (3 weeks)
-**Goal**: Session Resilience - State Machine + Recovery Engine
+**Status**: ✅ COMPLETE
+**Duration**: 40 hours (4 weeks)
+**Goal**: v2.0 Autonomous SDLC Agent - AER Metrics + Model Tiering
 **Start Date**: 2026-03-02
 **End Date**: TBD
 **Master Plan Version**: v4.3
@@ -19,117 +19,175 @@
 | Sprint 65 | v1.5 Context Anchoring | ✅ COMPLETE |
 | Sprint 66-67 | ZoektProvider (SKIPPED - P95 < 2s) | ✅ SKIPPED |
 | Sprint 68 | v1.8 Compliance | ✅ COMPLETE |
-| **Sprint 69-71** | **Session Resilience** | **🚧 IN PROGRESS** |
+| Sprint 69-71 | Session Resilience | ✅ COMPLETE |
+| **Sprint 72** | **v2.0 Autonomous SDLC Agent** | **✅ COMPLETE** |
 
 ---
 
-## Sprint 69-71 Summary
+## Sprint 72 Summary
 
 ```
-Session Resilience - IN PROGRESS
-- State Machine: SDLC-aligned transitions with guards/actions
-- Recovery Engine: Retry/Fix/Escalate recovery strategies
-- Failure Classifier: TRANSIENT/FIXABLE/DESIGN_ISSUE classification
-- Checkpoint Scheduler: Auto-checkpoint on time/event/patch triggers
+v2.0 Autonomous SDLC Agent - COMPLETE ✅
+- AER Metrics: Autonomy Time, TCR, RR, Tool Choice, Cost per Task ✅
+- Model Tiering: Opus/Sonnet/Haiku selection with budget caps ✅
+- Autonomous Session Manager: Full SDLC loop (01→05) ✅
+- Golden Scenarios: Gate A/B/C validation ✅
 ```
 
 ---
 
-## Week 1: Session State Machine (10h) - ✅ COMPLETE
+## Week 1: AER Metrics (10h) - ✅ COMPLETE
 
 | # | Task | Hours | Status |
 |---|------|-------|--------|
-| T9.1 | SessionStateMachine with transitions | 3h | ✅ COMPLETE |
-| T9.2 | SessionResilienceManager | 3h | ✅ COMPLETE |
-| T9.3 | CheckpointScheduler | 2h | ✅ COMPLETE |
-| T9.4 | Unit tests | 2h | ✅ COMPLETE (36 tests) |
+| T12.1 | AER Calculator types and implementation | 6h | ✅ COMPLETE |
+| T12.2 | Analytics CLI (`endiorbot analytics aer`) | 4h | ✅ COMPLETE |
 
 **Files Created:**
-- `src/sessions/state-machine.ts` - ResilienceState enum, SessionStateMachine
-- `src/sessions/session-resilience.ts` - SessionResilienceManager
-- `src/sessions/checkpoint/scheduler.ts` - CheckpointScheduler
-- `src/sessions/__tests__/state-machine.test.ts` - 36 tests
+- `src/metrics/types.ts` - AERMetrics, AERResult, AERTargets interfaces
+- `src/metrics/aer-calculator.ts` - AERCalculator class
+- `src/metrics/index.ts` - Barrel export
+- `src/metrics/__tests__/aer-calculator.test.ts` - 32 tests
+
+**CLI Commands Added:**
+```bash
+endiorbot analytics aer              # Show AER for current session
+endiorbot analytics aer --session X  # Specific session
+endiorbot analytics aer --last 10    # Last 10 sessions
+endiorbot analytics aer --export report.md  # Export to markdown
+```
 
 ---
 
-## Week 2: Auto-Checkpointing (10h) - ✅ COMPLETE
+## Week 2: Model Tiering (10h) - ✅ COMPLETE
 
 | # | Task | Hours | Status |
 |---|------|-------|--------|
-| T9.4 | Checkpoint types and persistence | 3h | ✅ COMPLETE |
-| - | Extended CheckpointReason types | - | ✅ COMPLETE |
-| - | Extended ExecutionPhase types | - | ✅ COMPLETE |
+| T12.3 | ModelSelector with 3 tiers | 6h | ✅ COMPLETE |
+| T12.4 | SessionBudget with Opus cap | 4h | ✅ COMPLETE |
+
+**Files Created:**
+- `src/models/types.ts` - ModelTier enum, TaskType, BudgetConfig, BudgetState interfaces
+- `src/models/model-selector.ts` - ModelSelector class with auto-escalation/downgrade
+- `src/models/session-budget.ts` - SessionBudget with Opus cap ($3/20min)
+- `src/models/index.ts` - Barrel export
+- `src/models/__tests__/model-selector.test.ts` - 31 tests
+- `src/models/__tests__/session-budget.test.ts` - 40 tests
+
+**Features Implemented:**
+- 3-tier model system: ELITE (Opus), STANDARD (Sonnet), EFFICIENCY (Haiku)
+- Task type mapping (architecture→Opus, code_generation→Sonnet, lint→Haiku)
+- Auto-escalation after repeated failures
+- Budget-aware downgrade when caps reached
+- Opus caps: $3 USD, 20 minutes per session
+- Stage-based budget allocation
+- Event system for budget warnings
 
 ---
 
-## Week 3: Failure Classification & Recovery (10h) - ✅ COMPLETE
+## Week 3: Autonomous Session Manager (12h) - ✅ COMPLETE
 
 | # | Task | Hours | Status |
 |---|------|-------|--------|
-| T9.5 | FailureClassifier implementation | 3h | ✅ COMPLETE |
-| T9.6 | RecoveryEngine implementation | 3h | ✅ COMPLETE |
-| - | Unit tests for classifier | 2h | ✅ COMPLETE (25 tests) |
-| - | Unit tests for recovery | 2h | ✅ COMPLETE (19 tests) |
+| T12.5 | AutonomousSessionManager | 12h | ✅ COMPLETE |
 
 **Files Created:**
-- `src/sessions/failure/types.ts` - FailureType, EvidenceType, FailureEvidence
-- `src/sessions/failure/classifier.ts` - FailureClassifier with pattern matching
-- `src/sessions/failure/index.ts` - Barrel export
-- `src/sessions/recovery/types.ts` - RecoveryAction, RecoveryResult, EscalationDetails
-- `src/sessions/recovery/engine.ts` - RecoveryEngine with retry/fix/escalate
-- `src/sessions/recovery/index.ts` - Barrel export
-- `src/sessions/__tests__/failure-classifier.test.ts` - 25 tests
-- `src/sessions/__tests__/recovery-engine.test.ts` - 19 tests
+- `src/sessions/autonomous/types.ts` - AutonomyLevel enum, AutonomyGate configs, Task/Decision/Escalation types
+- `src/sessions/autonomous/manager.ts` - AutonomousSessionManager class with full SDLC orchestration
+- `src/sessions/autonomous/index.ts` - Barrel export
+- `src/sessions/autonomous/__tests__/manager.test.ts` - 32 tests
+
+**Features Implemented:**
+- Autonomy Gates (A/B/C) with different time/cost limits
+- AutonomyLevel enum: SUPERVISED, ASSISTED, AUTONOMOUS, FULL_AUTONOMY
+- Task queue with priority sorting and dependency handling
+- Budget-aware model selection with automatic downgrade
+- Non-blocking escalation system
+- Integration with Sprint 69-71 resilience (FailureClassifier, RecoveryEngine)
+- Event-driven architecture for session monitoring
+- Conservative choice fallback on decision timeouts
+
+---
+
+## Week 4: Golden Scenarios (8h) - ✅ COMPLETE
+
+| # | Task | Hours | Status |
+|---|------|-------|--------|
+| T12.6 | Golden Scenario tests | 8h | ✅ COMPLETE |
+
+**Files Created:**
+- `tests/golden-scenarios/types.ts` - ScenarioRunner config, validation types
+- `tests/golden-scenarios/runner.ts` - Scenario execution engine
+- `tests/golden-scenarios/validator.ts` - Result validation engine
+- `tests/golden-scenarios/index.ts` - Barrel export
+- `tests/golden-scenarios/gate-a.yml` - Design only scenario (30min)
+- `tests/golden-scenarios/gate-b.yml` - Limited writes scenario (30min)
+- `tests/golden-scenarios/gate-c.yml` - Full autonomy scenario (2h)
+- `tests/golden-scenarios/README.md` - Documentation
+- `tests/golden-scenarios/__tests__/` - 49 unit tests
+
+**Features Implemented:**
+- ScenarioRunner with dry-run, parallel, cleanup modes
+- ScenarioValidator with 10+ validation types
+- YAML scenario schema with metadata, gate config, tasks, expectations
+- Gate A: Design only (read, analyze, plan)
+- Gate B: Limited writes (single file edits, tests)
+- Gate C: Full autonomy (multi-file, git commits)
 
 ---
 
 ## Current Status
 
-### Implemented Features
+### Implemented Features (Week 1 + Week 2 + Week 3 + Week 4)
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| ResilienceState enum | SDLC-aligned states (INIT→PLANNING→DESIGN→BUILD→TEST→DONE) | ✅ |
-| SessionStateMachine | State transitions with guards, actions, wildcards | ✅ |
-| Pause/Resume | Pause to PAUSED, resume to previous state | ✅ |
-| Skip paths | quick_start, skip_design, skip_test | ✅ |
-| Retry paths | retry_build, test_failure, retry | ✅ |
-| Rollback paths | design_issue, replan_needed | ✅ |
-| SessionResilienceManager | Stage execution with auto-checkpointing | ✅ |
-| CheckpointScheduler | Time, event, and patch_count triggers | ✅ |
-| FailureClassifier | Pattern-based classification (TRANSIENT/FIXABLE/DESIGN_ISSUE) | ✅ |
-| Evidence detection | repeated_failure, spec_mismatch, breaking_change, etc. | ✅ |
-| CTO P0-6 compliance | ≥2 evidence types required for DESIGN_ISSUE escalation | ✅ |
-| RecoveryEngine | Retry with exponential backoff, fix loop, escalation | ✅ |
-| Escalation suggestions | Context-aware suggestions for human review | ✅ |
+| AERMetrics interface | 5 primary metrics + breakdown | ✅ |
+| AERCalculator | Parse logs, calculate metrics | ✅ |
+| Model cost calculation | Opus/Sonnet/Haiku pricing | ✅ |
+| Model tier detection | getModelTier() utility | ✅ |
+| AER targets | DEFAULT_AER_TARGETS (v2.0 spec) | ✅ |
+| Analytics CLI aer | `endiorbot analytics aer` command | ✅ |
+| Markdown export | `--export report.md` option | ✅ |
+| ModelTier enum | ELITE/STANDARD/EFFICIENCY tiers | ✅ |
+| ModelSelector | Task type → tier mapping | ✅ |
+| Auto-escalation | Upgrade tier after failures | ✅ |
+| Budget-aware downgrade | Downgrade when budget low | ✅ |
+| SessionBudget | Track spending per tier/stage | ✅ |
+| Opus caps | $3 USD / 20 min per session | ✅ |
+| Budget events | Warning/cap/exceeded events | ✅ |
+| AutonomyLevel enum | SUPERVISED/ASSISTED/AUTONOMOUS/FULL_AUTONOMY | ✅ |
+| Autonomy Gates (A/B/C) | Time/cost limits per gate level | ✅ |
+| AutonomousSessionManager | Full SDLC orchestration (01→05) | ✅ |
+| Task queue management | Priority sorting, dependency handling | ✅ |
+| Non-blocking escalation | Timeout with conservative fallback | ✅ |
+| Resilience integration | FailureClassifier + RecoveryEngine | ✅ |
+| Event-driven monitoring | Session events for external listeners | ✅ |
+| Golden Scenarios | Gate A/B/C validation scenarios | ✅ |
+| ScenarioRunner | Scenario execution with dry-run, parallel | ✅ |
+| ScenarioValidator | 10+ validation rule types | ✅ |
+| YAML Scenario Schema | Metadata, gate config, tasks, validations | ✅ |
 
 ### Test Summary
 
 | Test Suite | Tests | Status |
 |------------|-------|--------|
-| State Machine | 36 | ✅ |
-| Failure Classifier | 25 | ✅ |
-| Recovery Engine | 19 | ✅ |
-| **Sprint 69-71 Total** | **80** | **✅** |
+| AER Calculator | 32 | ✅ |
+| ModelSelector | 31 | ✅ |
+| SessionBudget | 40 | ✅ |
+| AutonomousSessionManager | 32 | ✅ |
+| Golden Scenarios | 49 | ✅ |
+| **Sprint 72 Total** | **184** | **✅** |
 
-### Exports Added to `src/sessions/index.ts`
+### AER Targets (v2.0)
 
-```typescript
-// State Machine
-export { ResilienceState, SessionStateMachine, createStateMachine, ... }
-
-// Session Resilience
-export { SessionResilienceManager, createSessionResilienceManager, ... }
-
-// Checkpoint Scheduler
-export { CheckpointScheduler, createCheckpointScheduler, ... }
-
-// Failure Classification
-export { FailureType, FailureClassifier, createFailureClassifier, ... }
-
-// Recovery Engine
-export { RecoveryEngine, createRecoveryEngine, ... }
-```
+| Metric | Target |
+|--------|--------|
+| Autonomy Time | ≥30 minutes between escalations |
+| Task Completion Rate | ≥70% without intervention |
+| Recovery Rate | ≥80% failures self-healed |
+| Tool Choice Accuracy | ≥85% correct selections |
+| Cost per Task | <$1.00 per task |
 
 ---
 
@@ -137,30 +195,38 @@ export { RecoveryEngine, createRecoveryEngine, ... }
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| State transitions | 15+ | 18 | ✅ |
-| State machine tests | 20+ | 36 | ✅ |
-| Failure classifier tests | 10+ | 25 | ✅ |
-| Recovery engine tests | 10+ | 19 | ✅ |
-| Total new tests | 40+ | 80 | ✅ |
+| AER Calculator tests | 20+ | 32 | ✅ |
+| ModelSelector tests | 20+ | 31 | ✅ |
+| SessionBudget tests | 20+ | 40 | ✅ |
+| AutonomousSessionManager tests | 20+ | 32 | ✅ |
+| Golden Scenarios tests | 20+ | 49 | ✅ |
+| CLI aer command | Working | Working | ✅ |
 | Build passing | Yes | Yes | ✅ |
+| Week 1 hours | 10h | ~6h | ✅ |
+| Week 2 hours | 10h | ~4h | ✅ |
+| Week 3 hours | 12h | ~8h | ✅ |
+| Week 4 hours | 8h | ~6h | ✅ |
 
 ---
 
-## Remaining Work
+## Sprint 69-71 Summary (COMPLETE)
 
-- [ ] Integration tests for full recovery flow
-- [ ] Documentation updates
-- [ ] Performance benchmarks
+✅ **80 tests passing, PM APPROVED A+**
+
+1. **Session State Machine** - ResilienceState enum, 18 transitions
+2. **Checkpoint Scheduler** - Auto-checkpoint triggers
+3. **Failure Classifier** - TRANSIENT/FIXABLE/DESIGN_ISSUE
+4. **Recovery Engine** - Retry/Fix/Escalate strategies
 
 ---
 
 ## References
 
-- [Sprint 69-71 Plan](./sprints/sprint-69-71-resilience.md)
-- [Sprint 68 Complete](./sprints/sprint-68-compliance.md)
+- [Sprint 72 Plan](./sprints/sprint-72-autonomy.md)
+- [Sprint 69-71 Complete](./sprints/sprint-69-71-resilience.md)
 - [Master Plan v4.3](../00-foundation/master-plan.md)
 
 ---
 
-*Sprint 69-71 | Session Resilience | 🚧 IN PROGRESS*
-*2026-03-02 | 80+ tests passing | Week 3 implementation complete*
+*Sprint 72 | v2.0 Autonomous SDLC Agent | ✅ COMPLETE*
+*2026-03-02 | All 4 weeks complete | 184 tests passing*

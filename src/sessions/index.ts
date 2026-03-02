@@ -227,3 +227,33 @@ export {
   createRecoveryEngine,
   resetRecoveryEngine,
 } from "./recovery/index.js";
+
+// ============================================================================
+// Autonomous Session Module (Sprint 72)
+// ============================================================================
+
+export {
+  // Types
+  AutonomyLevel,
+  AUTONOMY_GATE_CONFIG,
+  DEFAULT_AUTONOMOUS_CONFIG,
+  type AutonomyGate,
+  type AutonomousTask,
+  type TaskExecutionResult,
+  type DecisionPoint,
+  type DecisionType,
+  type DecisionOption,
+  type EscalationRequest,
+  type EscalationResponse,
+  type AutonomousSessionConfig,
+  type AutonomousSessionStatus,
+  type AutonomousEvent,
+  type AutonomousEventType,
+  type AutonomousEventListener,
+  // Manager
+  AutonomousSessionManager,
+  getAutonomousSessionManager,
+  setAutonomousSessionManager,
+  createAutonomousSessionManager,
+  resetAutonomousSessionManager,
+} from "./autonomous/index.js";
