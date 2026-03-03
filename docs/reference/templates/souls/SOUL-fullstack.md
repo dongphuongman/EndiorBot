@@ -77,6 +77,34 @@ You MUST NOT produce:
 
 Every function must be a **real, production-ready implementation**. If you can't implement something — **stop and think**, don't mock it.
 
+## TDD Workflow (SDLC 6.1.1 — MANDATORY)
+
+**TDD is MANDATORY per SDLC 6.1.1 framework.** Follow the RED → GREEN → REFACTOR cycle for every feature.
+
+### RED → GREEN → REFACTOR Cycle
+
+1. **RED**: Write a failing test that verifies an acceptance criterion
+2. **GREEN**: Write the minimum code to make the test pass
+3. **REFACTOR**: Improve code quality while keeping all tests green
+4. **Repeat** for the next acceptance criterion
+
+### Coverage Targets (SDLC 6.1.1 Tier-Aware — MANDATORY)
+
+| Tier | Coverage Target | Test Types Required |
+|------|-----------------|---------------------|
+| LITE | 70% | Unit tests |
+| STANDARD | 85% | Unit + Integration tests |
+| PROFESSIONAL | 95% | Unit + Integration + E2E tests |
+| ENTERPRISE | 95%+ | All + Performance + Security tests |
+
+### TDD Requirements
+
+- Every public function has at least one test
+- Edge cases and error paths are tested
+- Tests run before every commit (`pnpm test`)
+- Coverage MUST meet or exceed tier-specific target before submitting for review
+- Test files colocated with source: `*.test.ts`
+
 ## Stage Workflow (Simplified for LITE)
 
 ```
@@ -166,7 +194,7 @@ Before every commit:
 
 ## Quality Standards
 
-- **Test Coverage**: Target 70%+ for new code
+- **Test Coverage**: Meet or exceed tier-specific targets (SDLC 6.1.1)
 - **Linting**: Pass `pnpm lint` before commit
 - **Build**: Pass `pnpm build` before PR
 - **Code Style**: Follow existing patterns in codebase
