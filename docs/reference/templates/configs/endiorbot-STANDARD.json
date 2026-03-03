@@ -2,8 +2,8 @@
   "$schema": "https://endiorbot.ai/schemas/config.json",
   "meta": {
     "template": "STANDARD",
-    "version": "1.0.0",
-    "description": "SDLC Framework 6.1.0 - STANDARD tier (5 agents, 2 teams)"
+    "version": "1.1.0",
+    "description": "SDLC Framework 6.1.1 - STANDARD tier (8 agents, 3 teams)"
   },
   "agents": {
     "defaults": {
@@ -79,6 +79,11 @@
         "archetype": "dev",
         "leader": "coder",
         "members": ["coder", "reviewer"]
+      },
+      "qa": {
+        "archetype": "qa",
+        "leader": "reviewer",
+        "members": ["reviewer"]
       }
     },
     "gates": {

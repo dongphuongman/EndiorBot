@@ -1,7 +1,7 @@
 /**
  * Mention Parser
  *
- * Parses @agent mentions from CLI and OTT formats.
+ * Parses @agent and @team mentions from CLI and OTT formats.
  * Based on tinysdlc routing patterns.
  *
  * Supported formats:
@@ -9,11 +9,16 @@
  * - CLI: `endiorbot @pm plan payment gateway`
  * - OTT: `[@pm: plan payment gateway]`
  * - Multi: `[@pm,architect: design the system]`
+ * - Team: `@planning "design auth system"` (resolves via TeamRegistry)
+ *
+ * Namespace resolution order: agent first, team second.
+ * @pm always routes to PM directly. @planning routes via team.
  *
  * @module agents/orchestrator/mention-parser
- * @version 1.0.0
- * @date 2026-02-28
- * @status ACTIVE - Sprint 55
+ * @version 2.0.0
+ * @date 2026-03-03
+ * @status ACTIVE - Sprint 74 (Team Agent System)
+ * @authority ADR-017 Team Agent System
  */
 
 import {
@@ -21,6 +26,8 @@ import {
   isValidRole,
   isSE4ARole,
 } from "../types/handoff.js";
+import type { TeamId } from "../types/team.js";
+import type { TeamRegistry } from "./team-registry.js";
 
 // ============================================================================
 // Types
@@ -36,8 +43,10 @@ export interface ParsedMention {
   message: string;
   /** Original input */
   originalInput: string;
-  /** Whether this is a team mention */
+  /** Whether this is a team mention (derived from teamId presence) */
   isTeam: boolean;
+  /** Team ID if this is a team mention. isTeam === (teamId !== undefined). */
+  teamId?: TeamId;
   /** Parse warnings (non-fatal) */
   warnings: string[];
 }
@@ -95,7 +104,7 @@ const SIMPLE_MENTION_PATTERN = /^@(\S+)\s+([\s\S]*)$/;
  * parseCLIMention('@pm plan payment gateway')
  * // { success: true, data: { agents: ['pm'], message: 'plan payment gateway', ... } }
  */
-export function parseCLIMention(input: string): ParseResult {
+export function parseCLIMention(input: string, teamRegistry?: TeamRegistry): ParseResult {
   const trimmed = input.trim();
 
   if (!trimmed.startsWith("@")) {
@@ -115,7 +124,7 @@ export function parseCLIMention(input: string): ParseResult {
     const agentPart = cliMatch[1].toLowerCase();
     const message = cliMatch[2] ?? cliMatch[3] ?? ""; // Quoted or unquoted
 
-    return parseAgentPart(agentPart, message.trim(), input);
+    return parseAgentPart(agentPart, message.trim(), input, teamRegistry);
   }
 
   // Try simple format: @agent message
@@ -124,7 +133,7 @@ export function parseCLIMention(input: string): ParseResult {
     const agentPart = simpleMatch[1].toLowerCase();
     const message = simpleMatch[2].trim();
 
-    return parseAgentPart(agentPart, message, input);
+    return parseAgentPart(agentPart, message, input, teamRegistry);
   }
 
   return {
@@ -224,18 +233,24 @@ export function parseOTTMention(input: string): ParseResult {
 
 /**
  * Parse agent mention from any format (auto-detect).
+ *
+ * When a TeamRegistry is provided, team names are also resolved.
+ * Namespace resolution order: agent first, team second.
+ *
+ * @param input - The input string to parse
+ * @param teamRegistry - Optional TeamRegistry for team detection
  */
-export function parseMention(input: string): ParseResult {
+export function parseMention(input: string, teamRegistry?: TeamRegistry): ParseResult {
   const trimmed = input.trim();
 
   // Check for OTT format first (has brackets)
-  if (trimmed.includes("[@") && trimmed.includes(":]")) {
+  if (trimmed.includes("[@") && trimmed.includes("]")) {
     return parseOTTMention(trimmed);
   }
 
   // Check for CLI format
   if (trimmed.startsWith("@")) {
-    return parseCLIMention(trimmed);
+    return parseCLIMention(trimmed, teamRegistry);
   }
 
   return {
@@ -253,12 +268,18 @@ export function parseMention(input: string): ParseResult {
 // ============================================================================
 
 /**
- * Parse agent part (handles comma-separated and validation).
+ * Parse agent part (handles comma-separated, team detection, and validation).
+ *
+ * Namespace resolution order (per ADR-017):
+ * 1. Check isValidRole(candidate) → agent route
+ * 2. Check teamRegistry?.isTeam(candidate) → team route (resolve to leader)
+ * 3. Unknown → warning
  */
 function parseAgentPart(
   agentPart: string,
   message: string,
   originalInput: string,
+  teamRegistry?: TeamRegistry,
 ): ParseResult {
   // Validate message
   if (!message || message.length === 0) {
@@ -276,13 +297,27 @@ function parseAgentPart(
   const agentCandidates = agentPart.split(",").map((a) => a.trim()).filter(Boolean);
   const validAgents: AgentRole[] = [];
   const warnings: string[] = [];
+  let detectedTeamId: TeamId | undefined;
 
   for (const candidate of agentCandidates) {
+    // 1. Agent-first resolution
     if (isValidRole(candidate)) {
       validAgents.push(candidate as AgentRole);
-    } else {
-      warnings.push(`Unknown agent: @${candidate}`);
+      continue;
     }
+
+    // 2. Team detection (if registry provided)
+    if (teamRegistry && teamRegistry.isTeam(candidate)) {
+      const lookup = teamRegistry.getTeam(candidate);
+      if (lookup.found) {
+        detectedTeamId = lookup.team.id;
+        validAgents.push(lookup.team.leader);
+        continue;
+      }
+    }
+
+    // 3. Unknown
+    warnings.push(`Unknown agent: @${candidate}`);
   }
 
   if (validAgents.length === 0) {
@@ -290,21 +325,31 @@ function parseAgentPart(
       success: false,
       error: {
         code: "INVALID_AGENT",
-        message: `No valid agents found. Valid agents: researcher, pm, pjm, architect, coder, reviewer, tester, devops, assistant`,
+        message: `No valid agents or teams found. Valid agents: researcher, pm, pjm, architect, coder, reviewer, tester, devops, fullstack, assistant. Valid teams: planning, design, dev, qa, ops, fullstack, executive`,
         originalInput,
       },
     };
   }
 
+  // B3: isTeam derived from teamId presence (not set independently)
+  const isTeam = detectedTeamId !== undefined;
+
+  const result: ParsedMention = {
+    agents: validAgents,
+    message,
+    originalInput,
+    isTeam,
+    warnings,
+  };
+
+  // exactOptionalPropertyTypes: only set teamId if defined
+  if (detectedTeamId !== undefined) {
+    result.teamId = detectedTeamId;
+  }
+
   return {
     success: true,
-    data: {
-      agents: validAgents,
-      message,
-      originalInput,
-      isTeam: false,
-      warnings,
-    },
+    data: result,
   };
 }
 

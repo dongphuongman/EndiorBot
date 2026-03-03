@@ -117,6 +117,30 @@ endiorbot switch <project>      # Minimal context
 
 ---
 
+### FR-010: Team Agent Routing (Sprint 74)
+
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-010.1 | Route team mentions (@planning, @dev, @qa, etc.) to leader agent | P0 | STANDARD+ |
+| FR-010.2 | Inject team context (charter, teammates, delegation rules) into leader's SOUL | P0 | STANDARD+ |
+| FR-010.3 | Agent-first namespace resolution: @pm always routes directly, not via team | P0 | ALL |
+| FR-010.4 | Tier-dependent team availability (LITE: @fullstack only) | P0 | ALL |
+| FR-010.5 | Team charter loading from TEAM-{id}.md templates | P1 | STANDARD+ |
+| FR-010.6 | Shell @mention dispatch for interactive team routing | P1 | ALL |
+| FR-010.7 | TeamRegistry with load, lookup, resolve operations | P0 | ALL |
+
+**Acceptance Criteria:**
+- `@planning "design auth"` → routes to PM with team context (STANDARD+)
+- `@pm "task"` → routes to PM directly without team context (all tiers)
+- `@planning "task"` on LITE tier → error: team not available
+- `@fullstack "task"` on LITE tier → routes to fullstack agent
+- Shell `@dev "implement X"` → displays routing result with team info
+
+**Design Doc:** [ADR-017](../02-design/01-ADRs/ADR-017-Team-Agent-System.md)
+**Sprint Plan:** [Sprint 74](../04-build/sprints/sprint-74-team-agent-system.md)
+
+---
+
 ## What's NOT in MVP
 
 | Feature | Status | Reason |

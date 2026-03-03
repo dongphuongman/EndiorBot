@@ -56,6 +56,68 @@ export type {
   OrchestratorConfig,
 } from "./orchestrator/index.js";
 
+// Agent Router
+export {
+  AgentRouter,
+  getAgentRouter,
+  resetAgentRouter,
+  createAgentRouter,
+} from "./orchestrator/agent-router.js";
+export type {
+  SoulMetadata,
+  SoulTemplate,
+  TierConfig,
+  RoutingDecision,
+  RoutingError,
+  RoutingResult,
+  RouterConfig,
+} from "./orchestrator/agent-router.js";
+
+// Mention Parser
+export {
+  parseMention,
+  parseCLIMention,
+  parseOTTMention,
+  getFirstAgent,
+  hasMention,
+  getExecutorAgents,
+  formatMention,
+} from "./orchestrator/mention-parser.js";
+export type {
+  ParsedMention,
+  ParseError,
+  ParseResult,
+} from "./orchestrator/mention-parser.js";
+
+// Team Registry (ADR-017)
+export {
+  TeamRegistry,
+  getTeamRegistry,
+  resetTeamRegistry,
+  createTeamRegistry,
+} from "./orchestrator/team-registry.js";
+
+// Team Types (ADR-017)
+export type {
+  TeamId,
+  TeamArchetype,
+  TeamConfigEntry,
+  TeamDefinition,
+  TeamContext,
+  TeammateInfo,
+  TeamLookupResult,
+  TeamRoutingOutcome,
+  TeamRoutingError,
+} from "./types/team.js";
+export {
+  isValidTeamId,
+  isValidTeamArchetype,
+  isAllowedTeamTransition,
+  ALLOWED_TEAM_TRANSITIONS,
+  TEAM_SDLC_INFO,
+  TEAM_DISPLAY_NAMES,
+} from "./types/team.js";
+
 // Task Classifier
 export {
   TaskClassifier,

@@ -2,8 +2,8 @@
   "$schema": "https://endiorbot.ai/schemas/config.json",
   "meta": {
     "template": "LITE",
-    "version": "1.0.0",
-    "description": "SDLC Framework 6.1.0 - LITE tier (2 agents, minimal workflow)"
+    "version": "1.1.0",
+    "description": "SDLC Framework 6.1.1 - LITE tier (2 agents, minimal workflow)"
   },
   "agents": {
     "defaults": {
@@ -27,9 +27,9 @@
         "description": "Router - message routing"
       },
       {
-        "id": "coder",
-        "role": "coder",
-        "description": "SE4A - Implementation with self-review"
+        "id": "fullstack",
+        "role": "fullstack",
+        "description": "SE4A - Full-stack development (all SDLC stages)"
       }
     ]
   },
@@ -37,10 +37,10 @@
     "enabled": true,
     "tier": "LITE",
     "teams": {
-      "dev": {
+      "fullstack": {
         "archetype": "fullstack",
-        "leader": "coder",
-        "members": ["coder"]
+        "leader": "fullstack",
+        "members": ["fullstack"]
       }
     },
     "gates": {

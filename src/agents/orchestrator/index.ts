@@ -38,6 +38,43 @@ export {
   createTaskClassifier,
 } from "./task-classifier.js";
 
+// Agent Router
+export {
+  AgentRouter,
+  getAgentRouter,
+  resetAgentRouter,
+  createAgentRouter,
+  type SoulMetadata,
+  type SoulTemplate,
+  type TierConfig,
+  type RoutingDecision,
+  type RoutingError,
+  type RoutingResult,
+  type RouterConfig,
+} from "./agent-router.js";
+
+// Mention Parser
+export {
+  parseMention,
+  parseCLIMention,
+  parseOTTMention,
+  getFirstAgent,
+  hasMention,
+  getExecutorAgents,
+  formatMention,
+  type ParsedMention,
+  type ParseError,
+  type ParseResult,
+} from "./mention-parser.js";
+
+// Team Registry (ADR-017)
+export {
+  TeamRegistry,
+  getTeamRegistry,
+  resetTeamRegistry,
+  createTeamRegistry,
+} from "./team-registry.js";
+
 // Workflow Templates
 export {
   WorkflowTemplateManager,

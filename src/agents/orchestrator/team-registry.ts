@@ -17,8 +17,8 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import type { AgentRole } from "../types/handoff.js";
 import { isValidRole } from "../types/handoff.js";
 import {
@@ -273,8 +273,7 @@ export class TeamRegistry {
 
     try {
       // Synchronous read for initial load (same pattern as tier config in AgentRouter)
-      const fs = require("node:fs") as typeof import("node:fs");
-      const content = fs.readFileSync(configPath, "utf-8");
+      const content = readFileSync(configPath, "utf-8");
       const config = JSON.parse(content) as {
         sdlc?: { teams?: Record<string, TeamConfigEntry> };
       };
@@ -336,7 +335,7 @@ export class TeamRegistry {
    * Build delegation instruction text for team context.
    */
   private buildDelegationInstruction(
-    team: TeamDefinition,
+    _team: TeamDefinition,
     teammates: TeammateInfo[],
   ): string {
     if (teammates.length === 0) {

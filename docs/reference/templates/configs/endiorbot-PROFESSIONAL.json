@@ -2,8 +2,8 @@
   "$schema": "https://endiorbot.ai/schemas/config.json",
   "meta": {
     "template": "PROFESSIONAL",
-    "version": "1.0.0",
-    "description": "SDLC Framework 6.1.0 - PROFESSIONAL tier (10 agents, 4 teams)"
+    "version": "1.1.0",
+    "description": "SDLC Framework 6.1.1 - PROFESSIONAL tier (11 agents, 5 teams)"
   },
   "agents": {
     "defaults": {
@@ -89,6 +89,11 @@
         "archetype": "planning",
         "leader": "pm",
         "members": ["researcher", "pm", "pjm", "architect"]
+      },
+      "design": {
+        "archetype": "design",
+        "leader": "architect",
+        "members": ["architect", "pm", "coder"]
       },
       "dev": {
         "archetype": "dev",

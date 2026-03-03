@@ -115,7 +115,7 @@ This is a team ID rename. Since team IDs are only used in tier config JSON (no e
 | **dev** | coder | [coder, reviewer] | 04 | G-Sprint |
 | **qa** | tester | [tester, reviewer] | 05 | G3 |
 | **ops** | devops | [devops, coder] | 06-07 | G4 |
-| **executive** | cto | [ceo, cpo, cto] | advisory | All |
+| **executive** | ceo (ENT) / cto (PRO) | [ceo, cpo, cto] | advisory | All |
 
 ### Teams Per Tier
 

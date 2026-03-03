@@ -1,18 +1,25 @@
 /**
  * Agent Router
  *
- * Routes @agent mentions to existing agents, loads SOUL templates,
+ * Routes @agent and @team mentions to existing agents, loads SOUL templates,
  * and validates transitions using the ALLOWED_TRANSITIONS map.
+ *
+ * Team routing (Sprint 74, ADR-017):
+ * - @planning, @dev, @qa etc. resolve to team leader with enriched SOUL
+ * - Team context (charter, teammates, delegation rules) injected into SOUL
+ * - Namespace resolution: agent first, team second
  *
  * Integration:
  * - Uses existing SOUL templates from docs/reference/templates/souls/
  * - Uses existing tier configs from docs/reference/templates/configs/
+ * - Uses team charters from docs/reference/templates/teams/
  * - Validates transitions via handoff.ts ALLOWED_TRANSITIONS
  *
  * @module agents/orchestrator/agent-router
- * @version 1.0.0
- * @date 2026-02-28
- * @status ACTIVE - Sprint 55
+ * @version 2.0.0
+ * @date 2026-03-03
+ * @status ACTIVE - Sprint 74 (Team Agent System)
+ * @authority ADR-017 Team Agent System
  */
 
 import { readFile } from "node:fs/promises";
@@ -34,6 +41,9 @@ import {
 import { getTaskClassifier, type TaskClassifier } from "./task-classifier.js";
 import type { TaskType, TaskComplexity, ModelTier } from "../types.js";
 import { resolveTemplatesRoot } from "../../config/paths.js";
+import type { TeamId } from "../types/team.js";
+import type { TeamContext } from "../types/team.js";
+import { TeamRegistry, createTeamRegistry } from "./team-registry.js";
 
 // ============================================================================
 // Types
@@ -108,6 +118,12 @@ export interface RoutingDecision {
   tier: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE";
   /** Is agent active in current tier? */
   isActiveInTier: boolean;
+  /** Whether this was routed via a team (ADR-017) */
+  isTeam: boolean;
+  /** Team ID if routed via team */
+  teamId?: TeamId;
+  /** Team display name if routed via team */
+  teamName?: string;
   /** Warnings (non-fatal) */
   warnings: string[];
 }
@@ -121,7 +137,8 @@ export interface RoutingError {
     | "SOUL_NOT_FOUND"
     | "TRANSITION_BLOCKED"
     | "AGENT_INACTIVE"
-    | "INVALID_MENTION";
+    | "INVALID_MENTION"
+    | "TEAM_RESOLUTION_FAILED";
   message: string;
   details?: Record<string, unknown>;
 }
@@ -150,19 +167,21 @@ export interface RouterConfig {
 // ============================================================================
 
 /**
- * Routes @agent mentions to appropriate agents.
+ * Routes @agent and @team mentions to appropriate agents.
  *
  * Features:
  * - Loads SOUL templates from filesystem
  * - Validates transitions using ALLOWED_TRANSITIONS
  * - Checks agent availability per tier
  * - Integrates with TaskClassifier for complexity
+ * - Resolves @team mentions to leader agents with enriched SOUL (ADR-017)
  */
 export class AgentRouter {
   private readonly config: RouterConfig;
   private readonly classifier: TaskClassifier;
   private readonly soulCache: Map<AgentRole, SoulTemplate> = new Map();
   private tierConfig: TierConfig | undefined;
+  private teamRegistry: TeamRegistry | undefined;
 
   constructor(config: Partial<RouterConfig> = {}) {
     this.config = {
@@ -188,10 +207,11 @@ export class AgentRouter {
    * }
    */
   async route(input: string | ParsedMention): Promise<RoutingResult> {
-    // Parse mention if needed
+    // Parse mention if needed (pass TeamRegistry for team detection)
     let mention: ParsedMention;
     if (typeof input === "string") {
-      const parseResult = parseMention(input);
+      const registry = this.getOrCreateTeamRegistry();
+      const parseResult = parseMention(input, registry);
       if (!parseResult.success) {
         return {
           success: false,
@@ -221,7 +241,7 @@ export class AgentRouter {
     }
 
     // Load SOUL template
-    const soul = await this.loadSoul(agent);
+    let soul = await this.loadSoul(agent);
     if (!soul) {
       return {
         success: false,
@@ -256,26 +276,50 @@ export class AgentRouter {
       );
     }
 
+    // Team context injection (ADR-017)
+    let teamId: TeamId | undefined;
+    let teamName: string | undefined;
+    if (mention.isTeam && mention.teamId) {
+      const teamResult = await this.resolveTeamContext(mention.teamId);
+      if (!teamResult.success) {
+        return {
+          success: false,
+          error: teamResult.error,
+        };
+      }
+      soul = this.injectTeamContext(soul, teamResult.context);
+      teamId = mention.teamId;
+      teamName = teamResult.context.teamName;
+    }
+
     // Classify task
     const classification = this.classifier.classify(mention.message);
 
-    return {
-      success: true,
-      decision: {
-        agent,
-        soul,
-        message: mention.message,
-        classification: {
-          taskType: classification.taskType,
-          complexity: classification.complexity,
-          minModelTier: classification.minModelTier,
-          complexityScore: classification.complexityScore,
-        },
-        tier: this.config.tier,
-        isActiveInTier,
-        warnings,
+    // Build result (exactOptionalPropertyTypes: only set team fields when defined)
+    const decision: RoutingDecision = {
+      agent,
+      soul,
+      message: mention.message,
+      classification: {
+        taskType: classification.taskType,
+        complexity: classification.complexity,
+        minModelTier: classification.minModelTier,
+        complexityScore: classification.complexityScore,
       },
+      tier: this.config.tier,
+      isActiveInTier,
+      isTeam: mention.isTeam,
+      warnings,
     };
+
+    if (teamId !== undefined) {
+      decision.teamId = teamId;
+    }
+    if (teamName !== undefined) {
+      decision.teamName = teamName;
+    }
+
+    return { success: true, decision };
   }
 
   /**
@@ -547,6 +591,104 @@ export class AgentRouter {
   setTier(tier: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE"): void {
     this.config.tier = tier;
     this.tierConfig = undefined; // Force reload
+    // Update TeamRegistry tier if it exists
+    if (this.teamRegistry) {
+      this.teamRegistry.setTier(tier);
+    }
+  }
+
+  /**
+   * Get the TeamRegistry for this router (lazy init).
+   */
+  getTeamRegistry(): TeamRegistry {
+    return this.getOrCreateTeamRegistry();
+  }
+
+  // ==========================================================================
+  // Team Routing (ADR-017)
+  // ==========================================================================
+
+  /**
+   * Lazy-create TeamRegistry matching the router's tier.
+   */
+  private getOrCreateTeamRegistry(): TeamRegistry {
+    if (!this.teamRegistry) {
+      this.teamRegistry = createTeamRegistry(this.config.tier);
+    }
+    return this.teamRegistry;
+  }
+
+  /**
+   * Resolve team context from TeamRegistry.
+   */
+  private async resolveTeamContext(
+    teamId: TeamId,
+  ): Promise<
+    | { success: true; context: TeamContext }
+    | { success: false; error: RoutingError }
+  > {
+    const registry = this.getOrCreateTeamRegistry();
+    const result = await registry.resolveTeam(teamId);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: {
+          code: "TEAM_RESOLUTION_FAILED",
+          message: result.error.message,
+          details: { teamId, ...result.error.details },
+        },
+      };
+    }
+
+    return { success: true, context: result.result.context };
+  }
+
+  /**
+   * Inject team context into a SOUL template.
+   * Appends a "## Team Context" section with teammates, delegation rules, and charter.
+   */
+  private injectTeamContext(
+    soul: SoulTemplate,
+    context: TeamContext,
+  ): SoulTemplate {
+    const lines: string[] = [
+      "",
+      "## Team Context",
+      "",
+      `You are operating as the **leader** of the **${context.teamName}** team.`,
+      "",
+      "### Teammates",
+      "",
+    ];
+
+    if (context.teammates.length === 0) {
+      lines.push("You are the sole member of this team.");
+    } else {
+      for (const t of context.teammates) {
+        lines.push(`- **@${t.role}** — ${t.description}`);
+      }
+    }
+
+    lines.push("");
+    lines.push("### Delegation");
+    lines.push("");
+    lines.push(context.delegationInstruction);
+
+    if (context.charter) {
+      lines.push("");
+      lines.push("### Team Charter");
+      lines.push("");
+      lines.push(context.charter);
+    }
+
+    const enrichedContent = soul.content + lines.join("\n");
+
+    return {
+      metadata: soul.metadata,
+      content: enrichedContent,
+      path: soul.path,
+    };
   }
 }
 
