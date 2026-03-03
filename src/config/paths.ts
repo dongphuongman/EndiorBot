@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { EndiorBotConfig } from "./types.js";
 
 /**
@@ -18,6 +19,36 @@ export const isNixMode = resolveIsNixMode();
 
 const STATE_DIRNAME = ".endiorbot";
 const CONFIG_FILENAME = "endiorbot.json";
+
+// ============================================================================
+// Package Root Resolution
+// ============================================================================
+
+/**
+ * Resolve EndiorBot's package root directory.
+ * This is the directory containing package.json, docs/, src/, etc.
+ *
+ * Works from both src/ (dev) and dist/ (compiled) contexts by
+ * navigating up from this file's location.
+ *
+ * @example
+ * // From dist/config/paths.js → ../../ = package root
+ * // From src/config/paths.ts → ../../ = package root
+ */
+export function resolvePackageRoot(): string {
+  const thisFile = fileURLToPath(import.meta.url);
+  // This file is at {root}/dist/config/paths.js or {root}/src/config/paths.ts
+  // Package root is 2 levels up
+  return path.resolve(path.dirname(thisFile), "..", "..");
+}
+
+/**
+ * Resolve the templates root directory within EndiorBot's package.
+ * Templates (SOUL files, tier configs) are internal to EndiorBot.
+ */
+export function resolveTemplatesRoot(): string {
+  return path.join(resolvePackageRoot(), "docs", "reference", "templates");
+}
 
 function stateDir(homedir: () => string = os.homedir): string {
   return path.join(homedir(), STATE_DIRNAME);
@@ -245,10 +276,29 @@ export function loadActiveProject(
   }
   try {
     const content = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(content) as ActiveProjectState;
+    const state = JSON.parse(content) as ActiveProjectState;
+    // Guard against stale state: if project path no longer exists, treat as no active project
+    if (!fs.existsSync(state.path)) {
+      return undefined;
+    }
+    return state;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Resolve the active project path, falling back to cwd if stale/missing.
+ * Use this when you need a real filesystem path for operations.
+ */
+export function resolveActiveProjectDir(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const active = loadActiveProject(env);
+  if (active?.path && fs.existsSync(active.path)) {
+    return active.path;
+  }
+  return process.cwd();
 }
 
 /**

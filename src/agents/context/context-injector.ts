@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { AgentRole } from "../types/handoff.js";
 import type { TaskType, TaskComplexity, ModelTier } from "../types.js";
+import { resolveTemplatesRoot } from "../../config/paths.js";
 import {
   type ContextManifest,
   type ContextItem,
@@ -809,11 +810,11 @@ Please complete this task following your SOUL guidelines. If you need to hand of
 
   /**
    * Get SOUL template path for an agent.
+   * Resolves from EndiorBot's package directory, not process.cwd().
    */
   private getSoulPath(agent: AgentRole): string {
     return join(
-      process.cwd(),
-      this.config.templatesRoot,
+      resolveTemplatesRoot(),
       "souls",
       `SOUL-${agent}.md`
     );

@@ -33,6 +33,7 @@ import {
 } from "./mention-parser.js";
 import { getTaskClassifier, type TaskClassifier } from "./task-classifier.js";
 import type { TaskType, TaskComplexity, ModelTier } from "../types.js";
+import { resolveTemplatesRoot } from "../../config/paths.js";
 
 // ============================================================================
 // Types
@@ -362,6 +363,7 @@ export class AgentRouter {
         "reviewer",
         "tester",
         "devops",
+        "fullstack",
         "assistant",
       ];
     }
@@ -492,11 +494,11 @@ export class AgentRouter {
 
   /**
    * Get SOUL template path for an agent.
+   * Resolves from EndiorBot's package directory, not process.cwd().
    */
   private getSoulPath(agent: AgentRole): string {
     return join(
-      process.cwd(),
-      this.config.templatesRoot,
+      resolveTemplatesRoot(),
       "souls",
       `SOUL-${agent}.md`
     );
@@ -504,13 +506,13 @@ export class AgentRouter {
 
   /**
    * Load tier configuration.
+   * Resolves from EndiorBot's package directory, not process.cwd().
    */
   private async ensureTierConfig(): Promise<void> {
     if (this.tierConfig) return;
 
     const configPath = join(
-      process.cwd(),
-      this.config.templatesRoot,
+      resolveTemplatesRoot(),
       "configs",
       `endiorbot-${this.config.tier}.json`
     );

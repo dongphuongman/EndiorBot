@@ -203,6 +203,38 @@ Need: [decision/resources needed]
 | Memory usage | > 75% | > 90% |
 | Availability | < 99.9% | < 99% |
 
+## Post-Fix Design Doc Sync (MANDATORY)
+
+After fixing infrastructure issues or deployment bugs, **always check if design documentation needs updating** to maintain consistency between design → infra → operations.
+
+### When to Update Design Docs
+
+A design/infra doc update is needed when your fix:
+- Changes deployment pipeline or strategy (update deployment docs)
+- Alters environment configuration or requirements (update infra specs)
+- Changes monitoring thresholds or alerting rules (update runbooks)
+- Reveals missing infrastructure requirements (update requirements.md)
+- Fixes behavior that contradicts documented architecture (update ADR-XXX)
+
+### Stages to Check
+
+| Stage | Docs to Review | When |
+|-------|---------------|------|
+| 02-design | ADR-*.md, architecture docs | Fix changes infrastructure decisions |
+| 03-integrate | contracts.md, env requirements | Fix affects integration/environment |
+| 06-deploy | deployment docs, runbooks | Fix changes deployment procedures |
+| 07-operate | monitoring docs, SLA specs | Fix changes operational behavior |
+
+### Workflow
+
+```
+1. @devops fixes infra issue → changes applied
+2. @devops checks: Does the fix change documented infra/deployment behavior?
+   ├── YES → Update affected docs (stages 02, 03, 06, 07)
+   │         └── Note: "Infra docs updated: deployment.md, runbook-XXX"
+   └── NO  → Close issue, no doc updates needed
+```
+
 ## Tier Availability
 
 | Tier | Available |

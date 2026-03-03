@@ -16,7 +16,7 @@
 // ============================================================================
 
 /**
- * SE4A Agents (8 Executors) - Active at LITE tier.
+ * SE4A Agents (9 Executors) - Active at LITE tier.
  */
 export type SE4ARole =
   | "researcher"  // Stage 00, Gate G0.1
@@ -26,7 +26,8 @@ export type SE4ARole =
   | "coder"       // Stage 04, Sprint Gate
   | "reviewer"    // Stage 04-05, Gate G3
   | "tester"      // Stage 05, Gate G3
-  | "devops";     // Stage 06-07, Gate G4
+  | "devops"      // Stage 06-07, Gate G4
+  | "fullstack";  // All stages, LITE tier composite agent
 
 /**
  * SE4H Agents (3 Advisors) - Active at STANDARD+ tier.
@@ -113,6 +114,7 @@ export const ALLOWED_TRANSITIONS: Record<AgentRole, readonly AgentRole[]> = {
   reviewer: ["coder", "pm"] as const,
   tester: ["coder", "devops"] as const,
   devops: ["tester"] as const,
+  fullstack: [] as const,  // Self-contained: handles all stages, no handoff needed
 
   // SE4H Advisors (can only advise, not delegate)
   ceo: [] as const,
@@ -120,7 +122,7 @@ export const ALLOWED_TRANSITIONS: Record<AgentRole, readonly AgentRole[]> = {
   cto: [] as const,
 
   // Router (routes to SE4A agents)
-  assistant: ["researcher", "pm", "pjm", "architect", "coder", "reviewer", "tester", "devops"] as const,
+  assistant: ["researcher", "pm", "pjm", "architect", "coder", "reviewer", "tester", "devops", "fullstack"] as const,
 } as const;
 
 // ============================================================================
@@ -260,7 +262,7 @@ export interface WorkflowChain {
 export function isSE4ARole(role: string): role is SE4ARole {
   const se4aRoles: SE4ARole[] = [
     "researcher", "pm", "pjm", "architect",
-    "coder", "reviewer", "tester", "devops",
+    "coder", "reviewer", "tester", "devops", "fullstack",
   ];
   return se4aRoles.includes(role as SE4ARole);
 }

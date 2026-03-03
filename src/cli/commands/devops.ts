@@ -22,7 +22,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import type { Command } from "commander";
-import { loadActiveProject } from "../../config/paths.js";
+import { loadActiveProject, resolveActiveProjectDir } from "../../config/paths.js";
 import { isGateConfirmed, type GateId } from "../../sdlc/index.js";
 
 // ============================================================================
@@ -118,7 +118,7 @@ function runCommand(cmd: string, args: string[], cwd: string): Promise<number> {
 
 async function devopsBuildAction(options: { path?: string; skipGateCheck?: boolean }): Promise<void> {
   const project = loadActiveProject();
-  const projectPath = options.path ?? project?.path ?? process.cwd();
+  const projectPath = options.path ?? resolveActiveProjectDir();
   const projectId = project?.name ?? "unknown";
 
   if (!existsSync(projectPath)) {
@@ -185,7 +185,7 @@ async function devopsBuildAction(options: { path?: string; skipGateCheck?: boole
 
 async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean; dev?: boolean }): Promise<void> {
   const project = loadActiveProject();
-  const projectPath = options.path ?? project?.path ?? process.cwd();
+  const projectPath = options.path ?? resolveActiveProjectDir();
   const projectId = project?.name ?? "unknown";
 
   if (!existsSync(projectPath)) {

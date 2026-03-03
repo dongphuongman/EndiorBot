@@ -153,6 +153,7 @@ const AGENT_RISK_PROFILES: Record<AgentRole, { baseRisk: RiskLevel; readModeOnly
   reviewer: { baseRisk: "MEDIUM", readModeOnly: true },
   tester: { baseRisk: "MEDIUM", readModeOnly: false },
   devops: { baseRisk: "CRITICAL", readModeOnly: false },
+  fullstack: { baseRisk: "HIGH", readModeOnly: false },
   assistant: { baseRisk: "LOW", readModeOnly: true },
   ceo: { baseRisk: "LOW", readModeOnly: true },
   cpo: { baseRisk: "LOW", readModeOnly: true },

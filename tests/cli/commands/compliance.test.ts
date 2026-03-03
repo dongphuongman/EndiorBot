@@ -145,7 +145,8 @@ describe("compliance check", () => {
   it("should support --json option", () => {
     createProjectStructure(tempDir, "LITE");
 
-    const result = runCompliance(`check --path "${tempDir}" --json`, process.cwd());
+    // Use --level L1 to test structure-only (L2 requires real content in stages)
+    const result = runCompliance(`check --path "${tempDir}" --level L1 --json`, process.cwd());
 
     // Should be valid JSON
     expect(() => JSON.parse(result.stdout)).not.toThrow();

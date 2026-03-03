@@ -25,7 +25,7 @@ import {
   type ProjectTier,
   type DetectionResult,
 } from "../../sdlc/scaffold/index.js";
-import { loadActiveProject } from "../../config/paths.js";
+import { resolveActiveProjectDir } from "../../config/paths.js";
 import { checkL2Compliance, type L2Result } from "../../sdlc/compliance/index.js";
 
 const logger = createLogger("compliance-command");
@@ -53,8 +53,7 @@ export function registerComplianceCommand(program: Command): void {
     .option("--json", "Output as JSON")
     .action(async (options: ComplianceOptions) => {
       if (!options.path) {
-        const active = loadActiveProject();
-        options.path = active?.path ?? process.cwd();
+        options.path = resolveActiveProjectDir();
       }
       await executeComplianceCheck(options);
     });
@@ -67,8 +66,7 @@ export function registerComplianceCommand(program: Command): void {
     .option("--level <level>", "Compliance level: L1 (structure) or L2 (content)", "L2")
     .action(async (options: { path: string; level?: string }) => {
       if (!options.path) {
-        const active = loadActiveProject();
-        options.path = active?.path ?? process.cwd();
+        options.path = resolveActiveProjectDir();
       }
       await executeComplianceCheck({ ...options, json: false, showScoreOnly: true });
     });
@@ -158,6 +156,10 @@ async function executeComplianceCheck(options: ComplianceOptions): Promise<void>
     const l2Result = checkL2Compliance(targetPath, requiredStages, tier);
     result.l2Score = l2Result.score;
     result.l2Result = l2Result;
+    // L2 score < 50% means content is insufficient — mark as not passed
+    if (l2Result.score < 50) {
+      result.passed = false;
+    }
   }
 
   // Output results
@@ -311,11 +313,13 @@ function displayResult(result: ComplianceResult, strict?: boolean, level: Compli
   }
 
   // Summary
+  const l1Errors = result.issues.filter((i) => i.severity === "error").length;
+  const l2Failed = level === "L2" && result.l2Score !== undefined && result.l2Score < 50;
+
   if (result.passed) {
     console.log(fmt.success(t("compliance.passed")));
-  } else {
-    const errorCount = result.issues.filter((i) => i.severity === "error").length;
-    console.log(fmt.error(t("compliance.failed", { count: String(errorCount) })));
+  } else if (l1Errors > 0) {
+    console.log(fmt.error(t("compliance.failed", { count: String(l1Errors) })));
 
     if (!strict) {
       console.log();
@@ -326,6 +330,9 @@ function displayResult(result: ComplianceResult, strict?: boolean, level: Compli
         console.log("Run " + fmt.cyan("endiorbot init") + " to fix missing files and stages.");
       }
     }
+  } else if (l2Failed) {
+    const l2Issues = result.l2Result?.issues.length ?? 0;
+    console.log(fmt.error(`L2 content check failed (${l2Issues} issues). Stage docs need real content.`));
   }
 }
 
@@ -345,8 +352,12 @@ function displayScoreOnly(result: ComplianceResult, level: ComplianceLevel = "L2
   if (result.passed) {
     console.log(fmt.success("✓ " + t("compliance.passed")));
   } else {
-    const errorCount = result.issues.filter((i) => i.severity === "error").length;
-    console.log(fmt.error("✗ " + t("compliance.failed", { count: String(errorCount) })));
+    const l1Errors = result.issues.filter((i) => i.severity === "error").length;
+    if (l1Errors > 0) {
+      console.log(fmt.error("✗ " + t("compliance.failed", { count: String(l1Errors) })));
+    } else {
+      console.log(fmt.error("✗ L2 content insufficient — stage docs need real content"));
+    }
   }
 }
 

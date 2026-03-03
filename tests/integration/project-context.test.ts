@@ -77,10 +77,11 @@ describe("Integration: Active Project State", () => {
 
   it("should save and load active project state", () => {
     const env = { ENDIORBOT_STATE_DIR: tempStateDir };
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-proj-"));
 
     const activeProject: ActiveProjectState = {
       name: "TestProject",
-      path: "/path/to/test-project",
+      path: projectDir,
       tier: "STANDARD",
       startedAt: Date.now(),
     };
@@ -97,9 +98,11 @@ describe("Integration: Active Project State", () => {
 
     expect(loaded).toBeDefined();
     expect(loaded!.name).toBe("TestProject");
-    expect(loaded!.path).toBe("/path/to/test-project");
+    expect(loaded!.path).toBe(projectDir);
     expect(loaded!.tier).toBe("STANDARD");
     expect(loaded!.startedAt).toBe(activeProject.startedAt);
+
+    fs.rmSync(projectDir, { recursive: true, force: true });
   });
 
   it("should return undefined when no active project", () => {
@@ -112,11 +115,13 @@ describe("Integration: Active Project State", () => {
 
   it("should overwrite previous active project", () => {
     const env = { ENDIORBOT_STATE_DIR: tempStateDir };
+    const projDir1 = fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-p1-"));
+    const projDir2 = fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-p2-"));
 
     // Save first project
     saveActiveProject({
       name: "Project1",
-      path: "/path/to/project1",
+      path: projDir1,
       tier: "LITE",
       startedAt: Date.now() - 1000,
     }, env);
@@ -124,7 +129,7 @@ describe("Integration: Active Project State", () => {
     // Save second project
     const secondProject: ActiveProjectState = {
       name: "Project2",
-      path: "/path/to/project2",
+      path: projDir2,
       tier: "PROFESSIONAL",
       startedAt: Date.now(),
     };
@@ -136,6 +141,9 @@ describe("Integration: Active Project State", () => {
     expect(loaded).toBeDefined();
     expect(loaded!.name).toBe("Project2");
     expect(loaded!.tier).toBe("PROFESSIONAL");
+
+    fs.rmSync(projDir1, { recursive: true, force: true });
+    fs.rmSync(projDir2, { recursive: true, force: true });
   });
 });
 
@@ -206,11 +214,16 @@ describe("Integration: Switch + Status Workflow", () => {
   it("should maintain state across multiple switches", () => {
     const env = { ENDIORBOT_STATE_DIR: tempStateDir };
 
-    // Create multiple projects
+    // Create real temp dirs for each project
+    const projDirs = [
+      fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-pa-")),
+      fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-pb-")),
+      fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-pc-")),
+    ];
     const projects = [
-      { name: "ProjectA", path: "/path/a", tier: "LITE" },
-      { name: "ProjectB", path: "/path/b", tier: "STANDARD" },
-      { name: "ProjectC", path: "/path/c", tier: "PROFESSIONAL" },
+      { name: "ProjectA", path: projDirs[0], tier: "LITE" },
+      { name: "ProjectB", path: projDirs[1], tier: "STANDARD" },
+      { name: "ProjectC", path: projDirs[2], tier: "PROFESSIONAL" },
     ];
 
     // Switch through projects
@@ -228,10 +241,18 @@ describe("Integration: Switch + Status Workflow", () => {
     const finalState = loadActiveProject(env);
     expect(finalState!.name).toBe("ProjectC");
     expect(finalState!.tier).toBe("PROFESSIONAL");
+
+    for (const dir of projDirs) fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("should handle concurrent access gracefully", () => {
+  it("should handle concurrent access gracefully", async () => {
     const env = { ENDIORBOT_STATE_DIR: tempStateDir };
+
+    // Create real temp dirs for concurrent projects
+    const projDirs: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      projDirs.push(fs.mkdtempSync(path.join(os.tmpdir(), `endiorbot-cc${i}-`)));
+    }
 
     // Simulate concurrent writes
     const writes: Promise<void>[] = [];
@@ -240,7 +261,7 @@ describe("Integration: Switch + Status Workflow", () => {
         new Promise<void>((resolve) => {
           saveActiveProject({
             name: `Project${i}`,
-            path: `/path/${i}`,
+            path: projDirs[i],
             tier: "STANDARD",
             startedAt: Date.now(),
           }, env);
@@ -250,11 +271,12 @@ describe("Integration: Switch + Status Workflow", () => {
     }
 
     // All writes should complete without error
-    Promise.all(writes).then(() => {
-      const loaded = loadActiveProject(env);
-      expect(loaded).toBeDefined();
-      expect(loaded!.name).toMatch(/^Project\d$/);
-    });
+    await Promise.all(writes);
+    const loaded = loadActiveProject(env);
+    expect(loaded).toBeDefined();
+    expect(loaded!.name).toMatch(/^Project\d$/);
+
+    for (const dir of projDirs) fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 
@@ -316,6 +338,7 @@ describe("Integration: Error Handling", () => {
   it("should create state directory if not exists", () => {
     const nonExistentDir = path.join(tempStateDir, "nested", "state", "dir");
     const env = { ENDIORBOT_STATE_DIR: nonExistentDir };
+    const projDir = fs.mkdtempSync(path.join(os.tmpdir(), "endiorbot-nested-"));
 
     // Directory should not exist initially
     expect(fs.existsSync(nonExistentDir)).toBe(false);
@@ -323,7 +346,7 @@ describe("Integration: Error Handling", () => {
     // Save should create directory
     saveActiveProject({
       name: "Test",
-      path: "/test",
+      path: projDir,
       tier: "LITE",
       startedAt: Date.now(),
     }, env);
@@ -335,6 +358,8 @@ describe("Integration: Error Handling", () => {
     const loaded = loadActiveProject(env);
     expect(loaded).toBeDefined();
     expect(loaded!.name).toBe("Test");
+
+    fs.rmSync(projDir, { recursive: true, force: true });
   });
 });
 
