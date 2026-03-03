@@ -16,7 +16,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ```
         ┌─────────────────┐
-        │   Manual (33)   │  ← User acceptance, exploratory
+        │   Manual (45)   │  ← User acceptance, exploratory
         ├─────────────────┤
         │    E2E (74)     │  ← End-to-end workflows
         ├─────────────────┤
@@ -329,7 +329,8 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Performance | 2 | 0 | 2 |
 | Integration | 2 | 0 | 2 |
 | Team Agent Routing (Sprint 74) | 8 | 8 | 0 |
-| **TOTAL** | **33** | **24** | **9** |
+| Dyad Repo Manual (Sprint 74) | 12 | 12 | 0 |
+| **TOTAL** | **45** | **36** | **9** |
 
 ### 5.1 Team Agent Routing Manual Tests (Sprint 74)
 
@@ -345,6 +346,25 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | MT-74-08 | setTier LITE→STANDARD enables @planning | LITE→STD | Fail → Success | PASS |
 
 **Executed:** 2026-03-03 | **Script:** `tests/manual/mt-74-team-routing.mjs` | **Result:** 8/8 PASS
+
+### 5.2 Dyad Repo Manual Tests (STANDARD tier)
+
+| ID | Test Case | Expected | Status |
+|----|-----------|----------|--------|
+| MT-D01 | `@planning "plan payment"` → PM with Planning Team context | PM SOUL + ## Team Context | PASS |
+| MT-D02 | `@dev "implement auth"` → Coder with teammates + delegation | Coder SOUL + ### Teammates | PASS |
+| MT-D03 | `@qa "review PR"` → Reviewer (sole member) | Reviewer SOUL + sole member msg | PASS |
+| MT-D04 | `@pm "plan sprint"` → PM direct (agent-first, no team) | PM SOUL, isTeam=false | PASS |
+| MT-D05 | `@coder "fix bug"` → Coder direct (agent-first) | Coder SOUL, isTeam=false | PASS |
+| MT-D06 | `@ops "deploy"` fails in STANDARD | INVALID_MENTION error | PASS |
+| MT-D07 | `@design "wireframes"` fails in STANDARD | INVALID_MENTION error | PASS |
+| MT-D08 | `@architect "design schema"` → Architect direct | Architect SOUL, isTeam=false | PASS |
+| MT-D09 | SOUL enrichment: charter + leader + delegation present | All 3 sections in SOUL | PASS |
+| MT-D10 | Task classification works for team routes | taskType, complexity, model set | PASS |
+| MT-D11 | STANDARD tier has exactly 3 teams (planning, dev, qa) | 3 teams | PASS |
+| MT-D12 | Warnings propagated for unknown agents in combo | Warning includes agent name | PASS |
+
+**Executed:** 2026-03-03 | **Script:** `tests/manual/mt-74-dyad-manual.mjs` | **Result:** 12/12 PASS
 
 ---
 
