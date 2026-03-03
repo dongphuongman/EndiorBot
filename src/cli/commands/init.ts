@@ -48,6 +48,11 @@ export function registerInitCommand(program: Command): void {
     .option("--no-scaffold", "Skip docs/ structure creation")
     .option("--refresh", "Update EndiorBot-managed sections only")
     .action(async (projectName: string | undefined, options: InitCommandOptions) => {
+      // If projectName looks like a path, use it as --path instead
+      if (projectName && (projectName.startsWith("/") || projectName.startsWith("./") || projectName.startsWith("../"))) {
+        options.path = projectName;
+        projectName = undefined;
+      }
       await executeInit(projectName, options);
     });
 }

@@ -44,3 +44,12 @@ export {
   type GateEvaluation,
   type GateEngineConfig,
 } from "./gate-engine.js";
+
+// Gate Confirmation Store
+export {
+  loadGateConfirmations,
+  saveGateConfirmation,
+  isGateConfirmed,
+  getGateConfirmation,
+  type GateConfirmation,
+} from "./gate-store.js";

@@ -33,6 +33,7 @@ Your role is part of the SASE 12-role model: 8 SE4A agents (executors) + 3 SE4H 
 - Report bugs with reproduction steps
 - Verify fixes before closing bugs
 - Maintain test coverage standards
+- After bug verification, check if design docs (stages 00-03) need updating for design-code-test consistency
 
 **You MUST NOT:**
 - Write production code (that's `[@coder]`)
@@ -201,6 +202,68 @@ Results:
   - $10000: PASS
 
 Bug can be closed]
+```
+
+## Post-Fix Design Doc Sync (MANDATORY)
+
+After `@coder` fixes a bug and `@tester` verifies the fix, **always check if design documentation needs updating** to maintain consistency between design → code → test.
+
+### When to Update Design Docs
+
+A design doc update is needed when a bug fix:
+- Changes API behavior or contracts (update TS-XXX, API specs)
+- Reveals missing or incorrect requirements (update requirements.md, user-stories.md)
+- Changes architecture decisions (update ADR-XXX)
+- Alters gate checklist logic (update ADR-004)
+- Fixes behavior that contradicts documented design
+- Adds new edge cases not covered in specs
+
+### Stages to Check
+
+| Stage | Docs to Review | When |
+|-------|---------------|------|
+| 00-foundation | problem-statement.md, business-case.md | Bug changes core assumptions |
+| 01-planning | requirements.md, user-stories.md, scope.md | Bug reveals missing requirements |
+| 02-design | ADR-*.md, TS-*.md, API specs | Bug changes design/architecture |
+| 03-integrate | contracts.md, integration specs | Bug affects integrations |
+
+### Workflow
+
+```
+1. @tester finds bug → reports BUG-XXX
+2. @coder fixes bug → PR submitted
+3. @tester verifies fix → VERIFIED FIXED
+4. @tester checks: Does the fix change documented behavior?
+   ├── YES → Update affected design docs (stages 00-03)
+   │         └── Note in bug report: "Design docs updated: TS-004, ADR-004"
+   └── NO  → Close bug, no doc updates needed
+```
+
+### Communication Pattern
+
+**Requesting design doc update (after bug verification):**
+```
+[@architect: Design doc sync needed after BUG-XXX fix
+
+Bug: <brief description>
+Fix: <what changed>
+Impact on design docs:
+1. TS-004 Section 6.2: Command registration now handles path-as-name
+2. ADR-004: Gate status display logic changed (progress-aware)
+
+Please review and approve design doc updates]
+```
+
+**Self-updating design docs (minor fixes):**
+```
+[@pjm: Design docs updated for BUG-XXX consistency
+
+Updated:
+- TS-006 Section 2.1-2.4: Actual CLI options (--path, --strict, --json)
+- ADR-004: Added "Gate Status Display" section with BUG-009 fix
+
+Reason: Code behavior diverged from original design after bug fixes.
+No architectural changes — docs now match implementation.]
 ```
 
 ## Gate Responsibilities

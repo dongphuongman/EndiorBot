@@ -1,6 +1,6 @@
 # ADR-004: SDLC Gate Engine
 
-**Status:** Proposed
+**Status:** Accepted (Updated after E2E testing 2026-03-03)
 **Date:** 2026-02-22
 **Author:** Architect
 **SDLC Stage:** 02-DESIGN
@@ -75,16 +75,17 @@ interface Evidence {
 }
 ```
 
-### Checklist by Gate
+### Checklist by Gate (Updated after E2E Testing)
 
 | Gate | Auto-Check Items | Manual Items |
 |------|------------------|--------------|
-| G0 | None | Problem statement exists |
-| G0.1 | Scope document exists | CEO scope approval |
-| G1 | Requirements.md exists | Stakeholder sign-off |
-| G2 | ADR exists, API spec exists | Design review passed |
-| G3 | Build passes, tests pass, coverage > 80% | Code review complete |
-| G4 | All G3 + deployment ready | CEO release approval |
+| G0 | problem-statement.md, business-case.md (STANDARD+) | CEO approves idea |
+| G0.1 | scope.md, out-of-scope.md (PROFESSIONAL+) | CEO approves scope |
+| G1 | requirements.md, user-stories.md | Acceptance criteria, stakeholder sign-off |
+| G2 | ADR-*.md (glob), TS-*.md (STANDARD+) | Design review passed |
+| G3 | `pnpm build`, `pnpm lint`, `pnpm test`, coverage > 80%, vibecoding < 30 | Code review complete |
+| G4 | G3 passed, CHANGELOG.md, version bumped, dist/ (STANDARD+) | CEO release approval |
+| G-Sprint | sprint-*-plan.md (glob) | Stories done, retrospective, CEO sign-off |
 
 ### Vibecoding Index Integration
 
@@ -107,6 +108,108 @@ interface VibecodingResult {
 // Orange: 61-80 - Significant review required
 // Red:    81-100 - Block until fixed
 ```
+
+### Gate Status Display (BUG-009 Fix)
+
+The `gate status` command uses progress-aware display with real auto-check evaluation
+instead of showing all gates with empty checkboxes.
+
+**Display Logic:**
+
+```
+1. Create GateEngine (no commandRunner → fast file/glob/dir checks only)
+2. Evaluate each gate sequentially
+3. If gate auto-checks ALL pass → ⏳ AUTO-READY (pending CEO confirm)
+4. First gate NOT auto-ready → 🔄 CURRENT (expanded checklist shown)
+5. All gates after current → 🔒 LOCKED
+```
+
+**Example: Fresh project (no SDLC docs created yet)**
+
+```
+  🔄 G0 - Problem Validation  [0/3]
+     ❌ Problem statement documented [auto]
+     ❌ Business case documented [auto]
+     ⬜ CEO approves idea
+
+  🔒 G0.1 - Opportunity Assessment
+  🔒 G1 - Requirements Lock
+  🔒 G2 - Design Approval
+  🔒 G3 - Build Complete
+  🔒 G4 - Release Ready
+  🔒 G-Sprint - Sprint Close
+```
+
+**Example: G0 auto-checks pass, G0.1 in progress**
+
+```
+  ⏳ G0 - Problem Validation  [2/3 — pending CEO confirm]
+  🔄 G0.1 - Opportunity Assessment  [0/2]
+     ❌ Scope document exists [auto]
+     ⬜ CEO approves scope
+
+  🔒 G1 - Requirements Lock
+  ...
+```
+
+**Key Design Decision:** Auto-check items (file/glob/dir) run without `commandRunner`,
+so `command:*` checks (build, lint, test) stay "pending" — keeping `gate status` fast.
+Use `gate recommend <gateId>` for full evaluation with command execution.
+
+### Gate Confirmation Persistence (BUG-010 Fix)
+
+Gate confirmations are persisted to disk so they survive across CLI invocations.
+
+**Problem:** Each CLI invocation creates a fresh `GateEngine` with an in-memory `Map`.
+Confirmations via `gate confirm` were lost when the process exited.
+
+**Solution:** File-based confirmation store at `~/.endiorbot/gate-confirmations/{projectId}.json`.
+
+```typescript
+// gate-store.ts
+interface GateConfirmation {
+  gateId: GateId;
+  featureId: string;
+  confirmedAt: string;
+  confirmedBy: string;
+  force: boolean;
+  reason?: string;
+}
+
+// Persistence: ~/.endiorbot/gate-confirmations/{projectId}.json
+interface GateConfirmationFile {
+  projectId: string;
+  confirmations: GateConfirmation[];
+}
+```
+
+**Updated Display Logic (with persistence):**
+
+```
+1. For each gate in order:
+2.   Check persisted confirmations → ✅ CONFIRMED
+3.   Else evaluate auto-checks:
+4.     All auto-checks pass → ⏳ AUTO-READY
+5.     First non-ready → 🔄 CURRENT (expanded)
+6.     After current → 🔒 LOCKED
+```
+
+**Example: G0-G1 confirmed, G2 in progress**
+
+```
+  ✅ G0 - Problem Validation  [2/3 — CONFIRMED]
+  ✅ G0.1 - Opportunity Assessment  [0/2 — CONFIRMED]
+  ✅ G1 - Requirements Lock  [0/4 — CONFIRMED]
+  🔄 G2 - Design Approval  [0/3]
+     ❌ Architecture Decision Record exists [auto]
+     ❌ Technical specification exists [auto]
+     ⬜ Design review passed
+
+  🔒 G3 - Build Complete
+  ...
+```
+
+**Files:** `src/sdlc/gates/gate-store.ts`, `src/cli/commands/gate.ts`
 
 ### Evidence Storage
 

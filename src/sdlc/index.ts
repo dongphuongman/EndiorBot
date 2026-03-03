@@ -45,6 +45,12 @@ export {
   type VibecodingResult,
   type GateEvaluation,
   type GateEngineConfig,
+  // Gate Confirmation Store
+  loadGateConfirmations,
+  saveGateConfirmation,
+  isGateConfirmed,
+  getGateConfirmation,
+  type GateConfirmation,
 } from "./gates/index.js";
 
 // Vibecoding

@@ -10,7 +10,7 @@ stage: "02"
 category: technical
 owner: "@architect"
 created: 2026-03-01
-last_updated: 2026-03-01
+last_updated: 2026-03-03
 related_adrs: ["ADR-013"]
 related_specs: ["TS-002"]
 ---
@@ -389,42 +389,39 @@ endiorbot init [project-name]
 ```typescript
 // src/cli/commands/init.ts
 import type { Command } from "commander";
-import { detectProjectState } from "../../sdlc/scaffold/project-detector.js";
-import { scaffoldProject } from "../../sdlc/scaffold/structure-generator.js";
-
-export interface InitOptions {
-  tier?: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE";
-  analyze?: boolean;
-  force?: boolean;
-  refresh?: boolean;
-  path?: string;
-}
-
-export interface InitResult {
-  state: ProjectState;
-  tier: string;
-  created: string[];
-  updated: string[];
-  preserved: string[];
-  skipped: string[];
-  migrated?: {
-    from: string;
-    originalConfig: unknown;
-  };
-  duration_ms: number;
-}
 
 export function registerInitCommand(program: Command): void {
   program
     .command("init [project-name]")
     .description("Initialize project with SDLC + AI governance files")
-    .option("--tier <tier>", "Project tier", undefined)
-    .option("--analyze", "Show preview without writing", false)
-    .option("--force", "Overwrite with backup", false)
-    .option("--refresh", "Update managed sections only", false)
+    .option("--tier <tier>", "Project tier (LITE, STANDARD, PROFESSIONAL, ENTERPRISE)", "STANDARD")
     .option("--path <path>", "Target directory", process.cwd())
-    .action(initAction);
+    .option("--analyze", "Show preview without writing (dry-run)")
+    .option("--force", "Overwrite existing files (creates backup)")
+    .option("--no-scaffold", "Skip docs/ structure creation")
+    .option("--refresh", "Update EndiorBot-managed sections only")
+    .action(async (projectName, options) => {
+      // BUG-007 FIX: If projectName looks like a path, redirect to --path
+      if (projectName && (projectName.startsWith("/") || projectName.startsWith("./") || projectName.startsWith("../"))) {
+        options.path = projectName;
+        projectName = undefined;
+      }
+      await executeInit(projectName, options);
+    });
 }
+```
+
+### 6.3 Path-as-Name Handling (BUG-007)
+
+Commander.js treats the first positional argument after `init` as `[project-name]`. When users run
+`endiorbot init /path/to/project`, the path is captured as `projectName` instead of `--path`.
+
+**Detection logic:** If `projectName` starts with `/`, `./`, or `../`, it is treated as `--path`.
+
+```
+endiorbot init MyProject             → name="MyProject", path=cwd
+endiorbot init /path/to/project      → name=basename(path), path="/path/to/project"
+endiorbot init --path /path/to/proj  → name=basename(path), path="/path/to/proj"
 ```
 
 ## 7. Scaffold Structure

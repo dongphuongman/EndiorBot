@@ -1,12 +1,15 @@
 /**
  * Compliance Command
  *
- * Check SDLC compliance for project structure and configuration.
+ * Check SDLC compliance for project structure (L1) and content quality (L2).
+ *
+ * L1: File/directory existence (structure)
+ * L2: Content quality (placeholder detection, min content, required artifacts)
  *
  * @module cli/commands/compliance
- * @version 1.0.0
- * @date 2026-03-01
- * @status ACTIVE - Sprint 61
+ * @version 1.1.0
+ * @date 2026-03-03
+ * @status ACTIVE - Sprint 73 (L2 added, BUG-011 fix)
  */
 
 import type { Command } from "commander";
@@ -22,6 +25,8 @@ import {
   type ProjectTier,
   type DetectionResult,
 } from "../../sdlc/scaffold/index.js";
+import { loadActiveProject } from "../../config/paths.js";
+import { checkL2Compliance, type L2Result } from "../../sdlc/compliance/index.js";
 
 const logger = createLogger("compliance-command");
 
@@ -41,20 +46,30 @@ export function registerComplianceCommand(program: Command): void {
   compliance
     .command("check")
     .description("Check project compliance against SDLC requirements")
-    .option("--path <path>", "Target directory", process.cwd())
+    .option("--path <path>", "Target directory")
     .option("--tier <tier>", "Expected tier (auto-detected if not specified)")
+    .option("--level <level>", "Compliance level: L1 (structure) or L2 (content)", "L2")
     .option("--strict", "Fail on any compliance issue")
     .option("--json", "Output as JSON")
     .action(async (options: ComplianceOptions) => {
+      if (!options.path) {
+        const active = loadActiveProject();
+        options.path = active?.path ?? process.cwd();
+      }
       await executeComplianceCheck(options);
     });
 
-  // compliance score (alias for check --json)
+  // compliance score
   compliance
     .command("score")
-    .description("Show compliance score")
-    .option("--path <path>", "Target directory", process.cwd())
-    .action(async (options: { path: string }) => {
+    .description("Show compliance score (L1 structure + L2 content)")
+    .option("--path <path>", "Target directory")
+    .option("--level <level>", "Compliance level: L1 (structure) or L2 (content)", "L2")
+    .action(async (options: { path: string; level?: string }) => {
+      if (!options.path) {
+        const active = loadActiveProject();
+        options.path = active?.path ?? process.cwd();
+      }
       await executeComplianceCheck({ ...options, json: false, showScoreOnly: true });
     });
 }
@@ -63,9 +78,12 @@ export function registerComplianceCommand(program: Command): void {
 // Types
 // ============================================================================
 
+type ComplianceLevel = "L1" | "L2";
+
 interface ComplianceOptions {
   path: string;
   tier?: string;
+  level?: string;
   strict?: boolean;
   json?: boolean;
   showScoreOnly?: boolean;
@@ -82,6 +100,8 @@ interface ComplianceIssue {
 interface ComplianceResult {
   passed: boolean;
   score: number;
+  l2Score?: number;
+  l2Result?: L2Result;
   tier: ProjectTier;
   issues: ComplianceIssue[];
   checkedFiles: string[];
@@ -97,10 +117,18 @@ interface ComplianceResult {
 /**
  * Execute compliance check.
  */
+function parseLevel(level?: string): ComplianceLevel {
+  if (!level) return "L2";
+  const normalized = level.toUpperCase();
+  if (normalized === "L1" || normalized === "L2") return normalized;
+  return "L2";
+}
+
 async function executeComplianceCheck(options: ComplianceOptions): Promise<void> {
   const targetPath = resolve(options.path);
+  const level = parseLevel(options.level);
 
-  logger.info("Starting compliance check", { path: targetPath });
+  logger.info("Starting compliance check", { path: targetPath, level });
 
   if (!options.json && !options.showScoreOnly) {
     console.log(fmt.info(t("compliance.checking")));
@@ -121,16 +149,24 @@ async function executeComplianceCheck(options: ComplianceOptions): Promise<void>
     process.exit(1);
   }
 
-  // Run compliance checks
+  // Run L1 compliance checks
   const result = checkCompliance(targetPath, detection, tier);
+
+  // Run L2 content checks if requested
+  if (level === "L2") {
+    const requiredStages = TIER_STAGES[tier];
+    const l2Result = checkL2Compliance(targetPath, requiredStages, tier);
+    result.l2Score = l2Result.score;
+    result.l2Result = l2Result;
+  }
 
   // Output results
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
   } else if (options.showScoreOnly) {
-    displayScoreOnly(result);
+    displayScoreOnly(result, level);
   } else {
-    displayResult(result, options.strict);
+    displayResult(result, options.strict, level);
   }
 
   // Exit with error if strict mode and issues found
@@ -236,19 +272,37 @@ function checkCompliance(
 /**
  * Display compliance result.
  */
-function displayResult(result: ComplianceResult, strict?: boolean): void {
+function displayResult(result: ComplianceResult, strict?: boolean, level: ComplianceLevel = "L2"): void {
   console.log();
 
-  // Score
-  const scoreColor = result.score >= 80 ? fmt.green : result.score >= 50 ? fmt.yellow : fmt.red;
-  console.log(fmt.bold("Compliance Score: ") + scoreColor(`${result.score}%`));
+  // L1 Score
+  const l1Color = result.score >= 80 ? fmt.green : result.score >= 50 ? fmt.yellow : fmt.red;
+  console.log(fmt.bold("L1 Structure: ") + l1Color(`${result.score}%`));
+
+  // L2 Score (if available)
+  if (level === "L2" && result.l2Score !== undefined) {
+    const l2Color = result.l2Score >= 80 ? fmt.green : result.l2Score >= 50 ? fmt.yellow : fmt.red;
+    console.log(fmt.bold("L2 Content:   ") + l2Color(`${result.l2Score}%`));
+  }
+
   console.log(fmt.dim(`Tier: ${result.tier}`));
   console.log();
 
-  // Issues
+  // L1 Issues
   if (result.issues.length > 0) {
-    console.log(fmt.bold("Issues:"));
+    console.log(fmt.bold("L1 Issues:"));
     for (const issue of result.issues) {
+      const icon = issue.severity === "error" ? "❌" : "⚠️";
+      const colorFn = issue.severity === "error" ? fmt.red : fmt.yellow;
+      console.log(`  ${icon} ${colorFn(issue.message)}`);
+    }
+    console.log();
+  }
+
+  // L2 Issues
+  if (level === "L2" && result.l2Result && result.l2Result.issues.length > 0) {
+    console.log(fmt.bold("L2 Issues:"));
+    for (const issue of result.l2Result.issues) {
       const icon = issue.severity === "error" ? "❌" : "⚠️";
       const colorFn = issue.severity === "error" ? fmt.red : fmt.yellow;
       console.log(`  ${icon} ${colorFn(issue.message)}`);
@@ -265,7 +319,6 @@ function displayResult(result: ComplianceResult, strict?: boolean): void {
 
     if (!strict) {
       console.log();
-      // Show appropriate fix command based on issue type
       const hasInvalidConfig = result.issues.some((i) => i.type === "invalid_config");
       if (hasInvalidConfig) {
         console.log("Run " + fmt.cyan("endiorbot init --force") + " to migrate config to EndiorBot format.");
@@ -279,9 +332,15 @@ function displayResult(result: ComplianceResult, strict?: boolean): void {
 /**
  * Display score only.
  */
-function displayScoreOnly(result: ComplianceResult): void {
-  const scoreColor = result.score >= 80 ? fmt.green : result.score >= 50 ? fmt.yellow : fmt.red;
-  console.log(t("compliance.score", { score: scoreColor(String(result.score)) }));
+function displayScoreOnly(result: ComplianceResult, level: ComplianceLevel = "L2"): void {
+  const l1Color = result.score >= 80 ? fmt.green : result.score >= 50 ? fmt.yellow : fmt.red;
+
+  if (level === "L2" && result.l2Score !== undefined) {
+    const l2Color = result.l2Score >= 80 ? fmt.green : result.l2Score >= 50 ? fmt.yellow : fmt.red;
+    console.log(`L1: ${l1Color(String(result.score))}% (structure) | L2: ${l2Color(String(result.l2Score))}% (content)`);
+  } else {
+    console.log(t("compliance.score", { score: l1Color(String(result.score)) }));
+  }
 
   if (result.passed) {
     console.log(fmt.success("✓ " + t("compliance.passed")));

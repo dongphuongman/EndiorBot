@@ -28,8 +28,9 @@ import type { Command } from "commander";
 import { loadActiveProject } from "../../config/paths.js";
 import {
   GateEngine,
-  getChecklist,
   getGatesInOrder,
+  isGateConfirmed,
+  saveGateConfirmation,
   type GateId,
   type ProjectTier,
   type ChecklistItem,
@@ -104,7 +105,23 @@ function formatGateId(gateId: GateId): string {
 // ============================================================================
 
 /**
- * Gate status action - show all gates and their checklists.
+ * Check if a gate's auto-checkable required items all pass.
+ * Manual items (CEO approval) are excluded — those need explicit `gate confirm`.
+ */
+function isGateAutoReady(checklist: ChecklistItem[]): boolean {
+  const autoRequired = checklist.filter((i) => i.required && i.autoCheck);
+  if (autoRequired.length === 0) return false;
+  return autoRequired.every((i) => i.status === "pass");
+}
+
+/**
+ * Gate status action - show gates with progress-aware display.
+ *
+ * Logic:
+ *   - Gates with all auto-checks passing → ⏳ AUTO-READY (pending CEO confirm)
+ *   - First gate that isn't auto-ready → 🔄 CURRENT (expanded checklist)
+ *   - All gates after current → 🔒 LOCKED
+ *   - If --gate flag specified → show detailed evaluation for that gate
  */
 async function gateStatusAction(options: { gate?: string }): Promise<void> {
   const project = getCurrentProject();
@@ -116,6 +133,9 @@ async function gateStatusAction(options: { gate?: string }): Promise<void> {
 
   const tier = (project.tier as ProjectTier) ?? "STANDARD";
 
+  // Create gate engine for quick evaluation (no commandRunner = fast file checks only)
+  const engine = new GateEngine({ projectRoot: project.path, tier });
+
   console.log("");
   console.log("┌─────────────────────────────────────────────────────────────┐");
   console.log(`│  🚪 SDLC Gates - ${project.name.slice(0, 42).padEnd(42)}│`);
@@ -124,25 +144,75 @@ async function gateStatusAction(options: { gate?: string }): Promise<void> {
   console.log("└─────────────────────────────────────────────────────────────┘");
   console.log("");
 
-  // Show specific gate or all gates
-  const gatesToShow = options.gate
-    ? [options.gate as GateId]
-    : getGatesInOrder();
-
-  for (const gateId of gatesToShow) {
-    const checklist = getChecklist(gateId, tier);
+  // If specific gate requested, show detailed evaluation
+  if (options.gate) {
+    const gateId = options.gate as GateId;
+    const evaluation = await engine.evaluate(gateId, "default", project.id);
 
     console.log(`📋 ${formatGateId(gateId)}`);
     console.log("─".repeat(60));
 
-    for (const item of checklist.items) {
+    for (const item of evaluation.checklist) {
       const status = formatItemStatus(item);
       const autoTag = item.autoCheck ? " [auto]" : "";
       console.log(`   ${status} ${item.description}${autoTag}`);
     }
 
+    const { passed, total } = evaluation.summary;
     console.log("");
+    console.log(`   Progress: ${passed}/${total} checks passed`);
+    console.log("");
+    return;
   }
+
+  // Evaluate all gates with progress-aware display
+  const gates = getGatesInOrder();
+  let currentGateFound = false;
+
+  for (const gateId of gates) {
+    // Check if this gate was already confirmed (persisted)
+    const confirmed = isGateConfirmed(project.id, gateId);
+
+    if (confirmed) {
+      const evaluation = await engine.evaluate(gateId, "default", project.id);
+      const { passed, total } = evaluation.summary;
+      console.log(`  ✅ ${formatGateId(gateId)}  [${passed}/${total} — CONFIRMED]`);
+      continue;
+    }
+
+    const evaluation = await engine.evaluate(gateId, "default", project.id);
+    const { passed, total } = evaluation.summary;
+
+    if (isGateAutoReady(evaluation.checklist)) {
+      // Auto-checks pass — awaiting CEO confirmation
+      console.log(`  ⏳ ${formatGateId(gateId)}  [${passed}/${total} — pending CEO confirm]`);
+    } else if (!currentGateFound) {
+      // First non-ready gate = current gate — show expanded checklist
+      currentGateFound = true;
+      console.log(`  🔄 ${formatGateId(gateId)}  [${passed}/${total}]`);
+      console.log("  " + "─".repeat(58));
+
+      for (const item of evaluation.checklist) {
+        const status = formatItemStatus(item);
+        const autoTag = item.autoCheck ? " [auto]" : "";
+        console.log(`     ${status} ${item.description}${autoTag}`);
+      }
+
+      console.log("");
+    } else {
+      // Future gate — locked until current gate is resolved
+      console.log(`  🔒 ${formatGateId(gateId)}`);
+    }
+  }
+
+  console.log("");
+  if (!currentGateFound) {
+    console.log("  🎉 All gates auto-ready! Use 'endiorbot gate confirm <gateId> --confirm' to approve.");
+  } else {
+    console.log("  💡 Use 'endiorbot gate recommend <gateId>' for detailed evaluation.");
+    console.log("  💡 Use 'endiorbot gate confirm <gateId> --confirm' to approve a gate.");
+  }
+  console.log("");
 }
 
 /**
@@ -297,18 +367,30 @@ async function gateConfirmAction(
       console.log("⚠️  Override applied by CEO.");
     }
 
+    // Persist confirmation to disk
+    const now = new Date().toISOString();
+    const confirmation: { gateId: GateId; featureId: string; confirmedAt: string; confirmedBy: string; force: boolean; reason?: string } = {
+      gateId: gateId as GateId,
+      featureId,
+      confirmedAt: now,
+      confirmedBy: "CEO",
+      force: !!options.force,
+    };
+    if (options.force) {
+      confirmation.reason = "Manual override by CEO";
+    }
+    saveGateConfirmation(project.id, confirmation);
+
     console.log("");
     console.log("┌─────────────────────────────────────────────────────────────┐");
     console.log(`│  ✅ ${gateId} CONFIRMED                                      │`);
     console.log("├─────────────────────────────────────────────────────────────┤");
     console.log(`│  Feature: ${featureId.padEnd(49)}│`);
     console.log(`│  Project: ${project.name.slice(0, 49).padEnd(49)}│`);
-    console.log(`│  Confirmed: ${new Date().toISOString().slice(0, 19).padEnd(47)}│`);
+    console.log(`│  Confirmed: ${now.slice(0, 19).padEnd(47)}│`);
     console.log(`│  By: CEO (explicit --confirm flag)`.padEnd(62) + "│");
     console.log("└─────────────────────────────────────────────────────────────┘");
     console.log("");
-
-    // TODO: Create git tag, save evidence, audit log
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`❌ Approval failed: ${message}`);

@@ -18,32 +18,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "dotenv";
 import { Command } from "commander";
-import {
-  registerStartCommand,
-  registerSwitchCommand,
-  registerStatusCommand,
-  registerGateCommand,
-  registerConsultCommand,
-  registerConfigCommand,
-  registerCheckpointCommand,
-  registerResumeCommand,
-  registerQueueCommand,
-  registerFixCommand,
-  registerFixStatsCommand,
-  registerGatewayCommand,
-  registerBrainCommand,
-  registerEvalCommand,
-  registerSetupCommand,
-  registerSecretsCommand,
-  registerAgentCommand,
-  registerEvidenceCommand,
-  registerContextCommand,
-  registerWorkflowCommand,
-  registerAnalyticsCommand,
-  registerPerformanceCommand,
-  registerInitCommand,
-  registerComplianceCommand,
-} from "./commands/index.js";
+import { registerAllCommands, registerShellCommand } from "./commands/index.js";
 import { getCLILogger, logDebug, logError } from "./logger.js";
 import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.js";
 import { ensureSecureStateDir } from "../security/secure-fs.js";
@@ -96,33 +71,17 @@ export async function run(): Promise<void> {
     .option("-v, --verbose", "Show verbose output")
     .option("--debug", "Show debug output");
 
-  // Register all commands
-  registerStartCommand(program);
-  registerSwitchCommand(program);
-  registerStatusCommand(program);
-  registerGateCommand(program);
-  registerConsultCommand(program);
-  registerConfigCommand(program);
-  registerCheckpointCommand(program);
-  registerResumeCommand(program);
-  registerQueueCommand(program);
-  registerFixCommand(program);
-  registerFixStatsCommand(program);
-  registerGatewayCommand(program);
-  registerBrainCommand(program);
-  registerEvalCommand(program);
-  registerSetupCommand(program);
-  registerSecretsCommand(program);
-  registerAgentCommand(program);
-  registerEvidenceCommand(program);
-  registerContextCommand(program);
-  registerWorkflowCommand(program);
-  registerAnalyticsCommand(program);
-  registerPerformanceCommand(program);
-  registerInitCommand(program);
-  registerComplianceCommand(program);
+  // Register all commands (centralized via register-all.ts + shell)
+  registerAllCommands(program);
+  registerShellCommand(program);
 
-  await program.parseAsync(process.argv);
+  try {
+    await program.parseAsync(process.argv);
+  } catch (err) {
+    // -i shorthand throws to abort subcommand and start REPL
+    if ((err as Error & { code?: string }).code === "session.started") return;
+    throw err;
+  }
 }
 
 // Re-export logger utilities for commands

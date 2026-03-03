@@ -10,7 +10,7 @@ stage: "02"
 category: technical
 owner: "@architect"
 created: 2026-03-01
-last_updated: 2026-03-01
+last_updated: 2026-03-03
 related_adrs: ["ADR-013"]
 related_specs: ["TS-004", "TS-005"]
 ---
@@ -48,61 +48,82 @@ Teams need to:
 
 ## 2. Command Interface
 
-### 2.1 CLI Options
+### 2.1 CLI Options (Actual Implementation)
 
 ```bash
-endiorbot compliance <mode>
-  score                   # Calculate and display compliance score
-  report                  # Generate executive summary report
+endiorbot compliance check    # Check project compliance against SDLC requirements
+  --path <path>               # Target directory (auto-resolved from active project)
+  --tier <tier>               # Expected tier (auto-detected if not specified)
+  --strict                    # Fail on any compliance issue (exit code 1)
+  --json                      # Output as JSON
 
-Options:
-  --output <path>         # Output report to file (default: stdout)
-  --format <format>       # Output format: text | json | markdown
-  --tier <tier>           # Override tier for scoring
-  --verbose               # Show detailed breakdown
+endiorbot compliance score    # Show compliance score (compact)
+  --path <path>               # Target directory (auto-resolved from active project)
 ```
 
-### 2.2 Command Registration
+### 2.2 Active Project Resolution (BUG-008)
+
+When `--path` is not specified, the compliance command resolves the target directory
+from the active project (set by `endiorbot start`), falling back to `process.cwd()`.
+
+```typescript
+// Resolution order:
+// 1. Explicit --path flag
+// 2. Active project from loadActiveProject()
+// 3. Fallback to process.cwd()
+
+.action(async (options: ComplianceOptions) => {
+  if (!options.path) {
+    const active = loadActiveProject();
+    options.path = active?.path ?? process.cwd();
+  }
+  await executeComplianceCheck(options);
+});
+```
+
+**Before BUG-008 fix:** `--path` defaulted to `process.cwd()` in the option definition,
+always checking EndiorBot's own directory instead of the active project.
+
+### 2.3 Command Registration
 
 ```typescript
 // src/cli/commands/compliance.ts
-import type { Command } from "commander";
-
-export interface ComplianceOptions {
-  output?: string;
-  format?: "text" | "json" | "markdown";
-  tier?: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE";
-  verbose?: boolean;
-}
-
-export interface ComplianceScore {
-  overall: number;           // 0-100
-  pillars: PillarScore[];
-  sections: SectionScore[];
-  grade: "A" | "B" | "C" | "D" | "F";
-  recommendations: string[];
-}
-
 export function registerComplianceCommand(program: Command): void {
   const compliance = program
     .command("compliance")
-    .description("SDLC compliance scoring and reporting");
+    .description("Check SDLC compliance for project");
 
+  // compliance check — full compliance analysis
+  compliance
+    .command("check")
+    .description("Check project compliance against SDLC requirements")
+    .option("--path <path>", "Target directory")
+    .option("--tier <tier>", "Expected tier (auto-detected if not specified)")
+    .option("--strict", "Fail on any compliance issue")
+    .option("--json", "Output as JSON")
+    .action(complianceCheckAction);
+
+  // compliance score — compact score display
   compliance
     .command("score")
-    .description("Calculate compliance score")
-    .option("--tier <tier>", "Override tier")
-    .option("--verbose", "Show detailed breakdown")
-    .option("--format <format>", "Output format", "text")
-    .action(scoreAction);
+    .description("Show compliance score")
+    .option("--path <path>", "Target directory")
+    .action(complianceScoreAction);
+}
+```
 
-  compliance
-    .command("report")
-    .description("Generate executive report")
-    .option("--output <path>", "Output file path")
-    .option("--format <format>", "Output format", "markdown")
-    .option("--tier <tier>", "Override tier")
-    .action(reportAction);
+### 2.4 Compliance Result Types
+
+```typescript
+interface ComplianceResult {
+  passed: boolean;
+  score: number;               // 0-100
+  tier: ProjectTier;
+  issues: ComplianceIssue[];   // missing_file, missing_stage, invalid_config, tier_mismatch
+  checkedFiles: string[];
+  checkedStages: string[];
+  missingFiles: string[];
+  missingStages: string[];
 }
 ```
 

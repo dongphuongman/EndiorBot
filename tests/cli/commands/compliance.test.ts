@@ -120,14 +120,14 @@ describe("compliance check", () => {
 
   it("should check compliance in current directory", () => {
     const result = runCompliance("check", process.cwd());
-    expect(result.stdout).toContain("Compliance Score:");
+    expect(result.stdout).toContain("L1 Structure:");
   });
 
   it("should support --path option", () => {
     createProjectStructure(tempDir, "LITE");
 
     const result = runCompliance(`check --path "${tempDir}"`, process.cwd());
-    expect(result.stdout).toContain("Compliance Score:");
+    expect(result.stdout).toContain("L1 Structure:");
     expect(result.stdout).toContain("100%");
   });
 
@@ -194,7 +194,8 @@ describe("compliance score", () => {
 
   it("should show score for current directory", () => {
     const result = runCompliance("score", process.cwd());
-    expect(result.stdout).toContain("Compliance score:");
+    // L2 mode shows: "L1: X% (structure) | L2: Y% (content)"
+    expect(result.stdout).toContain("(structure)");
   });
 
   it("should show 100% for complete project", () => {
