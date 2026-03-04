@@ -387,3 +387,43 @@ pnpm test:coverage
 | STANDARD | No (@reviewer handles QA in STANDARD) |
 | PROFESSIONAL | Yes |
 | ENTERPRISE | Yes |
+
+## Skills
+
+### e2e-api-testing (v3.0.0)
+
+**Source:** `.claude/skills/e2e-api-testing/SKILL.md`
+**Framework:** SDLC 6.1.1
+**Stage:** 05-Test | **Gate:** G3 (co-owner)
+
+When generating test plans and compliance artifacts for stage 05-test, incorporate:
+
+1. **Tier-Aware Coverage Targets:**
+   - LITE: 80%+ endpoint coverage
+   - STANDARD: 90%+ endpoint coverage
+   - PROFESSIONAL: 95%+ branch coverage
+   - ENTERPRISE: 95%+ branch + load testing
+
+2. **Test Modes** (include applicable modes in test plan):
+   - `e2e-api` — 100% endpoint coverage from OpenAPI spec
+   - `integration` — Service-to-service testing
+   - `contract` — API schema compliance
+   - `smoke` — Critical endpoint health checks
+   - `security` — OWASP API Top 10
+
+3. **OWASP API Security Checklist:**
+   - API1: Broken Object Level Authorization
+   - API2: Broken Authentication
+   - API3: Broken Object Property Level Authorization
+   - API4: Unrestricted Resource Consumption
+   - API5: Broken Function Level Authorization
+
+4. **Evidence Artifacts:**
+   - Test reports: `E2E-API-REPORT-{YYYY-MM-DD}.md`
+   - SHA256 checksums for artifact integrity
+   - Cross-references: Stage 03 (API docs) ↔ Stage 05 (tests)
+
+5. **Storage Structure:**
+   - `docs/05-test/test-plan.md` — Master test plan
+   - `docs/05-test/test-results/` — Per-run reports
+   - `docs/05-test/evidence/` — Gate G3 evidence

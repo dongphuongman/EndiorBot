@@ -372,6 +372,36 @@ export const ARCHIVE_CONTRACT: StageContract = {
   minTier: "PROFESSIONAL",
 };
 
+/**
+ * 10-ARCHIVE: Enterprise project archival, lessons learned, close-out.
+ */
+export const ARCHIVE_ENTERPRISE_CONTRACT: StageContract = {
+  stage: "10-ARCHIVE",
+  name: "Archive (Enterprise)",
+  description: "Project archival, lessons learned, and close-out",
+  required: [],
+  produces: [
+    {
+      pattern: "docs/10-archive/**/*.md",
+      description: "Archive documentation",
+      autoCreate: false,
+    },
+    {
+      pattern: "docs/10-archive/archive-checklist.md",
+      description: "Archive checklist",
+      autoCreate: false,
+    },
+    {
+      pattern: "docs/10-archive/lessons-learned.md",
+      description: "Lessons learned",
+      autoCreate: false,
+    },
+  ],
+  gates: [],
+  validation: [],
+  minTier: "ENTERPRISE",
+};
+
 // ============================================================================
 // Stage Contracts Map
 // ============================================================================
@@ -390,6 +420,7 @@ export const STAGE_CONTRACTS: Record<SDLCStage, StageContract> = {
   "07-OPERATE": OPERATE_CONTRACT,
   "08-COLLABORATE": COLLABORATE_CONTRACT,
   "09-ARCHIVE": ARCHIVE_CONTRACT,
+  "10-ARCHIVE": ARCHIVE_ENTERPRISE_CONTRACT,
 };
 
 // ============================================================================

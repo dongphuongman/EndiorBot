@@ -344,6 +344,7 @@ export class ComplianceDashboardEngine {
       "07-OPERATE": "Operate",
       "08-COLLABORATE": "Collaborate",
       "09-ARCHIVE": "Archive",
+      "10-ARCHIVE": "Archive (Enterprise)",
     };
     return names[stage] ?? stage;
   }

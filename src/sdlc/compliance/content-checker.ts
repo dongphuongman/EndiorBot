@@ -147,6 +147,11 @@ export const STAGE_CONTENT_REQUIREMENTS: Record<string, StageRequirements> = {
     requiredArtifacts: [],
     optionalArtifacts: ["governance.md", "audit-log.md"],
   },
+  "10-archive": {
+    minContentLines: 10,
+    requiredArtifacts: ["archive-checklist.md"],
+    optionalArtifacts: ["lessons-learned.md", "project-close-report.md"],
+  },
 };
 
 interface StageRequirements {

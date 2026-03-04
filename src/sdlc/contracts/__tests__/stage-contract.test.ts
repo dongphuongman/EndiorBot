@@ -33,16 +33,16 @@ import {
 
 describe("Stage Contract Types", () => {
   describe("SDLC_STAGES", () => {
-    it("should have 10 stages", () => {
-      expect(SDLC_STAGES.length).toBe(10);
+    it("should have 11 stages", () => {
+      expect(SDLC_STAGES.length).toBe(11);
     });
 
     it("should start with 00-FOUNDATION", () => {
       expect(SDLC_STAGES[0]).toBe("00-FOUNDATION");
     });
 
-    it("should end with 09-ARCHIVE", () => {
-      expect(SDLC_STAGES[9]).toBe("09-ARCHIVE");
+    it("should end with 10-ARCHIVE", () => {
+      expect(SDLC_STAGES[10]).toBe("10-ARCHIVE");
     });
 
     it("should include all expected stages", () => {
@@ -57,6 +57,7 @@ describe("Stage Contract Types", () => {
         "07-OPERATE",
         "08-COLLABORATE",
         "09-ARCHIVE",
+        "10-ARCHIVE",
       ];
       expect(SDLC_STAGES).toEqual(expected);
     });
@@ -83,7 +84,7 @@ describe("Stage Contract Types", () => {
     });
 
     it("should return undefined for last stage", () => {
-      expect(getNextStage("09-ARCHIVE")).toBeUndefined();
+      expect(getNextStage("10-ARCHIVE")).toBeUndefined();
     });
   });
 
@@ -105,8 +106,8 @@ describe("Stage Contract Types", () => {
 
 describe("Default Stage Contracts", () => {
   describe("STAGE_CONTRACTS", () => {
-    it("should have contracts for all 10 stages", () => {
-      expect(Object.keys(STAGE_CONTRACTS).length).toBe(10);
+    it("should have contracts for all 11 stages", () => {
+      expect(Object.keys(STAGE_CONTRACTS).length).toBe(11);
     });
 
     it("should have a contract for each stage", () => {
@@ -126,9 +127,9 @@ describe("Default Stage Contracts", () => {
   });
 
   describe("getAllContracts", () => {
-    it("should return all 10 contracts", () => {
+    it("should return all 11 contracts", () => {
       const contracts = getAllContracts();
-      expect(contracts.length).toBe(10);
+      expect(contracts.length).toBe(11);
     });
   });
 
@@ -214,7 +215,7 @@ describe("StageContractEngine", () => {
     it("should load default contracts", () => {
       const engine = new StageContractEngine({ projectRoot: tempDir });
       const contracts = engine.getAllContracts();
-      expect(contracts.length).toBe(10);
+      expect(contracts.length).toBe(11);
     });
 
     it("should apply custom contracts", () => {
@@ -288,7 +289,7 @@ describe("StageContractEngine", () => {
       const engine = new StageContractEngine({ projectRoot: tempDir });
       const evaluations = await engine.evaluateAll();
 
-      expect(evaluations.length).toBe(10);
+      expect(evaluations.length).toBe(11);
       for (const evaluation of evaluations) {
         expect(SDLC_STAGES).toContain(evaluation.stage);
       }

@@ -30,6 +30,7 @@ export const SDLC_STAGES = [
   "07-OPERATE",
   "08-COLLABORATE",
   "09-ARCHIVE",
+  "10-ARCHIVE",
 ] as const;
 
 export type SDLCStage = (typeof SDLC_STAGES)[number];

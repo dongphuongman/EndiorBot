@@ -179,7 +179,7 @@ describe("SDLC Compliance Integration", () => {
       });
 
       const evaluations = await contractEngine.evaluateAll();
-      expect(evaluations.length).toBe(10);
+      expect(evaluations.length).toBe(11);
 
       // 3. Create compliance dashboard
       const dashboard = new ComplianceDashboardEngine({
@@ -188,7 +188,7 @@ describe("SDLC Compliance Integration", () => {
 
       const dashboardData = await dashboard.refresh();
       expect(dashboardData.overallScore).toBeGreaterThanOrEqual(0);
-      expect(dashboardData.stages.length).toBe(10);
+      expect(dashboardData.stages.length).toBe(11);
 
       // 4. Generate report
       const generator = new ReportGenerator(dashboard);
@@ -278,7 +278,7 @@ describe("SDLC Compliance Integration", () => {
       });
 
       const data = await dashboard.refresh();
-      expect(data.stages.length).toBe(10);
+      expect(data.stages.length).toBe(11);
     });
 
     it("should validate PROFESSIONAL tier correctly", async () => {
@@ -425,7 +425,7 @@ describe("SDLC Compliance Integration", () => {
       const parsed = JSON.parse(report.content);
       expect(parsed.title).toBe("SDLC Compliance Report");
       expect(parsed.summary.overallScore).toBeGreaterThanOrEqual(0);
-      expect(parsed.stages.length).toBe(10);
+      expect(parsed.stages.length).toBe(11);
     });
 
     it("should export HTML report", async () => {
@@ -521,7 +521,7 @@ describe("SDLC Compliance Integration", () => {
       const evaluations = await contractEngine.evaluateAll();
       const duration = Date.now() - startTime;
 
-      expect(evaluations.length).toBe(10);
+      expect(evaluations.length).toBe(11);
       expect(duration).toBeLessThan(1000); // < 1 second for all stages
     });
   });

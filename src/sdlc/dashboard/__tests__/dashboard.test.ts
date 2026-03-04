@@ -74,12 +74,12 @@ describe("ComplianceDashboardEngine", () => {
       expect(["compliant", "warning", "non-compliant"]).toContain(
         dashboard.status
       );
-      expect(dashboard.stages).toHaveLength(10);
+      expect(dashboard.stages).toHaveLength(11);
       expect(dashboard.refreshedAt).toBeDefined();
       expect(dashboard.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    it("should evaluate all 10 stages", async () => {
+    it("should evaluate all 11 stages", async () => {
       const engine = new ComplianceDashboardEngine({ projectRoot: tempDir });
       const dashboard = await engine.refresh();
 
@@ -94,6 +94,7 @@ describe("ComplianceDashboardEngine", () => {
         "07-OPERATE",
         "08-COLLABORATE",
         "09-ARCHIVE",
+        "10-ARCHIVE",
       ];
 
       const actualStages = dashboard.stages.map((s) => s.stage);
@@ -233,7 +234,7 @@ describe("ReportGenerator", () => {
       const parsed = JSON.parse(report.content);
       expect(parsed.title).toBe("SDLC Compliance Report");
       expect(parsed.summary).toBeDefined();
-      expect(parsed.stages).toHaveLength(10);
+      expect(parsed.stages).toHaveLength(11);
     });
 
     it("should generate HTML report", async () => {

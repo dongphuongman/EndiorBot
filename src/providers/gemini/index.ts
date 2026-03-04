@@ -163,7 +163,7 @@ interface GeminiTool {
 const DEFAULT_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 /** Default model */
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 /** Default timeout in ms */
 const DEFAULT_GEMINI_TIMEOUT_MS = 60000;

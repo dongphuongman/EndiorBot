@@ -19,8 +19,12 @@
 
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { writeFile, unlink, mkdir } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 import { createLogger, type Logger } from "../../logging/index.js";
 import type { AgentRole } from "../types/handoff.js";
+import { validatePatch } from "./patch-validator.js";
 
 // ============================================================================
 // Types
@@ -234,10 +238,27 @@ Output the diff in a code block with \`\`\`diff format.`,
       return patchResponse;
     }
 
+    // CTO C1: Validate patch through PatchValidator BEFORE CEO confirmation
+    const validation = validatePatch(diff, request.workspace);
+    if (!validation.allowed) {
+      this.log.warn("PatchValidator blocked patch", {
+        risk: validation.risk,
+        risks: validation.risks.length,
+        patterns: validation.dangerousPatterns,
+      });
+      patchResponse.error = `PatchValidator blocked (${validation.risk}): ${validation.dangerousPatterns.join(", ") || validation.risks.map((r) => r.description).join(", ")}`;
+      return patchResponse;
+    }
+
+    if (validation.warnings.length > 0) {
+      this.log.info("PatchValidator warnings", { warnings: validation.warnings });
+    }
+
     // Request confirmation
     this.log.info("Patch ready for confirmation", {
       files: affectedFiles.length,
       agent: request.agent,
+      risk: validation.risk,
     });
 
     const confirmed = await confirmCallback();
@@ -504,25 +525,153 @@ Output the diff in a code block with \`\`\`diff format.`,
 
   /**
    * Apply a patch to the workspace.
+   *
+   * Strategy 1: `git apply` (preferred — works with git repos)
+   * Strategy 2: Manual file operations (fallback for non-git or apply failures)
    */
   private async applyPatch(diff: string, workspace: string): Promise<void> {
-    // In a real implementation, this would use git apply or patch command
-    // For now, we'll simulate the application
-    this.log.info("Applying patch (simulated)", {
+    this.log.info("Applying patch", {
       workspace,
       diffLength: diff.length,
     });
 
-    // TODO: Implement actual patch application
-    // Options:
-    // 1. Write diff to temp file and run `git apply`
-    // 2. Parse diff and modify files directly
-    // 3. Use a diff/patch library
+    // Strategy 1: git apply
+    const tmpDiffFile = join(tmpdir(), `endiorbot-patch-${Date.now()}.diff`);
+    try {
+      await writeFile(tmpDiffFile, diff, "utf-8");
 
-    // For MVP, we just log
-    console.log("\n[PATCH PREVIEW]");
-    console.log(diff);
-    console.log("[/PATCH PREVIEW]\n");
+      const checkResult = await this.execGitCommand(
+        `git apply --check "${tmpDiffFile}"`,
+        workspace,
+      );
+
+      if (checkResult.exitCode === 0) {
+        const applyResult = await this.execGitCommand(
+          `git apply "${tmpDiffFile}"`,
+          workspace,
+        );
+        if (applyResult.exitCode === 0) {
+          this.log.info("Patch applied via git apply");
+          return;
+        }
+        this.log.warn("git apply failed, falling back to manual", {
+          error: applyResult.stderr,
+        });
+      } else {
+        this.log.warn("git apply --check failed, falling back to manual", {
+          error: checkResult.stderr,
+        });
+      }
+    } catch {
+      this.log.warn("git apply unavailable, falling back to manual");
+    } finally {
+      await unlink(tmpDiffFile).catch(() => {});
+    }
+
+    // Strategy 2: Manual file operations
+    const fileOps = this.parseDiffToFileOperations(diff);
+    for (const op of fileOps) {
+      const fullPath = join(workspace, op.filePath);
+      await mkdir(dirname(fullPath), { recursive: true });
+
+      if (op.type === "create") {
+        await writeFile(fullPath, op.newContent, "utf-8");
+        this.log.info("Created file", { file: op.filePath });
+      } else if (op.type === "modify") {
+        await writeFile(fullPath, op.newContent, "utf-8");
+        this.log.info("Modified file", { file: op.filePath });
+      } else if (op.type === "delete") {
+        await unlink(fullPath).catch(() => {});
+        this.log.info("Deleted file", { file: op.filePath });
+      }
+    }
+  }
+
+  /**
+   * Execute a git command and return result.
+   */
+  private execGitCommand(
+    command: string,
+    cwd: string,
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    return new Promise((resolve) => {
+      const child = spawn("sh", ["-c", command], { cwd, stdio: ["pipe", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout?.on("data", (data: Buffer) => { stdout += data.toString(); });
+      child.stderr?.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+      child.on("close", (code) => {
+        resolve({ exitCode: code ?? 1, stdout, stderr });
+      });
+
+      child.on("error", () => {
+        resolve({ exitCode: 1, stdout, stderr: "spawn error" });
+      });
+    });
+  }
+
+  /**
+   * Parse a unified diff into file operations.
+   */
+  private parseDiffToFileOperations(
+    diff: string,
+  ): Array<{ type: "create" | "modify" | "delete"; filePath: string; newContent: string }> {
+    const ops: Array<{ type: "create" | "modify" | "delete"; filePath: string; newContent: string }> = [];
+    const fileSections = diff.split(/^diff --git /m).filter(Boolean);
+
+    for (const section of fileSections) {
+      const lines = section.split("\n");
+
+      // Extract file path from +++ line
+      const plusLine = lines.find((l) => l.startsWith("+++ "));
+      if (!plusLine) continue;
+
+      const fileMatch = plusLine.match(/^\+\+\+ (?:b\/)?(.+)$/);
+      if (!fileMatch?.[1]) continue;
+      const filePath = fileMatch[1];
+
+      // Check if it's a deletion (new file is /dev/null)
+      if (filePath === "/dev/null") {
+        const minusLine = lines.find((l) => l.startsWith("--- "));
+        const delMatch = minusLine?.match(/^--- (?:a\/)?(.+)$/);
+        if (delMatch?.[1]) {
+          ops.push({ type: "delete", filePath: delMatch[1], newContent: "" });
+        }
+        continue;
+      }
+
+      // Check if it's a new file
+      const minusLine = lines.find((l) => l.startsWith("--- "));
+      const isNew = minusLine?.includes("/dev/null");
+
+      // Build new content from + lines (additions)
+      const contentLines: string[] = [];
+      let inHunk = false;
+      for (const line of lines) {
+        if (line.startsWith("@@")) {
+          inHunk = true;
+          continue;
+        }
+        if (!inHunk) continue;
+
+        if (line.startsWith("+")) {
+          contentLines.push(line.slice(1));
+        } else if (line.startsWith(" ")) {
+          contentLines.push(line.slice(1));
+        }
+        // Skip - lines (deletions from old file)
+      }
+
+      ops.push({
+        type: isNew ? "create" : "modify",
+        filePath,
+        newContent: contentLines.join("\n"),
+      });
+    }
+
+    return ops;
   }
 
   /**

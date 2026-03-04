@@ -27,6 +27,7 @@ import {
 } from "../../sdlc/scaffold/index.js";
 import { resolveActiveProjectDir } from "../../config/paths.js";
 import { checkL2Compliance, type L2Result } from "../../sdlc/compliance/index.js";
+import { createComplianceFixEngine } from "../../sdlc/compliance/fix-engine.js";
 
 const logger = createLogger("compliance-command");
 
@@ -70,6 +71,23 @@ export function registerComplianceCommand(program: Command): void {
       }
       await executeComplianceCheck({ ...options, json: false, showScoreOnly: true });
     });
+
+  // compliance fix
+  compliance
+    .command("fix")
+    .description("Auto-fix compliance gaps using AI agents")
+    .option("--path <path>", "Target project directory")
+    .option("--tier <tier>", "Override tier detection")
+    .option("--dry-run", "Preview changes without writing")
+    .option("--yes", "Auto-confirm all patches (batch mode)")
+    .option("--stage <stage>", "Fix specific stage only")
+    .option("--json", "Output as JSON")
+    .action(async (options: ComplianceFixOptions) => {
+      if (!options.path) {
+        options.path = resolveActiveProjectDir();
+      }
+      await executeComplianceFix(options);
+    });
 }
 
 // ============================================================================
@@ -85,6 +103,15 @@ interface ComplianceOptions {
   strict?: boolean;
   json?: boolean;
   showScoreOnly?: boolean;
+}
+
+interface ComplianceFixOptions {
+  path: string;
+  tier?: string;
+  dryRun?: boolean;
+  yes?: boolean;
+  stage?: string;
+  json?: boolean;
 }
 
 interface ComplianceIssue {
@@ -380,4 +407,118 @@ function determineTier(
   }
 
   return detection.configTier ?? detection.structureTier ?? null;
+}
+
+// ============================================================================
+// Compliance Fix Execution
+// ============================================================================
+
+/**
+ * Execute compliance fix.
+ */
+async function executeComplianceFix(options: ComplianceFixOptions): Promise<void> {
+  const targetPath = resolve(options.path);
+
+  logger.info("Starting compliance fix", { path: targetPath });
+
+  if (!options.json) {
+    console.log(fmt.info(t("compliance.fix.starting")));
+  }
+
+  // Detect project
+  const detection = detectProject(targetPath);
+  const tier = determineTier(detection, options.tier);
+
+  if (!tier) {
+    if (options.json) {
+      console.log(JSON.stringify({ success: false, error: "No tier detected" }));
+    } else {
+      console.error(fmt.error("Cannot determine project tier. Use --tier to specify."));
+    }
+    process.exit(1);
+  }
+
+  // Create fix engine
+  const engineOptions: {
+    projectPath: string;
+    tier: ProjectTier;
+    dryRun?: boolean;
+    autoConfirm?: boolean;
+    stage?: string;
+  } = {
+    projectPath: targetPath,
+    tier,
+  };
+  if (options.dryRun) engineOptions.dryRun = options.dryRun;
+  if (options.yes) engineOptions.autoConfirm = options.yes;
+  if (options.stage) engineOptions.stage = options.stage;
+
+  const engine = createComplianceFixEngine(engineOptions);
+
+  try {
+    const result = await engine.fix();
+
+    if (options.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    // Display results
+    console.log();
+    if (options.dryRun) {
+      console.log(fmt.bold("[DRY-RUN] No files were modified."));
+      console.log();
+    }
+
+    // Before/after scores
+    const beforeColor = result.scoreBefore >= 50 ? fmt.yellow : fmt.red;
+    const afterColor = result.scoreAfter >= 80 ? fmt.green : result.scoreAfter >= 50 ? fmt.yellow : fmt.red;
+
+    console.log(fmt.bold("L2 Score:"));
+    console.log(`  Before: ${beforeColor(String(result.scoreBefore))}%`);
+    if (!options.dryRun) {
+      console.log(`  After:  ${afterColor(String(result.scoreAfter))}%`);
+      console.log(`  Change: ${result.scoreAfter > result.scoreBefore ? "+" : ""}${result.scoreAfter - result.scoreBefore}%`);
+    }
+    console.log();
+
+    // Task summary
+    console.log(fmt.bold("Summary:"));
+    console.log(`  Total issues: ${result.totalIssues}`);
+    console.log(`  Fixed: ${result.issuesFixed}`);
+    if (result.issuesFailed > 0) {
+      console.log(`  Failed: ${fmt.red(String(result.issuesFailed))}`);
+    }
+    console.log(`  Duration: ${result.durationMs}ms`);
+
+    if (result.patchId) {
+      console.log(`  Patch ID: ${result.patchId}`);
+    }
+    console.log();
+
+    // Per-task details
+    for (const taskResult of result.taskResults) {
+      const statusIcon = taskResult.success ? "✓" : "✗";
+      const statusColor = taskResult.success ? fmt.green : fmt.red;
+      console.log(statusColor(`  ${statusIcon} ${taskResult.task.stage} (@${taskResult.task.agent})`));
+
+      for (const actionResult of taskResult.actionResults) {
+        const actionIcon = actionResult.success ? "  ✓" : "  ✗";
+        const actionColor = actionResult.success ? fmt.green : fmt.red;
+        const label = actionResult.dryRun ? "[preview]" : actionResult.action.targetPath;
+        console.log(actionColor(`    ${actionIcon} ${label}`));
+        if (actionResult.error) {
+          console.log(fmt.dim(`      ${actionResult.error}`));
+        }
+      }
+    }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (options.json) {
+      console.log(JSON.stringify({ success: false, error: errorMsg }));
+    } else {
+      console.error(fmt.error(`Compliance fix failed: ${errorMsg}`));
+    }
+    process.exit(1);
+  }
 }
