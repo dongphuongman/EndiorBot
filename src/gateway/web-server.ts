@@ -32,6 +32,7 @@ import {
   internalError,
 } from "./protocol/errors.js";
 import { createLogger } from "../logging/index.js";
+import type { WebhookHandler } from "../channels/ott/webhook-handler.js";
 
 // ============================================================================
 // Constants
@@ -77,6 +78,7 @@ export class WebGatewayServer {
   private _startedAt: Date | null = null;
   private log = createLogger("web-gateway");
   private htmlContent: string = "";
+  private webhookHandler: WebhookHandler | null = null;
 
   constructor(config?: Partial<GatewayConfig>) {
     this._config = resolveGatewayConfig(config);
@@ -190,10 +192,37 @@ export class WebGatewayServer {
   // HTTP Handling
   // ==========================================================================
 
+  /**
+   * Set webhook handler for OTT channels (Sprint 76).
+   * Routes POST /webhook/* to the handler.
+   */
+  setWebhookHandler(handler: WebhookHandler): void {
+    this.webhookHandler = handler;
+    this.log.info("Webhook handler attached");
+  }
+
   private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
     const url = req.url ?? "/";
 
-    // CORS headers
+    // CTO C2 FIX: Handle webhook routes BEFORE other routes
+    // Webhook endpoints are server-to-server — skip wildcard CORS (CTO W4)
+    if (url.startsWith("/webhook/")) {
+      if (this.webhookHandler) {
+        void this.webhookHandler.handleRequest(req, res).catch((err) => {
+          this.log.error("Webhook handler error", { error: (err as Error).message });
+          if (!res.headersSent) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Internal Server Error" }));
+          }
+        });
+      } else {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Webhook handler not configured" }));
+      }
+      return;
+    }
+
+    // CORS headers (for non-webhook routes only)
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");

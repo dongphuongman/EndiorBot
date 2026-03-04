@@ -364,8 +364,8 @@ export function getFirstAgent(result: ParseResult): AgentRole | null {
 /**
  * Check if a string contains any agent mention.
  */
-export function hasMention(input: string): boolean {
-  const result = parseMention(input);
+export function hasMention(input: string, teamRegistry?: TeamRegistry): boolean {
+  const result = parseMention(input, teamRegistry);
   return result.success;
 }
 

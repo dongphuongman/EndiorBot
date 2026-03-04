@@ -292,7 +292,7 @@ Plan complete.
       const message = formatAgentNotFound("@unknown task");
 
       expect(message).toContain("Unknown agent");
-      expect(message).toContain("Available agents");
+      expect(message).toContain("Agents:");
     });
   });
 

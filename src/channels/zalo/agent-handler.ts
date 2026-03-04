@@ -17,6 +17,7 @@ import {
   parseMention,
   hasMention,
 } from "../../agents/orchestrator/mention-parser.js";
+import { getTeamRegistry } from "../../agents/orchestrator/team-registry.js";
 import { getAgentRouter } from "../../agents/orchestrator/agent-router.js";
 import { getWorkflowEngine } from "../../agents/orchestrator/workflow-engine.js";
 import { getClaudeCodeBridge, type InvokeRequest } from "../../agents/invoke/claude-code-bridge.js";
@@ -77,8 +78,9 @@ export async function handleZaloAgentMention(
   const log = createLogger("zalo-agent-handler");
   const content = message.sanitized;
 
-  // Check if message contains agent mention
-  if (!hasMention(content)) {
+  // Check if message contains agent mention (with team registry for team support)
+  const teamRegistry = getTeamRegistry();
+  if (!hasMention(content, teamRegistry)) {
     return {
       success: false,
       error: "No agent mention found",
@@ -86,8 +88,8 @@ export async function handleZaloAgentMention(
     };
   }
 
-  // Parse mention
-  const parseResult = parseMention(content);
+  // Parse mention (with team registry for team resolution)
+  const parseResult = parseMention(content, teamRegistry);
   if (!parseResult.success) {
     log.warn("Failed to parse agent mention", {
       error: parseResult.error.message,
@@ -173,12 +175,15 @@ async function invokeZaloAgent(
   workflow.startStep(workflowCtx.id);
 
   // Build Claude Code invoke request
+  // Sprint 76: OTT timeout 300s (5 min) — CEO noted large sessions take minutes
+  const ottTimeout = parseInt(process.env.ENDIORBOT_OTT_TIMEOUT ?? "300", 10) || 300;
   const invokeRequest: InvokeRequest = {
     mode: "READ", // OTT always uses READ mode for safety
     systemPrompt: decision.soul.content, // SoulTemplate.content
     userPrompt: decision.message,
     workspace: process.cwd(),
     agent: decision.agent,
+    timeout: ottTimeout,
   };
 
   // Invoke Claude Code
@@ -293,8 +298,8 @@ export function createZaloAgentHandler(
       return;
     }
 
-    // Check for agent mention
-    if (!hasMention(message.sanitized)) {
+    // Check for agent mention (with team registry for team support)
+    if (!hasMention(message.sanitized, getTeamRegistry())) {
       // Not an agent command, ignore
       return;
     }

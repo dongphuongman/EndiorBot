@@ -177,7 +177,7 @@ describe('OTT Response Formatter', () => {
       const message = formatAgentNotFound('@unknown: do something');
 
       expect(message).toContain('Unknown agent');
-      expect(message).toContain('Available agents');
+      expect(message).toContain('Agents:');
     });
 
     it('should format error', () => {
@@ -265,9 +265,9 @@ describe('Telegram Keyboards', () => {
 
       expect(keyboard.inline_keyboard.length).toBeGreaterThan(0);
 
-      // Check first row has agents
+      // Check first row has agents (Sprint 76: uses agent: prefix)
       const firstRow = keyboard.inline_keyboard[0];
-      expect(firstRow[0].callback_data).toContain('handoff:');
+      expect(firstRow[0].callback_data).toContain('agent:');
     });
   });
 

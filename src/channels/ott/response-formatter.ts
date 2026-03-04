@@ -82,6 +82,7 @@ const AGENT_ICONS: Record<string, string> = {
   reviewer: "👀",
   tester: "🧪",
   devops: "🚀",
+  fullstack: "🛠️",
   assistant: "🤖",
   ceo: "👔",
   cpo: "🎯",
@@ -294,10 +295,38 @@ export function formatProcessing(agent: AgentRole, task: string): string {
 }
 
 /**
+ * All agent roles for display (assistant excluded — router, not user-facing).
+ */
+const ALL_AGENTS: AgentRole[] = [
+  "researcher", "pm", "pjm", "architect", "coder", "reviewer",
+  "tester", "devops", "fullstack", "ceo", "cpo", "cto",
+];
+
+/**
+ * All team IDs for display.
+ */
+const ALL_TEAMS = ["fullstack", "planning", "design", "dev", "qa", "ops", "executive"];
+
+/**
  * Format "agent not found" message.
+ * Dynamically lists all 12 user-facing agents + 7 teams.
  */
 export function formatAgentNotFound(_input: string): string {
-  return `❓ Unknown agent or invalid format.\n\nUse: [@agent: task]\nExample: [@pm: plan payment gateway]\n\nAvailable agents: pm, architect, coder, reviewer, tester, devops`;
+  const agentList = ALL_AGENTS.map((a) => {
+    const icon = AGENT_ICONS[a] ?? "🔹";
+    return `${icon} @${a}`;
+  }).join(", ");
+
+  const teamList = ALL_TEAMS.map((t) => `@${t}`).join(", ");
+
+  return `❓ Unknown agent or invalid format.
+
+Use: @agent task  or  [@agent: task]
+Example: @pm plan payment gateway
+
+Agents: ${agentList}
+
+Teams: ${teamList}`;
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   parseMention,
   hasMention,
 } from "../../agents/orchestrator/mention-parser.js";
+import { getTeamRegistry } from "../../agents/orchestrator/team-registry.js";
 import { getAgentRouter } from "../../agents/orchestrator/agent-router.js";
 import { getWorkflowEngine } from "../../agents/orchestrator/workflow-engine.js";
 import { getClaudeCodeBridge, type InvokeRequest } from "../../agents/invoke/claude-code-bridge.js";
@@ -25,6 +26,7 @@ import {
   formatForTelegram,
   formatProcessing,
   formatAgentNotFound,
+  formatAgentName,
   formatError,
   type AgentResponse,
 } from "../ott/response-formatter.js";
@@ -56,6 +58,12 @@ export interface AgentInvocationResult {
     intent: string;
     priority: string;
   }>;
+  /** Whether PATCH mode confirmation is pending */
+  patchPending?: boolean;
+  /** PATCH mode task (stripped of PATCH: prefix) */
+  patchTask?: string;
+  /** PATCH mode target agent */
+  patchAgent?: AgentRole;
 }
 
 /**
@@ -86,8 +94,9 @@ export async function handleAgentMention(
   const log = createLogger("telegram-agent-handler");
   const content = message.sanitized;
 
-  // Check if message contains agent mention
-  if (!hasMention(content)) {
+  // Check if message contains agent mention (with team registry for team support)
+  const teamRegistry = getTeamRegistry();
+  if (!hasMention(content, teamRegistry)) {
     return {
       success: false,
       error: "No agent mention found",
@@ -97,8 +106,8 @@ export async function handleAgentMention(
     };
   }
 
-  // Parse mention
-  const parseResult = parseMention(content);
+  // Parse mention (with team registry for team resolution)
+  const parseResult = parseMention(content, teamRegistry);
   if (!parseResult.success) {
     log.warn("Failed to parse agent mention", {
       error: parseResult.error.message,
@@ -124,6 +133,24 @@ export async function handleAgentMention(
       formattedMessage: formatAgentNotFound(content),
       showHandoffButtons: false,
       handoffOptions: [],
+    };
+  }
+
+  // Sprint 76: Detect PATCH mode escalation
+  // Format: "@agent PATCH: task" or "[@agent: PATCH: task]"
+  const patchMatch = task.match(/^PATCH:\s*(.+)$/i);
+  if (patchMatch) {
+    const patchTask = patchMatch[1] ?? task;
+    log.info("PATCH mode requested via OTT", { agent: primaryAgent, task: patchTask.slice(0, 50) });
+
+    return {
+      success: true,
+      formattedMessage: `⚠️ *PATCH mode requested*\n\n${formatAgentName(primaryAgent)} wants to modify files:\n📝 ${patchTask.slice(0, 200)}\n\nConfirm to proceed with PATCH mode.`,
+      showHandoffButtons: false,
+      handoffOptions: [],
+      patchPending: true,
+      patchTask,
+      patchAgent: primaryAgent,
     };
   }
 
@@ -192,12 +219,15 @@ async function invokeAgent(
   workflow.startStep(workflowCtx.id);
 
   // Build Claude Code invoke request
+  // Sprint 76: OTT timeout 300s (5 min) — CEO noted large sessions take minutes
+  const ottTimeout = parseInt(process.env.ENDIORBOT_OTT_TIMEOUT ?? "300", 10) || 300;
   const invokeRequest: InvokeRequest = {
     mode: "READ", // OTT always uses READ mode for safety
     systemPrompt: decision.soul.content, // SoulTemplate.content
     userPrompt: decision.message,
     workspace: process.cwd(),
     agent: decision.agent,
+    timeout: ottTimeout,
   };
 
   // Invoke Claude Code
@@ -283,6 +313,125 @@ export async function handleHandoff(
 }
 
 // ============================================================================
+// PATCH Mode Confirmation (Sprint 76)
+// ============================================================================
+
+/**
+ * Invoke agent in PATCH mode after CEO confirmation.
+ */
+export async function handlePatchConfirm(
+  agent: AgentRole,
+  task: string,
+  sendFn: TelegramSendFn
+): Promise<AgentInvocationResult> {
+  const log = createLogger("telegram-agent-handler");
+
+  log.info("PATCH mode confirmed", { agent, task: task.slice(0, 50) });
+
+  // Send "processing" indicator
+  await sendFn(formatProcessing(agent, `PATCH: ${task}`), { parseMode: "Markdown" });
+
+  // Invoke with PATCH mode
+  try {
+    return await invokeAgentWithMode(agent, task, "PATCH", log);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    log.error("PATCH invocation failed", { error: errorMsg, agent });
+
+    return {
+      success: false,
+      error: errorMsg,
+      formattedMessage: formatError(errorMsg, "telegram"),
+      showHandoffButtons: false,
+      handoffOptions: [],
+    };
+  }
+}
+
+/**
+ * Invoke agent with explicit mode (READ or PATCH).
+ */
+async function invokeAgentWithMode(
+  agent: AgentRole,
+  task: string,
+  mode: "READ" | "PATCH",
+  log: Logger
+): Promise<AgentInvocationResult> {
+  const startTime = Date.now();
+
+  const router = getAgentRouter();
+  const workflow = getWorkflowEngine();
+  const bridge = getClaudeCodeBridge();
+
+  const routeResult = await router.route(`@${agent} ${task}`);
+  if (!routeResult.success) {
+    return {
+      success: false,
+      error: routeResult.error.message,
+      formattedMessage: formatError(routeResult.error.message, "telegram"),
+      showHandoffButtons: false,
+      handoffOptions: [],
+    };
+  }
+
+  const decision = routeResult.decision;
+  log.info("Agent routed (PATCH mode)", { agent: decision.agent, mode });
+
+  const workflowCtx = workflow.start(decision.agent, decision.message);
+  workflow.startStep(workflowCtx.id);
+
+  const ottTimeout = parseInt(process.env.ENDIORBOT_OTT_TIMEOUT ?? "300", 10) || 300;
+  const invokeRequest: InvokeRequest = {
+    mode,
+    systemPrompt: decision.soul.content,
+    userPrompt: decision.message,
+    workspace: process.cwd(),
+    agent: decision.agent,
+    timeout: ottTimeout,
+  };
+
+  const bridgeResult = await bridge.invoke(invokeRequest);
+  const durationMs = Date.now() - startTime;
+
+  const parsed = parseResponse(bridgeResult.output);
+  const firstHandoff = extractFirstHandoff(bridgeResult.output);
+
+  workflow.completeStep(workflowCtx.id, bridgeResult.output);
+
+  const agentResponse: AgentResponse = {
+    agent: decision.agent,
+    task,
+    output: parsed.content,
+    durationMs,
+    patchApplied: mode === "PATCH",
+  };
+
+  if (firstHandoff) {
+    agentResponse.handoff = {
+      to: firstHandoff.to,
+      intent: firstHandoff.intent,
+      priority: firstHandoff.priority,
+      inputs: firstHandoff.inputs,
+      reason: firstHandoff.reason,
+      from: decision.agent,
+      depth: 0,
+      timestamp: new Date(),
+      correlationId: workflowCtx.id,
+    };
+  }
+
+  const formatted = formatForTelegram(agentResponse);
+
+  return {
+    success: true,
+    response: agentResponse,
+    formattedMessage: formatted.text,
+    showHandoffButtons: formatted.showHandoffButtons,
+    handoffOptions: formatted.handoffOptions,
+  };
+}
+
+// ============================================================================
 // Message Router Integration
 // ============================================================================
 
@@ -306,8 +455,8 @@ export function createTelegramAgentHandler(
       return;
     }
 
-    // Check for agent mention
-    if (!hasMention(message.sanitized)) {
+    // Check for agent mention (with team registry for team support)
+    if (!hasMention(message.sanitized, getTeamRegistry())) {
       // Not an agent command, ignore (or handle other commands)
       return;
     }

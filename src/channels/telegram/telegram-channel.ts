@@ -22,6 +22,19 @@ import type { TelegramChannelConfig } from "./telegram-config.js";
 import { loadTelegramConfig, isValidBotToken, isValidChatId } from "./telegram-config.js";
 import { createLogger, type Logger } from "../../logging/index.js";
 import { getInputSanitizer } from "../../security/input-sanitizer.js";
+import {
+  handleAgentsCommand,
+  handleTeamsCommand,
+  handleGateCommand,
+  handleComplianceCommand,
+  handleFixCommand,
+  handleConsultCommand,
+  handleConfigCommand,
+  handleInitCommand,
+  handleModeCommand,
+  handleWebhookCommand,
+  generateHelpMessage,
+} from "./telegram-commands.js";
 
 // ============================================================================
 // Types
@@ -83,11 +96,11 @@ interface CommandResult {
 /** Telegram Bot API base URL */
 const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
 
-/** Request timeout in ms */
-const REQUEST_TIMEOUT_MS = 10000;
+/** Request timeout in ms (must be > LONG_POLLING_TIMEOUT for getUpdates) */
+const REQUEST_TIMEOUT_MS = 35000;
 
-/** Long polling timeout in seconds */
-const LONG_POLLING_TIMEOUT = 30;
+/** Long polling timeout in seconds (Telegram server-side wait) */
+const LONG_POLLING_TIMEOUT = 25;
 
 // ============================================================================
 // TelegramChannel
@@ -116,6 +129,7 @@ export class TelegramChannel implements BidirectionalChannel {
   private approvalQueue: ApprovalQueueLike | null = null;
   private messageHandler: IncomingMessageHandler | null = null;
   private pendingMessages: IncomingMessage[] = [];
+  private currentMode: string = "READ";
 
   constructor(config?: TelegramChannelConfig) {
     this.config = config ?? loadTelegramConfig();
@@ -426,6 +440,44 @@ export class TelegramChannel implements BidirectionalChannel {
       case "/help":
         return this.handleHelp();
 
+      // Sprint 76: Extended OTT commands
+      case "/agents":
+        return handleAgentsCommand();
+
+      case "/teams":
+        return handleTeamsCommand();
+
+      case "/gate":
+        return handleGateCommand(args);
+
+      case "/compliance":
+        return handleComplianceCommand(args);
+
+      case "/fix":
+        return handleFixCommand(args);
+
+      case "/consult":
+        return handleConsultCommand(args);
+
+      case "/config":
+        return handleConfigCommand();
+
+      case "/init":
+        return handleInitCommand();
+
+      case "/mode": {
+        const modeResult = handleModeCommand(args, this.currentMode);
+        // B2 fix: persist mode state when command succeeds
+        const requestedMode = args[0]?.toLowerCase();
+        if (modeResult.success && (requestedMode === "read" || requestedMode === "patch")) {
+          this.currentMode = requestedMode.toUpperCase();
+        }
+        return modeResult;
+      }
+
+      case "/webhook":
+        return handleWebhookCommand(args, this.pollingActive);
+
       default:
         return {
           success: false,
@@ -567,14 +619,7 @@ export class TelegramChannel implements BidirectionalChannel {
   private handleHelp(): CommandResult {
     return {
       success: true,
-      response: `🤖 *EndiorBot Commands*
-
-/approve <id> - Approve pending request
-/reject <id> [reason] - Reject pending request
-/status - Show pending approvals
-/help - Show this help message
-
-_CEO escalation bot for EndiorBot_`,
+      response: generateHelpMessage(),
     };
   }
 
@@ -743,6 +788,74 @@ _CEO escalation bot for EndiorBot_`,
     }
 
     return incoming;
+  }
+
+  // ==========================================================================
+  // Webhook Mode (Sprint 76)
+  // ==========================================================================
+
+  /**
+   * Set Telegram webhook URL via Bot API.
+   * Requires valid HTTPS URL (or ngrok for dev).
+   */
+  async setWebhook(url: string, secretToken?: string): Promise<boolean> {
+    if (!this.config) {
+      this.log.warn("Cannot set webhook: not configured");
+      return false;
+    }
+
+    const body: Record<string, unknown> = {
+      url,
+      allowed_updates: ["message", "callback_query"],
+    };
+    if (secretToken) {
+      body.secret_token = secretToken;
+    }
+
+    const response = await this.apiCall("setWebhook", "POST", body);
+    if (response.ok) {
+      this.log.info("Webhook set", { url });
+    } else {
+      this.log.error("Failed to set webhook", { error: response.description });
+    }
+    return response.ok;
+  }
+
+  /**
+   * Delete Telegram webhook.
+   */
+  async deleteWebhook(): Promise<boolean> {
+    if (!this.config) return false;
+
+    const response = await this.apiCall("deleteWebhook", "POST", {});
+    if (response.ok) {
+      this.log.info("Webhook deleted");
+    }
+    return response.ok;
+  }
+
+  /**
+   * Start webhook mode: set webhook URL and stop polling.
+   */
+  async startWebhook(webhookUrl: string, secretToken?: string): Promise<boolean> {
+    const result = await this.setWebhook(webhookUrl, secretToken);
+    if (result) {
+      this.stopPolling();
+      this.log.info("Switched to webhook mode", { url: webhookUrl });
+    }
+    return result;
+  }
+
+  /**
+   * Stop webhook mode: delete webhook and resume polling.
+   */
+  async stopWebhook(): Promise<boolean> {
+    const result = await this.deleteWebhook();
+    if (result) {
+      this.startPolling();
+      this.log.info("Switched back to polling mode");
+    }
+    return result;
   }
 
   // ==========================================================================

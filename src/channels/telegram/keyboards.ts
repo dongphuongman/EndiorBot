@@ -5,15 +5,16 @@
  * Used for handoff buttons, confirmations, and quick actions.
  *
  * @module channels/telegram/keyboards
- * @version 1.0.0
- * @date 2026-03-01
- * @status ACTIVE - Sprint 57
+ * @version 2.0.0
+ * @date 2026-03-04
+ * @status ACTIVE - Sprint 76 (OTT Channel Enhancement)
  * @authority Master Plan v3.1
  * @stage 04 - BUILD
  * @sdlc SDLC Framework 6.1.1
  */
 
-import type { AgentRole } from "../../agents/types/handoff.js";
+import type { AgentRole, SE4ARole, SE4HRole } from "../../agents/types/handoff.js";
+import type { TeamId } from "../../agents/types/team.js";
 
 // ============================================================================
 // Types
@@ -46,6 +47,9 @@ export const CALLBACK_PREFIX = {
   CONFIRM: "confirm:",
   REJECT: "reject:",
   CANCEL: "cancel:",
+  AGENT_SELECT: "agent:",
+  TEAM_SELECT: "team:",
+  MODE: "mode:",
 } as const;
 
 // ============================================================================
@@ -113,31 +117,141 @@ export function createPatchConfirmKeyboard(
 }
 
 /**
- * Create quick agent selection keyboard.
+ * SE4A executor agents (9) — available at all tiers.
  */
-export function createAgentSelectionKeyboard(): InlineKeyboardMarkup {
-  const agents: AgentRole[] = ["pm", "architect", "coder", "reviewer"];
+const SE4A_AGENTS: SE4ARole[] = [
+  "researcher", "pm", "pjm",
+  "architect", "coder", "reviewer",
+  "tester", "devops", "fullstack",
+];
 
+/**
+ * SE4H advisor agents (3) — available at STANDARD+ tier.
+ */
+const SE4H_AGENTS: SE4HRole[] = ["ceo", "cpo", "cto"];
+
+/**
+ * Teams available per tier (from tier config JSON).
+ */
+const TIER_TEAMS: Record<string, TeamId[]> = {
+  LITE: ["fullstack"],
+  STANDARD: ["planning", "dev", "qa"],
+  PROFESSIONAL: ["planning", "design", "dev", "qa", "executive"],
+  ENTERPRISE: ["planning", "design", "dev", "qa", "ops", "executive"],
+};
+
+/**
+ * Team display icons.
+ */
+const TEAM_ICONS: Record<TeamId, string> = {
+  fullstack: "🛠️",
+  planning: "📋",
+  design: "🎨",
+  dev: "💻",
+  qa: "🧪",
+  ops: "🚀",
+  executive: "👔",
+};
+
+/**
+ * Create tier-aware agent selection keyboard.
+ *
+ * Shows 12 agents (assistant excluded — router, not user-facing):
+ * - SE4A row (9): 3 per row for mobile readability
+ * - SE4H row (3): STANDARD+ tier only
+ *
+ * @param tier - Project tier (defaults to "STANDARD")
+ */
+export function createAgentSelectionKeyboard(
+  tier?: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE",
+): InlineKeyboardMarkup {
   const buttons: InlineKeyboardButton[][] = [];
 
-  // Two agents per row
-  for (let i = 0; i < agents.length; i += 2) {
+  // SE4A agents: 3 per row
+  for (let i = 0; i < SE4A_AGENTS.length; i += 3) {
     const row: InlineKeyboardButton[] = [];
-
-    for (let j = 0; j < 2 && i + j < agents.length; j++) {
-      const agent = agents[i + j];
-      if (agent) {
-        row.push({
-          text: `${getAgentIcon(agent)} @${agent}`,
-          callback_data: `${CALLBACK_PREFIX.HANDOFF}${agent}:start`,
-        });
-      }
+    for (let j = 0; j < 3 && i + j < SE4A_AGENTS.length; j++) {
+      const agent = SE4A_AGENTS[i + j]!;
+      row.push({
+        text: `${getAgentIcon(agent)} @${agent}`,
+        callback_data: `${CALLBACK_PREFIX.AGENT_SELECT}${agent}:start`,
+      });
     }
+    buttons.push(row);
+  }
 
+  // SE4H agents: STANDARD+ tier only (all 3 in one row)
+  const effectiveTier = tier ?? "STANDARD";
+  if (effectiveTier !== "LITE") {
+    const row: InlineKeyboardButton[] = SE4H_AGENTS.map((agent) => ({
+      text: `${getAgentIcon(agent)} @${agent}`,
+      callback_data: `${CALLBACK_PREFIX.AGENT_SELECT}${agent}:start`,
+    }));
     buttons.push(row);
   }
 
   return { inline_keyboard: buttons };
+}
+
+/**
+ * Create tier-aware team selection keyboard.
+ *
+ * Shows teams appropriate for the project tier:
+ * - LITE: fullstack only
+ * - STANDARD: planning, dev, qa
+ * - PROFESSIONAL: + design, executive
+ * - ENTERPRISE: + ops
+ *
+ * @param tier - Project tier (defaults to "STANDARD")
+ */
+export function createTeamSelectionKeyboard(
+  tier?: "LITE" | "STANDARD" | "PROFESSIONAL" | "ENTERPRISE",
+): InlineKeyboardMarkup {
+  const effectiveTier = tier ?? "STANDARD";
+  const teams = TIER_TEAMS[effectiveTier] ?? TIER_TEAMS["STANDARD"]!;
+
+  const buttons: InlineKeyboardButton[][] = [];
+
+  // 2 teams per row for readability
+  for (let i = 0; i < teams.length; i += 2) {
+    const row: InlineKeyboardButton[] = [];
+    for (let j = 0; j < 2 && i + j < teams.length; j++) {
+      const team = teams[i + j]!;
+      const icon = TEAM_ICONS[team] ?? "🔹";
+      row.push({
+        text: `${icon} @${team}`,
+        callback_data: `${CALLBACK_PREFIX.TEAM_SELECT}${team}:start`,
+      });
+    }
+    buttons.push(row);
+  }
+
+  return { inline_keyboard: buttons };
+}
+
+/**
+ * Create mode escalation confirmation keyboard.
+ *
+ * Used when CEO requests PATCH mode via OTT.
+ * Two-step confirm: CEO must explicitly approve before PATCH invocation.
+ */
+export function createModeConfirmKeyboard(
+  requestId: string,
+): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "✅ Confirm PATCH",
+          callback_data: `${CALLBACK_PREFIX.MODE}confirm:${requestId}`,
+        },
+        {
+          text: "❌ Cancel",
+          callback_data: `${CALLBACK_PREFIX.MODE}cancel:${requestId}`,
+        },
+      ],
+    ],
+  };
 }
 
 /**
@@ -203,8 +317,8 @@ export function createWorkflowKeyboard(
  */
 export interface ParsedCallback {
   /** Action type */
-  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "unknown";
-  /** Target (agent, patchId, workflowId) */
+  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "unknown";
+  /** Target (agent, patchId, workflowId, teamId) */
   target: string;
   /** Additional data (intent, etc.) */
   data?: string;
@@ -251,6 +365,45 @@ export function parseCallbackData(callbackData: string): ParsedCallback {
     };
   }
 
+  // Agent select format: agent:role:data
+  if (callbackData.startsWith(CALLBACK_PREFIX.AGENT_SELECT)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.AGENT_SELECT.length).split(":");
+    const result: ParsedCallback = {
+      action: "agent_select",
+      target: parts[0] ?? "",
+    };
+    if (parts[1]) {
+      result.data = parts[1];
+    }
+    return result;
+  }
+
+  // Team select format: team:teamId:data
+  if (callbackData.startsWith(CALLBACK_PREFIX.TEAM_SELECT)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.TEAM_SELECT.length).split(":");
+    const result: ParsedCallback = {
+      action: "team_select",
+      target: parts[0] ?? "",
+    };
+    if (parts[1]) {
+      result.data = parts[1];
+    }
+    return result;
+  }
+
+  // Mode format: mode:action:requestId
+  if (callbackData.startsWith(CALLBACK_PREFIX.MODE)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.MODE.length).split(":");
+    const result: ParsedCallback = {
+      action: "mode",
+      target: parts[0] ?? "",
+    };
+    if (parts[1]) {
+      result.data = parts[1];
+    }
+    return result;
+  }
+
   // Status format: status:id
   if (callbackData.startsWith("status:")) {
     return {
@@ -273,8 +426,9 @@ export function parseCallbackData(callbackData: string): ParsedCallback {
  * Encode intent for callback data (limited to 64 bytes in Telegram).
  */
 function encodeIntent(intent: string): string {
-  // Truncate and base64 encode
-  const truncated = intent.slice(0, 40);
+  // B3 fix: truncate to 25 raw chars to stay within Telegram 64-byte callback_data limit
+  // Calculation: "handoff:" (8) + agent (10 max) + ":" (1) + base64(25 chars = ~36 chars) = ~55 bytes < 64
+  const truncated = intent.slice(0, 25);
   return Buffer.from(truncated).toString("base64").replace(/=/g, "");
 }
 
@@ -294,7 +448,7 @@ function decodeIntent(encoded: string): string {
 /**
  * Get agent icon.
  */
-function getAgentIcon(agent: AgentRole): string {
+export function getAgentIcon(agent: AgentRole): string {
   const icons: Record<string, string> = {
     researcher: "🔍",
     pm: "📋",
@@ -304,6 +458,7 @@ function getAgentIcon(agent: AgentRole): string {
     reviewer: "👀",
     tester: "🧪",
     devops: "🚀",
+    fullstack: "🛠️",
     assistant: "🤖",
     ceo: "👔",
     cpo: "🎯",
