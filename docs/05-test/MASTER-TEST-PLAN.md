@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 5.0
-**Date:** 2026-03-05 (Updated after Sprint 79 completion)
+**Version:** 6.0
+**Date:** 2026-03-06 (Updated after Sprint 80 completion)
 **Framework:** SDLC v6.1.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v2.1 Zalo Channel + Local Ollama Router + Smart Init (ADR-020, ADR-021, ADR-022)
+**Milestone:** v2.2 SDLC Content Quality + Gate Fixes (ADR-023)
 
 ---
 
@@ -16,20 +16,20 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ```
         ┌─────────────────┐
-        │  Manual (143)   │  ← User acceptance, exploratory
+        │  Manual (177)   │  ← User acceptance, exploratory
         ├─────────────────┤
         │    E2E (74)     │  ← End-to-end workflows
         ├─────────────────┤
         │ Integration(197)│  ← Component integration ✅ Sprint 68-72
         ├─────────────────┤
-        │  Unit (5000+)   │  ← Function-level tests
+        │  Unit (5100+)   │  ← Function-level tests
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 79): 2026-03-05**
-- **Total Tests:** 5,117 (5,107 passing | 0 failing | 10 skipped)
+**Current Status (Post-Sprint 80): 2026-03-06**
+- **Total Tests:** 5,155 (5,145 passing | 0 failing | 10 skipped)
 - **Pass Rate:** 99.8%
-- **New Tests (Sprint 68-79):** 946 tests added
+- **New Tests (Sprint 68-80):** 984 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
   - Sprint 72 (Autonomous Agent): 184 tests (+ 44 golden scenarios type tests)
@@ -40,6 +40,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
   - Sprint 77 (Zalo Channel): 153 unit tests
   - Sprint 78 (Local Ollama Router + Conversation Persistence): 70 unit tests
   - Sprint 79 (Smart Init): 31 unit + 35 manual tests
+  - Sprint 80 (SDLC Content Quality): 27 unit + 34 manual tests
 - **Tech Debt:** 1 flaky test (checkpoint.test.ts:462 — pre-existing since Sprint 35-40)
 
 ---
@@ -84,12 +85,12 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 |--------|-------|--------|--------|-------|
 | scaffold/ | 159 | PASS | 61-62 | Structure generation, migration |
 | contracts/ | 28 | PASS | 68 | Stage contracts, glob matching |
-| gates/ | 14 | PASS | 68 | Gate engine integration |
+| gates/ | 25 | PASS | 68, 80 | Gate engine integration + gate: checker + OTT fix |
 | patches/ | 25 | PASS | 68 | Patch lifecycle, SHA256 audit |
 | dashboard/ | 16 | PASS | 68 | Compliance scoring, reports |
 | compliance-integration | 19 | PASS | 68 | Full E2E compliance flow |
 
-**Total SDLC Tests:** 261
+**Total SDLC Tests:** 288
 
 ---
 
@@ -352,7 +353,32 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-### 1.16 Previously Known Failures (RESOLVED)
+### 1.16 SDLC Content Quality + Gate Fixes (27 tests) - Sprint 80
+
+**Location:** `tests/sdlc/compliance/content-generator.test.ts` (+16), `tests/sdlc/gates/gate-engine.test.ts` (NEW, 11)
+**Authority:** ADR-023 SDLC-Aligned Content Quality
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| content-generator.test.ts (+16) | 16 | PASS | Gate-driven prompts, quality validation, extractKeyContent, refinement loop |
+| gate-engine.test.ts (NEW) | 11 | PASS | gate: checker, command: checker, coverage: stub, OTT /gate fix, G-Sprint path |
+
+**Validated Features:**
+- `GATE_ARTIFACT_REQUIREMENTS` — 7 gates, 30+ artifacts with tier-specific requirements
+- `buildUserPrompt()` — gate-driven instructions with pass criteria, all modules, dependencies
+- `validateContentQuality()` — 6 checks (YAML, BDD, References, minLines, specificity, placeholders)
+- `extractKeyContent()` — smart context extraction (2000 chars, YAML/heading preservation)
+- Refinement loop — max 2 invocations, retry on quality failure
+- `gate:` checker — queries gate-store via `isGateConfirmed()`, not a stub
+- `command:` checker — `commandRunner` injection via `--run-checks` flag
+- `coverage:` checker — explicit stub with TODO (CTO C3)
+- OTT `/gate` command — references `gate recommend` (not `gate check`)
+- G-Sprint checker path — `docs/04-build/sprints/` (not `01-planning/`)
+- CTO C1-C4 — all conditions satisfied and tested
+
+---
+
+### 1.17 Previously Known Failures (RESOLVED)
 
 | File | Was Failing | Fix Applied | Sprint Fixed |
 |------|-------------|-------------|--------------|
@@ -427,7 +453,16 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | **Manual mt-79-smart-init.mjs** | **35** | ~30s | **35/35 PASS** (6 phases, open-pencil live) |
 | **Total** | **66** | <1s | **Full Smart Init pipeline** |
 
-### 4.2 Sprint 77 Test Summary (Zalo Channel)
+### 4.2 Sprint 80 Test Summary (SDLC Content Quality + Gate Fixes)
+
+| Module | Tests | Time | Coverage |
+|--------|-------|------|----------|
+| content-generator.test.ts (+16 new) | 16 | <50ms | Gate-driven prompts, quality validation, extraction |
+| gate-engine.test.ts (NEW) | 11 | <10ms | gate: checker, command: checker, OTT fix, G-Sprint path |
+| **Manual mt-80-content-quality.mjs** | **34** | ~5s | **34/34 PASS** (9 phases, open-pencil quality audit) |
+| **Total** | **61** | <6s | **Full Sprint 80 pipeline** |
+
+### 4.3 Sprint 77 Test Summary (Zalo Channel)
 
 | Module | Tests | Time | Coverage |
 |--------|-------|------|----------|
@@ -504,7 +539,8 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Zalo Bot Live (Sprint 77) | 7 | 0 | 7 (requires live Zalo API) |
 | Zalo Commands Live (Sprint 77) | 10 | 0 | 10 (requires live Zalo API) |
 | Smart Init — open-pencil (Sprint 79) | 35 | 35 | 0 |
-| **TOTAL** | **160** | **134** | **26** |
+| Content Quality — open-pencil (Sprint 80) | 34 | 34 | 0 |
+| **TOTAL** | **194** | **168** | **26** |
 
 ### 5.1 Team Agent Routing Manual Tests (Sprint 74)
 
@@ -591,6 +627,34 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 **Executed:** 2026-03-05 | **Script:** `tests/manual/mt-79-smart-init.mjs` | **Result:** 35/35 PASS
 
+### 5.6 SDLC Content Quality Manual Tests (Sprint 80)
+
+**Authority:** ADR-023 SDLC-Aligned Content Quality
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| Phase 1: Gate-Artifact-Tier Matrix (7) | MT-80-01..07 | GATE_ARTIFACT_REQUIREMENTS, 7 gates, findGateRequirement, findArtifactSpec, TIER_COVERAGE_TARGETS, CTO C4 |
+| Phase 2: Quality Validation (4) | MT-80-08..11 | validateContentQuality: missing YAML, missing BDD, below minLines, passes |
+| Phase 3: extractKeyContent (3) | MT-80-12..14 | YAML preservation, heading preservation, maxChars limit |
+| Phase 4: OTT /gate Fix (3) | MT-80-15..17 | gate recommend reference, no gate check, sanitizeForEcho |
+| Phase 5: Gate Engine (3) | MT-80-18..20 | G-Sprint path, gate:G3 checker, command: checkers |
+| Phase 6: open-pencil Audit (8) | MT-80-21..28 | requirements.md/architecture.md existence, YAML, gate refs, line count, quality scores |
+| Phase 7: compliance score (2) | MT-80-29..30 | CLI exits clean, score percentage in output |
+| Phase 8: compliance fix --dry-run (3) | MT-80-31..33 | CLI exits clean, DRY-RUN mode, issue summary |
+| Phase 9: gate status (1) | MT-80-34 | CLI gate status runs |
+| **Total** | **34** | **All Sprint 80 acceptance criteria** |
+
+**Quality Audit Results (open-pencil, Phase 1 docs):**
+
+| Document | Lines | Score | Key Issues |
+|----------|-------|-------|------------|
+| requirements.md | 62 | 40/100 | Missing BDD, missing References, below 120 min lines |
+| architecture.md | 30 | 40/100 | Missing YAML frontmatter, missing References, below 120 min lines |
+
+> These scores reflect Phase 1 (Sprint 80 Steps 1-5) generated docs. Phase 2 gate-driven prompts + refinement loop will improve quality on next `compliance fix` re-run.
+
+**Executed:** 2026-03-06 | **Script:** `tests/manual/mt-80-content-quality.mjs` | **Result:** 34/34 PASS
+
 ---
 
 ## 6. Performance Tests
@@ -638,14 +702,14 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ### 8.1 Automated Regression Suite
 
-**Baseline:** 5,107 tests passing (Sprint 79)
+**Baseline:** 5,155 tests passing (Sprint 80)
 
 **Regression Gate:**
 - BLOCK if > 5% tests fail
 - WARN if > 1% tests fail
 - PASS if <= 1% tests fail
 
-**Current:** 0/5,117 = 0% (0 failing, 10 skipped)
+**Current:** 0/5,155 = 0% (0 failing, 10 skipped)
 
 ### 8.2 Sprint-Specific Regression
 
@@ -661,28 +725,29 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | 77 | 153 | 0 regressions | PASS |
 | 78 | 70 | 0 regressions | PASS |
 | 79 | 31 | 0 regressions | PASS |
+| 80 | 27 | 0 regressions | PASS |
 
 ---
 
 ## 9. Test Metrics & KPIs
 
-### 9.1 Current Metrics (Post-Sprint 79)
+### 9.1 Current Metrics (Post-Sprint 80)
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Total tests | 5,117 | - | - |
+| Total tests | 5,155 | - | - |
 | Pass rate | 99.8% | > 99% | ON TARGET |
 | Tech debt tests | 0 failing | < 20 | EXCELLENT |
 | Flaky tests | 0 | 0 | RESOLVED |
-| New tests (Sprint 68-79) | 946 | - | +23% growth |
-| Manual tests | 160 (134 passing, 26 pending) | - | +35 Sprint 79, +17 Sprint 77 |
+| New tests (Sprint 68-80) | 984 | - | +24% growth |
+| Manual tests | 194 (168 passing, 26 pending) | - | +34 Sprint 80, +35 Sprint 79 |
 
 ### 9.2 Coverage by Module
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
 | Providers | ~3,500 | ~95% |
-| SDLC | 333 | ~98% |
+| SDLC | 360 | ~98% |
 | Sessions | 154 | ~95% |
 | Metrics | 32 | ~98% |
 | Models | 71 | ~98% |
@@ -740,6 +805,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 - ADR-020 OTT Channel Completion / Zalo (Sprint 77 design authority)
 - ADR-021 Local Ollama Router (Sprint 78 design authority)
 - ADR-022 Smart Init Codebase Analysis (Sprint 79 design authority)
+- ADR-023 SDLC-Aligned Content Quality (Sprint 80 design authority)
 
 ### 11.2 Test Reports
 
@@ -763,8 +829,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 8. ~~Sprint 77: Zalo Channel 153 unit tests~~ DONE
 9. ~~Sprint 78: Local Ollama Router + ConversationStore 70 tests~~ DONE
 10. ~~Sprint 79: Smart Init 31 unit + 35 manual tests (35/35 PASS)~~ DONE
+11. ~~Sprint 80: SDLC Content Quality 27 unit + 34 manual tests (34/34 PASS)~~ DONE
 
-### Short-term (Sprint 80+)
+### Short-term (Sprint 81+)
 
 1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
 2. OTT PATCH mode end-to-end integration test (file modification flow)
@@ -772,8 +839,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 4. Property-based testing for state machine
 5. Investigate BUG-012 (checkpoint.test.ts flaky)
 6. Smart Init: language detection for monorepos (TypeScript in subdirectory)
+7. Run `compliance fix` on open-pencil with AI bridge to validate quality improvement
 
-### Long-term (Sprint 80+)
+### Long-term (Sprint 81+)
 
 1. Mutation testing for critical paths
 2. CI/CD pipeline integration
@@ -788,6 +856,12 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 ```bash
 # Run all tests
 pnpm test
+
+# Run Sprint 80 SDLC Content Quality
+pnpm vitest run tests/sdlc/compliance/content-generator.test.ts tests/sdlc/gates/gate-engine.test.ts
+
+# Run Sprint 80 Manual Tests (34 tests)
+node tests/manual/mt-80-content-quality.mjs
 
 # Run Sprint 79 Smart Init
 pnpm vitest run tests/sdlc/compliance/project-context-collector.test.ts tests/sdlc/scaffold/templates.test.ts tests/sdlc/scaffold/structure-generator.test.ts
@@ -852,7 +926,8 @@ pnpm test --coverage
 | 77 | 153 | 5,016 | 99.8% |
 | 78 | 70 | 5,086 | 99.8% |
 | 79 | 31 | 5,117 | 99.8% |
+| 80 | 27 | 5,155 | 99.8% |
 
 ---
 
-*Master Test Plan v5.0 | SDLC Framework v6.1.1 | Sprint 79*
+*Master Test Plan v6.0 | SDLC Framework v6.1.1 | Sprint 80*
