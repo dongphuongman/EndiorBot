@@ -449,10 +449,6 @@ export class WebhookHandler {
   }
 
   /**
-   * Clean up stale rate limit entries.
-   * Call periodically to prevent memory growth.
-   */
-  /**
    * Dispose of resources (cleanup interval).
    */
   dispose(): void {
@@ -462,6 +458,10 @@ export class WebhookHandler {
     }
   }
 
+  /**
+   * Clean up stale rate limit entries.
+   * Called periodically to prevent rateLimitMap memory growth (P0-1 fix).
+   */
   cleanupRateLimits(): void {
     const now = Date.now();
     const windowMs = 60_000;

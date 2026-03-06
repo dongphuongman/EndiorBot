@@ -27,6 +27,8 @@ import {
   type DetectionResult,
 } from "../../sdlc/scaffold/index.js";
 import { saveActiveProject } from "../../config/paths.js";
+import { collectProjectContext } from "../../sdlc/compliance/project-context-collector.js";
+import type { ProjectSnapshot } from "../../sdlc/compliance/fix-types.js";
 
 const logger = createLogger("init-command");
 
@@ -47,6 +49,7 @@ export function registerInitCommand(program: Command): void {
     .option("--force", "Overwrite existing files (creates backup)")
     .option("--no-scaffold", "Skip docs/ structure creation")
     .option("--refresh", "Update EndiorBot-managed sections only")
+    .option("--skip-analysis", "Skip codebase analysis, use generic placeholders")
     .action(async (projectName: string | undefined, options: InitCommandOptions) => {
       // If projectName looks like a path, use it as --path instead
       if (projectName && (projectName.startsWith("/") || projectName.startsWith("./") || projectName.startsWith("../"))) {
@@ -68,6 +71,7 @@ interface InitCommandOptions {
   force?: boolean;
   scaffold?: boolean;
   refresh?: boolean;
+  skipAnalysis?: boolean;
 }
 
 // ============================================================================
@@ -97,15 +101,34 @@ async function executeInit(
 
   logger.info("Starting init", { name, tier, path: targetPath });
 
-  // Step 1: Detect existing structure
+  // Step 1: Codebase analysis (before detect — gives templates context)
+  let snapshot: ProjectSnapshot | undefined;
+  if (!options.skipAnalysis && !options.analyze) {
+    const analysisSpinner = createSpinner("Analyzing codebase...");
+    try {
+      snapshot = await collectProjectContext(targetPath, tier);
+      const parts = [
+        snapshot.techStack.language,
+        snapshot.techStack.framework,
+        snapshot.techStack.packageManager && `(${snapshot.techStack.packageManager})`,
+        snapshot.techStack.desktop,
+      ].filter(Boolean);
+      analysisSpinner.succeed(`Tech stack: ${parts.join(", ")}`);
+    } catch {
+      analysisSpinner.warn("Codebase analysis failed — using generic placeholders");
+      // snapshot remains undefined → templates fall back to generic
+    }
+  }
+
+  // Step 2: Detect existing structure
   console.log(fmt.info("Detecting existing SDLC structure..."));
   const detection = detectProject(targetPath);
 
   // Display detection result
   displayDetectionResult(detection);
 
-  // Step 2: Handle based on state
-  const result = await handleProjectState(detection, {
+  // Step 3: Handle based on state
+  const initOpts: InitOptions = {
     projectName: name,
     tier,
     path: targetPath,
@@ -113,12 +136,14 @@ async function executeInit(
     force: options.force ?? false,
     noScaffold: options.scaffold === false,
     refresh: options.refresh ?? false,
-  });
+  };
+  if (snapshot) initOpts.snapshot = snapshot;
+  const result = await handleProjectState(detection, initOpts);
 
-  // Step 3: Display result
+  // Step 4: Display result
   displayResult(result, Date.now() - startTime);
 
-  // Step 4: Save active project (if not dry-run)
+  // Step 5: Save active project (if not dry-run)
   if (!options.analyze && result.created.length > 0) {
     try {
       saveActiveProject({
@@ -192,14 +217,16 @@ async function handleFreshProject(
 
   const spinner = options.analyze ? null : createSpinner("Scaffolding project...");
 
-  const result = await scaffoldProject({
+  const scaffoldOpts: Parameters<typeof scaffoldProject>[0] = {
     projectName: options.projectName!,
     projectDescription: "",
     tier: options.tier!,
     targetPath: options.path!,
     dryRun: options.analyze ?? false,
     force: options.force ?? false,
-  });
+  };
+  if (options.snapshot) scaffoldOpts.snapshot = options.snapshot;
+  const result = await scaffoldProject(scaffoldOpts);
 
   spinner?.succeed("Scaffold complete");
 
@@ -256,13 +283,15 @@ async function handleEndiorBotProject(
   // Complete missing files
   console.log(fmt.info(`Found ${missingFiles.length} missing files. Completing...`));
 
-  const result = await scaffoldProject({
+  const endiorOpts: Parameters<typeof scaffoldProject>[0] = {
     projectName: options.projectName!,
     tier: detection.configTier ?? options.tier!,
     targetPath: options.path!,
     dryRun: options.analyze ?? false,
     force: false,
-  });
+  };
+  if (options.snapshot) endiorOpts.snapshot = options.snapshot;
+  const result = await scaffoldProject(endiorOpts);
 
   return {
     created: result.steps.filter((s) => s.status === "created").map((s) => s.path),
@@ -295,13 +324,15 @@ async function handlePartialProject(
 
   console.log(fmt.info("Partial project - completing structure..."));
 
-  const result = await scaffoldProject({
+  const partialOpts: Parameters<typeof scaffoldProject>[0] = {
     projectName: options.projectName!,
     tier,
     targetPath: options.path!,
     dryRun: options.analyze ?? false,
     force: options.force ?? false,
-  });
+  };
+  if (options.snapshot) partialOpts.snapshot = options.snapshot;
+  const result = await scaffoldProject(partialOpts);
 
   return {
     created: result.steps.filter((s) => s.status === "created").map((s) => s.path),
@@ -365,6 +396,7 @@ async function handleMigration(
   if (migrationResult.config.project.description) {
     scaffoldConfig.projectDescription = migrationResult.config.project.description;
   }
+  if (options.snapshot) scaffoldConfig.snapshot = options.snapshot;
   const result = await scaffoldProject(scaffoldConfig);
 
   // Build result with config as updated

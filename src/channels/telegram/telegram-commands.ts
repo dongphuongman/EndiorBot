@@ -18,6 +18,16 @@ import type { TeamId } from "../../agents/types/team.js";
 import { getTeamRegistry } from "../../agents/orchestrator/team-registry.js";
 import { getAgentIcon } from "./keyboards.js";
 
+/**
+ * Sanitize user input for safe echo in Telegram Markdown responses.
+ * Strips Markdown special chars and limits length to prevent injection.
+ */
+export function sanitizeForEcho(input: string): string {
+  return input
+    .replace(/[*_`\[\]()~>#+\-=|{}.!\\]/g, "")
+    .slice(0, 50);
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -110,9 +120,10 @@ export function handleGateCommand(args: string[]): CommandResult {
   }
 
   // Gate check is CLI-bound; OTT provides info message
+  const safeGateId = sanitizeForEcho(gateId);
   return {
     success: true,
-    response: `📊 Gate ${gateId}\n\nRun \`endiorbot gate check ${gateId}\` for full evaluation.\nOr use: \`@pm check gate ${gateId} status\``,
+    response: `📊 Gate ${safeGateId}\n\nRun \`endiorbot gate check ${safeGateId}\` for full evaluation.\nOr use: \`@pm check gate ${safeGateId} status\``,
   };
 }
 
@@ -131,7 +142,7 @@ export function handleComplianceCommand(args: string[]): CommandResult {
 
   return {
     success: true,
-    response: `📋 Compliance: unknown sub-command '${subCommand}'\nUsage: /compliance [score|check]`,
+    response: `📋 Compliance: unknown sub-command '${sanitizeForEcho(subCommand)}'\nUsage: /compliance [score|check]`,
   };
 }
 
@@ -156,16 +167,16 @@ export function handleFixCommand(args: string[]): CommandResult {
   }
 
   if (stage) {
-    parts.push(`Stage: \`${stage}\``);
+    parts.push(`Stage: \`${sanitizeForEcho(stage)}\``);
   }
 
   parts.push("");
   parts.push("Run `endiorbot compliance fix` for full execution.");
-  parts.push("Or use: `@pm run compliance fix" + (dryRun ? " --dry-run" : "") + (stage ? ` --stage ${stage}` : "") + "`");
+  parts.push("Or use: `@pm run compliance fix" + (dryRun ? " --dry-run" : "") + (stage ? ` --stage ${sanitizeForEcho(stage)}` : "") + "`");
   parts.push("");
   parts.push("Options:");
   parts.push("  `/fix` — preview (dry-run)");
-  parts.push("  `/fix --yes` — apply fixes");
+  parts.push("  `/fix --yes` — apply fixes (via CLI)");
   parts.push("  `/fix --stage 01-planning` — fix specific stage");
 
   return { success: true, response: parts.join("\n") };
@@ -185,7 +196,7 @@ export function handleConsultCommand(args: string[]): CommandResult {
 
   return {
     success: true,
-    response: `🧠 *Consultation*\n\nQuery: ${query.slice(0, 200)}\n\nRun \`endiorbot consult "${query.slice(0, 100)}"\` for full multi-model response.\nOr use: \`@researcher ${query.slice(0, 100)}\``,
+    response: `🧠 *Consultation*\n\nQuery: ${sanitizeForEcho(query.slice(0, 200))}\n\nRun \`endiorbot consult "${sanitizeForEcho(query.slice(0, 100))}"\` for full multi-model response.\nOr use: \`@researcher ${sanitizeForEcho(query.slice(0, 100))}\``,
   };
 }
 
@@ -239,7 +250,7 @@ export function handleModeCommand(args: string[], currentMode: string): CommandR
 
   return {
     success: false,
-    response: `Unknown mode: ${requestedMode}\nValid modes: read, patch`,
+    response: `Unknown mode: ${sanitizeForEcho(requestedMode)}\nValid modes: read, patch`,
   };
 }
 
@@ -280,7 +291,7 @@ Usage: /webhook [on|off]
 
   return {
     success: false,
-    response: `Unknown webhook action: ${action}\nUsage: /webhook [on|off]`,
+    response: `Unknown webhook action: ${sanitizeForEcho(action)}\nUsage: /webhook [on|off]`,
   };
 }
 
@@ -311,6 +322,7 @@ export function generateHelpMessage(): string {
   /config — Project config
   /mode [read|patch] — Set invoke mode
   /webhook [on|off] — Toggle webhook (Telegram)
+  /clear — Clear conversation history
   /help — This message
 
 *Agent mention:*

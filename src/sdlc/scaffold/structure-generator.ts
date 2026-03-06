@@ -20,6 +20,7 @@ import type {
   ProjectConfig,
   ProjectTier,
 } from "./types.js";
+import type { ProjectSnapshot } from "../compliance/fix-types.js";
 import { TIER_STAGES } from "./types.js";
 import {
   generateSdlcConfig,
@@ -29,6 +30,13 @@ import {
   generateAgentsMd,
 } from "./templates/index.js";
 import { getStageQuestion, formatStageName } from "./tier-detector.js";
+import {
+  STAGE_GATE_MAP,
+  STAGE_UPSTREAM,
+  STAGE_QUESTIONS,
+  getAgentForStage,
+} from "../compliance/fix-types.js";
+import { STAGE_CONTENT_REQUIREMENTS } from "../compliance/content-checker.js";
 
 const logger = createLogger("structure-generator");
 
@@ -65,7 +73,7 @@ export async function scaffoldProject(
       await executeStep(
         "Create .sdlc-config.json",
         join(config.targetPath, ".sdlc-config.json"),
-        () => serializeSdlcConfig(generateSdlcConfig(projectConfig)),
+        () => serializeSdlcConfig(generateSdlcConfig(projectConfig, config.snapshot)),
         config
       )
     );
@@ -75,7 +83,7 @@ export async function scaffoldProject(
       await executeStep(
         "Generate CLAUDE.md",
         join(config.targetPath, "CLAUDE.md"),
-        () => generateClaudeMd(projectConfig),
+        () => generateClaudeMd(projectConfig, config.snapshot),
         config
       )
     );
@@ -85,7 +93,7 @@ export async function scaffoldProject(
       await executeStep(
         "Generate IDENTITY.md",
         join(config.targetPath, "IDENTITY.md"),
-        () => generateIdentityMd(projectConfig),
+        () => generateIdentityMd(projectConfig, config.snapshot),
         config
       )
     );
@@ -103,7 +111,7 @@ export async function scaffoldProject(
     }
 
     // Step 5: Create docs/ structure
-    const docsSteps = await createDocsStructure(config, projectConfig);
+    const docsSteps = await createDocsStructure(config, projectConfig, config.snapshot);
     steps.push(...docsSteps);
 
     // Step 6: Create .claude/ structure
@@ -219,7 +227,8 @@ async function executeStep(
  */
 async function createDocsStructure(
   config: ScaffoldConfig,
-  projectConfig: ProjectConfig
+  projectConfig: ProjectConfig,
+  snapshot?: ProjectSnapshot,
 ): Promise<StepResult[]> {
   const steps: StepResult[] = [];
   const docsPath = join(config.targetPath, "docs");
@@ -233,7 +242,7 @@ async function createDocsStructure(
       await executeStep(
         `Create ${stage}/`,
         join(stagePath, "README.md"),
-        () => generateStageReadme(stage, projectConfig),
+        () => generateStageReadme(stage, projectConfig, snapshot),
         config
       )
     );
@@ -247,39 +256,113 @@ async function createDocsStructure(
  */
 function generateStageReadme(
   stage: string,
-  project: ProjectConfig
+  project: ProjectConfig,
+  snapshot?: ProjectSnapshot,
 ): string {
   const name = formatStageName(stage);
-  const question = getStageQuestion(stage);
+  const question = STAGE_QUESTIONS[stage] ?? getStageQuestion(stage);
 
-  return `# ${stage} - ${name}
+  const lines: string[] = [];
 
-## Purpose
+  lines.push(`# ${stage} - ${name}`);
+  lines.push("");
+  lines.push("## Purpose");
+  lines.push("");
+  if (question) lines.push(`**Key Question:** ${question}`);
+  lines.push("");
+  lines.push(`This stage contains documentation for the ${name.toLowerCase()} phase of ${project.name}.`);
+  lines.push("");
+  lines.push("---");
 
-${question ? `**Key Question:** ${question}` : ""}
+  // Test infrastructure section (Sprint 79 — snapshot-enriched)
+  if (stage === "05-test" && snapshot) {
+    const testInfra = buildTestInfraSection(snapshot);
+    if (testInfra) lines.push(testInfra);
+  }
 
-This stage contains documentation for the ${name.toLowerCase()} phase of ${project.name}.
+  // Gate requirements checklist
+  const gates = STAGE_GATE_MAP[stage] ?? [];
+  if (gates.length > 0) {
+    lines.push("");
+    lines.push("## Quality Gate Requirements");
+    lines.push("");
+    lines.push(`This stage feeds gate(s): **${gates.join(", ")}**`);
+    lines.push("");
+    for (const gate of gates) {
+      lines.push(`- [ ] **${gate}**: Document required evidence for this gate`);
+    }
+    lines.push("");
+    lines.push("---");
+  }
 
----
+  // Upstream dependencies table
+  const upstream = STAGE_UPSTREAM[stage] ?? [];
+  if (upstream.length > 0) {
+    lines.push("");
+    lines.push("## Dependencies");
+    lines.push("");
+    lines.push("| Upstream Stage | What to Consume |");
+    lines.push("|---------------|-----------------|");
+    for (const up of upstream) {
+      lines.push(`| [${up}](../${up}/) | Cite specific artifacts from this stage |`);
+    }
+    lines.push("");
+    lines.push("---");
+  }
 
-## Contents
+  // Artifact checklist from STAGE_CONTENT_REQUIREMENTS
+  const requirements = STAGE_CONTENT_REQUIREMENTS[stage];
+  if (requirements) {
+    const owner = getAgentForStage(stage, project.tier);
+    lines.push("");
+    lines.push("## Artifact Checklist");
+    lines.push("");
+    lines.push("| Artifact | Required | Status | Owner |");
+    lines.push("|----------|----------|--------|-------|");
+    for (const artifact of requirements.requiredArtifacts) {
+      lines.push(`| \`${artifact}\` | ✅ Required | [ ] Pending | @${owner} |`);
+    }
+    for (const artifact of (requirements.optionalArtifacts ?? []).slice(0, 4)) {
+      lines.push(`| \`${artifact}\` | ⬜ Optional | [ ] — | — |`);
+    }
+    lines.push("");
+    lines.push("---");
+  }
 
-<!-- Add stage-specific documentation here -->
+  lines.push("");
+  lines.push(`*Generated by EndiorBot - SDLC Framework v${project.frameworkVersion}*`);
 
-- [ ] TODO: Add ${name.toLowerCase()} artifacts
+  return lines.join("\n") + "\n";
+}
 
----
+/**
+ * Build test infrastructure section for 05-test stage README.
+ */
+function buildTestInfraSection(snapshot: ProjectSnapshot): string {
+  const scripts = snapshot.techStack.scripts ?? {};
+  const pm = snapshot.techStack.packageManager ?? "pnpm";
 
-## Stage Artifacts
+  const testCmd = scripts["test"] ?? scripts["test:unit"] ?? null;
+  const e2eFiles = snapshot.testFiles.filter((f) => f.type === "e2e");
+  const unitFiles = snapshot.testFiles.filter((f) => f.type === "unit" || f.type === "unknown");
 
-| Artifact | Status | Owner |
-|----------|--------|-------|
-| TBD | Pending | TBD |
+  const infra: string[] = [];
+  if (testCmd) infra.push(`- Test command: \`${pm} run test\``);
 
----
+  const deps = [...snapshot.techStack.dependencies, ...snapshot.techStack.devDependencies];
+  if (deps.includes("playwright") || deps.includes("@playwright/test")) {
+    infra.push(`- **Playwright** (e2e): ${e2eFiles.length} test file(s) detected`);
+  }
+  if (deps.includes("vitest") || deps.includes("jest")) {
+    const fw = deps.includes("vitest") ? "Vitest" : "Jest";
+    infra.push(`- **${fw}** (unit): ${unitFiles.length} test file(s) detected`);
+  } else if (unitFiles.length > 0) {
+    infra.push(`- Unit tests: ${unitFiles.length} test file(s) detected`);
+  }
 
-*Generated by EndiorBot - SDLC Framework v${project.frameworkVersion}*
-`;
+  if (infra.length === 0) return "";
+
+  return `\n## Detected Test Infrastructure\n\n${infra.join("\n")}\n\n---\n`;
 }
 
 // ============================================================================

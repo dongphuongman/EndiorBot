@@ -35,6 +35,7 @@ import {
   handleWebhookCommand,
   generateHelpMessage,
 } from "./telegram-commands.js";
+import { getConversationStore } from "../conversation/store.js";
 
 // ============================================================================
 // Types
@@ -477,6 +478,14 @@ export class TelegramChannel implements BidirectionalChannel {
 
       case "/webhook":
         return handleWebhookCommand(args, this.pollingActive);
+
+      case "/clear": {
+        // B3: Clear conversation history for the configured CEO chat
+        if (this.config?.chatId) {
+          getConversationStore().clear(this.config.chatId);
+        }
+        return { success: true, response: "🗑 Conversation cleared." };
+      }
 
       default:
         return {

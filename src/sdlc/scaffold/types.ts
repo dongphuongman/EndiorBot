@@ -4,10 +4,12 @@
  * Type definitions for project initialization and scaffolding.
  *
  * @module sdlc/scaffold/types
- * @version 1.0.0
- * @date 2026-03-01
- * @status ACTIVE - Sprint 61
+ * @version 1.1.0
+ * @date 2026-03-05
+ * @status ACTIVE - Sprint 79
  */
+
+import type { ProjectSnapshot, TechStackInfo } from "../compliance/fix-types.js";
 
 // ============================================================================
 // Project State Detection
@@ -88,6 +90,10 @@ export interface InitOptions {
   check?: boolean;
   /** Skip docs/ structure creation */
   noScaffold?: boolean;
+  /** Skip codebase analysis, use generic placeholders */
+  skipAnalysis?: boolean;
+  /** Codebase analysis snapshot (threaded from executeInit) */
+  snapshot?: ProjectSnapshot;
 }
 
 /**
@@ -154,6 +160,10 @@ export interface SdlcConfig {
   };
   /** Original config preserved for debugging */
   _original?: unknown;
+  /** Detected tech stack (populated by smart init) */
+  techStack?: TechStackInfo;
+  /** When codebase analysis was performed */
+  analyzedAt?: string;
 }
 
 /**
@@ -221,6 +231,8 @@ export interface ScaffoldConfig {
   force?: boolean;
   /** Existing detection result */
   detection?: DetectionResult;
+  /** Codebase analysis snapshot (populated if --skip-analysis not used) */
+  snapshot?: ProjectSnapshot;
 }
 
 /**

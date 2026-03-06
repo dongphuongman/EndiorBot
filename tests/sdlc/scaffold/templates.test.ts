@@ -21,6 +21,7 @@ import {
   getAgentById,
 } from "../../../src/sdlc/scaffold/templates/index.js";
 import type { ProjectConfig } from "../../../src/sdlc/scaffold/types.js";
+import type { ProjectSnapshot } from "../../../src/sdlc/compliance/fix-types.js";
 
 // ============================================================================
 // Test Data
@@ -347,5 +348,120 @@ describe("getAgentById", () => {
 
     expect(ceo).toBeDefined();
     expect(ceo?.name).toBe("CEO Advisor");
+  });
+});
+
+// ============================================================================
+// Snapshot-aware template tests (Sprint 79)
+// ============================================================================
+
+/** Mock snapshot mimicking open-pencil: TypeScript + Vue/Vite + Bun + Tauri 2 */
+const mockSnapshot: ProjectSnapshot = {
+  name: "open-pencil",
+  description: "A collaborative design tool",
+  tier: "STANDARD",
+  techStack: {
+    language: "TypeScript",
+    framework: "Vue/Vite",
+    packageManager: "bun",
+    desktop: "Tauri 2",
+    hasTypeScript: true,
+    hasDocker: false,
+    hasCI: false,
+    dependencies: ["vue", "vite", "@tauri-apps/api"],
+    devDependencies: ["vitest", "playwright"],
+    scripts: {
+      dev: "vite",
+      build: "vite build",
+      test: "vitest run",
+      lint: "eslint .",
+    },
+  },
+  codeModules: [],
+  testFiles: [
+    { path: "tests/e2e/app.spec.ts", name: "app.spec.ts", type: "e2e" },
+    { path: "tests/unit/store.test.ts", name: "store.test.ts", type: "unit" },
+  ],
+  existingDocs: [],
+  projectPath: "/tmp/open-pencil",
+};
+
+describe("generateIdentityMd with snapshot", () => {
+  it("includes Tech Stack section when snapshot provided", () => {
+    const content = generateIdentityMd(testProject, mockSnapshot);
+    expect(content).toContain("## Tech Stack");
+  });
+
+  it("includes detected language", () => {
+    const content = generateIdentityMd(testProject, mockSnapshot);
+    expect(content).toContain("TypeScript");
+  });
+
+  it("includes detected framework", () => {
+    const content = generateIdentityMd(testProject, mockSnapshot);
+    expect(content).toContain("Vue/Vite");
+  });
+
+  it("includes detected package manager", () => {
+    const content = generateIdentityMd(testProject, mockSnapshot);
+    expect(content).toContain("bun");
+  });
+
+  it("includes desktop runtime", () => {
+    const content = generateIdentityMd(testProject, mockSnapshot);
+    expect(content).toContain("Tauri 2");
+  });
+
+  it("omits Tech Stack section when no snapshot", () => {
+    const content = generateIdentityMd(testProject);
+    expect(content).not.toContain("## Tech Stack");
+  });
+});
+
+describe("generateClaudeMd with snapshot", () => {
+  it("uses detected package manager in install command", () => {
+    const content = generateClaudeMd(testProject, mockSnapshot);
+    expect(content).toContain("bun install");
+  });
+
+  it("includes bun run dev from scripts", () => {
+    const content = generateClaudeMd(testProject, mockSnapshot);
+    expect(content).toContain("bun run dev");
+  });
+
+  it("includes bun run test from scripts", () => {
+    const content = generateClaudeMd(testProject, mockSnapshot);
+    expect(content).toContain("bun run test");
+  });
+
+  it("does NOT include pnpm install when snapshot provided", () => {
+    const content = generateClaudeMd(testProject, mockSnapshot);
+    expect(content).not.toContain("pnpm install");
+  });
+
+  it("falls back to pnpm commands when no snapshot", () => {
+    const content = generateClaudeMd(testProject);
+    expect(content).toContain("pnpm install");
+  });
+});
+
+describe("generateSdlcConfig with snapshot", () => {
+  it("includes techStack when snapshot provided", () => {
+    const config = generateSdlcConfig(testProject, mockSnapshot);
+    expect(config.techStack).toBeDefined();
+    expect(config.techStack?.language).toBe("TypeScript");
+    expect(config.techStack?.framework).toBe("Vue/Vite");
+  });
+
+  it("includes analyzedAt when snapshot provided", () => {
+    const config = generateSdlcConfig(testProject, mockSnapshot);
+    expect(config.analyzedAt).toBeDefined();
+    expect(typeof config.analyzedAt).toBe("string");
+  });
+
+  it("omits techStack when no snapshot", () => {
+    const config = generateSdlcConfig(testProject);
+    expect(config.techStack).toBeUndefined();
+    expect(config.analyzedAt).toBeUndefined();
   });
 });

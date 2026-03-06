@@ -326,7 +326,8 @@ Example: @pm plan payment gateway
 
 Agents: ${agentList}
 
-Teams: ${teamList}`;
+Teams: ${teamList}
+(Note: @fullstack works as both agent and team)`;
 }
 
 /**

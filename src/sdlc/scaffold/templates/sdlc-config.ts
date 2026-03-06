@@ -4,13 +4,14 @@
  * Generates .sdlc-config.json content.
  *
  * @module sdlc/scaffold/templates/sdlc-config
- * @version 1.0.0
- * @date 2026-03-01
- * @status ACTIVE - Sprint 61
+ * @version 1.1.0
+ * @date 2026-03-05
+ * @status ACTIVE - Sprint 79
  */
 
 import type { ProjectConfig, SdlcConfig, ProjectTier } from "../types.js";
 import { TIER_STAGES } from "../types.js";
+import type { ProjectSnapshot } from "../../compliance/fix-types.js";
 
 // ============================================================================
 // Generator
@@ -18,11 +19,12 @@ import { TIER_STAGES } from "../types.js";
 
 /**
  * Generate .sdlc-config.json content.
+ * When snapshot is provided, includes techStack + analyzedAt fields.
  */
-export function generateSdlcConfig(project: ProjectConfig): SdlcConfig {
+export function generateSdlcConfig(project: ProjectConfig, snapshot?: ProjectSnapshot): SdlcConfig {
   const stages = generateStagesPaths(project.tier);
 
-  return {
+  const config: SdlcConfig = {
     schema_version: "1.0.0",
     framework_version: project.frameworkVersion,
     generator: "endiorbot",
@@ -30,7 +32,6 @@ export function generateSdlcConfig(project: ProjectConfig): SdlcConfig {
     project: {
       id: project.id,
       name: project.name,
-      description: project.description,
     },
     tier: project.tier,
     stages,
@@ -39,6 +40,15 @@ export function generateSdlcConfig(project: ProjectConfig): SdlcConfig {
       passed: [],
     },
   };
+
+  if (project.description) config.project.description = project.description;
+
+  if (snapshot) {
+    config.techStack = snapshot.techStack;
+    config.analyzedAt = new Date().toISOString();
+  }
+
+  return config;
 }
 
 /**

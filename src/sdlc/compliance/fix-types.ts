@@ -88,12 +88,77 @@ export const STAGE_PROCESSING_ORDER: string[] = [
  */
 export const STAGE_GATE_MAP: Record<string, string[]> = {
   "00-foundation": ["G0"],
-  "01-planning": ["G0.1", "G1"],
-  "02-design": ["G2"],
-  "04-build": ["G-Sprint", "G-Sprint-Close"],
-  "05-test": ["G3"],
-  "06-deploy": ["G4"],
+  "01-planning":   ["G0.1", "G1"],
+  "02-design":     ["G2"],
+  "03-integrate":  ["G2"],         // integration contracts validated at design gate
+  "04-build":      ["G-Sprint", "G-Sprint-Close"],
+  "05-test":       ["G3"],
+  "06-deploy":     ["G4"],
+  "07-operate":    ["G4"],         // operations readiness confirmed post-deployment
+  "08-collaborate":["G-Sprint"],   // team practices validated per sprint cadence
+  "09-govern":     ["G4"],         // governance confirms G4 compliance
+  "10-archive":    [],             // no gate — archive is post-governance
 };
+
+// ============================================================================
+// SDLC 6.1.1 Stage Metadata
+// ============================================================================
+
+/**
+ * Stage guiding questions per SDLC 6.1.1 — 10-Stage Lifecycle (Pillar 1).
+ * Each stage is driven by a core question that all documentation must answer.
+ */
+export const STAGE_QUESTIONS: Record<string, string> = {
+  "00-foundation": "WHY are we building this?",
+  "01-planning":   "WHAT are we building?",
+  "02-design":     "HOW will we build it?",
+  "03-integrate":  "How do components CONNECT?",
+  "04-build":      "Are we BUILDING it right?",
+  "05-test":       "Does it WORK correctly?",
+  "06-deploy":     "Can we SHIP safely?",
+  "07-operate":    "Is it RUNNING reliably?",
+  "08-collaborate":"Is the team EFFECTIVE?",
+  "09-govern":     "Are we COMPLIANT?",
+  "10-archive":    "Is everything PRESERVED?",
+};
+
+/**
+ * Upstream stages each stage must cite for cross-stage traceability.
+ * SDLC 6.1.1 Design-First: each stage builds on evidence from prior stages.
+ */
+export const STAGE_UPSTREAM: Record<string, string[]> = {
+  "01-planning":   ["00-foundation"],
+  "02-design":     ["00-foundation", "01-planning"],
+  "03-integrate":  ["02-design"],
+  "04-build":      ["01-planning", "02-design"],
+  "05-test":       ["01-planning", "04-build"],
+  "06-deploy":     ["05-test"],
+  "07-operate":    ["06-deploy"],
+  "08-collaborate":["04-build"],
+  "09-govern":     ["05-test", "06-deploy"],
+};
+
+/**
+ * Artifact types that require Section 8 YAML frontmatter per SDLC 6.1.1.
+ * Specification documents must include spec_id, status, tier, stage, owner.
+ */
+export const SECTION8_ARTIFACT_TYPES = new Set([
+  "requirements.md",
+  "problem-statement.md",
+  "business-case.md",
+  "architecture.md",
+  "api-spec.yaml",
+  "test-plan.md",
+  "deploy-guide.md",
+  "contributing.md",
+  "governance.md",
+]);
+
+/**
+ * Stages where BDD (Given/When/Then) format is required in requirement docs.
+ * SDLC 6.1.1 Section 8: all acceptance criteria must be expressed in BDD format.
+ */
+export const BDD_REQUIRED_STAGES = new Set(["01-planning", "00-foundation"]);
 
 // ============================================================================
 // Agent → Skill Mapping
@@ -156,6 +221,8 @@ export interface TechStackInfo {
   devDependencies: string[];
   /** Scripts from package.json */
   scripts: Record<string, string>;
+  /** Desktop framework (e.g., "Tauri 2", "Electron") */
+  desktop?: string;
 }
 
 /**

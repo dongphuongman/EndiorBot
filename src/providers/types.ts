@@ -88,6 +88,8 @@ export interface ChatRequest {
   maxTokens?: number;
   tools?: Tool[];
   stream?: boolean;
+  /** Provider-specific metadata (e.g., { think: false } for Ollama) */
+  metadata?: Record<string, unknown>;
 }
 
 export interface TokenUsage {

@@ -4,12 +4,13 @@
  * Generates CLAUDE.md content for Claude Code integration.
  *
  * @module sdlc/scaffold/templates/claude-md
- * @version 1.0.0
- * @date 2026-03-01
- * @status ACTIVE - Sprint 61
+ * @version 1.1.0
+ * @date 2026-03-05
+ * @status ACTIVE - Sprint 79
  */
 
 import type { ProjectConfig, ProjectTier } from "../types.js";
+import type { ProjectSnapshot } from "../../compliance/fix-types.js";
 
 // ============================================================================
 // Generator
@@ -17,10 +18,11 @@ import type { ProjectConfig, ProjectTier } from "../types.js";
 
 /**
  * Generate CLAUDE.md content.
+ * When snapshot is provided, commands section uses detected package manager + scripts.
  */
-export function generateClaudeMd(project: ProjectConfig): string {
+export function generateClaudeMd(project: ProjectConfig, snapshot?: ProjectSnapshot): string {
   const tierSection = getTierSection(project.tier);
-  const commandsSection = getCommandsSection();
+  const commandsSection = getCommandsSection(snapshot);
   const invariantsSection = getInvariantsSection();
 
   return `# CLAUDE.md - ${project.name}
@@ -182,11 +184,11 @@ function getTierSection(tier: ProjectTier): string {
   return sections[tier];
 }
 
-/**
- * Get commands section.
- */
-function getCommandsSection(): string {
-  return `## Commands
+/** Priority-ordered script keys to include in commands section. */
+const SCRIPT_PRIORITY = ["dev", "build", "test", "test:unit", "lint", "format", "typecheck", "check"] as const;
+
+/** Fallback commands section when no snapshot available. */
+const GENERIC_COMMANDS_SECTION = `## Commands
 
 ### Development
 \`\`\`bash
@@ -213,4 +215,70 @@ pnpm lint           # Check code style
 ./endiorbot.mjs consult "Redis vs PostgreSQL for sessions?"
 ./endiorbot.mjs vibecoding check
 \`\`\``;
+
+/**
+ * Get commands section.
+ * Uses detected package manager and scripts when snapshot is available.
+ */
+function getCommandsSection(snapshot?: ProjectSnapshot): string {
+  if (!snapshot) return GENERIC_COMMANDS_SECTION;
+
+  const pm = snapshot.techStack.packageManager ?? "pnpm";
+  const scripts = snapshot.techStack.scripts ?? {};
+
+  // Build dev commands from detected scripts in priority order
+  const scriptLines: string[] = [];
+
+  // Install always comes first
+  scriptLines.push(`${pm} install        # Install dependencies`);
+
+  for (const key of SCRIPT_PRIORITY) {
+    if (scripts[key]) {
+      const label = getScriptLabel(key);
+      scriptLines.push(`${pm} run ${key.padEnd(12)} # ${label}`);
+    }
+  }
+
+  if (scriptLines.length <= 1) {
+    // No known scripts found — fallback
+    return GENERIC_COMMANDS_SECTION;
+  }
+
+  return `## Commands
+
+### Development
+\`\`\`bash
+${scriptLines.join("\n")}
+\`\`\`
+
+### EndiorBot CLI
+\`\`\`bash
+./endiorbot.mjs --help           # Show help
+./endiorbot.mjs start <project>  # Start project
+./endiorbot.mjs switch <project> # Switch context
+./endiorbot.mjs gate status      # Show gate status
+./endiorbot.mjs consult <query>  # Multi-model query
+\`\`\`
+
+### Claude Code Integration
+\`\`\`bash
+# Thin client pattern - CLI wrappers call EndiorBot core
+./endiorbot.mjs gate check G3
+./endiorbot.mjs consult "Redis vs PostgreSQL for sessions?"
+./endiorbot.mjs vibecoding check
+\`\`\``;
+}
+
+function getScriptLabel(key: string): string {
+  const labels: Record<string, string> = {
+    dev: "Watch mode / dev server",
+    build: "Build / compile",
+    test: "Run tests",
+    "test:unit": "Unit tests only",
+    lint: "Check code style",
+    format: "Format code",
+    typecheck: "Type checking only",
+    check: "Type check",
+  };
+  return labels[key] ?? key;
 }

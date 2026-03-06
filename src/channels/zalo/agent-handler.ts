@@ -32,6 +32,8 @@ import {
 import type { SanitizedChannelMessage } from "../ott/message-router.js";
 import type { AgentRole } from "../../agents/types/handoff.js";
 import { createLogger, type Logger } from "../../logging/index.js";
+import { handleZaloCommand } from "./zalo-commands.js";
+import { getConversationStore, type ConversationTurn } from "../conversation/store.js";
 
 // ============================================================================
 // Types
@@ -70,10 +72,16 @@ export type ZaloSendFn = (message: string) => Promise<boolean>;
  *
  * Parses [@agent: task] format and routes to orchestration layer.
  * Returns formatted response for Zalo.
+ *
+ * NOTE: Zalo is intentionally READ-only — no PATCH mode support.
+ * Zalo OA API doesn't support inline keyboards for 2-step PATCH confirmation,
+ * and Zalo's quick-reply UX is insufficient for secure mode escalation.
+ * PATCH operations should be done via Telegram or CLI. (CTO P1-5, Sprint 76)
  */
 export async function handleZaloAgentMention(
   message: SanitizedChannelMessage,
-  sendFn: ZaloSendFn
+  sendFn: ZaloSendFn,
+  conversationHistory?: ConversationTurn[]
 ): Promise<ZaloAgentResult> {
   const log = createLogger("zalo-agent-handler");
   const content = message.sanitized;
@@ -119,7 +127,7 @@ export async function handleZaloAgentMention(
 
   // Invoke agent
   try {
-    const result = await invokeZaloAgent(primaryAgent, task, log);
+    const result = await invokeZaloAgent(primaryAgent, task, log, conversationHistory);
     return result;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -134,12 +142,24 @@ export async function handleZaloAgentMention(
 }
 
 /**
+ * Format conversation history as context prefix for userPrompt.
+ */
+function buildHistoryContext(history: ConversationTurn[]): string {
+  if (history.length === 0) return "";
+  const lines = history.map((t) =>
+    `${t.role === "user" ? "CEO" : "Bot"}: ${t.content.slice(0, 300)}`
+  );
+  return `[Previous conversation]\n${lines.join("\n")}\n[End of history]\n\n`;
+}
+
+/**
  * Invoke agent via orchestration layer for Zalo.
  */
 async function invokeZaloAgent(
   agent: AgentRole,
   task: string,
-  log: Logger
+  log: Logger,
+  conversationHistory?: ConversationTurn[]
 ): Promise<ZaloAgentResult> {
   const startTime = Date.now();
 
@@ -177,14 +197,21 @@ async function invokeZaloAgent(
   // Build Claude Code invoke request
   // Sprint 76: OTT timeout 300s (5 min) — CEO noted large sessions take minutes
   const ottTimeout = parseInt(process.env.ENDIORBOT_OTT_TIMEOUT ?? "300", 10) || 300;
+  // B2: Prepend conversation history to userPrompt for multi-turn context
+  const historyPrefix = buildHistoryContext(conversationHistory ?? []);
   const invokeRequest: InvokeRequest = {
-    mode: "READ", // OTT always uses READ mode for safety
+    mode: "READ", // Zalo is intentionally READ-only (no PATCH mode — CTO P1-5)
     systemPrompt: decision.soul.content, // SoulTemplate.content
-    userPrompt: decision.message,
+    userPrompt: historyPrefix + decision.message,
     workspace: process.cwd(),
     agent: decision.agent,
     timeout: ottTimeout,
   };
+
+  // W1: Runtime assertion — defense-in-depth (ADR-020 §6, CTO P1-5)
+  if (invokeRequest.mode !== "READ") {
+    throw new Error("Zalo channel is READ-only (CTO P1-5)");
+  }
 
   // Invoke Claude Code
   const bridgeResult = await bridge.invoke(invokeRequest);
@@ -288,6 +315,8 @@ export function createZaloAgentHandler(
 ): (message: SanitizedChannelMessage) => Promise<void> {
   const log = createLogger("zalo-agent-handler");
 
+  const store = getConversationStore();
+
   return async (message: SanitizedChannelMessage): Promise<void> => {
     // Skip blocked messages
     if (!message.allowed) {
@@ -298,14 +327,37 @@ export function createZaloAgentHandler(
       return;
     }
 
+    // B2: Use senderId as conversation key (Zalo bot is 1:1 with CEO)
+    const chatId = message.original.senderId;
+
+    // Sprint 77 (ADR-020 §1): Check for slash commands BEFORE agent mentions
+    // P0-1 fix: Use original content for command detection — sanitized text
+    // is wrapped in [EXTERNAL_INPUT] tags by InputSanitizer and never starts with "/"
+    const rawContent = message.original.content.trim();
+    if (rawContent.startsWith("/")) {
+      const handled = await handleZaloCommand(rawContent, sendFn, chatId);
+      if (handled) return;
+      // Unknown command — fall through to mention handler
+    }
+
     // Check for agent mention (with team registry for team support)
     if (!hasMention(message.sanitized, getTeamRegistry())) {
       // Not an agent command, ignore
       return;
     }
 
-    // Handle agent mention
-    const result = await handleZaloAgentMention(message, sendFn);
+    // B2: Record user turn before invoking
+    store.add(chatId, "user", rawContent);
+    const history = store.get(chatId);
+
+    // Handle agent mention (pass history for multi-turn context)
+    const result = await handleZaloAgentMention(message, sendFn, history);
+
+    // B2: Record assistant response after invoking
+    const responseText = result.response?.output ?? result.formattedMessage;
+    if (result.success && responseText) {
+      store.add(chatId, "assistant", responseText);
+    }
 
     // Send response
     await sendFn(result.formattedMessage);
@@ -319,6 +371,7 @@ export function createZaloAgentHandler(
     log.info("Agent invocation complete", {
       success: result.success,
       hasSuggestion: !!result.suggestedAction,
+      historyTurns: history.length,
     });
   };
 }

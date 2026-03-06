@@ -125,8 +125,11 @@ export const DEFAULT_CHAT_MODEL = "qwen3:32b";
 /** Default model for fast responses */
 export const DEFAULT_FAST_MODEL = "qwen3:8b";
 
+/** Default model for routing (lightweight, fast, local) */
+export const DEFAULT_ROUTER_MODEL = "qwen3.5:9b";
+
 /** Default model when Ollama is used as fallback (lighter weight) */
-export const DEFAULT_FALLBACK_MODEL = "qwen3:14b";
+export const DEFAULT_FALLBACK_MODEL = "qwen3.5:9b";
 
 /**
  * Available Ollama models with their specifications.
@@ -211,6 +214,14 @@ export const OLLAMA_MODELS: OllamaModel[] = [
     purpose: "Structured output",
     contextSize: 65536,
     specialties: ["structured", "fast"],
+  },
+  {
+    name: "qwen3.5:9b",
+    displayName: "Qwen3.5 9B",
+    sizeGb: 6.6,
+    purpose: "Router agent, fast local inference",
+    contextSize: 131072,
+    specialties: ["routing", "fast", "vietnamese", "general"],
   },
 ];
 
@@ -338,7 +349,7 @@ export class OllamaProvider extends BaseProvider {
     this.checkRateLimit();
     const model = request.model || this.defaultModel;
 
-    const body = {
+    const body: Record<string, unknown> = {
       model,
       messages: request.messages.map((m) => ({
         role: m.role,
@@ -350,6 +361,12 @@ export class OllamaProvider extends BaseProvider {
         num_predict: request.maxTokens ?? 4096,
       },
     };
+
+    // Disable thinking mode for faster responses (e.g., router tasks)
+    // Pass think: false via request metadata or extra options
+    if (request.metadata?.think === false) {
+      body.think = false;
+    }
 
     const response = await this.fetchWithRetry<OllamaApiResponse>(
       `${this.baseUrl}/api/chat`,
@@ -533,6 +550,9 @@ export class OllamaProvider extends BaseProvider {
       case "fast":
       case "drafts":
         return "qwen3:8b";
+      case "routing":
+      case "router":
+        return DEFAULT_ROUTER_MODEL;
       case "translation":
         return "translategemma:12b";
       case "ocr":

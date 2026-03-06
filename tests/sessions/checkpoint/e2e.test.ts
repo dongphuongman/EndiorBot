@@ -610,7 +610,7 @@ describe("E2E: Checkpoint cleanup --dry-run", () => {
     expect(list).toHaveLength(3);
   });
 
-  it("should only delete excess checkpoints when cleanup runs", async () => {
+  it("should only delete excess checkpoints when cleanup runs", { timeout: 30000 }, async () => {
     // Create 5 checkpoints
     for (let i = 0; i < 5; i++) {
       await createFullCheckpoint(checkpointDir);

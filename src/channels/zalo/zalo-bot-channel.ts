@@ -212,8 +212,9 @@ export class ZaloBotChannel implements BidirectionalChannel {
       return false;
     }
 
+    // Try getMe first (short timeout — zapps.me returns 502 intermittently)
     try {
-      const response = await getMe(this.config.botToken, this.config.timeoutMs);
+      const response = await getMe(this.config.botToken, 5000);
       if (response.ok && response.result) {
         this.botInfo = response.result;
         this.log.debug("Zalo Bot API available", {
@@ -222,10 +223,23 @@ export class ZaloBotChannel implements BidirectionalChannel {
         });
         return true;
       }
-      return false;
-    } catch (error) {
+    } catch {
+      // getMe failed — expected on zapps.me (502 intermittent)
+    }
+
+    // Fallback: try getUpdates with 1s poll timeout as a connectivity check
+    try {
+      await getUpdates(this.config.botToken, { timeout: 1 });
+      this.log.debug("Zalo Bot API available (via getUpdates fallback)");
+      return true;
+    } catch (fallbackError) {
+      if (fallbackError instanceof ZaloBotApiError && fallbackError.isPollingTimeout) {
+        // 408 = API is reachable, just no pending updates
+        this.log.debug("Zalo Bot API available (408 polling timeout)");
+        return true;
+      }
       this.log.warn("Zalo Bot API not available", {
-        error: (error as Error).message,
+        error: (fallbackError as Error).message,
       });
       return false;
     }

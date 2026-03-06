@@ -111,7 +111,20 @@ function buildFixActions(
     if (!issue.file) continue;
     const isSubdir = issue.file.endsWith("/");
 
-    if (!isSubdir) {
+    if (isSubdir) {
+      // Generate a default file inside the required subdir
+      const subdirName = issue.file.slice(0, -1); // remove trailing /
+      const defaultFile = SUBDIR_DEFAULT_FILES[subdirName] ?? "README.md";
+      const path = `docs/${stage}/${subdirName}/${defaultFile}`;
+      if (!actions.some((a) => a.targetPath === path)) {
+        actions.push({
+          targetPath: path,
+          stage,
+          artifactType: `${subdirName}/${defaultFile}`,
+          description: `Generate ${defaultFile} inside required subdir ${subdirName}/ for stage ${stage}`,
+        });
+      }
+    } else {
       actions.push({
         targetPath: `docs/${stage}/${issue.file}`,
         stage,
@@ -141,7 +154,7 @@ function buildFixActions(
     }
   }
 
-  // Handle insufficient content — also regenerate
+  // Handle insufficient content — regenerate required + optional artifacts
   const insufficientIssues = issues.filter((i) => i.type === "insufficient_content");
   if (insufficientIssues.length > 0 && requirements) {
     // Generate required artifacts that don't exist yet
@@ -156,10 +169,36 @@ function buildFixActions(
         });
       }
     }
+
+    // When no required artifacts exist, generate optional artifacts to meet content threshold
+    if (requirements.requiredArtifacts.length === 0 && requirements.optionalArtifacts.length > 0) {
+      for (const artifact of requirements.optionalArtifacts) {
+        // Skip wildcard patterns (e.g., "sprints/*.md")
+        if (artifact.includes("*")) continue;
+        const path = `docs/${stage}/${artifact}`;
+        if (!actions.some((a) => a.targetPath === path)) {
+          actions.push({
+            targetPath: path,
+            stage,
+            artifactType: artifact,
+            description: `Generate ${artifact} with sufficient content for stage ${stage}`,
+          });
+        }
+      }
+    }
   }
 
   return actions;
 }
+
+/**
+ * Default file to create inside required subdirs.
+ */
+const SUBDIR_DEFAULT_FILES: Record<string, string> = {
+  "01-ADRs": "ADR-001-initial-architecture.md",
+  "sprints": "sprint-plan.md",
+  "test-plans": "test-plan.md",
+};
 
 // ============================================================================
 // Prompt Context Builder

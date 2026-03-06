@@ -108,13 +108,18 @@ function detectTechStack(projectPath: string): TechStackInfo {
   else if (allDeps["express"]) framework = "Express";
   else if (allDeps["fastify"]) framework = "Fastify";
   else if (allDeps["react"]) framework = "React";
-  else if (allDeps["vue"]) framework = "Vue";
+  else if (allDeps["vue"]) {
+    const parts = ["Vue"];
+    if (allDeps["vite"] || allDeps["@vitejs/plugin-vue"]) parts.push("Vite");
+    framework = parts.join("/");
+  }
 
   // Detect package manager
   let packageManager: string | undefined;
   if (existsSync(join(projectPath, "pnpm-lock.yaml"))) packageManager = "pnpm";
   else if (existsSync(join(projectPath, "yarn.lock"))) packageManager = "yarn";
-  else if (existsSync(join(projectPath, "bun.lockb"))) packageManager = "bun";
+  else if (existsSync(join(projectPath, "bun.lockb"))
+        || existsSync(join(projectPath, "bun.lock"))) packageManager = "bun";
   else if (existsSync(join(projectPath, "package-lock.json"))) packageManager = "npm";
 
   // Detect Docker
@@ -139,6 +144,11 @@ function detectTechStack(projectPath: string): TechStackInfo {
 
   if (framework) info.framework = framework;
   if (packageManager) info.packageManager = packageManager;
+
+  // Detect desktop runtime (Tauri)
+  if (allDeps["@tauri-apps/api"] || allDeps["@tauri-apps/cli"]) {
+    info.desktop = "Tauri 2";
+  }
 
   return info;
 }

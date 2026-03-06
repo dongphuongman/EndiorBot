@@ -475,3 +475,87 @@ describe("createBackup", () => {
     expect(existsSync(join(backupPath, "CLAUDE.md"))).toBe(true);
   });
 });
+
+// ============================================================================
+// generateStageReadme — Sprint 80: Gate + Upstream + Artifact Checklist
+// ============================================================================
+
+describe("generateStageReadme — SDLC 6.1.1 enrichment (Sprint 80)", () => {
+  async function scaffoldStandard() {
+    const config: ScaffoldConfig = {
+      projectName: "sprint80-test",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      force: true,
+    };
+    await scaffoldProject(config);
+  }
+
+  it("02-design README contains G2 gate requirement checklist", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "02-design", "README.md");
+    expect(existsSync(readmePath)).toBe(true);
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("G2");
+    expect(content).toContain("[ ]");
+    expect(content).toContain("Quality Gate Requirements");
+  });
+
+  it("04-build README contains G-Sprint gate requirement checklist", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "04-build", "README.md");
+    expect(existsSync(readmePath)).toBe(true);
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("G-Sprint");
+    expect(content).toContain("[ ]");
+  });
+
+  it("01-planning README links to ../00-foundation/ upstream", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "01-planning", "README.md");
+    expect(existsSync(readmePath)).toBe(true);
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("../00-foundation/");
+    expect(content).toContain("Dependencies");
+  });
+
+  it("05-test README links to ../01-planning/ and ../04-build/ upstream", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "05-test", "README.md");
+    expect(existsSync(readmePath)).toBe(true);
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("../01-planning/");
+    expect(content).toContain("../04-build/");
+  });
+
+  it("02-design README contains artifact checklist", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "02-design", "README.md");
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("Artifact Checklist");
+    // architecture.md and api-spec.yaml are optional for 02-design
+    expect(content).toMatch(/architecture\.md|api-spec\.yaml/);
+  });
+
+  it("00-foundation README contains required artifacts (problem-statement, business-case)", async () => {
+    await scaffoldStandard();
+    const readmePath = join(TEST_DIR, "docs", "00-foundation", "README.md");
+    expect(existsSync(readmePath)).toBe(true);
+    const content = readFileSync(readmePath, "utf-8");
+    expect(content).toContain("Artifact Checklist");
+    expect(content).toContain("problem-statement.md");
+    expect(content).toContain("✅ Required");
+  });
+
+  it("stage READMEs do NOT contain placeholder 'TODO: Add' markers", async () => {
+    await scaffoldStandard();
+    for (const stage of ["01-planning", "02-design", "04-build", "05-test"]) {
+      const readmePath = join(TEST_DIR, "docs", stage, "README.md");
+      if (existsSync(readmePath)) {
+        const content = readFileSync(readmePath, "utf-8");
+        // Old placeholder pattern should be gone
+        expect(content).not.toContain("TODO: Add");
+      }
+    }
+  });
+});

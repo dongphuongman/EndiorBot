@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 4.0
-**Date:** 2026-03-04 (Updated after Sprint 76 completion)
+**Version:** 5.0
+**Date:** 2026-03-05 (Updated after Sprint 79 completion)
 **Framework:** SDLC v6.1.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v2.0 Autonomous SDLC Agent + OTT Channel Enhancement (ADR-019)
+**Milestone:** v2.1 Zalo Channel + Local Ollama Router + Smart Init (ADR-020, ADR-021, ADR-022)
 
 ---
 
@@ -16,20 +16,20 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ```
         ┌─────────────────┐
-        │  Manual (108)   │  ← User acceptance, exploratory
+        │  Manual (143)   │  ← User acceptance, exploratory
         ├─────────────────┤
         │    E2E (74)     │  ← End-to-end workflows
         ├─────────────────┤
         │ Integration(197)│  ← Component integration ✅ Sprint 68-72
         ├─────────────────┤
-        │  Unit (4750+)   │  ← Function-level tests
+        │  Unit (5000+)   │  ← Function-level tests
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 76): 2026-03-04**
-- **Total Tests:** 4,863 (4,853 passing | 0 failing | 10 skipped)
+**Current Status (Post-Sprint 79): 2026-03-05**
+- **Total Tests:** 5,117 (5,107 passing | 0 failing | 10 skipped)
 - **Pass Rate:** 99.8%
-- **New Tests (Sprint 68-76):** 692 tests added
+- **New Tests (Sprint 68-79):** 946 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
   - Sprint 72 (Autonomous Agent): 184 tests (+ 44 golden scenarios type tests)
@@ -37,11 +37,14 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
   - Sprint 74 (Team Agent System): 99 tests
   - Sprint 75 (Compliance Fix Engine): 41 tests
   - Sprint 76 (OTT Channel Enhancement): 68 unit + 63 manual tests
+  - Sprint 77 (Zalo Channel): 153 unit tests
+  - Sprint 78 (Local Ollama Router + Conversation Persistence): 70 unit tests
+  - Sprint 79 (Smart Init): 31 unit + 35 manual tests
 - **Tech Debt:** 1 flaky test (checkpoint.test.ts:462 — pre-existing since Sprint 35-40)
 
 ---
 
-## 1. Unit Tests (4,530+)
+## 1. Unit Tests (5,000+)
 
 ### 1.1 Context Module (97 tests) - Sprint 65
 
@@ -282,7 +285,74 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-### 1.13 Previously Known Failures (RESOLVED)
+### 1.13 Zalo Channel (153 tests) - Sprint 77
+
+**Location:** `tests/channels/zalo/`
+**Authority:** ADR-020 OTT Channel Completion
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| zalo-bot.test.ts | ~45 | PASS | ZaloBotChannel lifecycle, send, dispose |
+| zalo-channel.test.ts | ~38 | PASS | Channel interface, bidirectional comms |
+| zalo-agent-handler.test.ts | ~38 | PASS | Message dispatch, agent routing |
+| zalo-commands.test.ts | ~32 | PASS | 10 Zalo slash commands, text responses |
+
+**Validated Features:**
+- ZaloBotChannel implements BidirectionalChannel interface
+- Zalo API integration (getMe, sendMessage, getWebhookInfo, getUpdates)
+- 10 Zalo commands: /help, /agents, /teams, /gate, /compliance, /fix, /consult, /config, /init, /approve
+- Plain text responses (no Markdown — Zalo limitation)
+- Agent dispatch via ZaloAgentHandler
+- Platform limitations documented (zapps.me 502, no markdown)
+
+---
+
+### 1.14 Local Ollama Router + Conversation Persistence (70 tests) - Sprint 78
+
+**Location:** `tests/agents/routing/local-router.test.ts`, `tests/channels/conversation/`
+**Authority:** ADR-021 Local Ollama Router
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| local-router.test.ts | ~32 | PASS | LocalRouterAgent, cost optimizer, pattern analytics |
+| conversation/store.test.ts | ~28 | PASS | ConversationStore persistence, TTL, CRUD |
+| conversation/intents.test.ts | ~6 | PASS | Intent classification |
+| conversation/message-handler.test.ts | ~4 | PASS | Message routing |
+
+**Validated Features:**
+- LocalRouterAgent routes cheap tasks to Ollama (local, free)
+- Cost optimizer: Ollama for EFFICIENCY tier tasks, cloud for STANDARD+
+- ConversationStore: SQLite-backed persistence with TTL
+- Pattern analytics for routing decisions
+- Adaptive gates: quality checks before accepting local responses
+- Confidence scoring for local vs cloud routing
+
+---
+
+### 1.15 Smart Init — Codebase Analysis (31 tests) - Sprint 79
+
+**Location:** `tests/sdlc/compliance/project-context-collector.test.ts` (NEW), `tests/sdlc/scaffold/templates.test.ts`, `tests/sdlc/scaffold/structure-generator.test.ts`
+**Authority:** ADR-022 Smart Init Codebase Analysis
+
+| Test Suite | Tests | Status | New | Coverage |
+|------------|-------|--------|-----|----------|
+| project-context-collector.test.ts | 13 | PASS | 13 (NEW) | bun.lock, Tauri, Vue/Vite, open-pencil scenario |
+| templates.test.ts | +14 | PASS | 14 | identity-md/claude-md/sdlc-config with snapshot |
+| structure-generator.test.ts | +4 | PASS | 4 | scaffoldProject with snapshot threading |
+
+**Validated Features:**
+- `bun.lock` text format (Bun 1.2+) detected as Bun package manager
+- Tauri 2 detection via `@tauri-apps/api` or `@tauri-apps/cli`
+- Vue/Vite enrichment: vue + vite/`@vitejs/plugin-vue` → `"Vue/Vite"` string
+- `generateIdentityMd(project, snapshot?)` — `## Tech Stack` section when snapshot present
+- `generateClaudeMd(project, snapshot?)` — script-aware commands with detected PM
+- `generateSdlcConfig(project, snapshot?)` — emits `techStack` + `analyzedAt`
+- `scaffoldProject()` with snapshot threads to all 3 templates
+- No snapshot → backward-compatible generic output (no regression)
+
+---
+
+### 1.16 Previously Known Failures (RESOLVED)
 
 | File | Was Failing | Fix Applied | Sprint Fixed |
 |------|-------------|-------------|--------------|
@@ -347,7 +417,37 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ## 4. Sprint E2E Reports
 
-### 4.1 Sprint 74 Test Summary (Team Agent System)
+### 4.1 Sprint 79 Test Summary (Smart Init)
+
+| Module | Tests | Time | Coverage |
+|--------|-------|------|----------|
+| project-context-collector (NEW) | 13 | <100ms | bun.lock, Tauri 2, Vue/Vite, open-pencil scenario |
+| templates.test.ts (+14 new) | 14 | <50ms | identity-md, claude-md, sdlc-config with snapshot |
+| structure-generator.test.ts (+4 new) | 4 | <50ms | scaffoldProject snapshot threading |
+| **Manual mt-79-smart-init.mjs** | **35** | ~30s | **35/35 PASS** (6 phases, open-pencil live) |
+| **Total** | **66** | <1s | **Full Smart Init pipeline** |
+
+### 4.2 Sprint 77 Test Summary (Zalo Channel)
+
+| Module | Tests | Time | Coverage |
+|--------|-------|------|----------|
+| zalo-bot.test.ts | ~45 | <100ms | ZaloBotChannel lifecycle, API |
+| zalo-channel.test.ts | ~38 | <100ms | BidirectionalChannel interface |
+| zalo-agent-handler.test.ts | ~38 | <100ms | Message dispatch, routing |
+| zalo-commands.test.ts | ~32 | <100ms | 10 slash commands, plain text |
+| **Total** | **153** | <1s | **Full Zalo channel** |
+
+### 4.3 Sprint 78 Test Summary (Local Ollama Router + Conversation Persistence)
+
+| Module | Tests | Time | Coverage |
+|--------|-------|------|----------|
+| local-router.test.ts | ~32 | <200ms | LocalRouterAgent, cost optimizer |
+| conversation/store.test.ts | ~28 | <100ms | ConversationStore persistence |
+| conversation/intents.test.ts | ~6 | <50ms | Intent classification |
+| conversation/message-handler.test.ts | ~4 | <50ms | Message routing |
+| **Total** | **70** | <500ms | **Full local routing pipeline** |
+
+### 4.5 Sprint 74 Test Summary (Team Agent System)
 
 | Module | Tests | Time | Coverage |
 |--------|-------|------|----------|
@@ -356,7 +456,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Agent Router Teams | 27 | 19ms | Routing, SOUL enrichment, tier sync |
 | **Total** | **99** | **35ms** | **Full team routing pipeline** |
 
-### 4.2 Sprint 76 Test Summary (OTT Channel Enhancement)
+### 4.6 Sprint 76 Test Summary (OTT Channel Enhancement)
 
 | Module | Tests | Time | Coverage |
 |--------|-------|------|----------|
@@ -370,7 +470,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Mode Escalation | 4 | <5ms | PATCH detection, confirm/cancel |
 | **Total** | **68** | **269ms** | **Full OTT parity** |
 
-### 4.3 Sprint 72 Test Summary
+### 4.7 Sprint 72 Test Summary
 
 **Full Report:** [E2E-SPRINT-72-REPORT-2026-03-02.md](./07-E2E-Testing/reports/E2E-SPRINT-72-REPORT-2026-03-02.md)
 
@@ -384,7 +484,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-## 5. Manual Tests (108 tests)
+## 5. Manual Tests (143 tests)
 
 **File:** [manual-test-plan.md](./manual-test-plan.md)
 
@@ -401,7 +501,10 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Team Agent Routing (Sprint 74) | 8 | 8 | 0 |
 | Dyad Repo Manual (Sprint 74) | 12 | 12 | 0 |
 | OTT Enhancement (Sprint 76) | 63 | 63 | 0 |
-| **TOTAL** | **108** | **99** | **9** |
+| Zalo Bot Live (Sprint 77) | 7 | 0 | 7 (requires live Zalo API) |
+| Zalo Commands Live (Sprint 77) | 10 | 0 | 10 (requires live Zalo API) |
+| Smart Init — open-pencil (Sprint 79) | 35 | 35 | 0 |
+| **TOTAL** | **160** | **134** | **26** |
 
 ### 5.1 Team Agent Routing Manual Tests (Sprint 74)
 
@@ -461,6 +564,33 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 **Executed:** 2026-03-04 | **Script:** `tests/manual/mt-76-ott-enhancement.mjs` | **Result:** 63/63 PASS
 
+### 5.4 Zalo Bot Live Tests (Sprint 77)
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| Zalo API (7) | MT-76-Z01..07 | getMe, sendMessage, long msg, unicode, getWebhookInfo, channel interface, getUpdates |
+| Zalo Commands (10) | MT-77-T1..10 | /help, /agents, /gate, /teams, /compliance, /fix, /consult, /config, /init, /approve |
+| **Total** | **17** | **Require live Zalo API + ZALO_BOT_TOKEN env** |
+
+**Status:** PENDING — requires live Zalo OA bot token (`.env.local` with `ZALO_BOT_TOKEN`, `ZALO_BOT_CHAT_ID`)
+**Scripts:** `tests/manual/mt-76-zalo-bot.mjs` | `tests/manual/mt-77-zalo-commands.mjs`
+
+### 5.5 Smart Init Manual Tests (Sprint 79)
+
+**Authority:** ADR-022 Smart Init Codebase Analysis
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| Phase 1: open-pencil full analysis (17) | MT-79-01..17 | Init STANDARD tier on real repo, spinner, IDENTITY.md/CLAUDE.md/.sdlc-config.json validation |
+| Phase 2: --skip-analysis (6) | MT-79-18..23 | Generic fallback, no Tech Stack section, pnpm commands |
+| Phase 3: bun.lock text format (3) | MT-79-24..26 | Bun 1.2+ `bun.lock` detected as bun |
+| Phase 4: Tauri 2 detection (3) | MT-79-27..29 | @tauri-apps/api → desktop: "Tauri 2" |
+| Phase 5: Vue/Vite enrichment (3) | MT-79-30..32 | Vue + Vite → "Vue/Vite" not just "Vue" |
+| Phase 6: Empty project graceful failure (3) | MT-79-33..35 | No crash, IDENTITY.md created, generic output |
+| **Total** | **35** | **All Sprint 79 acceptance criteria** |
+
+**Executed:** 2026-03-05 | **Script:** `tests/manual/mt-79-smart-init.mjs` | **Result:** 35/35 PASS
+
 ---
 
 ## 6. Performance Tests
@@ -508,14 +638,14 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ### 8.1 Automated Regression Suite
 
-**Baseline:** 4,853 tests passing (Sprint 76)
+**Baseline:** 5,107 tests passing (Sprint 79)
 
 **Regression Gate:**
 - BLOCK if > 5% tests fail
 - WARN if > 1% tests fail
 - PASS if <= 1% tests fail
 
-**Current:** 0/4,863 = 0% (0 failing, 10 skipped)
+**Current:** 0/5,117 = 0% (0 failing, 10 skipped)
 
 ### 8.2 Sprint-Specific Regression
 
@@ -528,28 +658,31 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | 74 | 99 | 0 regressions | PASS |
 | 75 | 41 | 0 regressions | PASS |
 | 76 | 68 | 0 regressions | PASS |
+| 77 | 153 | 0 regressions | PASS |
+| 78 | 70 | 0 regressions | PASS |
+| 79 | 31 | 0 regressions | PASS |
 
 ---
 
 ## 9. Test Metrics & KPIs
 
-### 9.1 Current Metrics (Post-Sprint 76)
+### 9.1 Current Metrics (Post-Sprint 79)
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Total tests | 4,863 | - | - |
+| Total tests | 5,117 | - | - |
 | Pass rate | 99.8% | > 99% | ON TARGET |
 | Tech debt tests | 0 failing | < 20 | EXCELLENT |
 | Flaky tests | 0 | 0 | RESOLVED |
-| New tests (Sprint 68-76) | 692 | - | +16% growth |
-| Manual tests | 108 (99 passing) | - | +63 Sprint 76 |
+| New tests (Sprint 68-79) | 946 | - | +23% growth |
+| Manual tests | 160 (134 passing, 26 pending) | - | +35 Sprint 79, +17 Sprint 77 |
 
 ### 9.2 Coverage by Module
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
 | Providers | ~3,500 | ~95% |
-| SDLC | 302 | ~98% |
+| SDLC | 333 | ~98% |
 | Sessions | 154 | ~95% |
 | Metrics | 32 | ~98% |
 | Models | 71 | ~98% |
@@ -558,6 +691,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Context | 97 | ~98% |
 | Orchestrator (Teams) | 119 | ~98% |
 | OTT Channels | 68 | ~95% |
+| Zalo Channel | 153 | ~95% |
+| Local Router + Conversation | 70 | ~90% |
+| Smart Init (Compliance) | 31 | ~98% |
 | Other (budget, config, etc.) | ~200 | ~85% |
 
 ---
@@ -601,6 +737,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 - ADR-017 Team Agent System (Sprint 74 design authority)
 - ADR-018 AI-Generated Compliance Content (Sprint 75 design authority)
 - ADR-019 OTT Channel Enhancement (Sprint 76 design authority)
+- ADR-020 OTT Channel Completion / Zalo (Sprint 77 design authority)
+- ADR-021 Local Ollama Router (Sprint 78 design authority)
+- ADR-022 Smart Init Codebase Analysis (Sprint 79 design authority)
 
 ### 11.2 Test Reports
 
@@ -612,7 +751,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ## 12. Next Steps
 
-### Completed Actions (Post-Sprint 76)
+### Completed Actions (Post-Sprint 79)
 
 1. ~~Fix BUG-006: cli-smoke status command~~ DONE
 2. ~~Fix tech debt tests (BUG-001, BUG-005)~~ DONE (61 tests rewritten)
@@ -621,15 +760,18 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 5. ~~Sprint 75: Compliance Fix Engine tests~~ DONE (41 tests)
 6. ~~Sprint 76: OTT Channel Enhancement tests~~ DONE (68 unit + 63 manual)
 7. ~~Sprint 76: CTO review fixes (B1-B3, P0-1 through P0-4)~~ DONE
+8. ~~Sprint 77: Zalo Channel 153 unit tests~~ DONE
+9. ~~Sprint 78: Local Ollama Router + ConversationStore 70 tests~~ DONE
+10. ~~Sprint 79: Smart Init 31 unit + 35 manual tests (35/35 PASS)~~ DONE
 
-### Short-term (Sprint 77+)
+### Short-term (Sprint 80+)
 
-1. Telegram webhook live E2E test (requires HTTPS endpoint + real bot token)
-2. Zalo webhook live E2E test (requires Zalo OA sandbox)
-3. OTT PATCH mode end-to-end integration test (file modification flow)
-4. Team cross-delegation integration tests (team→team handoff via OTT)
-5. Property-based testing for state machine
-6. Investigate BUG-012 (checkpoint.test.ts flaky)
+1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
+2. OTT PATCH mode end-to-end integration test (file modification flow)
+3. Team cross-delegation integration tests (team→team handoff via OTT)
+4. Property-based testing for state machine
+5. Investigate BUG-012 (checkpoint.test.ts flaky)
+6. Smart Init: language detection for monorepos (TypeScript in subdirectory)
 
 ### Long-term (Sprint 80+)
 
@@ -646,6 +788,22 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 ```bash
 # Run all tests
 pnpm test
+
+# Run Sprint 79 Smart Init
+pnpm vitest run tests/sdlc/compliance/project-context-collector.test.ts tests/sdlc/scaffold/templates.test.ts tests/sdlc/scaffold/structure-generator.test.ts
+
+# Run Sprint 79 Manual Tests (35 tests)
+node tests/manual/mt-79-smart-init.mjs
+
+# Run Sprint 77 Zalo Channel
+pnpm vitest run tests/channels/zalo/
+
+# Run Sprint 77 Zalo Manual Tests (requires live Zalo API)
+node tests/manual/mt-76-zalo-bot.mjs
+node tests/manual/mt-77-zalo-commands.mjs
+
+# Run Sprint 78 Local Router + Conversation
+pnpm vitest run tests/agents/routing/local-router.test.ts tests/channels/conversation/
 
 # Run Sprint 76 OTT Channel Enhancement
 pnpm vitest run tests/channels/ott/ott-enhancement.test.ts
@@ -691,7 +849,10 @@ pnpm test --coverage
 | 74 | 99 | 4,754 | 99.8% |
 | 75 | 41 | 4,795 | 99.8% |
 | 76 | 68 | 4,863 | 99.8% |
+| 77 | 153 | 5,016 | 99.8% |
+| 78 | 70 | 5,086 | 99.8% |
+| 79 | 31 | 5,117 | 99.8% |
 
 ---
 
-*Master Test Plan v4.0 | SDLC Framework v6.1.1 | Sprint 76*
+*Master Test Plan v5.0 | SDLC Framework v6.1.1 | Sprint 79*

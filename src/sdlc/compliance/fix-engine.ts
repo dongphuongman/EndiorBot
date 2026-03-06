@@ -22,6 +22,7 @@
 
 import { writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
+import { fmt } from "../../cli/ui/format.js";
 import { getClaudeCodeBridge } from "../../agents/invoke/claude-code-bridge.js";
 import { PatchManager } from "../patches/patch-manager.js";
 import { checkL2Compliance } from "./content-checker.js";
@@ -138,10 +139,17 @@ export class ComplianceFixEngine {
       autoConfirm: this.config.autoConfirm,
     };
 
-    for (const task of tasks) {
-      // Filter to specific stage if configured
-      if (this.config.stage && task.stage !== this.config.stage) continue;
+    const filteredTasks = tasks.filter(
+      (t) => !this.config.stage || t.stage === this.config.stage,
+    );
+    const totalActions = filteredTasks.reduce((sum, t) => sum + t.actions.length, 0);
+    let actionIndex = 0;
 
+    if (!this.config.dryRun) {
+      console.log(fmt.dim(`  ${filteredTasks.length} stage(s), ${totalActions} file(s) to generate`));
+    }
+
+    for (const task of filteredTasks) {
       const taskResult = await this.processTask(
         task,
         generatorConfig,
@@ -149,6 +157,10 @@ export class ComplianceFixEngine {
         snapshot,
         previousStageOutputs,
         patchId,
+        () => {
+          actionIndex++;
+          console.log(fmt.dim(`  [${actionIndex}/${totalActions}] ${task.stage} @${task.agent}`));
+        },
       );
       taskResults.push(taskResult);
     }
@@ -207,11 +219,13 @@ export class ComplianceFixEngine {
     snapshot: ReturnType<typeof collectProjectContext> extends Promise<infer T> ? T : never,
     previousStageOutputs: Map<string, string>,
     patchId: string | undefined,
+    onActionStart?: () => void,
   ): Promise<AgentTaskResult> {
     const taskStart = Date.now();
     const actionResults: FixActionResult[] = [];
 
     for (const action of task.actions) {
+      onActionStart?.();
       let result = await generateContent(
         task,
         action,

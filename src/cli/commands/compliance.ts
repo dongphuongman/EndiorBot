@@ -45,36 +45,36 @@ export function registerComplianceCommand(program: Command): void {
 
   // compliance check
   compliance
-    .command("check")
+    .command("check [path]")
     .description("Check project compliance against SDLC requirements")
     .option("--path <path>", "Target directory")
     .option("--tier <tier>", "Expected tier (auto-detected if not specified)")
     .option("--level <level>", "Compliance level: L1 (structure) or L2 (content)", "L2")
     .option("--strict", "Fail on any compliance issue")
     .option("--json", "Output as JSON")
-    .action(async (options: ComplianceOptions) => {
+    .action(async (positionalPath: string | undefined, options: ComplianceOptions) => {
       if (!options.path) {
-        options.path = resolveActiveProjectDir();
+        options.path = positionalPath ?? resolveActiveProjectDir();
       }
       await executeComplianceCheck(options);
     });
 
   // compliance score
   compliance
-    .command("score")
+    .command("score [path]")
     .description("Show compliance score (L1 structure + L2 content)")
     .option("--path <path>", "Target directory")
     .option("--level <level>", "Compliance level: L1 (structure) or L2 (content)", "L2")
-    .action(async (options: { path: string; level?: string }) => {
+    .action(async (positionalPath: string | undefined, options: { path: string; level?: string }) => {
       if (!options.path) {
-        options.path = resolveActiveProjectDir();
+        options.path = positionalPath ?? resolveActiveProjectDir();
       }
       await executeComplianceCheck({ ...options, json: false, showScoreOnly: true });
     });
 
   // compliance fix
   compliance
-    .command("fix")
+    .command("fix [path]")
     .description("Auto-fix compliance gaps using AI agents")
     .option("--path <path>", "Target project directory")
     .option("--tier <tier>", "Override tier detection")
@@ -82,9 +82,9 @@ export function registerComplianceCommand(program: Command): void {
     .option("--yes", "Auto-confirm all patches (batch mode)")
     .option("--stage <stage>", "Fix specific stage only")
     .option("--json", "Output as JSON")
-    .action(async (options: ComplianceFixOptions) => {
+    .action(async (positionalPath: string | undefined, options: ComplianceFixOptions) => {
       if (!options.path) {
-        options.path = resolveActiveProjectDir();
+        options.path = positionalPath ?? resolveActiveProjectDir();
       }
       await executeComplianceFix(options);
     });
@@ -342,9 +342,16 @@ function displayResult(result: ComplianceResult, strict?: boolean, level: Compli
   // Summary
   const l1Errors = result.issues.filter((i) => i.severity === "error").length;
   const l2Failed = level === "L2" && result.l2Score !== undefined && result.l2Score < 50;
+  const l2Warnings = level === "L2" && result.l2Result
+    ? result.l2Result.issues.filter((i) => i.severity === "warning").length
+    : 0;
 
-  if (result.passed) {
+  if (result.passed && l2Warnings === 0) {
     console.log(fmt.success(t("compliance.passed")));
+  } else if (result.passed && l2Warnings > 0) {
+    console.log(fmt.yellow(`⚠️  Passed with ${l2Warnings} L2 warning(s) — stage docs have placeholder content`));
+    console.log();
+    console.log("Run " + fmt.cyan("endiorbot compliance fix <path>") + " to generate real content.");
   } else if (l1Errors > 0) {
     console.log(fmt.error(t("compliance.failed", { count: String(l1Errors) })));
 
@@ -377,7 +384,14 @@ function displayScoreOnly(result: ComplianceResult, level: ComplianceLevel = "L2
   }
 
   if (result.passed) {
-    console.log(fmt.success("✓ " + t("compliance.passed")));
+    const l2Warnings = level === "L2" && result.l2Result
+      ? result.l2Result.issues.filter((i) => i.severity === "warning").length
+      : 0;
+    if (l2Warnings > 0) {
+      console.log(fmt.yellow(`⚠️  Passed with ${l2Warnings} L2 warning(s) — stage docs have placeholder content`));
+    } else {
+      console.log(fmt.success("✓ " + t("compliance.passed")));
+    }
   } else {
     const l1Errors = result.issues.filter((i) => i.severity === "error").length;
     if (l1Errors > 0) {
@@ -450,7 +464,9 @@ async function executeComplianceFix(options: ComplianceFixOptions): Promise<void
     tier,
   };
   if (options.dryRun) engineOptions.dryRun = options.dryRun;
-  if (options.yes) engineOptions.autoConfirm = options.yes;
+  // compliance fix defaults to autoConfirm=true — generating SDLC docs is low-risk.
+  // Use --no-confirm (future flag) to require per-patch confirmation.
+  engineOptions.autoConfirm = options.yes !== false;
   if (options.stage) engineOptions.stage = options.stage;
 
   const engine = createComplianceFixEngine(engineOptions);
