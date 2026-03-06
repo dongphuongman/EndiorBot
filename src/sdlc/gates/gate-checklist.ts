@@ -434,7 +434,7 @@ export const GSPRINT_CHECKLIST: GateChecklist = {
       required: true,
       autoCheck: true,
       status: "pending",
-      checker: "glob:docs/01-planning/sprint-*-plan.md",
+      checker: "glob:docs/04-build/sprints/sprint-*-plan.md",
     },
     {
       id: "gsprint-ceo-signoff",

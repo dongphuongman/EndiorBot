@@ -123,7 +123,7 @@ export function handleGateCommand(args: string[]): CommandResult {
   const safeGateId = sanitizeForEcho(gateId);
   return {
     success: true,
-    response: `📊 Gate ${safeGateId}\n\nRun \`endiorbot gate check ${safeGateId}\` for full evaluation.\nOr use: \`@pm check gate ${safeGateId} status\``,
+    response: `📊 Gate ${safeGateId}\n\nRun \`endiorbot gate recommend ${safeGateId}\` for full evaluation.\nOr use: \`@pm check gate ${safeGateId} status\``,
   };
 }
 

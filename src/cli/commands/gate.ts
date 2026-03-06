@@ -24,6 +24,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { execSync } from "node:child_process";
 import type { Command } from "commander";
 import { loadActiveProject } from "../../config/paths.js";
 import {
@@ -101,6 +102,26 @@ function formatGateId(gateId: GateId): string {
 }
 
 // ============================================================================
+// Command Runner (CTO C1: returns { success: boolean, output: string })
+// ============================================================================
+
+/**
+ * Create a commandRunner for GateEngine that executes shell commands.
+ * Only used when --run-checks flag is passed to avoid slow gate evaluations.
+ */
+function createCommandRunner(projectPath: string): (cmd: string) => Promise<{ success: boolean; output: string }> {
+  return async (cmd: string) => {
+    try {
+      const output = execSync(cmd, { cwd: projectPath, stdio: "pipe", timeout: 60_000 }).toString("utf-8");
+      return { success: true, output };
+    } catch (err) {
+      const output = err instanceof Error ? err.message : String(err);
+      return { success: false, output };
+    }
+  };
+}
+
+// ============================================================================
 // Command Actions
 // ============================================================================
 
@@ -123,7 +144,7 @@ function isGateAutoReady(checklist: ChecklistItem[]): boolean {
  *   - All gates after current → 🔒 LOCKED
  *   - If --gate flag specified → show detailed evaluation for that gate
  */
-async function gateStatusAction(options: { gate?: string }): Promise<void> {
+async function gateStatusAction(options: { gate?: string; runChecks?: boolean }): Promise<void> {
   const project = getCurrentProject();
 
   if (!project) {
@@ -133,8 +154,15 @@ async function gateStatusAction(options: { gate?: string }): Promise<void> {
 
   const tier = (project.tier as ProjectTier) ?? "STANDARD";
 
-  // Create gate engine for quick evaluation (no commandRunner = fast file checks only)
-  const engine = new GateEngine({ projectRoot: project.path, tier });
+  // Create gate engine — inject commandRunner only with --run-checks flag
+  const engineConfig: { projectRoot: string; tier: ProjectTier; commandRunner?: (cmd: string) => Promise<{ success: boolean; output: string }> } = {
+    projectRoot: project.path,
+    tier,
+  };
+  if (options.runChecks) {
+    engineConfig.commandRunner = createCommandRunner(project.path);
+  }
+  const engine = new GateEngine(engineConfig);
 
   console.log("");
   console.log("┌─────────────────────────────────────────────────────────────┐");
@@ -221,7 +249,7 @@ async function gateStatusAction(options: { gate?: string }): Promise<void> {
  */
 async function gateRecommendAction(
   gateId: string,
-  options: { feature?: string },
+  options: { feature?: string; runChecks?: boolean },
 ): Promise<void> {
   const project = getCurrentProject();
 
@@ -242,8 +270,15 @@ async function gateRecommendAction(
   console.log(`🔍 Evaluating ${gateId} for ${featureId}...`);
   console.log("");
 
-  // Create gate engine and evaluate
-  const engine = new GateEngine({ projectRoot: project.path, tier });
+  // Create gate engine — inject commandRunner with --run-checks
+  const engineConfig: { projectRoot: string; tier: ProjectTier; commandRunner?: (cmd: string) => Promise<{ success: boolean; output: string }> } = {
+    projectRoot: project.path,
+    tier,
+  };
+  if (options.runChecks) {
+    engineConfig.commandRunner = createCommandRunner(project.path);
+  }
+  const engine = new GateEngine(engineConfig);
 
   try {
     const evaluation = await engine.evaluate(
@@ -414,12 +449,14 @@ export function registerGateCommand(program: Command): void {
     .command("status")
     .description("Show gate checklists")
     .option("-g, --gate <gateId>", "Show specific gate (G0, G1, G2, G3, G4)")
+    .option("--run-checks", "Run command checks (build/lint/test) — slower but complete")
     .action(gateStatusAction);
 
   gate
     .command("recommend <gateId>")
     .description("Evaluate a gate and show recommendation (read-only)")
     .option("-f, --feature <featureId>", "Feature ID", "default")
+    .option("--run-checks", "Run command checks (build/lint/test) — slower but complete")
     .action(gateRecommendAction);
 
   gate

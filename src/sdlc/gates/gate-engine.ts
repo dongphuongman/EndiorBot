@@ -24,7 +24,7 @@
 import { createHash } from "crypto";
 import { existsSync, readdirSync, statSync } from "fs";
 import { readFile } from "fs/promises";
-import { resolve } from "path";
+import { basename, resolve } from "path";
 
 import {
   type GateId,
@@ -34,6 +34,7 @@ import {
   getChecklist,
   getPreviousGate,
 } from "./gate-checklist.js";
+import { isGateConfirmed } from "./gate-store.js";
 import {
   StageContractEngine,
   type SDLCStage,
@@ -507,26 +508,38 @@ export class GateEngine {
   }
 
   /**
-   * Check if a previous gate passed.
+   * Check if a previous gate passed by querying the gate confirmation store.
+   * CTO C2: use basename(this.projectRoot) for projectId.
    */
-  private checkGatePassed(_gateId: GateId): {
+  private checkGatePassed(gateId: GateId): {
     status: ChecklistStatus;
     evidence?: Evidence;
   } {
-    // Note: This requires knowing feature/project context
-    // For now, return pending - real implementation would check stored evaluations
+    const projectId = basename(this.projectRoot);
+    const confirmed = isGateConfirmed(projectId, gateId);
+    if (confirmed) {
+      return {
+        status: "pass",
+        evidence: {
+          type: "document",
+          path: `gate-confirmation:${gateId}`,
+          hash: `confirmed:${projectId}`,
+          description: `Gate ${gateId} confirmed for project ${projectId}`,
+          collectedAt: new Date().toISOString(),
+        },
+      };
+    }
     return { status: "pending" };
   }
 
   /**
    * Check test coverage meets threshold.
+   * TODO Sprint N: parse vitest --coverage Istanbul/V8 output (CTO C3 — out of scope Sprint 80)
    */
   private checkCoverage(_threshold: number): {
     status: ChecklistStatus;
     evidence?: Evidence;
   } {
-    // Real implementation would parse coverage report
-    // For now, return pending
     return { status: "pending" };
   }
 

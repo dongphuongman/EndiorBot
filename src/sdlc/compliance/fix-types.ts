@@ -91,7 +91,7 @@ export const STAGE_GATE_MAP: Record<string, string[]> = {
   "01-planning":   ["G0.1", "G1"],
   "02-design":     ["G2"],
   "03-integrate":  ["G2"],         // integration contracts validated at design gate
-  "04-build":      ["G-Sprint", "G-Sprint-Close"],
+  "04-build":      ["G-Sprint"],  // CTO C4: G-Sprint-Close collapsed into G-Sprint
   "05-test":       ["G3"],
   "06-deploy":     ["G4"],
   "07-operate":    ["G4"],         // operations readiness confirmed post-deployment
@@ -441,3 +441,456 @@ export function getAgentForStage(stage: string, tier: ProjectTier): AgentRole {
   }
   return STAGE_AGENT_MAP[stage] ?? "pm";
 }
+
+// ============================================================================
+// Gate-Artifact-Tier Matrix (SDLC Framework 6.1.1 Authority)
+// ============================================================================
+// Sources:
+//   - Tier-Stage-Requirements: .sdlc-framework/02-Core-Methodology/Documentation-Standards/SDLC-Tier-Stage-Requirements.md
+//   - Project Structure: .sdlc-framework/02-Core-Methodology/Documentation-Standards/SDLC-Project-Structure-Standard.md
+//   - Quality Gates: .sdlc-framework/02-Core-Methodology/Governance-Compliance/SDLC-Quality-Security-Gates.md
+//   - Exit Criteria: .sdlc-framework/02-Core-Methodology/SDLC-Stage-Exit-Criteria.md
+
+/**
+ * Specification for a single artifact required by a gate.
+ */
+export interface GateArtifactSpec {
+  /** Relative to docs/{stage}/ */
+  artifactPath: string;
+  /** Required content sections/topics */
+  contentRequirements: string[];
+  /** Minimum line count for gate pass */
+  minLines: number;
+  /** Minimum tier that requires this artifact */
+  minTier: ProjectTier;
+  /** Whether Section 8 YAML frontmatter is required */
+  section8Yaml: boolean;
+  /** Whether BDD (GIVEN/WHEN/THEN) format is required */
+  bddRequired: boolean;
+}
+
+/**
+ * Full gate requirement — artifacts + pass criteria.
+ */
+export interface GateRequirement {
+  gateId: string;
+  gateName: string;
+  stage: string;
+  question: string;
+  passCriteria: string[];
+  manualApproval: string[];
+  artifacts: GateArtifactSpec[];
+}
+
+/**
+ * Coverage thresholds by tier (from Quality-Security-Gates.md).
+ */
+export const TIER_COVERAGE_TARGETS: Record<string, { unit: number; integration: number; e2e: string }> = {
+  LITE:         { unit: 0,  integration: 0,  e2e: "none" },
+  STANDARD:     { unit: 60, integration: 0,  e2e: "none" },
+  PROFESSIONAL: { unit: 80, integration: 70, e2e: "critical paths" },
+  ENTERPRISE:   { unit: 95, integration: 90, e2e: "all critical + edge" },
+};
+
+/**
+ * Gate artifact requirements — maps each gate to required artifacts by tier.
+ * Derived from SDLC Framework 6.1.1 authority documents.
+ */
+export const GATE_ARTIFACT_REQUIREMENTS: GateRequirement[] = [
+  // ── G0: Problem Validation (Stage 00-foundation) ──
+  {
+    gateId: "G0",
+    gateName: "Problem Validation",
+    stage: "00-foundation",
+    question: "WHY are we building this?",
+    passCriteria: [
+      "Problem clearly articulated with evidence",
+      "Business case justified with ROI analysis",
+      "Stakeholders identified and consulted",
+    ],
+    manualApproval: ["CEO approves idea"],
+    artifacts: [
+      {
+        artifactPath: "problem-statement.md",
+        contentRequirements: ["Problem description", "Stakeholders", "Impact analysis", "Success metrics", "Validation evidence"],
+        minLines: 60,
+        minTier: "LITE",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "business-case.md",
+        contentRequirements: ["Business justification", "ROI analysis", "Success metrics", "Risk assessment"],
+        minLines: 80,
+        minTier: "LITE",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "user-research/README.md",
+        contentRequirements: ["User interview summaries (5+ for PRO+)", "Persona references", "Research methodology"],
+        minLines: 60,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "personas.md",
+        contentRequirements: ["Primary user personas (min 2)", "Goals", "Pain points", "Behavioral patterns"],
+        minLines: 40,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+    ],
+  },
+  // ── G0.1: Scope Lock (Stage 01-planning) ──
+  {
+    gateId: "G0.1",
+    gateName: "Scope Lock",
+    stage: "01-planning",
+    question: "WHAT are we building?",
+    passCriteria: [
+      "Scope clearly defined with in/out-of-scope items",
+      "Requirements documented with measurable targets",
+      "Acceptance criteria in BDD GIVEN/WHEN/THEN format",
+    ],
+    manualApproval: ["CEO approves scope"],
+    artifacts: [
+      {
+        artifactPath: "scope.md",
+        contentRequirements: ["In-scope items", "Out-of-scope items", "Assumptions", "Constraints"],
+        minLines: 40,
+        minTier: "LITE",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "requirements.md",
+        contentRequirements: ["Functional requirements (1 per code module)", "Non-functional requirements (measurable targets)", "Acceptance criteria in BDD GIVEN/WHEN/THEN", "Dependency analysis"],
+        minLines: 120,
+        minTier: "LITE",
+        section8Yaml: true,
+        bddRequired: true,
+      },
+      {
+        artifactPath: "user-stories.md",
+        contentRequirements: ["Epic breakdown", "User stories with acceptance criteria", "Story mapping", "MoSCoW prioritization"],
+        minLines: 60,
+        minTier: "STANDARD",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "roadmap.md",
+        contentRequirements: ["Phase plan", "Milestone timeline", "Gate alignment", "Risk register"],
+        minLines: 50,
+        minTier: "STANDARD",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "data-model.md",
+        contentRequirements: ["Entity-relationship model", "Data dictionary", "Storage strategy", "Migration plan"],
+        minLines: 60,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "tech-stack.md",
+        contentRequirements: ["Technology selection rationale", "Framework versions", "Dependency justification"],
+        minLines: 40,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "api-design.md",
+        contentRequirements: ["API specification (OpenAPI/AsyncAPI)", "Endpoint inventory", "Auth strategy"],
+        minLines: 80,
+        minTier: "PROFESSIONAL",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+    ],
+  },
+  // ── G1: Requirements Sign-off (Stage 01-planning) ── (same stage as G0.1, validates completeness)
+  {
+    gateId: "G1",
+    gateName: "Requirements Sign-off",
+    stage: "01-planning",
+    question: "WHAT are we building?",
+    passCriteria: [
+      "All requirements documented and traceable",
+      "Acceptance criteria complete for all features",
+      "Stakeholder sign-off obtained",
+    ],
+    manualApproval: ["Stakeholder sign-off obtained"],
+    artifacts: [], // Same artifacts as G0.1 — G1 validates completeness of existing docs
+  },
+  // ── G2: Design Approval (Stage 02-design) ──
+  {
+    gateId: "G2",
+    gateName: "Design Approval",
+    stage: "02-design",
+    question: "HOW will we build it?",
+    passCriteria: [
+      "Architecture reviewed and approved by architect",
+      "Technology stack justified with rationale",
+      "All code modules covered in module architecture",
+    ],
+    manualApproval: ["Design review passed"],
+    artifacts: [
+      {
+        artifactPath: "01-ADRs/ADR-001-initial-architecture.md",
+        contentRequirements: ["Context", "Decision", "Consequences", "Alternatives considered", "Status"],
+        minLines: 60,
+        minTier: "LITE",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "architecture.md",
+        contentRequirements: ["Architecture overview", "Module structure (ALL modules)", "Tech decisions with rationale", "Data flow", "API contracts", "Quality attributes", "ADR summary"],
+        minLines: 120,
+        minTier: "STANDARD",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "14-Technical-Specs/TS-001-technical-spec.md",
+        contentRequirements: ["Component design", "Interfaces", "Data structures", "Error handling"],
+        minLines: 80,
+        minTier: "STANDARD",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "security-architecture.md",
+        contentRequirements: ["Threat model (STRIDE/PASTA)", "Auth/authz design", "Data encryption strategy", "OWASP ASVS checklist"],
+        minLines: 80,
+        minTier: "PROFESSIONAL",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "15-API-Specs/api-spec.yaml",
+        contentRequirements: ["OpenAPI 3.0 spec with endpoints", "Schemas", "Auth", "Error codes"],
+        minLines: 80,
+        minTier: "PROFESSIONAL",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+    ],
+  },
+  // ── G-Sprint: Sprint Close (Stage 04-build) ──
+  {
+    gateId: "G-Sprint",
+    gateName: "Sprint Close",
+    stage: "04-build",
+    question: "Are we BUILDING it right?",
+    passCriteria: [
+      "Sprint goals met or documented as incomplete",
+      "Sprint documentation updated",
+      "Code complete and tested",
+    ],
+    manualApproval: ["CEO sprint sign-off"],
+    artifacts: [
+      {
+        artifactPath: "sprints/sprint-plan.md",
+        contentRequirements: ["Sprint goals", "Stories/tasks", "Velocity", "Dependencies", "Risks"],
+        minLines: 40,
+        minTier: "LITE",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "sprints/sprint-retro.md",
+        contentRequirements: ["What went well", "What to improve", "Action items"],
+        minLines: 30,
+        minTier: "STANDARD",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "sprints/sprint-metrics.md",
+        contentRequirements: ["Velocity", "Burndown", "Scope changes", "DORA metrics"],
+        minLines: 30,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+    ],
+  },
+  // ── G3: Build Complete (Stage 05-test) ──
+  {
+    gateId: "G3",
+    gateName: "Build Complete",
+    stage: "05-test",
+    question: "Does it WORK correctly?",
+    passCriteria: [
+      "All tests pass (unit + integration + e2e per tier)",
+      "Coverage meets tier threshold",
+      "Code review complete",
+    ],
+    manualApproval: ["Code review complete"],
+    artifacts: [
+      {
+        artifactPath: "test-plan.md",
+        contentRequirements: ["Test strategy", "Coverage targets per tier", "Test types (unit/integration/e2e)", "Test cases per module", "BDD acceptance criteria", "Environment requirements"],
+        minLines: 100,
+        minTier: "STANDARD",
+        section8Yaml: true,
+        bddRequired: true,
+      },
+      {
+        artifactPath: "test-results.md",
+        contentRequirements: ["Test execution summary", "Pass/fail counts", "Coverage report", "Bug tracking"],
+        minLines: 40,
+        minTier: "STANDARD",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "performance-test.md",
+        contentRequirements: ["Performance test plan", "Benchmarks", "API latency targets (<200ms p95)", "Load test results"],
+        minLines: 60,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "security-test.md",
+        contentRequirements: ["SAST scan results", "Dependency scan", "OWASP checklist", "SBOM generation"],
+        minLines: 60,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+    ],
+  },
+  // ── G4: Release Ready (Stage 06-deploy) ──
+  {
+    gateId: "G4",
+    gateName: "Release Ready",
+    stage: "06-deploy",
+    question: "Can we SHIP safely?",
+    passCriteria: [
+      "G3 gate passed",
+      "Deployment artifacts ready",
+      "Rollback procedure documented",
+    ],
+    manualApproval: ["CEO release approval"],
+    artifacts: [
+      {
+        artifactPath: "deploy-guide.md",
+        contentRequirements: ["Deployment steps", "Environment config", "Rollback procedure", "Health checks", "Monitoring setup"],
+        minLines: 80,
+        minTier: "STANDARD",
+        section8Yaml: true,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "rollback-plan.md",
+        contentRequirements: ["Rollback triggers", "Steps", "Verification", "Communication plan"],
+        minLines: 40,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+      {
+        artifactPath: "runbook.md",
+        contentRequirements: ["Operations runbook", "Incident response", "Escalation", "SLA targets"],
+        minLines: 60,
+        minTier: "PROFESSIONAL",
+        section8Yaml: false,
+        bddRequired: false,
+      },
+    ],
+  },
+];
+
+// ============================================================================
+// Gate-Artifact Lookup Helpers
+// ============================================================================
+
+/**
+ * Find the GateRequirement for a given stage.
+ * Returns the first gate that matches the stage (primary gate).
+ */
+export function findGateRequirement(stage: string): GateRequirement | undefined {
+  return GATE_ARTIFACT_REQUIREMENTS.find((g) => g.stage === stage);
+}
+
+/**
+ * Find the GateArtifactSpec for a given stage and artifact path.
+ */
+export function findArtifactSpec(stage: string, artifactType: string): GateArtifactSpec | undefined {
+  for (const gate of GATE_ARTIFACT_REQUIREMENTS) {
+    if (gate.stage === stage) {
+      const spec = gate.artifacts.find((a) => a.artifactPath === artifactType);
+      if (spec) return spec;
+    }
+  }
+  return undefined;
+}
+
+// ============================================================================
+// Header Compliance Templates (SDLC 6.1.1)
+// ============================================================================
+// Authority:
+//   - Document headers: SDLC-Naming-Standards.md Part 5
+//   - Code file headers: SDLC-Compliance-Enforcement-Guide.md §Header Compliance Standards
+//   - Section 8 YAML: SDLC-Specification-Standard.md §2.1
+
+/**
+ * Stage name lookup for header generation.
+ */
+export const STAGE_NAMES: Record<string, string> = {
+  "00-foundation": "FOUNDATION",
+  "01-planning":   "PLANNING",
+  "02-design":     "DESIGN",
+  "03-integrate":  "INTEGRATE",
+  "04-build":      "BUILD",
+  "05-test":       "TEST",
+  "06-deploy":     "DEPLOY",
+  "07-operate":    "OPERATE",
+  "08-collaborate":"COLLABORATE",
+  "09-govern":     "GOVERN",
+  "10-archive":    "ARCHIVE",
+};
+
+/**
+ * Result of checking a file's header compliance.
+ */
+export interface HeaderCheckResult {
+  /** Whether the file has a valid header */
+  hasHeader: boolean;
+  /** Type of header found */
+  headerType: "document" | "code" | "yaml" | "none";
+  /** Fields that are missing from the header */
+  missingFields: string[];
+  /** Whether the header can be auto-fixed */
+  fixable: boolean;
+}
+
+/**
+ * Minimum header fields required per tier for document files.
+ */
+export const DOC_HEADER_REQUIRED_FIELDS: Record<ProjectTier, string[]> = {
+  LITE:         [],                                                    // Recommended only
+  STANDARD:     ["Version", "Date", "Status", "Stage"],
+  PROFESSIONAL: ["Version", "Date", "Status", "Stage", "Authority"],
+  ENTERPRISE:   ["Version", "Date", "Status", "Stage", "Authority"],
+};
+
+/**
+ * Minimum header fields required per tier for code files.
+ */
+export const CODE_HEADER_REQUIRED_FIELDS: Record<ProjectTier, string[]> = {
+  LITE:         [],                                                    // Optional
+  STANDARD:     [],                                                    // Recommended only
+  PROFESSIONAL: ["@module", "@sdlc", "@stage", "@tier"],
+  ENTERPRISE:   ["@module", "@version", "@date", "@sdlc", "@stage", "@tier"],
+};

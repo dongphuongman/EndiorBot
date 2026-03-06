@@ -180,7 +180,7 @@ describe("Fix Types & Constants", () => {
   it("should have correct gate mappings", () => {
     expect(STAGE_GATE_MAP["01-planning"]).toEqual(["G0.1", "G1"]);
     expect(STAGE_GATE_MAP["05-test"]).toEqual(["G3"]);
-    expect(STAGE_GATE_MAP["04-build"]).toEqual(["G-Sprint", "G-Sprint-Close"]);
+    expect(STAGE_GATE_MAP["04-build"]).toEqual(["G-Sprint"]);
   });
 
   it("should have fallback for tester in LITE and STANDARD tiers", () => {

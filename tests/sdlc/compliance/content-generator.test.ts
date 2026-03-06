@@ -325,3 +325,270 @@ describe("Deterministic templates — YAML frontmatter + BDD", () => {
     expect(result.content).toContain("../05-test/");
   });
 });
+
+// ============================================================================
+// Sprint 80 Supplement — Gate-Driven Prompt Tests
+// ============================================================================
+
+/**
+ * Extended CapturingBridge that also captures the user prompt and counts invocations.
+ */
+class ExtendedCapturingBridge implements ContentGeneratorBridge {
+  capturedSystemPrompt = "";
+  capturedUserPrompt = "";
+  invocationCount = 0;
+
+  async invokePatch(
+    request: { systemPrompt: string; userPrompt: string; workspace: string; agent: string },
+  ): Promise<PatchResponse> {
+    this.capturedSystemPrompt = request.systemPrompt;
+    this.capturedUserPrompt = request.userPrompt;
+    this.invocationCount++;
+    return {
+      output: "",
+      exitCode: 0,
+      durationMs: 1,
+      mode: "PATCH",
+      success: true,
+      affectedFiles: [],
+      applied: false,
+      confirmed: false,
+    } as PatchResponse;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    return true;
+  }
+}
+
+describe("buildUserPrompt() — gate-driven instructions", () => {
+  it("requirements.md prompt includes Gate G0.1 context", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("01-planning", "pm");
+    const action = makeAction("01-planning", "requirements.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    expect(bridge.capturedUserPrompt).toContain("G0.1");
+    expect(bridge.capturedUserPrompt).toContain("Scope Lock");
+  });
+
+  it("architecture.md prompt includes Gate G2 context", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    expect(bridge.capturedUserPrompt).toContain("G2");
+    expect(bridge.capturedUserPrompt).toContain("Design Approval");
+  });
+
+  it("test-plan.md prompt includes Gate G3 context", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("05-test", "tester");
+    const action = makeAction("05-test", "test-plan.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    expect(bridge.capturedUserPrompt).toContain("G3");
+    expect(bridge.capturedUserPrompt).toContain("Build Complete");
+  });
+
+  it("gate-driven prompt includes ALL module names from snapshot", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const snapshot = makeSnapshot();
+    snapshot.codeModules = [
+      { name: "api", path: "src/api", fileCount: 5, keyFiles: ["index.ts"] },
+      { name: "auth", path: "src/auth", fileCount: 3, keyFiles: ["auth.ts"] },
+      { name: "security", path: "src/security", fileCount: 8, keyFiles: ["sanitizer.ts"] },
+      { name: "sdlc", path: "src/sdlc", fileCount: 20, keyFiles: ["gates/"] },
+      { name: "cli", path: "src/cli", fileCount: 10, keyFiles: ["index.ts"] },
+      { name: "agents", path: "src/agents", fileCount: 15, keyFiles: ["orchestrator.ts"] },
+    ];
+    const deps: ContentGeneratorDeps = { bridge, snapshot };
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    // All 6 modules should be in the prompt (not truncated to top 5)
+    expect(bridge.capturedUserPrompt).toContain("src/api/");
+    expect(bridge.capturedUserPrompt).toContain("src/auth/");
+    expect(bridge.capturedUserPrompt).toContain("src/security/");
+    expect(bridge.capturedUserPrompt).toContain("src/sdlc/");
+    expect(bridge.capturedUserPrompt).toContain("src/cli/");
+    expect(bridge.capturedUserPrompt).toContain("src/agents/");
+  });
+
+  it("gate-driven prompt includes dependency list", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const snapshot = makeSnapshot();
+    snapshot.techStack.dependencies = ["express", "vitest", "zod", "commander"];
+    const deps: ContentGeneratorDeps = { bridge, snapshot };
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    expect(bridge.capturedUserPrompt).toContain("express");
+    expect(bridge.capturedUserPrompt).toContain("vitest");
+    expect(bridge.capturedUserPrompt).toContain("zod");
+    expect(bridge.capturedUserPrompt).toContain("commander");
+  });
+
+  it("test-plan.md prompt includes coverage targets for tier", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("05-test", "tester");
+    const action = makeAction("05-test", "test-plan.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    // STANDARD tier: unit ≥60%
+    expect(bridge.capturedUserPrompt).toContain("60%");
+  });
+
+  it("non-gate artifact falls back to enriched generic prompt", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("08-collaborate", "pm");
+    const action = makeAction("08-collaborate", "team-communication.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    // Should use generic prompt (no gate-specific content for this artifact)
+    expect(bridge.capturedUserPrompt).toContain("Generate the file:");
+    expect(bridge.capturedUserPrompt).toContain("team-communication.md");
+  });
+});
+
+// ============================================================================
+// Sprint 80 Supplement — Quality Validation Tests
+// ============================================================================
+
+import { validateContentQuality, extractKeyContent } from "../../../src/sdlc/compliance/content-generator.js";
+
+describe("validateContentQuality()", () => {
+  it("fails for missing YAML frontmatter on spec artifact", () => {
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+    const content = "# Architecture\n\nSome content.\n".repeat(20);
+
+    const result = validateContentQuality(content, task, action, makeSnapshot());
+
+    expect(result.passed).toBe(false);
+    expect(result.feedback.some((f) => f.includes("Missing Section 8 YAML frontmatter"))).toBe(true);
+  });
+
+  it("fails for missing BDD on planning requirements", () => {
+    const task = makeTask("01-planning", "pm");
+    const action = makeAction("01-planning", "requirements.md");
+    const content = "---\nspec_id: SPEC-001\n---\n# Requirements\n\nContent.\n".repeat(20);
+
+    const result = validateContentQuality(content, task, action, makeSnapshot());
+
+    expect(result.feedback.some((f) => f.includes("Missing BDD"))).toBe(true);
+  });
+
+  it("fails for content below minLines", () => {
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+    const content = "---\nspec_id: SPEC-001\n---\n# Architecture\n\nShort content.";
+
+    const result = validateContentQuality(content, task, action, makeSnapshot());
+
+    expect(result.passed).toBe(false);
+    expect(result.feedback.some((f) => f.includes("lines — gate requires minimum"))).toBe(true);
+  });
+
+  it("passes for complete content meeting all requirements", () => {
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+    // Build content with YAML, references, module mentions, 120+ lines
+    const lines = [
+      "---", "spec_id: SPEC-02DESIGN-001", "status: draft", "---",
+      "# Architecture", "",
+      "## Overview", "The api module provides REST endpoints.", "",
+      "## Module Structure", "The auth module handles authentication.", "",
+    ];
+    // Pad to 120+ lines
+    for (let i = 0; i < 115; i++) {
+      lines.push(`Line ${i}: Content about the api and auth modules.`);
+    }
+    lines.push("", "## References", "- docs/00-foundation/", "- docs/01-planning/");
+    const content = lines.join("\n");
+
+    const result = validateContentQuality(content, task, action, makeSnapshot());
+
+    expect(result.passed).toBe(true);
+    expect(result.score).toBe(100);
+    expect(result.feedback).toHaveLength(0);
+  });
+
+  it("returns specific feedback messages for each issue", () => {
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+    const content = "# Architecture\nShort.";
+
+    const result = validateContentQuality(content, task, action, makeSnapshot());
+
+    // Should have multiple feedback items
+    expect(result.feedback.length).toBeGreaterThanOrEqual(2);
+    // Score decreases with more issues
+    expect(result.score).toBeLessThan(100);
+  });
+});
+
+// ============================================================================
+// Sprint 80 Supplement — extractKeyContent Tests
+// ============================================================================
+
+describe("extractKeyContent()", () => {
+  it("preserves YAML frontmatter", () => {
+    const content = "---\nspec_id: SPEC-001\ntier: STANDARD\n---\n# Title\n\nContent.";
+    const result = extractKeyContent(content, 2000);
+
+    expect(result).toContain("spec_id: SPEC-001");
+    expect(result).toContain("tier: STANDARD");
+  });
+
+  it("preserves headings and first line after heading", () => {
+    const content = "## Overview\nThe system architecture.\n\nMore details here.\n\n## Modules\nList of modules.";
+    const result = extractKeyContent(content, 2000);
+
+    expect(result).toContain("## Overview");
+    expect(result).toContain("The system architecture.");
+    expect(result).toContain("## Modules");
+    expect(result).toContain("List of modules.");
+  });
+
+  it("respects maxChars limit", () => {
+    const longContent = "## " + "A".repeat(500) + "\n" + "B".repeat(500) + "\n## " + "C".repeat(500);
+    const result = extractKeyContent(longContent, 200);
+
+    expect(result.length).toBeLessThanOrEqual(220); // 200 + "...(truncated)"
+  });
+});
+
+// ============================================================================
+// Sprint 80 Supplement — Refinement Loop Tests
+// ============================================================================
+
+describe("Refinement loop", () => {
+  it("single invocation when first draft does not write file (no quality check)", async () => {
+    const bridge = new ExtendedCapturingBridge();
+    const deps: ContentGeneratorDeps = { bridge, snapshot: makeSnapshot() };
+    const task = makeTask("02-design", "architect");
+    const action = makeAction("02-design", "architecture.md");
+
+    await generateContent(task, action, makeConfig(), new Map(), deps);
+
+    // Bridge returns applied=false, so no quality check is performed
+    // Only 1 invocation
+    expect(bridge.invocationCount).toBe(1);
+  });
+});

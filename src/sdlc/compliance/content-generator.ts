@@ -13,7 +13,7 @@
  * @sprint 75
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentRole } from "../../agents/types/handoff.js";
 import type { PatchResponse } from "../../agents/invoke/claude-code-bridge.js";
@@ -34,6 +34,12 @@ import {
   STAGE_UPSTREAM,
   SECTION8_ARTIFACT_TYPES,
   BDD_REQUIRED_STAGES,
+  findGateRequirement,
+  findArtifactSpec,
+  STAGE_GATE_MAP,
+  TIER_COVERAGE_TARGETS,
+  type GateArtifactSpec,
+  type GateRequirement,
 } from "./fix-types.js";
 
 // ============================================================================
@@ -106,9 +112,12 @@ export async function generateContent(
     return generateDeterministicContent(task, action, deps.snapshot);
   }
 
+  // Step 10: Load existing upstream docs from disk for context
+  loadUpstreamDocs(config.projectPath, task.stage, previousStageOutputs);
+
   // Build prompts
   const systemPrompt = buildSystemPrompt(task, action, deps.snapshot, previousStageOutputs);
-  const userPrompt = buildUserPrompt(action, task);
+  const userPrompt = buildUserPrompt(action, task, deps.snapshot);
 
   // Build confirm callback
   const confirmCallback = config.autoConfirm
@@ -116,62 +125,32 @@ export async function generateContent(
     : undefined; // Let bridge use its default confirmation
 
   try {
-    // Invoke via bridge pipeline: Claude PATCH → PatchValidator → confirm → applyPatch
-    const patchResponse = await deps.bridge.invokePatch(
-      {
-        systemPrompt,
-        userPrompt,
-        workspace: config.projectPath,
-        agent: task.agent,
-      },
-      confirmCallback,
+    // First invocation
+    const firstResult = await invokeBridgeAndValidate(
+      deps.bridge, systemPrompt, userPrompt, config, task, action, deps.snapshot, confirmCallback,
     );
 
-    if (!patchResponse.success) {
-      return {
-        action,
-        success: false,
-        error: patchResponse.error ?? "invokePatch failed",
-        dryRun: false,
-      };
+    if (!firstResult.success || !firstResult.content) {
+      return firstResult;
     }
 
-    if (!patchResponse.applied) {
-      return {
-        action,
-        success: false,
-        error: patchResponse.confirmed
-          ? "Patch confirmed but not applied"
-          : "Patch not confirmed by CEO",
-        dryRun: false,
-      };
+    // Step 8: Quality validation + refinement loop
+    const qualityCheck = validateContentQuality(firstResult.content, task, action, deps.snapshot);
+    if (qualityCheck.passed) {
+      return firstResult;
     }
 
-    // Post-write validation
-    const validationError = validateWrittenFile(
-      join(config.projectPath, action.targetPath),
+    // Quality check failed — build refinement prompt and retry once (max 2 invocations)
+    const refinementPrompt = buildRefinementPrompt(
+      userPrompt, firstResult.content, qualityCheck.feedback,
     );
-    if (validationError) {
-      return {
-        action,
-        success: false,
-        error: validationError,
-        dryRun: false,
-      };
-    }
 
-    // Read written content for audit trail
-    const writtenPath = join(config.projectPath, action.targetPath);
-    const result: FixActionResult = {
-      action,
-      success: true,
-      dryRun: false,
-    };
-    if (existsSync(writtenPath)) {
-      result.content = readFileSync(writtenPath, "utf-8");
-    }
+    const refinedResult = await invokeBridgeAndValidate(
+      deps.bridge, systemPrompt, refinementPrompt, config, task, action, deps.snapshot, confirmCallback,
+    );
 
-    return result;
+    // Return best result (refined if successful, otherwise first)
+    return refinedResult.success ? refinedResult : firstResult;
   } catch (err) {
     return {
       action,
@@ -180,6 +159,104 @@ export async function generateContent(
       dryRun: false,
     };
   }
+}
+
+// ============================================================================
+// Bridge Invocation + Refinement Helpers
+// ============================================================================
+
+async function invokeBridgeAndValidate(
+  bridge: ContentGeneratorBridge,
+  systemPrompt: string,
+  userPrompt: string,
+  config: GeneratorConfig,
+  task: AgentFixTask,
+  action: FixAction,
+  _snapshot: ProjectSnapshot,
+  confirmCallback?: () => Promise<boolean>,
+): Promise<FixActionResult> {
+  const patchResponse = await bridge.invokePatch(
+    {
+      systemPrompt,
+      userPrompt,
+      workspace: config.projectPath,
+      agent: task.agent,
+    },
+    confirmCallback,
+  );
+
+  if (!patchResponse.success) {
+    return {
+      action,
+      success: false,
+      error: patchResponse.error ?? "invokePatch failed",
+      dryRun: false,
+    };
+  }
+
+  if (!patchResponse.applied) {
+    return {
+      action,
+      success: false,
+      error: patchResponse.confirmed
+        ? "Patch confirmed but not applied"
+        : "Patch not confirmed by CEO",
+      dryRun: false,
+    };
+  }
+
+  // Post-write validation
+  const validationError = validateWrittenFile(
+    join(config.projectPath, action.targetPath),
+  );
+  if (validationError) {
+    return {
+      action,
+      success: false,
+      error: validationError,
+      dryRun: false,
+    };
+  }
+
+  // Read written content for audit trail
+  const writtenPath = join(config.projectPath, action.targetPath);
+  const result: FixActionResult = {
+    action,
+    success: true,
+    dryRun: false,
+  };
+  if (existsSync(writtenPath)) {
+    result.content = readFileSync(writtenPath, "utf-8");
+  }
+
+  return result;
+}
+
+function buildRefinementPrompt(
+  originalPrompt: string,
+  previousDraft: string,
+  feedback: string[],
+): string {
+  const draftPreview = previousDraft.slice(0, 3000);
+  const lines: string[] = [];
+
+  lines.push("REFINEMENT: The previous draft did not pass quality validation.");
+  lines.push("");
+  lines.push("Issues found:");
+  for (const item of feedback) {
+    lines.push(`- ${item}`);
+  }
+  lines.push("");
+  lines.push("Previous draft (first 3000 chars):");
+  lines.push("```");
+  lines.push(draftPreview);
+  lines.push("```");
+  lines.push("");
+  lines.push("Please regenerate the file addressing ALL issues above.");
+  lines.push("");
+  lines.push(originalPrompt);
+
+  return lines.join("\n");
 }
 
 // ============================================================================
@@ -216,15 +293,12 @@ function buildSystemPrompt(
   // 3. Project context
   parts.push(`\n${task.promptContext}`);
 
-  // 4. Previous stage outputs (cross-stage consistency)
+  // 4. Previous stage outputs (cross-stage consistency) — smart extraction, 2000 chars
   if (previousStageOutputs.size > 0) {
     parts.push("\n## Previous Stage Outputs (for cross-references)\n");
     for (const [stage, content] of previousStageOutputs) {
-      // Limit each to 500 chars to avoid prompt bloat
-      const truncated = content.length > 500
-        ? content.slice(0, 500) + "\n...(truncated)"
-        : content;
-      parts.push(`### ${stage}\n\`\`\`\n${truncated}\n\`\`\`\n`);
+      const extracted = extractKeyContent(content, 2000);
+      parts.push(`### ${stage}\n\`\`\`\n${extracted}\n\`\`\`\n`);
     }
   }
 
@@ -316,7 +390,94 @@ function buildSystemPrompt(
   return parts.join("\n");
 }
 
-function buildUserPrompt(action: FixAction, _task: AgentFixTask): string {
+function buildUserPrompt(
+  action: FixAction,
+  task: AgentFixTask,
+  snapshot: ProjectSnapshot,
+): string {
+  // Find gate-specific requirements for this artifact
+  const gateReq = findGateRequirement(task.stage);
+  const artifactSpec = gateReq?.artifacts.find((a) => a.artifactPath === action.artifactType);
+
+  if (artifactSpec && gateReq) {
+    return buildGateSpecificPrompt(action, task, snapshot, artifactSpec, gateReq);
+  }
+  // Fallback: enriched generic prompt
+  return buildEnrichedGenericPrompt(action, task, snapshot);
+}
+
+function buildGateSpecificPrompt(
+  action: FixAction,
+  task: AgentFixTask,
+  snapshot: ProjectSnapshot,
+  spec: GateArtifactSpec,
+  gate: GateRequirement,
+): string {
+  const lines: string[] = [];
+
+  lines.push(`Generate: ${action.targetPath}`);
+  lines.push("");
+  lines.push(`This document feeds **${gate.gateId} — ${gate.gateName}**.`);
+  lines.push(`Gate ${gate.gateId} pass criteria:`);
+  for (const criterion of gate.passCriteria) {
+    lines.push(`- ${criterion}`);
+  }
+  lines.push("");
+
+  // Required content sections from gate spec
+  lines.push("Required sections:");
+  for (let i = 0; i < spec.contentRequirements.length; i++) {
+    lines.push(`${i + 1}. ${spec.contentRequirements[i]}`);
+  }
+  lines.push("");
+
+  // ALL code modules (not truncated)
+  if (snapshot.codeModules.length > 0) {
+    lines.push(`Project modules (${snapshot.codeModules.length} total):`);
+    for (const mod of snapshot.codeModules) {
+      const keyStr = mod.keyFiles.length > 0 ? `, key: ${mod.keyFiles.join(", ")}` : "";
+      lines.push(`- ${mod.path}/ (${mod.fileCount} files${keyStr})`);
+    }
+    lines.push("");
+  }
+
+  // Dependencies
+  if (snapshot.techStack.dependencies.length > 0) {
+    lines.push(`Dependencies: ${snapshot.techStack.dependencies.join(", ")}`);
+    lines.push("");
+  }
+
+  // Coverage targets for test-related artifacts
+  if (task.stage === "05-test") {
+    const targets = TIER_COVERAGE_TARGETS[snapshot.tier];
+    if (targets) {
+      lines.push(`Coverage targets (${snapshot.tier} tier): unit ≥${targets.unit}%, integration ≥${targets.integration}%, e2e: ${targets.e2e}`);
+      lines.push("");
+    }
+  }
+
+  // Upstream references
+  const upstream = STAGE_UPSTREAM[task.stage] ?? [];
+  if (upstream.length > 0) {
+    lines.push(`References — link to: ${upstream.map((s) => `docs/${s}/`).join(", ")}`);
+    lines.push("");
+  }
+
+  // YAML + BDD + min lines
+  const constraints: string[] = [];
+  if (spec.section8Yaml) constraints.push("YAML frontmatter required (Section 8)");
+  if (spec.bddRequired) constraints.push("BDD GIVEN/WHEN/THEN format required for acceptance criteria");
+  constraints.push(`Minimum ${spec.minLines} lines`);
+  lines.push(constraints.join(". ") + ".");
+
+  return lines.join("\n");
+}
+
+function buildEnrichedGenericPrompt(
+  action: FixAction,
+  task: AgentFixTask,
+  snapshot: ProjectSnapshot,
+): string {
   const lines: string[] = [];
 
   lines.push(`Generate the file: ${action.targetPath}`);
@@ -325,8 +486,24 @@ function buildUserPrompt(action: FixAction, _task: AgentFixTask): string {
   lines.push(`Artifact: ${action.artifactType}`);
   lines.push(`Description: ${action.description}`);
   lines.push("");
+
+  // Include gate context if available
+  const gates = STAGE_GATE_MAP[task.stage] ?? [];
+  if (gates.length > 0) {
+    lines.push(`Gates: ${gates.join(", ")}`);
+  }
+
+  // Include all modules
+  if (snapshot.codeModules.length > 0) {
+    lines.push("");
+    lines.push(`Project modules (${snapshot.codeModules.length}):`);
+    for (const mod of snapshot.codeModules) {
+      lines.push(`- ${mod.path}/ (${mod.fileCount} files)`);
+    }
+  }
+
+  lines.push("");
   lines.push(`Create this file with real, project-specific content.`);
-  lines.push(`The content should be meaningful and pass compliance validation.`);
   lines.push(`Do NOT use placeholder text, TODO markers, or generic template content.`);
 
   if (action.hierarchyLevel) {
@@ -430,6 +607,156 @@ export function validateWrittenFile(filePath: string): string | null {
   }
 
   return null;
+}
+
+// ============================================================================
+// Content Quality Validation (Step 8)
+// ============================================================================
+
+/**
+ * Result of content quality validation.
+ */
+export interface ContentQualityResult {
+  passed: boolean;
+  score: number;
+  feedback: string[];
+}
+
+/**
+ * Validate generated content against gate-specific requirements.
+ * Returns feedback items that should trigger refinement.
+ */
+export function validateContentQuality(
+  content: string,
+  task: AgentFixTask,
+  action: FixAction,
+  snapshot: ProjectSnapshot,
+): ContentQualityResult {
+  const feedback: string[] = [];
+  const artifactSpec = findArtifactSpec(task.stage, action.artifactType);
+  const lines = content.split("\n").length;
+
+  // 1. Section 8 YAML frontmatter check
+  if (artifactSpec?.section8Yaml && !content.includes("spec_id:")) {
+    feedback.push("Missing Section 8 YAML frontmatter (spec_id:, status:, tier:)");
+  }
+
+  // 2. BDD format check
+  if (artifactSpec?.bddRequired && !/GIVEN\b/i.test(content)) {
+    feedback.push("Missing BDD acceptance criteria (GIVEN/WHEN/THEN format required)");
+  }
+
+  // 3. Cross-stage References check
+  const upstream = STAGE_UPSTREAM[task.stage] ?? [];
+  if (upstream.length > 0 && !content.includes("## References")) {
+    feedback.push(`Missing ## References section linking to upstream: ${upstream.join(", ")}`);
+  }
+
+  // 4. Min lines check
+  const minLines = artifactSpec?.minLines ?? 100;
+  if (lines < minLines) {
+    feedback.push(`Only ${lines} lines — gate requires minimum ${minLines} lines`);
+  }
+
+  // 5. Project specificity check
+  const moduleNames = snapshot.codeModules.slice(0, 5).map((m) => m.name);
+  const mentionedModules = moduleNames.filter((n) => content.includes(n));
+  if (mentionedModules.length < 2 && moduleNames.length >= 2) {
+    feedback.push(`Content too generic — only ${mentionedModules.length} modules mentioned, need ≥2`);
+  }
+
+  // 6. Placeholder check
+  const placeholders = countPlaceholders(content);
+  if (placeholders.length > 0) {
+    feedback.push(`Contains ${placeholders.length} placeholder(s): ${placeholders[0]}`);
+  }
+
+  const score = Math.max(0, 100 - feedback.length * 15);
+  return { passed: feedback.length === 0, score, feedback };
+}
+
+// ============================================================================
+// Smart Cross-Stage Context Extraction (Step 9)
+// ============================================================================
+
+/**
+ * Extract key content from a document, preserving structure.
+ * Keeps YAML frontmatter, headings, and first substantive line after each heading.
+ * Max 2000 chars per document.
+ */
+export function extractKeyContent(content: string, maxChars: number = 2000): string {
+  const lines = content.split("\n");
+  const extracted: string[] = [];
+  let charCount = 0;
+
+  // Preserve YAML frontmatter if present
+  if (lines[0]?.trim() === "---") {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? "";
+      extracted.push(line);
+      charCount += line.length + 1;
+      if (i > 0 && line.trim() === "---") break;
+    }
+  }
+
+  // Extract headings and first substantive line after each
+  let lastWasHeading = false;
+  for (const line of lines) {
+    if (charCount >= maxChars) break;
+    if (line.startsWith("## ") || line.startsWith("### ")) {
+      extracted.push(line);
+      charCount += line.length + 1;
+      lastWasHeading = true;
+    } else if (lastWasHeading && line.trim().length > 0) {
+      extracted.push(line);
+      charCount += line.length + 1;
+      lastWasHeading = false;
+    }
+  }
+
+  const result = extracted.join("\n");
+  return result.length > maxChars ? result.slice(0, maxChars) + "\n...(truncated)" : result;
+}
+
+// ============================================================================
+// Upstream Document Loading (Step 10)
+// ============================================================================
+
+/**
+ * Load existing upstream docs from disk into previousStageOutputs.
+ * Scans docs/{upstreamStage}/ for .md files and extracts key content.
+ */
+export function loadUpstreamDocs(
+  projectPath: string,
+  stage: string,
+  previousStageOutputs: Map<string, string>,
+): void {
+  const upstream = STAGE_UPSTREAM[stage] ?? [];
+  for (const upstreamStage of upstream) {
+    // Skip if already loaded
+    if (previousStageOutputs.has(upstreamStage)) continue;
+
+    const stageDir = join(projectPath, "docs", upstreamStage);
+    if (!existsSync(stageDir)) continue;
+
+    try {
+      const files = readdirSync(stageDir).filter((f) => f.endsWith(".md") && f !== "README.md");
+      const parts: string[] = [];
+      for (const file of files.slice(0, 5)) { // Max 5 files per stage
+        try {
+          const content = readFileSync(join(stageDir, file), "utf-8");
+          parts.push(`### ${file}\n${extractKeyContent(content, 800)}`);
+        } catch {
+          // Skip unreadable files
+        }
+      }
+      if (parts.length > 0) {
+        previousStageOutputs.set(upstreamStage, parts.join("\n\n"));
+      }
+    } catch {
+      // Skip inaccessible directories
+    }
+  }
 }
 
 // ============================================================================
