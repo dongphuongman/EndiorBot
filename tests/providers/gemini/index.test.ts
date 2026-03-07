@@ -111,9 +111,9 @@ describe("GeminiProvider", () => {
     it("should map models to ModelDefinition format", () => {
       const provider = new GeminiProvider();
 
-      const model = provider.models.find((m) => m.id === "gemini-2.0-flash");
+      const model = provider.models.find((m) => m.id === "gemini-2.5-flash");
       expect(model).toBeDefined();
-      expect(model?.name).toBe("Gemini 2.0 Flash");
+      expect(model?.name).toBe("Gemini 2.5 Flash");
       expect(model?.contextWindow).toBe(1000000);
       expect(model?.supportedFeatures).toContain("chat");
     });
@@ -196,7 +196,7 @@ describe("GeminiProvider", () => {
 
       const provider = new GeminiProvider({
         apiKey: "test-key",
-        defaultModel: "gemini-1.5-pro",
+        defaultModel: "gemini-2.5-flash",
       });
       await provider.initialize({ apiKey: "test-key" });
 
@@ -208,7 +208,7 @@ describe("GeminiProvider", () => {
       await provider.chat(request);
 
       expect(mockFetch).toHaveBeenLastCalledWith(
-        expect.stringContaining("gemini-1.5-pro"),
+        expect.stringContaining("gemini-2.5-flash"),
         expect.any(Object)
       );
     });
@@ -526,7 +526,7 @@ describe("GeminiProvider", () => {
       const models = await provider.getModels();
 
       expect(models.length).toBeGreaterThan(0);
-      expect(models).toContain("gemini-2.0-flash");
+      expect(models).toContain("gemini-2.5-flash");
     });
   });
 
@@ -534,17 +534,17 @@ describe("GeminiProvider", () => {
     it("should select appropriate model for task type", () => {
       const provider = new GeminiProvider();
 
-      expect(provider.selectModelForTask("code_generation")).toBe("gemini-2.0-flash");
-      expect(provider.selectModelForTask("architecture")).toBe("gemini-1.5-pro");
+      expect(provider.selectModelForTask("code_generation")).toBe("gemini-2.5-flash");
+      expect(provider.selectModelForTask("architecture")).toBe("gemini-2.5-pro");
       expect(provider.selectModelForTask("fast")).toBe("gemini-2.0-flash-lite");
-      expect(provider.selectModelForTask("reasoning")).toBe("gemini-2.0-flash-thinking");
+      expect(provider.selectModelForTask("reasoning")).toBe("gemini-2.5-pro");
       expect(provider.selectModelForTask("long_context")).toBe("gemini-1.5-pro");
     });
 
     it("should return default model for unknown task", () => {
-      const provider = new GeminiProvider({ defaultModel: "gemini-2.0-flash" });
+      const provider = new GeminiProvider({ defaultModel: "gemini-2.5-flash" });
 
-      expect(provider.selectModelForTask("unknown_task")).toBe("gemini-2.0-flash");
+      expect(provider.selectModelForTask("unknown_task")).toBe("gemini-2.5-flash");
     });
   });
 
@@ -552,11 +552,11 @@ describe("GeminiProvider", () => {
     it("should calculate cost correctly", () => {
       const provider = new GeminiProvider();
 
-      // gemini-2.0-flash: $0.075/1M input, $0.30/1M output
-      const cost = provider.calculateCost("gemini-2.0-flash", 1000, 500);
+      // gemini-2.5-flash: $0.15/1M input, $0.60/1M output
+      const cost = provider.calculateCost("gemini-2.5-flash", 1000, 500);
 
-      // (1000 / 1M) * 0.075 + (500 / 1M) * 0.30
-      const expected = (1000 / 1_000_000) * 0.075 + (500 / 1_000_000) * 0.3;
+      // (1000 / 1M) * 0.15 + (500 / 1M) * 0.60
+      const expected = (1000 / 1_000_000) * 0.15 + (500 / 1_000_000) * 0.60;
       expect(cost).toBeCloseTo(expected, 10);
     });
 
@@ -699,9 +699,9 @@ describe("createGeminiProviderFromEnv", () => {
 
 describe("GEMINI_MODELS", () => {
   it("should have required model definitions", () => {
-    expect(GEMINI_MODELS.find((m) => m.id === "gemini-2.0-flash")).toBeDefined();
+    expect(GEMINI_MODELS.find((m) => m.id === "gemini-2.5-flash")).toBeDefined();
+    expect(GEMINI_MODELS.find((m) => m.id === "gemini-2.5-pro")).toBeDefined();
     expect(GEMINI_MODELS.find((m) => m.id === "gemini-1.5-pro")).toBeDefined();
-    expect(GEMINI_MODELS.find((m) => m.id === "gemini-1.5-flash")).toBeDefined();
   });
 
   it("should have valid context windows", () => {
