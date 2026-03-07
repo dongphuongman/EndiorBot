@@ -29,16 +29,9 @@ interface AnthropicResponse {
   stop_reason?: string;
 }
 
-// Anthropic model definitions (comprehensive list for compatibility)
+// Anthropic model definitions — Sonnet first (default for chat/fallback)
 const ANTHROPIC_MODELS: ModelDefinition[] = [
-  // Claude 4.5 models (latest - Max 200 plan)
-  {
-    id: "claude-opus-4-5-20251101",
-    name: "Claude 4.5 Opus",
-    contextWindow: 200000,
-    maxOutputTokens: 16384,
-    supportedFeatures: ["chat", "vision", "tools", "streaming"],
-  },
+  // Default: Sonnet (best cost/quality balance)
   {
     id: "claude-sonnet-4-5-20250929",
     name: "Claude 4.5 Sonnet",
@@ -53,34 +46,20 @@ const ANTHROPIC_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
-  // Claude 3.5 models (legacy)
+  // Opus: explicit architecture decisions only (CLAUDE.md invariant 4)
+  {
+    id: "claude-opus-4-5-20251101",
+    name: "Claude 4.5 Opus",
+    contextWindow: 200000,
+    maxOutputTokens: 16384,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  // Legacy models
   {
     id: "claude-3-5-sonnet-20241022",
-    name: "Claude 3.5 Sonnet (Oct 2024)",
+    name: "Claude 3.5 Sonnet",
     contextWindow: 200000,
     maxOutputTokens: 8192,
-    supportedFeatures: ["chat", "vision", "tools", "streaming"],
-  },
-  {
-    id: "claude-3-5-sonnet-20240620",
-    name: "Claude 3.5 Sonnet (June 2024)",
-    contextWindow: 200000,
-    maxOutputTokens: 8192,
-    supportedFeatures: ["chat", "vision", "tools", "streaming"],
-  },
-  // Claude 3 models (legacy)
-  {
-    id: "claude-3-opus-20240229",
-    name: "Claude 3 Opus",
-    contextWindow: 200000,
-    maxOutputTokens: 4096,
-    supportedFeatures: ["chat", "vision", "tools", "streaming"],
-  },
-  {
-    id: "claude-3-sonnet-20240229",
-    name: "Claude 3 Sonnet",
-    contextWindow: 200000,
-    maxOutputTokens: 4096,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
   {

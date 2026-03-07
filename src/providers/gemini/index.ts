@@ -176,14 +176,24 @@ const DEFAULT_GEMINI_TIMEOUT_MS = 60000;
  */
 export const GEMINI_MODELS: GeminiModel[] = [
   {
-    id: "gemini-2.0-flash",
-    displayName: "Gemini 2.0 Flash",
+    id: "gemini-2.5-flash",
+    displayName: "Gemini 2.5 Flash",
     contextWindow: 1000000,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 0.075,
-    outputCostPer1M: 0.30,
-    purpose: "Latest fast model with 1M context",
-    features: ["chat", "vision", "tools", "streaming"],
+    maxOutputTokens: 65536,
+    inputCostPer1M: 0.15,
+    outputCostPer1M: 0.60,
+    purpose: "Latest fast model with thinking, 1M context",
+    features: ["chat", "vision", "tools", "streaming", "thinking"],
+  },
+  {
+    id: "gemini-2.5-pro",
+    displayName: "Gemini 2.5 Pro",
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    inputCostPer1M: 1.25,
+    outputCostPer1M: 10.0,
+    purpose: "Most capable model with deep thinking",
+    features: ["chat", "vision", "tools", "streaming", "thinking"],
   },
   {
     id: "gemini-2.0-flash-lite",
@@ -202,38 +212,8 @@ export const GEMINI_MODELS: GeminiModel[] = [
     maxOutputTokens: 8192,
     inputCostPer1M: 1.25,
     outputCostPer1M: 5.0,
-    purpose: "Most capable model with 2M context",
+    purpose: "2M context window for large codebases",
     features: ["chat", "vision", "tools", "streaming"],
-  },
-  {
-    id: "gemini-1.5-flash",
-    displayName: "Gemini 1.5 Flash",
-    contextWindow: 1000000,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 0.075,
-    outputCostPer1M: 0.30,
-    purpose: "Previous fast model",
-    features: ["chat", "vision", "tools", "streaming"],
-  },
-  {
-    id: "gemini-1.5-flash-8b",
-    displayName: "Gemini 1.5 Flash 8B",
-    contextWindow: 1000000,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 0.0375,
-    outputCostPer1M: 0.15,
-    purpose: "Lightweight for simple tasks",
-    features: ["chat", "streaming"],
-  },
-  {
-    id: "gemini-2.0-flash-thinking",
-    displayName: "Gemini 2.0 Flash Thinking",
-    contextWindow: 32768,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 0.0, // Experimental, may be free or change
-    outputCostPer1M: 0.0,
-    purpose: "Reasoning model with thinking process",
-    features: ["chat", "reasoning", "streaming"],
   },
 ];
 
@@ -241,16 +221,16 @@ export const GEMINI_MODELS: GeminiModel[] = [
  * Task type to model mapping.
  */
 export const GEMINI_TASK_ROUTING: Record<string, string> = {
-  code_generation: "gemini-2.0-flash",
-  bug_fix: "gemini-2.0-flash",
-  code_review: "gemini-1.5-pro",
-  architecture: "gemini-1.5-pro",
-  reasoning: "gemini-2.0-flash-thinking",
-  research: "gemini-1.5-pro",
-  analysis: "gemini-1.5-pro",
+  code_generation: "gemini-2.5-flash",
+  bug_fix: "gemini-2.5-flash",
+  code_review: "gemini-2.5-pro",
+  architecture: "gemini-2.5-pro",
+  reasoning: "gemini-2.5-pro",
+  research: "gemini-2.5-pro",
+  analysis: "gemini-2.5-pro",
   fast: "gemini-2.0-flash-lite",
   drafts: "gemini-2.0-flash-lite",
-  general: "gemini-2.0-flash",
+  general: "gemini-2.5-flash",
   long_context: "gemini-1.5-pro",
 };
 

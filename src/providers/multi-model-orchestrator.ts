@@ -590,7 +590,7 @@ export class MultiModelOrchestrator {
           await geminiProvider.initialize(setup.config);
         }
         provider = geminiProvider;
-        defaultModel = "gemini-2.0-flash";
+        defaultModel = "gemini-2.5-flash";
         models = GEMINI_MODELS.map((m) => m.id);
         break;
       }
