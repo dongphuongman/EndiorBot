@@ -35,6 +35,7 @@ import {
   handleWebhookCommand,
   handleEvalCommand,
   handleComplexityGateCallback,
+  handleTeamCostCallback,
   generateHelpMessage,
   type CommandResult,
 } from "./telegram-commands.js";
@@ -673,6 +674,13 @@ export class TelegramChannel implements BidirectionalChannel {
           actorId,
         );
         break;
+      case "team_cost":
+        result = await handleTeamCostCallback(
+          parsed.target, // "extend" or "stop"
+          parsed.data ?? "",
+          actorId,
+        );
+        break;
       default:
         // Unknown callback — ignore
         break;
@@ -684,7 +692,11 @@ export class TelegramChannel implements BidirectionalChannel {
     });
 
     if (result) {
-      await this.sendMessage(result.response);
+      await this.sendMessage(
+        result.response,
+        false,
+        result.reply_markup as Record<string, unknown> | undefined,
+      );
     }
   }
 

@@ -39,6 +39,9 @@ export const DEFAULT_BRIDGE_POLICY: BridgePolicy = {
   shellSessionsPerRepo: 1,
   maxShellSessions: 3,
   shellActorAllowlist: [], // Empty = all linked actors allowed
+  // Sprint 91 — Team Monitoring (ADR-026, CTO A4)
+  teamCostThresholdUsd: 5.0,
+  teamStuckIdleThresholdSec: 180,
 };
 
 const POLICY_FILE_PATH = join(homedir(), ".endiorbot", "bridge-policy.json");

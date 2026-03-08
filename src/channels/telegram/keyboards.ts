@@ -54,6 +54,8 @@ export const CALLBACK_PREFIX = {
   PERMISSION: "perm:",
   // Sprint 90 — Complexity Gate
   COMPLEXITY: "cplx:",
+  // Sprint 91 — Team Cost Threshold
+  TEAM_COST: "tcost:",
 } as const;
 
 // ============================================================================
@@ -330,6 +332,30 @@ export function createComplexityGateKeyboard(
 }
 
 /**
+ * Create team cost threshold keyboard (Sprint 91).
+ *
+ * Shows Continue (+$2) / Stop team when team cost exceeds threshold.
+ */
+export function createTeamCostKeyboard(
+  teamId: string,
+): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "➕ Continue (+$2 limit)",
+          callback_data: `${CALLBACK_PREFIX.TEAM_COST}extend:${teamId}`,
+        },
+        {
+          text: "🛑 Stop team",
+          callback_data: `${CALLBACK_PREFIX.TEAM_COST}stop:${teamId}`,
+        },
+      ],
+    ],
+  };
+}
+
+/**
  * Create workflow status keyboard with actions.
  */
 export function createWorkflowKeyboard(
@@ -370,7 +396,7 @@ export function createWorkflowKeyboard(
  */
 export interface ParsedCallback {
   /** Action type */
-  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "permission" | "complexity_gate" | "unknown";
+  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "permission" | "complexity_gate" | "team_cost" | "unknown";
   /** Target (agent, patchId, workflowId, teamId) */
   target: string;
   /** Additional data (intent, etc.) */
@@ -485,6 +511,21 @@ export function parseCallbackData(callbackData: string): ParsedCallback {
       action: "complexity_gate",
       target, // "team" or "solo"
       data,   // gateId
+    };
+  }
+
+  // Team cost format: tcost:extend:teamId or tcost:stop:teamId
+  if (callbackData.startsWith(CALLBACK_PREFIX.TEAM_COST)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.TEAM_COST.length).split(":");
+    const target = parts[0] ?? ""; // "extend" or "stop"
+    const data = parts[1] ?? "";   // teamId
+    if (!data || !target) {
+      return { action: "unknown", target: callbackData };
+    }
+    return {
+      action: "team_cost",
+      target, // "extend" or "stop"
+      data,   // teamId
     };
   }
 

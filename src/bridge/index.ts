@@ -162,3 +162,14 @@ export { installTeams, TEAM_LEADERS, TEAM_LEADER_ROLES } from "./intelligence/te
 // Sprint 90 — Agent Teams Telegram
 export type { ComplexityAssessment } from "./intelligence/complexity-gate.js";
 export { assessComplexity, COMPLEXITY_KEYWORDS, MIN_TASK_LENGTH } from "./intelligence/complexity-gate.js";
+
+// Sprint 91 — Team Monitoring
+export type { TeamMemberHealth, TeamMemberStatus, TeamStatus } from "./teams/team-monitor.js";
+export {
+  getTeamSessions,
+  checkMemberHealth,
+  estimateSessionCost,
+  getTeamStatus,
+  formatTeamDashboard,
+  ESTIMATED_TOKENS_PER_MINUTE,
+} from "./teams/team-monitor.js";

@@ -177,6 +177,11 @@ export interface BridgePolicy {
   maxShellSessions: number;
   /** Actor IDs allowed to use /sh, /run, /cp commands */
   shellActorAllowlist: string[];
+  // Sprint 91 — Team Monitoring (ADR-026, CTO A4)
+  /** Cost threshold for team sessions in USD (default 5.0) */
+  teamCostThresholdUsd: number;
+  /** Seconds of idle before member classified "stuck" (default 180) */
+  teamStuckIdleThresholdSec: number;
 }
 
 // ============================================================================
@@ -244,7 +249,12 @@ export type BridgeAuditEventType =
   // Sprint 90 — Agent Teams Telegram
   | "team_launch"
   | "complexity_gate_decision"
-  | "team_launch_aborted";
+  | "team_launch_aborted"
+  // Sprint 91 — Team Monitoring + Lifecycle
+  | "team_status_checked"
+  | "team_cost_threshold"
+  | "team_cost_extended"
+  | "team_killed";
 
 export type BridgeAuditActor = "telegram" | "hook" | "system";
 

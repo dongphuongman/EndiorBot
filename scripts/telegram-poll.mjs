@@ -48,6 +48,8 @@ const {
   handleInitCommand,
   handleModeCommand,
   handleWebhookCommand,
+  handleTeamStatusCommand,
+  handleKillTeamCommand,
   generateHelpMessage,
 } = await import(join(root, "dist/channels/telegram/telegram-commands.js"));
 
@@ -410,6 +412,21 @@ channel.onMessage(async (msg) => {
           const actorId = getLinkedActorId(userId);
           if (!actorId) { await channel.send(LINK_MSG); break; }
           const result = await handleKillCommand(args, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        // ── Team Monitoring (Sprint 91 — ADR-026) ──────────────
+        case "/team-status": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = await handleTeamStatusCommand(args, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/kill-team": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = await handleKillTeamCommand(args, actorId);
           await channel.send(result.response);
           break;
         }
