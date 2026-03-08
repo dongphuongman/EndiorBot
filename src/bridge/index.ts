@@ -157,4 +157,8 @@ export {
 
 // Sprint 89 — Agent Teams
 export type { TeamInstallResult } from "./intelligence/team-installer.js";
-export { installTeams, TEAM_LEADERS } from "./intelligence/team-installer.js";
+export { installTeams, TEAM_LEADERS, TEAM_LEADER_ROLES } from "./intelligence/team-installer.js";
+
+// Sprint 90 — Agent Teams Telegram
+export type { ComplexityAssessment } from "./intelligence/complexity-gate.js";
+export { assessComplexity, COMPLEXITY_KEYWORDS, MIN_TASK_LENGTH } from "./intelligence/complexity-gate.js";

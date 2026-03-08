@@ -38,6 +38,12 @@ import {
 import { serializeEnvelopeForInjection, buildFullEnvelope } from "../../bridge/intelligence/envelope-builder.js";
 import { evaluateOutput } from "../../bridge/intelligence/output-evaluator.js";
 import { appendEvaluation, generateEvaluationId } from "../../bridge/intelligence/evaluation-store.js";
+import { assessComplexity } from "../../bridge/intelligence/complexity-gate.js";
+import { TEAM_LEADER_ROLES } from "../../bridge/intelligence/team-installer.js";
+import { isValidTeamId } from "../../agents/types/team.js";
+import { getFeatureFlagWithEnvOverride } from "../../config/feature-flags.js";
+import { createComplexityGateKeyboard } from "./keyboards.js";
+import { randomBytes } from "node:crypto";
 
 /**
  * Sanitize user input for safe echo in Telegram Markdown responses.
@@ -56,6 +62,8 @@ export function sanitizeForEcho(input: string): string {
 export interface CommandResult {
   success: boolean;
   response: string;
+  /** Optional inline keyboard for Telegram (Sprint 90 — complexity gate) */
+  reply_markup?: InlineKeyboardMarkup;
 }
 
 // ============================================================================
@@ -344,6 +352,26 @@ const identityMap = new Map<string, string>();
  */
 const activeSessionMap = new Map<string, string>();
 
+// ============================================================================
+// Sprint 90 — Pending Team Launch (complexity gate)
+// ============================================================================
+
+interface PendingTeamLaunch {
+  agentType: AgentProviderType;
+  projectPath: string;
+  teamId: TeamId;
+  actorId: string;
+  task: string;
+  createdAt: number;
+}
+
+const pendingTeamLaunches = new Map<string, PendingTeamLaunch>();
+const pendingTeamTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const TEAM_GATE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Exported for testing */
+export { pendingTeamLaunches, pendingTeamTimeouts, TEAM_GATE_TIMEOUT_MS };
+
 /**
  * Handle /link command — bind Telegram identity to EndiorBot actorId.
  */
@@ -400,7 +428,7 @@ export async function handleLaunchCommand(
     const roleList = VALID_AGENT_ROLES.join(", ");
     return {
       success: false,
-      response: `Usage: /launch <agent> [path] [--as <role>]
+      response: `Usage: /launch <agent> [path] [--as <role>] [--as-team <teamId>]
 
 Agents:
 ${agentList}
@@ -409,12 +437,15 @@ Short names: claude, cursor, codex, gemini
 Default path: current project directory
 
 SOUL Roles (--as): ${roleList}
-Example: /launch claude ~/project --as pm`,
+Teams (--as-team): dev, planning, design, qa, ops, executive
+Example: /launch claude ~/project --as pm
+Example: /launch claude ~/project --as-team dev "Refactor auth module"`,
     };
   }
 
-  // Parse --as flag (Sprint 84 — SOUL Bridge)
+  // Parse --as and --as-team flags
   let agentRole: AgentRole | undefined;
+  let teamId: TeamId | undefined;
   const filteredArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--as" && i + 1 < args.length) {
@@ -428,8 +459,44 @@ Example: /launch claude ~/project --as pm`,
         };
       }
       i++; // Skip the role value
+    } else if (args[i] === "--as-team" && i + 1 < args.length) {
+      // Sprint 90: Parse --as-team <teamId>
+      const tid = args[i + 1] ?? "";
+      if (isValidTeamId(tid)) {
+        teamId = tid;
+      } else {
+        return {
+          success: false,
+          response: `Unknown team: ${sanitizeForEcho(tid)}\nValid teams: dev, planning, design, qa, ops, executive`,
+        };
+      }
+      i++; // Skip the teamId value
     } else {
       filteredArgs.push(args[i] ?? "");
+    }
+  }
+
+  // Mutual exclusion: --as and --as-team cannot coexist
+  if (agentRole && teamId) {
+    return {
+      success: false,
+      response: "Cannot use --as and --as-team together. Use --as for solo or --as-team for team mode.",
+    };
+  }
+
+  // Sprint 90: Check AGENT_TEAMS flag when --as-team is used
+  if (teamId && !getFeatureFlagWithEnvOverride("AGENT_TEAMS")) {
+    return {
+      success: false,
+      response: "AGENT_TEAMS feature flag is disabled.\nSet ENDIORBOT_FF_AGENT_TEAMS=true to use team mode.",
+    };
+  }
+
+  // Sprint 90: Derive agentRole from team leader (CTO MF-1: no registry in launcher)
+  if (teamId) {
+    const leaderRole = TEAM_LEADER_ROLES[teamId];
+    if (leaderRole) {
+      agentRole = leaderRole;
     }
   }
 
@@ -456,6 +523,61 @@ Example: /launch claude ~/project --as pm`,
     };
   }
 
+  // Collect remaining args as task string (for complexity gate)
+  const taskString = filteredArgs.slice(2).join(" ");
+
+  // Sprint 90: Complexity gate for team mode
+  if (teamId) {
+    const assessment = assessComplexity(taskString);
+    if (assessment.level === "simple") {
+      // Generate gate ID and store pending launch
+      const gateId = randomBytes(8).toString("hex");
+      pendingTeamLaunches.set(gateId, {
+        agentType,
+        projectPath: resolvedPath,
+        teamId,
+        actorId,
+        task: taskString,
+        createdAt: Date.now(),
+      });
+
+      // Set timeout: auto-solo on expiry (CTO MF-2: consume-once)
+      const timer = setTimeout(() => {
+        const pending = pendingTeamLaunches.get(gateId);
+        if (pending) {
+          pendingTeamLaunches.delete(gateId);
+          pendingTeamTimeouts.delete(gateId);
+
+          getBridgeAuditLogger().log({
+            event: "team_launch_aborted",
+            actorId: pending.actorId,
+            actor: "system",
+            details: {
+              teamId: pending.teamId,
+              reason: "timeout",
+              task: pending.task.slice(0, 100),
+            },
+          });
+        }
+      }, TEAM_GATE_TIMEOUT_MS);
+      pendingTeamTimeouts.set(gateId, timer);
+
+      const taskPreview = taskString.length > 0
+        ? `\nTask: "${sanitizeForEcho(taskString)}"`
+        : "";
+
+      return {
+        success: true,
+        response: `⚠️ *Complexity Gate*
+
+This task may be too simple for team mode (est. 3x token cost).
+Reason: ${assessment.reason}${taskPreview}`,
+        reply_markup: createComplexityGateKeyboard(gateId),
+      };
+    }
+    // Complex task → proceed with team launch below
+  }
+
   // Launch via AgentLauncher
   const launcher = getAgentLauncher();
   const launchOptions: Parameters<typeof launcher.launch>[0] = {
@@ -465,6 +587,9 @@ Example: /launch claude ~/project --as pm`,
   };
   if (agentRole) {
     launchOptions.agentRole = agentRole;
+  }
+  if (teamId) {
+    launchOptions.teamId = teamId;
   }
   const result = await launcher.launch(launchOptions);
 
@@ -479,12 +604,96 @@ Example: /launch claude ~/project --as pm`,
   activeSessionMap.set(actorId, session.id);
 
   const roleLabel = session.agentRole ? `\nRole: @${session.agentRole}` : "";
+  const teamLabel = session.teamId ? `\nTeam: ${session.teamId}-team` : "";
 
   return {
     success: true,
     response: `🚀 *Agent Launched*
 
-Agent: ${session.agentType}${roleLabel}
+Agent: ${session.agentType}${roleLabel}${teamLabel}
+Session: \`${session.id}\`
+tmux: \`${session.tmuxTarget}\`
+Path: ${sanitizeForEcho(session.projectPath.slice(0, 50))}
+Mode: ${session.riskMode}
+
+Use /capture to see output, /kill to stop.`,
+  };
+}
+
+/**
+ * Handle complexity gate callback — CEO approves team or switches to solo.
+ * CTO MF-2: Consume-once semantics with timeout cleanup.
+ */
+export async function handleComplexityGateCallback(
+  action: string, // "team" or "solo"
+  gateId: string,
+  actorId: string,
+): Promise<CommandResult> {
+  // Consume-once: retrieve and delete pending entry
+  const pending = pendingTeamLaunches.get(gateId);
+  if (!pending) {
+    return { success: false, response: "Gate expired or already resolved." };
+  }
+  pendingTeamLaunches.delete(gateId);
+  const timer = pendingTeamTimeouts.get(gateId);
+  if (timer) clearTimeout(timer);
+  pendingTeamTimeouts.delete(gateId);
+
+  const audit = getBridgeAuditLogger();
+
+  // Audit: gate decision
+  audit.log({
+    event: "complexity_gate_decision",
+    actorId,
+    actor: "telegram",
+    details: {
+      gateId,
+      teamId: pending.teamId,
+      decision: action,
+      task: pending.task.slice(0, 100),
+    },
+  });
+
+  // Launch with team or solo
+  const launcher = getAgentLauncher();
+  const launchOptions: Parameters<typeof launcher.launch>[0] = {
+    agentType: pending.agentType,
+    projectPath: pending.projectPath,
+    actorId: pending.actorId,
+  };
+
+  if (action === "team") {
+    // Team launch: set both teamId and derived leader role
+    const leaderRole = TEAM_LEADER_ROLES[pending.teamId];
+    if (leaderRole) launchOptions.agentRole = leaderRole;
+    launchOptions.teamId = pending.teamId;
+  } else {
+    // Solo launch: use leader role without team
+    const leaderRole = TEAM_LEADER_ROLES[pending.teamId];
+    if (leaderRole) launchOptions.agentRole = leaderRole;
+  }
+
+  const result = await launcher.launch(launchOptions);
+
+  if (!result.success || !result.session) {
+    return {
+      success: false,
+      response: `Launch failed: ${result.error ?? "unknown error"}`,
+    };
+  }
+
+  const session = result.session;
+  activeSessionMap.set(actorId, session.id);
+
+  const modeLabel = action === "team" ? "team" : "solo";
+  const roleLabel = session.agentRole ? `\nRole: @${session.agentRole}` : "";
+  const teamLabel = session.teamId ? `\nTeam: ${session.teamId}-team` : "";
+
+  return {
+    success: true,
+    response: `🚀 *Agent Launched* (${modeLabel})
+
+Agent: ${session.agentType}${roleLabel}${teamLabel}
 Session: \`${session.id}\`
 tmux: \`${session.tmuxTarget}\`
 Path: ${sanitizeForEcho(session.projectPath.slice(0, 50))}
@@ -512,6 +721,11 @@ export function handleSessionsCommand(): CommandResult {
   for (const s of sessions) {
     lines.push(`• \`${s.id}\``);
     lines.push(`  Agent: ${s.agentType} | Mode: ${s.riskMode}`);
+    if (s.teamId) {
+      lines.push(`  Team: ${s.teamId}-team (leader: @${s.agentRole ?? "unknown"})`);
+    } else if (s.agentRole) {
+      lines.push(`  Role: @${s.agentRole}`);
+    }
     lines.push(`  tmux: \`${s.tmuxTarget}\``);
     lines.push("");
   }
@@ -609,7 +823,7 @@ export async function handleCaptureCommand(
 
     return {
       success: true,
-      response: `📸 *Capture* (\`${session.id}\`)\n\n\`\`\`\n${redacted.content}\n\`\`\``,
+      response: `📸 *Capture* (\`${session.id}\`${session.teamId ? ` — ${session.teamId}-team` : ""})\n\n\`\`\`\n${redacted.content}\n\`\`\``,
     };
   } catch (err) {
     return {

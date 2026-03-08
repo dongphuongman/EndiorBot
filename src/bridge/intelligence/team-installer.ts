@@ -43,6 +43,20 @@ export const TEAM_LEADERS: Partial<Record<AgentRole, TeamId>> = {
   ceo: "executive",
 };
 
+/**
+ * Reverse map: teamId → leader role.
+ * Used by Telegram command handler to derive agentRole from teamId
+ * without runtime registry lookup (CTO MF-1, Sprint 90).
+ */
+export const TEAM_LEADER_ROLES: Partial<Record<TeamId, AgentRole>> = {
+  planning: "pm",
+  design: "architect",
+  dev: "coder",
+  qa: "reviewer",
+  ops: "devops",
+  executive: "ceo",
+};
+
 /** Brief descriptions for teammate entries in generated files */
 const TEAMMATE_DESCRIPTIONS: Record<string, string> = {
   researcher: "Discovery and user research",

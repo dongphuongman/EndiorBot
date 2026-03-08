@@ -34,8 +34,11 @@ import {
   handleModeCommand,
   handleWebhookCommand,
   handleEvalCommand,
+  handleComplexityGateCallback,
   generateHelpMessage,
+  type CommandResult,
 } from "./telegram-commands.js";
+import { parseCallbackData } from "./keyboards.js";
 import { getConversationStore } from "../conversation/store.js";
 
 // ============================================================================
@@ -72,6 +75,17 @@ interface TelegramUpdate {
     date: number;
     text?: string;
   };
+  /** Sprint 90: Inline keyboard callback */
+  callback_query?: {
+    id: string;
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username?: string;
+    };
+    data?: string;
+  };
 }
 
 /**
@@ -81,14 +95,6 @@ export interface ApprovalQueueLike {
   approve(id: string): Promise<boolean>;
   reject(id: string, reason?: string): Promise<boolean>;
   listPending(): Promise<Array<{ id: string; description?: string }>>;
-}
-
-/**
- * Command handler result.
- */
-interface CommandResult {
-  success: boolean;
-  response: string;
 }
 
 // ============================================================================
@@ -319,7 +325,7 @@ export class TelegramChannel implements BidirectionalChannel {
     const params = new URLSearchParams({
       offset: String(this.lastUpdateId + 1),
       timeout: String(LONG_POLLING_TIMEOUT),
-      allowed_updates: JSON.stringify(["message"]),
+      allowed_updates: JSON.stringify(["message", "callback_query"]),
     });
 
     const response = await this.apiCall<TelegramUpdate[]>(
@@ -345,6 +351,12 @@ export class TelegramChannel implements BidirectionalChannel {
    * Handle a single update.
    */
   async handleUpdate(update: TelegramUpdate): Promise<void> {
+    // Sprint 90: Handle callback_query (inline keyboard responses)
+    if (update.callback_query) {
+      await this.handleCallbackQuery(update.callback_query);
+      return;
+    }
+
     const message = update.message;
     if (!message || !message.text) {
       return;
@@ -417,7 +429,11 @@ export class TelegramChannel implements BidirectionalChannel {
 
     const result = await this.handleCommand(rawText);
     if (result) {
-      await this.sendMessage(result.response);
+      await this.sendMessage(
+        result.response,
+        false,
+        result.reply_markup as Record<string, unknown> | undefined,
+      );
     }
   }
 
@@ -637,6 +653,41 @@ export class TelegramChannel implements BidirectionalChannel {
     };
   }
 
+  /**
+   * Handle callback_query from inline keyboard (Sprint 90).
+   */
+  private async handleCallbackQuery(query: NonNullable<TelegramUpdate["callback_query"]>): Promise<void> {
+    const data = query.data;
+    if (!data) return;
+
+    const parsed = parseCallbackData(data);
+    const actorId = this.config?.chatId ?? "telegram";
+
+    let result: CommandResult | null = null;
+
+    switch (parsed.action) {
+      case "complexity_gate":
+        result = await handleComplexityGateCallback(
+          parsed.target, // "team" or "solo"
+          parsed.data ?? "",
+          actorId,
+        );
+        break;
+      default:
+        // Unknown callback — ignore
+        break;
+    }
+
+    // Answer callback query to dismiss loading indicator
+    await this.apiCall("answerCallbackQuery", "POST", {
+      callback_query_id: query.id,
+    });
+
+    if (result) {
+      await this.sendMessage(result.response);
+    }
+  }
+
   // ==========================================================================
   // Telegram API
   // ==========================================================================
@@ -644,7 +695,11 @@ export class TelegramChannel implements BidirectionalChannel {
   /**
    * Send a message to the configured chat.
    */
-  private async sendMessage(text: string, useMarkdown = false): Promise<boolean> {
+  private async sendMessage(
+    text: string,
+    useMarkdown = false,
+    replyMarkup?: Record<string, unknown>,
+  ): Promise<boolean> {
     if (!this.config) {
       return false;
     }
@@ -660,6 +715,10 @@ export class TelegramChannel implements BidirectionalChannel {
 
     if (this.config.disableNotification) {
       body.disable_notification = true;
+    }
+
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
     }
 
     const response = await this.apiCall("sendMessage", "POST", body);

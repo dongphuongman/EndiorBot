@@ -11,6 +11,7 @@
  */
 
 import type { AgentRole } from "./intelligence/envelope.js";
+import type { TeamId } from "../agents/types/team.js";
 
 // ============================================================================
 // Agent Provider Types
@@ -95,6 +96,8 @@ export interface BridgeSession {
   brainContentHash?: string;
   /** SHA256 hash of Context content injected at launch (Sprint 87) */
   contextHash?: string;
+  /** Team ID for team-mode sessions (Sprint 90 — ADR-026) */
+  teamId?: TeamId;
   /** PID of the agent process (if known) */
   providerPid?: number;
   /** Last error message */
@@ -119,6 +122,8 @@ export interface LaunchOptions {
   riskMode?: SessionRiskMode;
   /** Agent role for SOUL injection (Sprint 84 — ADR-025) */
   agentRole?: AgentRole;
+  /** Team ID for team-mode launch (Sprint 90 — ADR-026) */
+  teamId?: TeamId;
 }
 
 // ============================================================================
@@ -235,7 +240,11 @@ export type BridgeAuditEventType =
   // Sprint 87 — Brain L4 + Context Anchoring
   | "brain_context_injected"
   // Sprint 88 — Evaluator + Vibecoding
-  | "evaluation_recorded";
+  | "evaluation_recorded"
+  // Sprint 90 — Agent Teams Telegram
+  | "team_launch"
+  | "complexity_gate_decision"
+  | "team_launch_aborted";
 
 export type BridgeAuditActor = "telegram" | "hook" | "system";
 

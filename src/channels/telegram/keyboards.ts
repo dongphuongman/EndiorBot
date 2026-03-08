@@ -52,6 +52,8 @@ export const CALLBACK_PREFIX = {
   MODE: "mode:",
   // Sprint 85 — Permission Approval
   PERMISSION: "perm:",
+  // Sprint 90 — Complexity Gate
+  COMPLEXITY: "cplx:",
 } as const;
 
 // ============================================================================
@@ -303,6 +305,31 @@ export function createPermissionKeyboard(
 }
 
 /**
+ * Create complexity gate keyboard (Sprint 90).
+ *
+ * Shows team/solo choice when a task is flagged as potentially too simple
+ * for team mode (3x token cost).
+ */
+export function createComplexityGateKeyboard(
+  gateId: string,
+): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "✅ Yes, use team mode",
+          callback_data: `${CALLBACK_PREFIX.COMPLEXITY}team:${gateId}`,
+        },
+        {
+          text: "🔄 Switch to solo",
+          callback_data: `${CALLBACK_PREFIX.COMPLEXITY}solo:${gateId}`,
+        },
+      ],
+    ],
+  };
+}
+
+/**
  * Create workflow status keyboard with actions.
  */
 export function createWorkflowKeyboard(
@@ -343,7 +370,7 @@ export function createWorkflowKeyboard(
  */
 export interface ParsedCallback {
   /** Action type */
-  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "permission" | "unknown";
+  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "permission" | "complexity_gate" | "unknown";
   /** Target (agent, patchId, workflowId, teamId) */
   target: string;
   /** Additional data (intent, etc.) */
@@ -443,6 +470,21 @@ export function parseCallbackData(callbackData: string): ParsedCallback {
       action: "permission",
       target, // "approve" or "deny"
       data,   // permissionId
+    };
+  }
+
+  // Complexity gate format: cplx:team:gateId or cplx:solo:gateId
+  if (callbackData.startsWith(CALLBACK_PREFIX.COMPLEXITY)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.COMPLEXITY.length).split(":");
+    const target = parts[0] ?? ""; // "team" or "solo"
+    const data = parts[1] ?? "";   // gateId
+    if (!data || !target) {
+      return { action: "unknown", target: callbackData };
+    }
+    return {
+      action: "complexity_gate",
+      target, // "team" or "solo"
+      data,   // gateId
     };
   }
 

@@ -23,6 +23,7 @@ import { getSoulLoader, type SoulLoadResult } from "./intelligence/soul-loader.j
 import { isValidAgentRole } from "./intelligence/envelope.js";
 import { buildFullEnvelope, serializeEnvelopeForInjection } from "./intelligence/envelope-builder.js";
 import { TEAM_LEADERS } from "./intelligence/team-installer.js";
+import type { TeamId } from "../agents/types/team.js";
 import { getFeatureFlagWithEnvOverride } from "../config/feature-flags.js";
 import {
   AGENT_COMMANDS,
@@ -110,10 +111,11 @@ export class AgentLauncher {
     let soulResult: SoulLoadResult | undefined;
     let strategyUsed: "native-agent" | "append-system-prompt-file" | "none" = "none";
     let soulTempPath: string | undefined;
+    let resolvedTeamId: string | undefined; // Sprint 90: track team mode for session fields
 
     if (agentRole && isValidAgentRole(agentRole) && agentType === "claude-code") {
-      // Sprint 89: Team Strategy A — check for team file before solo file
-      const teamId = TEAM_LEADERS[agentRole];
+      // Sprint 90: Direct teamId from --as-team, OR Sprint 89: auto-detect from TEAM_LEADERS
+      const teamId = options.teamId ?? TEAM_LEADERS[agentRole];
       const teamFile = teamId ? join(projectPath, ".claude", "agents", `${teamId}-team.md`) : null;
       const useTeamFile = teamFile && existsSync(teamFile) && getFeatureFlagWithEnvOverride("AGENT_TEAMS");
 
@@ -122,6 +124,7 @@ export class AgentLauncher {
       if (useTeamFile && teamId) {
         fullCommand = `cd ${this.escapeShellArg(projectPath)} && ${baseCmd} --agent ${this.escapeShellArg(`${teamId}-team`)}`;
         strategyUsed = "native-agent";
+        resolvedTeamId = teamId;
       } else if (existsSync(agentFile)) {
         fullCommand = `cd ${this.escapeShellArg(projectPath)} && ${baseCmd} --agent ${this.escapeShellArg(agentRole)}`;
         strategyUsed = "native-agent";
@@ -225,6 +228,10 @@ export class AgentLauncher {
       // Sprint 87: Brain + Context hashes
       if (brainContentHash) session.brainContentHash = brainContentHash;
       if (contextHash) session.contextHash = contextHash;
+      // Sprint 90: Team session fields (exactOptionalPropertyTypes)
+      if (resolvedTeamId) {
+        session.teamId = resolvedTeamId as TeamId;
+      }
 
       this.registry.add(session);
 
@@ -248,6 +255,21 @@ export class AgentLauncher {
           envelopeInjected,
         },
       });
+
+      // Sprint 90: Audit team launch event
+      if (resolvedTeamId) {
+        audit.log({
+          event: "team_launch",
+          actorId,
+          actor: "telegram",
+          sessionId,
+          agentType,
+          details: {
+            teamId: resolvedTeamId,
+            leader: session.agentRole,
+          },
+        });
+      }
 
       // Sprint 87: Audit brain+context injection event
       if (envelopeInjected) {
