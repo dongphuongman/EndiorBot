@@ -78,9 +78,13 @@ export function redactBridgeOutput(
     return { blocked: false, content: "", violations: [] };
   }
 
+  // 0. Strip ANSI escape codes (Sprint 83 — Copilot CLI, shell output)
+  // eslint-disable-next-line no-control-regex
+  const ansiStripped = output.replace(/\x1B(?:\[[0-9;]*[A-Za-z]|\].*?(?:\x07|\x1B\\)|\([A-Z])/g, "");
+
   // 1. Line limit by riskMode
   const maxLines = CAPTURE_LINE_LIMITS[riskMode];
-  const lines = output.split("\n");
+  const lines = ansiStripped.split("\n");
   const trimmed = lines.slice(-maxLines).join("\n");
 
   // 2. OutputScrubber base redaction (CTO C1)

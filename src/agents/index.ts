@@ -163,3 +163,19 @@ export {
   DEFAULT_MODEL_CAPABILITIES,
   CONSULTATION_PRIORITY,
 } from "./routing/index.js";
+
+// Channel Router (shared OTT/Web routing)
+export {
+  ChannelRouter,
+  createChannelRouter,
+  VALID_AGENTS,
+  AGENT_SOULS,
+  DEFAULT_ROUTER_CONFIG,
+} from "./channel-router.js";
+export type {
+  AgentName,
+  ChannelRouterConfig,
+  RouteResult,
+  AIResult,
+  RouterStatus,
+} from "./channel-router.js";

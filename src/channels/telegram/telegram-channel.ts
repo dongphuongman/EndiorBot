@@ -33,6 +33,7 @@ import {
   handleInitCommand,
   handleModeCommand,
   handleWebhookCommand,
+  handleEvalCommand,
   generateHelpMessage,
 } from "./telegram-commands.js";
 import { getConversationStore } from "../conversation/store.js";
@@ -486,6 +487,10 @@ export class TelegramChannel implements BidirectionalChannel {
         }
         return { success: true, response: "🗑 Conversation cleared." };
       }
+
+      // Sprint 88: Evaluator command
+      case "/eval":
+        return handleEvalCommand(args, this.config?.chatId ?? "telegram");
 
       default:
         return {

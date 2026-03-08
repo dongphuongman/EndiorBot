@@ -198,11 +198,11 @@ describe("Cross-Provider Functionality", () => {
 
     // Compare costs for 1M tokens
     const openaiCost = openai.calculateCost("gpt-4o", 1000000, 500000);
-    const geminiCost = gemini.calculateCost("gemini-2.0-flash", 1000000, 500000);
+    const geminiCost = gemini.calculateCost("gemini-2.5-flash", 1000000, 500000);
 
-    // Gemini 2.0 Flash should be cheaper than GPT-4o
+    // Gemini 2.5 Flash should be cheaper than GPT-4o
     // GPT-4o: $2.5/1M input + $10/1M output = $2.5 + $5 = $7.5
-    // Gemini 2.0 Flash: $0.075/1M input + $0.30/1M output = $0.075 + $0.15 = $0.225
+    // Gemini 2.5 Flash: $0.15/1M input + $0.60/1M output = $0.15 + $0.30 = $0.45
     expect(geminiCost).toBeLessThan(openaiCost);
   });
 
@@ -250,7 +250,7 @@ describe("Cross-Provider Functionality", () => {
     // Make parallel requests
     const [openaiResponse, geminiResponse] = await Promise.all([
       openai.chat({ ...request, model: "gpt-4o" }),
-      gemini.chat({ ...request, model: "gemini-2.0-flash" }),
+      gemini.chat({ ...request, model: "gemini-2.5-flash" }),
     ]);
 
     expect(openaiResponse.content).toBe("OpenAI response");
@@ -321,7 +321,7 @@ describe("Model Selection", () => {
 
     // Reasoning tasks
     expect(openai.selectModelForTask("reasoning")).toBe("o1");
-    expect(gemini.selectModelForTask("reasoning")).toBe("gemini-2.0-flash-thinking");
+    expect(gemini.selectModelForTask("reasoning")).toBe("gemini-2.5-pro");
     expect(ollama.selectModelForTask("reasoning")).toBe("deepseek-r1:32b-qwen-distill-q4_K_M");
 
     // Fast tasks
@@ -336,7 +336,7 @@ describe("Model Selection", () => {
 
     // Valid models
     expect(openai.getModelSpec("gpt-4o")).toBeDefined();
-    expect(gemini.getModelSpec("gemini-2.0-flash")).toBeDefined();
+    expect(gemini.getModelSpec("gemini-2.5-flash")).toBeDefined();
 
     // Invalid models
     expect(openai.getModelSpec("invalid-model")).toBeUndefined();
@@ -401,7 +401,7 @@ describe("Error Handling Across Providers", () => {
     await expect(openai.chat(request)).rejects.toThrow();
 
     const geminiRequest: ChatRequest = {
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       messages: [{ role: "user", content: "Hi" }],
     };
 
@@ -420,7 +420,7 @@ describe("Feature Parity", () => {
 
     // Check model features include streaming
     const gpt4o = openai.models.find((m) => m.id === "gpt-4o");
-    const flash = gemini.models.find((m) => m.id === "gemini-2.0-flash");
+    const flash = gemini.models.find((m) => m.id === "gemini-2.5-flash");
 
     expect(gpt4o?.supportedFeatures).toContain("streaming");
     expect(flash?.supportedFeatures).toContain("streaming");
@@ -431,7 +431,7 @@ describe("Feature Parity", () => {
     const gemini = new GeminiProvider({ apiKey: "key" });
 
     const gpt4o = openai.models.find((m) => m.id === "gpt-4o");
-    const flash = gemini.models.find((m) => m.id === "gemini-2.0-flash");
+    const flash = gemini.models.find((m) => m.id === "gemini-2.5-flash");
 
     expect(gpt4o?.supportedFeatures).toContain("tools");
     expect(flash?.supportedFeatures).toContain("tools");
@@ -442,7 +442,7 @@ describe("Feature Parity", () => {
     const gemini = new GeminiProvider({ apiKey: "key" });
 
     const gpt4o = openai.models.find((m) => m.id === "gpt-4o");
-    const flash = gemini.models.find((m) => m.id === "gemini-2.0-flash");
+    const flash = gemini.models.find((m) => m.id === "gemini-2.5-flash");
 
     expect(gpt4o?.supportedFeatures).toContain("vision");
     expect(flash?.supportedFeatures).toContain("vision");

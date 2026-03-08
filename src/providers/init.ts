@@ -92,7 +92,7 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   // Priority: Gemini > OpenAI > Anthropic > Ollama (fallback only; uses qwen3:14b when used)
   if (registry.has('gemini')) {
     registry.setDefault('gemini');
-    console.log(`✓ Default provider: gemini (Gemini 2.0 Flash, premium)`);
+    console.log(`✓ Default provider: gemini (Gemini 2.5 Flash, premium)`);
   } else if (registry.has('openai')) {
     registry.setDefault('openai');
     console.log(`✓ Default provider: openai (GPT-4o, premium)`);

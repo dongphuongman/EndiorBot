@@ -35,6 +35,10 @@ export const DEFAULT_BRIDGE_POLICY: BridgePolicy = {
   sendKeysMaxLength: 500,
   captureRedactPatterns: [],
   shellPanesDisabled: true, // Safety invariant — NOT overridable
+  // Sprint 83 — Managed Shell
+  shellSessionsPerRepo: 1,
+  maxShellSessions: 3,
+  shellActorAllowlist: [], // Empty = all linked actors allowed
 };
 
 const POLICY_FILE_PATH = join(homedir(), ".endiorbot", "bridge-policy.json");
@@ -187,6 +191,15 @@ export class BridgePolicyManager {
    */
   isShellPaneAllowed(): boolean {
     return !this.policy.shellPanesDisabled; // always false
+  }
+
+  /**
+   * Check if an actor is allowed to use shell commands (/sh, /run, /cp).
+   * Empty allowlist = all linked actors allowed.
+   */
+  isShellActorAllowed(actorId: string): boolean {
+    if (this.policy.shellActorAllowlist.length === 0) return true;
+    return this.policy.shellActorAllowlist.includes(actorId);
   }
 }
 

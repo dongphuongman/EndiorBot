@@ -132,6 +132,76 @@
 
 ---
 
+## Tier 4 — Bridge & Intelligence (Sprint 82-92)
+
+**Timeline:** Sprint 82-92
+**Prerequisites:** Agent Orchestration (Sprint 55) complete
+**CTO Reviews:** ADR-024 (10/10), ADR-025 (8/10), ADR-026 (9/10→10/10 Final Sign-Off)
+
+### Phase 1: Bridge Foundation (Sprint 82-84) ✅ COMPLETE
+
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 82 | TmuxBridge + SessionRegistry + Telegram `/launch`, `/sessions`, `/kill` | ✅ |
+| 83 | Copilot CLI Bridge + Repo Context + Managed Shell | ✅ |
+| 84 | SOUL Bridge Foundation — persona injection via Strategy A/B | ✅ |
+
+### Phase 2: Bridge Completion (Sprint 85-86)
+
+| Sprint | Scope | Authority |
+|--------|-------|-----------|
+| 85 | Permission Approval via Telegram | ADR-024 §8.4 |
+| 86 | /send Command + Hook Installer | ADR-024 §8.5 |
+
+ADR-024 complete at Sprint 86.
+
+### Phase 3: Intelligence Integration (Sprint 87-88)
+
+| Sprint | Scope | Authority |
+|--------|-------|-----------|
+| 87 | Brain L4 + Context Anchoring in Bridge | ADR-025 |
+| 88 | Evaluator + Vibecoding in Bridge Output Pipeline | ADR-025 |
+
+Intelligence parity at Sprint 88. 3-layer context model complete.
+
+### Phase 4: Agent Teams (Sprint 89-91)
+
+| Sprint | Scope | Authority |
+|--------|-------|-----------|
+| 89 | Team file generation — `install-teams` CLI | ADR-026 |
+| 90 | Telegram `/launch --as-team` + Smart Routing | ADR-026 |
+| 91 | Team monitoring, cost tracking, lifecycle | ADR-026 |
+
+### Phase 5: Infrastructure (Sprint 92)
+
+| Sprint | Scope | Authority |
+|--------|-------|-----------|
+| 92 | Unified App Launcher — single process + PID | ADR-024 |
+
+### ADR List (Bridge & Intelligence)
+
+| ADR | Title | Sprint |
+|-----|-------|--------|
+| ADR-024 | Notification Bridge + Multi-Agent Session Management | 82-86 |
+| ADR-025 | Session Intelligence Envelope + 3-Layer Context Model | 84-88 |
+| ADR-026 | Claude Code Agent Teams | 89-91 |
+
+### Intelligence Injection Map
+
+| System | Layer | Sprint | Method |
+|--------|-------|--------|--------|
+| SOUL Templates | Launch-time | 84 ✅ | `--agent` / `--append-system-prompt-file` |
+| Permission Approval | Turn-time | 85 | Async polling via Telegram |
+| /send + Hooks | Turn-time | 86 | sendKeys task prefix |
+| Brain L4 + Context | Launch+Turn | 87 | Envelope → CLI + sendKeys |
+| Evaluator + Vibecoding | Post-turn | 88 | Capture → pipeline → store |
+| Agent Teams (files) | Launch-time | 89 | Team-aware agent files |
+| Agent Teams (Telegram) | Turn-time | 90 | `/launch --as-team` |
+| Team Monitoring | Post-turn | 91 | Dashboard, cost tracking |
+| Unified Launcher | Infrastructure | 92 | Single process + PID |
+
+---
+
 ## What's NOT in Roadmap
 
 Per Master Plan v2.0, these are explicitly excluded:

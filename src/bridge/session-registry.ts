@@ -16,6 +16,9 @@ import {
   existsSync,
   mkdirSync,
   renameSync,
+  readdirSync,
+  unlinkSync,
+  rmdirSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
@@ -41,6 +44,7 @@ export class SessionRegistry {
   constructor(filePath: string = REGISTRY_PATH) {
     this.filePath = filePath;
     this.ensureDirectory();
+    this.sweepOrphanedSoulFiles();
   }
 
   /**
@@ -186,6 +190,55 @@ export class SessionRegistry {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
+  }
+
+  /**
+   * Sweep orphaned SOUL temp files (Strategy B lifecycle — CTO W-2).
+   *
+   * Scans ~/.endiorbot/sessions/ for session directories that have no
+   * corresponding active session. Removes orphaned soul.md files and
+   * empty session directories.
+   */
+  sweepOrphanedSoulFiles(): number {
+    const sessionsDir = join(homedir(), ".endiorbot", "sessions");
+    if (!existsSync(sessionsDir)) return 0;
+
+    let cleaned = 0;
+    try {
+      const activeSessionIds = new Set(
+        this.getActive().map((s) => s.id),
+      );
+
+      const entries = readdirSync(sessionsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        // Session dir name = session ID
+        if (activeSessionIds.has(entry.name)) continue;
+
+        // Orphaned session dir — clean up soul.md
+        const soulPath = join(sessionsDir, entry.name, "soul.md");
+        if (existsSync(soulPath)) {
+          try {
+            unlinkSync(soulPath);
+            cleaned++;
+          } catch {
+            // Ignore individual file cleanup errors
+          }
+        }
+
+        // Try to remove empty session directory
+        try {
+          rmdirSync(join(sessionsDir, entry.name));
+        } catch {
+          // Directory not empty or other error — skip
+        }
+      }
+    } catch {
+      // Sweep is best-effort — don't crash on errors
+    }
+
+    return cleaned;
   }
 }
 

@@ -476,6 +476,11 @@ export function getChecklist(
 ): GateChecklist {
   const checklist = GATE_CHECKLISTS[gateId];
 
+  if (!checklist) {
+    const validIds = getGatesInOrder().join(", ");
+    throw new Error(`Unknown gate ID: "${gateId}". Valid gates: ${validIds}`);
+  }
+
   // Filter items by tier
   const filteredItems = checklist.items.filter((item) =>
     meetsMinTier(tier, item.minTier),

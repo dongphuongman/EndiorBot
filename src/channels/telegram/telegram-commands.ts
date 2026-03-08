@@ -1,22 +1,43 @@
 /**
  * Telegram Extended Commands
  *
- * Handles 10 new OTT commands for Sprint 76:
- * /gate, /compliance, /fix, /consult, /agents, /teams,
- * /config, /init, /mode, /webhook
+ * Sprint 76: 10 OTT commands (/gate, /compliance, /fix, /consult, /agents, /teams, etc.)
+ * Sprint 82.5: 6 Bridge commands (/link, /launch, /sessions, /switch, /capture, /kill)
  *
  * @module channels/telegram/telegram-commands
- * @version 1.0.0
- * @date 2026-03-04
- * @status ACTIVE - Sprint 76
- * @authority ADR-019 OTT Channel Enhancement
- * @sprint 76
+ * @version 2.0.0
+ * @date 2026-03-07
+ * @status ACTIVE - Sprint 82.5
+ * @authority ADR-019 OTT Channel + ADR-024 Notification Bridge
+ * @sprint 82.5
  */
 
+import { resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
 import type { AgentRole } from "../../agents/types/handoff.js";
 import type { TeamId } from "../../agents/types/team.js";
 import { getTeamRegistry } from "../../agents/orchestrator/team-registry.js";
 import { getAgentIcon } from "./keyboards.js";
+import { VALID_AGENT_TYPES, CAPTURE_LINE_LIMITS, type AgentProviderType } from "../../bridge/types.js";
+import { getAgentLauncher } from "../../bridge/agent-launcher.js";
+import { isValidAgentRole, VALID_AGENT_ROLES } from "../../bridge/intelligence/envelope.js";
+import { getSessionRegistry } from "../../bridge/session-registry.js";
+import { getTmuxBridge } from "../../bridge/tmux/tmux-bridge.js";
+import { redactBridgeOutput } from "../../bridge/security/output-redactor.js";
+import { getBridgeAuditLogger } from "../../bridge/security/bridge-audit.js";
+import type { PermissionRequest } from "../../bridge/types.js";
+import { createPermissionKeyboard } from "./keyboards.js";
+import type { InlineKeyboardMarkup } from "./keyboards.js";
+import {
+  buildTurnContext,
+  loadTurnContextFromActive,
+  incrementTurnCount,
+  getTurnCount,
+  shouldRefreshContext,
+} from "../../bridge/intelligence/turn-context.js";
+import { serializeEnvelopeForInjection, buildFullEnvelope } from "../../bridge/intelligence/envelope-builder.js";
+import { evaluateOutput } from "../../bridge/intelligence/output-evaluator.js";
+import { appendEvaluation, generateEvaluationId } from "../../bridge/intelligence/evaluation-store.js";
 
 /**
  * Sanitize user input for safe echo in Telegram Markdown responses.
@@ -295,9 +316,669 @@ Usage: /webhook [on|off]
   };
 }
 
+// ============================================================================
+// Bridge Commands (Sprint 82.5 — ADR-024)
+// ============================================================================
+
+/**
+ * Agent short name → AgentProviderType mapping.
+ */
+const AGENT_SHORT_NAMES: Record<string, AgentProviderType> = {
+  claude: "claude-code",
+  "claude-code": "claude-code",
+  cursor: "cursor",
+  codex: "codex-cli",
+  "codex-cli": "codex-cli",
+  gemini: "gemini-cli",
+  "gemini-cli": "gemini-cli",
+};
+
+/**
+ * In-memory identity binding: telegramUserId → actorId.
+ * All linked users get "ceo@endiorbot" (single-user system).
+ */
+const identityMap = new Map<string, string>();
+
+/**
+ * In-memory active session per actorId.
+ */
+const activeSessionMap = new Map<string, string>();
+
+/**
+ * Handle /link command — bind Telegram identity to EndiorBot actorId.
+ */
+export function handleLinkCommand(
+  telegramUserId: string,
+  username?: string,
+): CommandResult {
+  const actorId = "ceo@endiorbot";
+  identityMap.set(telegramUserId, actorId);
+
+  const displayName = username ?? "unknown";
+
+  getBridgeAuditLogger().log({
+    event: "identity_link",
+    actorId,
+    actor: "telegram",
+    details: { telegramUserId, username: displayName },
+  });
+
+  return {
+    success: true,
+    response: `✅ Linked as *${actorId}* (Telegram: ${sanitizeForEcho(displayName)})
+
+Available bridge commands:
+  /launch <agent> <path> [--as role] — Launch agent in tmux
+  /sessions — List active sessions
+  /switch <sessionId> — Switch session
+  /capture [lines] — Capture output
+  /kill <sessionId> — Kill session`,
+  };
+}
+
+/**
+ * Get linked actorId for a Telegram user.
+ * Returns null if user has not called /link.
+ */
+export function getLinkedActorId(telegramUserId: string): string | null {
+  return identityMap.get(telegramUserId) ?? null;
+}
+
+/**
+ * Handle /launch command — launch an AI agent in tmux.
+ *
+ * Validates path (MF-2 path traversal protection):
+ * - Must be absolute after resolve()
+ * - Must be under $HOME or /tmp
+ */
+export async function handleLaunchCommand(
+  args: string[],
+  actorId: string,
+): Promise<CommandResult> {
+  if (args.length === 0) {
+    const agentList = VALID_AGENT_TYPES.map((t) => `  • ${t}`).join("\n");
+    const roleList = VALID_AGENT_ROLES.join(", ");
+    return {
+      success: false,
+      response: `Usage: /launch <agent> [path] [--as <role>]
+
+Agents:
+${agentList}
+
+Short names: claude, cursor, codex, gemini
+Default path: current project directory
+
+SOUL Roles (--as): ${roleList}
+Example: /launch claude ~/project --as pm`,
+    };
+  }
+
+  // Parse --as flag (Sprint 84 — SOUL Bridge)
+  let agentRole: AgentRole | undefined;
+  const filteredArgs: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--as" && i + 1 < args.length) {
+      const role = args[i + 1] ?? "";
+      if (isValidAgentRole(role)) {
+        agentRole = role;
+      } else {
+        return {
+          success: false,
+          response: `Unknown role: ${sanitizeForEcho(role)}\nValid roles: ${VALID_AGENT_ROLES.join(", ")}`,
+        };
+      }
+      i++; // Skip the role value
+    } else {
+      filteredArgs.push(args[i] ?? "");
+    }
+  }
+
+  // Resolve agent type
+  const agentInput = (filteredArgs[0] ?? "").toLowerCase();
+  const agentType = AGENT_SHORT_NAMES[agentInput];
+  if (!agentType) {
+    return {
+      success: false,
+      response: `Unknown agent: ${sanitizeForEcho(agentInput)}\nValid: ${VALID_AGENT_TYPES.join(", ")}`,
+    };
+  }
+
+  // Resolve and validate path (MF-2: path traversal protection)
+  const rawPath = filteredArgs[1] ?? process.cwd();
+  const resolvedPath = resolve(rawPath);
+  const homeDir = homedir();
+  const tmpDir = tmpdir();
+
+  if (!resolvedPath.startsWith(homeDir) && !resolvedPath.startsWith(tmpDir) && !resolvedPath.startsWith("/tmp")) {
+    return {
+      success: false,
+      response: `Path must be under ${homeDir} or /tmp.\nGiven: ${sanitizeForEcho(resolvedPath.slice(0, 50))}`,
+    };
+  }
+
+  // Launch via AgentLauncher
+  const launcher = getAgentLauncher();
+  const launchOptions: Parameters<typeof launcher.launch>[0] = {
+    agentType,
+    projectPath: resolvedPath,
+    actorId,
+  };
+  if (agentRole) {
+    launchOptions.agentRole = agentRole;
+  }
+  const result = await launcher.launch(launchOptions);
+
+  if (!result.success || !result.session) {
+    return {
+      success: false,
+      response: `Launch failed: ${result.error ?? "unknown error"}`,
+    };
+  }
+
+  const session = result.session;
+  activeSessionMap.set(actorId, session.id);
+
+  const roleLabel = session.agentRole ? `\nRole: @${session.agentRole}` : "";
+
+  return {
+    success: true,
+    response: `🚀 *Agent Launched*
+
+Agent: ${session.agentType}${roleLabel}
+Session: \`${session.id}\`
+tmux: \`${session.tmuxTarget}\`
+Path: ${sanitizeForEcho(session.projectPath.slice(0, 50))}
+Mode: ${session.riskMode}
+
+Use /capture to see output, /kill to stop.`,
+  };
+}
+
+/**
+ * Handle /sessions command — list active bridge sessions.
+ */
+export function handleSessionsCommand(): CommandResult {
+  const registry = getSessionRegistry();
+  const sessions = registry.getActive();
+
+  if (sessions.length === 0) {
+    return {
+      success: true,
+      response: "📋 *Sessions*\n\nNo active sessions.\nUse /launch to start one.",
+    };
+  }
+
+  const lines: string[] = ["📋 *Active Sessions*", ""];
+  for (const s of sessions) {
+    lines.push(`• \`${s.id}\``);
+    lines.push(`  Agent: ${s.agentType} | Mode: ${s.riskMode}`);
+    lines.push(`  tmux: \`${s.tmuxTarget}\``);
+    lines.push("");
+  }
+
+  return { success: true, response: lines.join("\n") };
+}
+
+/**
+ * Handle /switch command — switch active session context.
+ */
+export function handleSwitchCommand(
+  args: string[],
+  actorId: string,
+): CommandResult {
+  if (args.length === 0) {
+    const current = activeSessionMap.get(actorId);
+    if (!current) {
+      return {
+        success: true,
+        response: "No active session.\n\nUsage: /switch <sessionId>",
+      };
+    }
+    return {
+      success: true,
+      response: `Current session: \`${current}\`\n\nUsage: /switch <sessionId>`,
+    };
+  }
+
+  const switchTarget = args[0] ?? "";
+  const registry = getSessionRegistry();
+  const session = registry.get(switchTarget);
+
+  if (!session) {
+    return {
+      success: false,
+      response: `Session not found: \`${sanitizeForEcho(switchTarget.slice(0, 40))}\``,
+    };
+  }
+
+  activeSessionMap.set(actorId, switchTarget);
+  return {
+    success: true,
+    response: `Switched to session \`${session.id}\` (${session.agentType})`,
+  };
+}
+
+/**
+ * Handle /capture command — capture output from active session's tmux pane.
+ */
+export async function handleCaptureCommand(
+  args: string[],
+  actorId: string,
+  _telegramUserId: string,
+): Promise<CommandResult> {
+  const sessionId = activeSessionMap.get(actorId);
+  if (!sessionId) {
+    return {
+      success: false,
+      response: "No active session. Use /launch first or /switch to select one.",
+    };
+  }
+
+  const registry = getSessionRegistry();
+  const session = registry.get(sessionId);
+  if (!session || session.status !== "active") {
+    activeSessionMap.delete(actorId);
+    return {
+      success: false,
+      response: "No active session. Previous session may have ended.",
+    };
+  }
+
+  const lineCount = args[0] ? parseInt(args[0], 10) : undefined;
+  const tmux = getTmuxBridge();
+
+  try {
+    const raw = await tmux.capturePane(session.tmuxTarget, lineCount);
+    const redacted = redactBridgeOutput(raw, session.riskMode);
+
+    if (redacted.blocked) {
+      return {
+        success: false,
+        response: `Capture blocked: ${redacted.reason ?? "sensitive content detected"}`,
+      };
+    }
+
+    getBridgeAuditLogger().log({
+      event: "capture",
+      actorId,
+      actor: "telegram",
+      sessionId: session.id,
+      agentType: session.agentType,
+      details: { lines: lineCount, violations: redacted.violations },
+    });
+
+    return {
+      success: true,
+      response: `📸 *Capture* (\`${session.id}\`)\n\n\`\`\`\n${redacted.content}\n\`\`\``,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      response: `Capture failed: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
+  }
+}
+
+/**
+ * Handle /kill command — kill a bridge session.
+ */
+export async function handleKillCommand(
+  args: string[],
+  actorId: string,
+): Promise<CommandResult> {
+  if (args.length === 0) {
+    return {
+      success: false,
+      response: "Usage: /kill <sessionId>\n\nUse /sessions to list active sessions.",
+    };
+  }
+
+  const killTarget = args[0] ?? "";
+  const launcher = getAgentLauncher();
+  const result = await launcher.kill(killTarget, actorId);
+
+  if (!result.success) {
+    return {
+      success: false,
+      response: `Kill failed: ${result.error ?? "Session not found"}`,
+    };
+  }
+
+  // Clear from active session if it was the current one
+  if (activeSessionMap.get(actorId) === killTarget) {
+    activeSessionMap.delete(actorId);
+  }
+
+  return {
+    success: true,
+    response: `💀 Session \`${sanitizeForEcho(killTarget.slice(0, 40))}\` killed.`,
+  };
+}
+
+// ============================================================================
+// /send Command (Sprint 86 — ADR-024 §8.5)
+// ============================================================================
+
+/** CTO A2: Maximum payload length for sendKeys */
+const SEND_MAX_CHARS = 4096;
+
+/**
+ * Handle /send command — send task instruction to a running agent session.
+ *
+ * Usage: /send <sessionId> <message>
+ *
+ * Prepends turn-time context prefix (sprint, blockers, task) to the message
+ * before sending via tmux sendKeys. Only allowed for PATCH/INTERACTIVE sessions.
+ *
+ * CTO A2: Payload (context + message) capped at 4096 chars.
+ * CTO W3: sendKeys uses tmux load-buffer + paste-buffer, so shell metacharacters
+ * in the message are NOT interpreted — no sanitization needed here.
+ */
+export async function handleSendCommand(
+  args: string[],
+  actorId: string,
+): Promise<CommandResult> {
+  const sessionId = args[0];
+  if (!sessionId) {
+    return {
+      success: false,
+      response: `Usage: /send <sessionId> <message>
+
+Example: /send bridge_123_abc fix the auth bug
+
+Use /sessions to list active sessions.`,
+    };
+  }
+
+  const messageParts = args.slice(1);
+  if (messageParts.length === 0) {
+    return {
+      success: false,
+      response: "Missing message. Usage: /send <sessionId> <message>",
+    };
+  }
+
+  const message = messageParts.join(" ");
+
+  // Look up session
+  const registry = getSessionRegistry();
+  const session = registry.get(sessionId);
+
+  if (!session || session.status !== "active") {
+    return {
+      success: false,
+      response: `Session not found or inactive: \`${sanitizeForEcho(sessionId.slice(0, 40))}\`\n\nUse /sessions to list active sessions.`,
+    };
+  }
+
+  // RiskMode enforcement: /send only allowed in PATCH/INTERACTIVE
+  if (session.riskMode === "read") {
+    return {
+      success: false,
+      response: `Cannot /send to READ mode session.\n\nUse /mode patch to change mode, or /launch with --risk patch.`,
+    };
+  }
+
+  // Sprint 87: Increment turn counter for this session
+  const turnCount = incrementTurnCount(session.id);
+
+  // Sprint 88: Pre-send auto-evaluation — evaluate previous turn before sending next
+  let evalSummary = "";
+  if (turnCount > 1) {
+    try {
+      const summary = await runEvaluation(
+        session.id,
+        session.tmuxTarget,
+        session.riskMode,
+        turnCount - 1,
+        actorId,
+        session.agentType,
+      );
+      if (summary) evalSummary = summary;
+    } catch {
+      // Evaluation failure is non-fatal — proceed with send
+    }
+  }
+
+  // Build turn-time context prefix
+  const contextData = loadTurnContextFromActive();
+  let contextPrefix = buildTurnContext(contextData);
+
+  // Sprint 87 (CTO MF-2): On refresh turns (every 10th), prepend richer
+  // context from envelope builder. Refresh logic lives here (orchestrator),
+  // not in turn-context.ts (which stays standalone).
+  if (shouldRefreshContext(session.id)) {
+    try {
+      const dummyPersona = { agentRole: "assistant" as const, soulContent: "", soulContentHash: "" };
+      const envelope = buildFullEnvelope(dummyPersona);
+      const serialized = serializeEnvelopeForInjection(envelope);
+      if (serialized) {
+        contextPrefix = serialized + "\n" + contextPrefix;
+      }
+    } catch {
+      // Refresh failure is non-fatal — use basic context
+    }
+  }
+
+  // Compose full payload
+  const payload = contextPrefix ? contextPrefix + message : message;
+
+  // CTO A2: sendKeys MAX 4096 chars
+  if (payload.length > SEND_MAX_CHARS) {
+    return {
+      success: false,
+      response: `Message too long (${payload.length} chars). Maximum is ${SEND_MAX_CHARS} chars (including context prefix of ${contextPrefix.length} chars).`,
+    };
+  }
+
+  // Send to tmux
+  const tmux = getTmuxBridge();
+  await tmux.sendKeys(session.tmuxTarget, payload);
+  await tmux.sendEnter(session.tmuxTarget);
+
+  // Audit log
+  getBridgeAuditLogger().log({
+    event: "send_command",
+    actorId,
+    actor: "telegram",
+    sessionId: session.id,
+    agentType: session.agentType,
+    details: {
+      messageLength: message.length,
+      contextPrefixLength: contextPrefix.length,
+      fullPayloadLength: payload.length,
+      turnCount,
+    },
+  });
+
+  const contextInfo = contextPrefix ? " (with context)" : "";
+  const evalInfo = evalSummary ? `\n\n📊 *Turn ${turnCount - 1} eval:*\n${evalSummary}` : "";
+  return {
+    success: true,
+    response: `📤 *Sent${contextInfo}*\n\nSession: \`${session.id}\`\nLength: ${payload.length} chars${evalInfo}`,
+  };
+}
+
+// ============================================================================
+// Evaluator (Sprint 88 — ADR-025 Post-turn)
+// ============================================================================
+
+/**
+ * Run evaluation on a session's tmux output.
+ * Captures output, evaluates, stores, and logs audit event.
+ * Returns formatted summary or null on failure.
+ */
+async function runEvaluation(
+  sessionId: string,
+  tmuxTarget: string,
+  riskMode: string,
+  turnNumber: number,
+  actorId: string,
+  agentType?: string,
+): Promise<string | null> {
+  const captureLines = CAPTURE_LINE_LIMITS[riskMode as keyof typeof CAPTURE_LINE_LIMITS] ?? 50;
+  const tmux = getTmuxBridge();
+  const raw = await tmux.capturePane(tmuxTarget, captureLines);
+
+  const evalResult = evaluateOutput(raw, turnNumber);
+  if (!evalResult) return null;
+
+  const record = {
+    id: generateEvaluationId(),
+    ts: new Date().toISOString(),
+    turnNumber,
+    score: evalResult.score,
+    signals: evalResult.signals,
+    summary: evalResult.summary,
+    captureHash: evalResult.captureHash,
+    captureLines: raw.split("\n").length,
+  };
+
+  appendEvaluation(sessionId, record);
+
+  const auditEntry: { event: "evaluation_recorded"; actorId: string; actor: "telegram"; sessionId: string; agentType?: string; details: Record<string, unknown> } = {
+    event: "evaluation_recorded",
+    actorId,
+    actor: "telegram",
+    sessionId,
+    details: {
+      turnNumber,
+      score: evalResult.score,
+      captureLines: record.captureLines,
+    },
+  };
+  if (agentType) auditEntry.agentType = agentType;
+  getBridgeAuditLogger().log(auditEntry);
+
+  const badge = evalResult.score >= 60 ? "✅ PASS" : "⚠️ WARN";
+  return `${badge} Score: ${evalResult.score}/100\n${evalResult.summary}`;
+}
+
+/**
+ * Handle /eval command — evaluate output from an agent session.
+ *
+ * Usage: /eval <sessionId>
+ *
+ * Captures tmux output, runs 5-signal vibecoding analysis,
+ * stores evaluation, and returns formatted score card.
+ *
+ * @authority ADR-025 Sprint 88
+ */
+export async function handleEvalCommand(
+  args: string[],
+  actorId: string,
+): Promise<CommandResult> {
+  const sessionId = args[0];
+  if (!sessionId) {
+    return {
+      success: false,
+      response: `Usage: /eval <sessionId>\n\nEvaluate agent output quality (5-signal vibecoding index).\nUse /sessions to list active sessions.`,
+    };
+  }
+
+  const registry = getSessionRegistry();
+  const session = registry.get(sessionId);
+
+  if (!session || session.status !== "active") {
+    return {
+      success: false,
+      response: `Session not found or inactive: \`${sanitizeForEcho(sessionId.slice(0, 40))}\`\n\nUse /sessions to list active sessions.`,
+    };
+  }
+
+  try {
+    const turnNumber = getTurnCount(session.id) || 1;
+    const summary = await runEvaluation(
+      session.id,
+      session.tmuxTarget,
+      session.riskMode,
+      turnNumber,
+      actorId,
+      session.agentType,
+    );
+
+    if (!summary) {
+      return {
+        success: false,
+        response: `No evaluatable output captured from session \`${session.id}\`.\n\nThe agent may not have produced enough output yet.`,
+      };
+    }
+
+    return {
+      success: true,
+      response: `📊 *Evaluation* — \`${session.id}\`\n\n${summary}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      response: `Evaluation failed: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
+  }
+}
+
+// ============================================================================
+// Permission Approval (Sprint 85 — ADR-024 §8.4)
+// ============================================================================
+
+/**
+ * Format a permission request as a Telegram message with inline keyboard.
+ *
+ * Returns the message text and InlineKeyboardMarkup for the bot to send.
+ */
+export function formatPermissionMessage(
+  request: PermissionRequest,
+): { text: string; keyboard: InlineKeyboardMarkup } {
+  const fileInfo = request.filePath
+    ? `\nFile: \`${sanitizeForEcho(request.filePath.slice(0, 60))}\``
+    : "";
+
+  const text = `🔐 *Permission Request*
+
+Session: \`${request.sessionId}\`
+Tool: *${sanitizeForEcho(request.toolName)}*${fileInfo}
+Mode: ${request.riskMode}
+Expires: 5 minutes
+
+Approve or deny this operation:`;
+
+  return {
+    text,
+    keyboard: createPermissionKeyboard(request.id),
+  };
+}
+
+/**
+ * Format a permission decision confirmation message.
+ */
+export function formatPermissionDecisionMessage(
+  permissionId: string,
+  decision: string,
+  toolName: string,
+): string {
+  const icon = decision === "approve" ? "✅" : decision === "deny" ? "❌" : "⏰";
+  const label = decision === "approve" ? "Approved" : decision === "deny" ? "Denied" : "Timed out";
+  return `${icon} Permission *${label}*\n\nTool: ${sanitizeForEcho(toolName)}\nID: \`${permissionId}\``;
+}
+
+/**
+ * Format a permission timeout notification.
+ */
+export function formatPermissionTimeoutMessage(
+  request: PermissionRequest,
+): string {
+  return `⏰ Permission *timed out* (auto-denied)
+
+Tool: ${sanitizeForEcho(request.toolName)}
+Session: \`${request.sessionId}\``;
+}
+
+// ============================================================================
+// Help Message
+// ============================================================================
+
 /**
  * Generate the full dynamic help message.
- * Lists all 14 commands grouped by category + agent/team format.
+ * Lists all commands grouped by category + agent/team format.
  */
 export function generateHelpMessage(): string {
   return `🤖 *EndiorBot Commands*
@@ -317,6 +998,27 @@ export function generateHelpMessage(): string {
   /consult <query> — Multi-model consultation
   /agents — List all agents
   /teams — List tier teams
+
+*Bridge (ADR-024):*
+  /link — Link Telegram to EndiorBot identity
+  /launch <agent> <path> [--as role] — Launch agent in tmux
+  /sessions — List active sessions
+  /switch <sessionId> — Switch active session
+  /capture [lines] — Capture session output
+  /send <sessionId> <message> — Send task to agent
+  /eval <sessionId> — Evaluate agent output quality
+  /kill <sessionId> — Kill a session
+
+*Remote Shell (ADR-024 D4):*
+  /repos — List/add/remove repos
+  /focus <name> — Set repo for this chat
+  /where — Show current focus
+  /cp suggest <task> — Copilot CLI suggest
+  /cp explain <cmd> — Copilot CLI explain
+  /cp status — Copilot CLI status
+  /sh <cmd> — Read-only shell (allowlist)
+  /attach [lines] — Capture shell output
+  /run <cmd> — Run command (approval required)
 
 *System:*
   /config — Project config

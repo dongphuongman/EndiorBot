@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 6.0
-**Date:** 2026-03-06 (Updated after Sprint 80 completion)
+**Version:** 7.0
+**Date:** 2026-03-07 (Updated after Sprint 82.5 + Sprint 83 completion)
 **Framework:** SDLC v6.1.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v2.2 SDLC Content Quality + Gate Fixes (ADR-023)
+**Milestone:** v2.4 Notification Bridge — Remote Shell + Copilot CLI (ADR-024 D4/D5)
 
 ---
 
@@ -16,20 +16,20 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ```
         ┌─────────────────┐
-        │  Manual (177)   │  ← User acceptance, exploratory
+        │  Manual (236+)  │  ← User acceptance, exploratory
         ├─────────────────┤
         │    E2E (74)     │  ← End-to-end workflows
         ├─────────────────┤
         │ Integration(197)│  ← Component integration ✅ Sprint 68-72
         ├─────────────────┤
-        │  Unit (5100+)   │  ← Function-level tests
+        │  Unit (5500+)   │  ← Function-level tests
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 80): 2026-03-06**
-- **Total Tests:** 5,155 (5,145 passing | 0 failing | 10 skipped)
+**Current Status (Post-Sprint 83): 2026-03-07**
+- **Total Tests:** 5,539 (5,538 passing | 0 failing | 10 skipped)
 - **Pass Rate:** 99.8%
-- **New Tests (Sprint 68-80):** 984 tests added
+- **New Tests (Sprint 68-83):** 1,368 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
   - Sprint 72 (Autonomous Agent): 184 tests (+ 44 golden scenarios type tests)
@@ -41,6 +41,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
   - Sprint 78 (Local Ollama Router + Conversation Persistence): 70 unit tests
   - Sprint 79 (Smart Init): 31 unit + 35 manual tests
   - Sprint 80 (SDLC Content Quality): 27 unit + 34 manual tests
+  - Sprint 82 (Notification Bridge Core): 73 tests
+  - Sprint 82.5 (Bridge Telegram Wiring): 27 tests
+  - Sprint 83 (Remote Shell + Copilot CLI): 156 tests (+ CTO MF fixes)
 - **Tech Debt:** 1 flaky test (checkpoint.test.ts:462 — pre-existing since Sprint 35-40)
 
 ---
@@ -378,7 +381,79 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-### 1.17 Previously Known Failures (RESOLVED)
+### 1.17 Notification Bridge Core (73 tests) - Sprint 82
+
+**Location:** `tests/bridge/`
+**Authority:** ADR-024 Notification Bridge
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| tmux-bridge.test.ts | 16 | PASS | TmuxBridge create/sendKeys/capture/kill |
+| session-registry.test.ts | 23 | PASS | Session CRUD, persistence, version+checksum |
+| agent-launcher.test.ts | 12 | PASS | Agent launch with path validation |
+| security/bridge-audit.test.ts | 33 | PASS | Audit logger, rotation, JSONL format |
+| security/bridge-policy.test.ts | 25 | PASS | Policy CRUD, rate limits, actor allowlists |
+| security/input-sanitizer.test.ts | 72 | PASS | Input sanitization, injection prevention |
+| security/output-redactor.test.ts | 21 | PASS | Output redaction, ANSI stripping |
+
+**Validated Features:**
+- TmuxBridge: execFile-only tmux operations (no shell injection)
+- SessionRegistry: file-backed with atomic writes, version+checksum
+- AgentLauncher: 5 agent types, policy enforcement, path traversal guard
+- 4-layer security: input sanitizer, output redactor, bridge audit, bridge policy
+
+---
+
+### 1.18 Bridge Telegram Wiring (27 tests) - Sprint 82.5
+
+**Location:** `tests/channels/telegram/bridge-commands.test.ts`
+**Authority:** ADR-024 D3, Sprint 82.5
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| bridge-commands.test.ts | 27 | PASS | /link, /launch, /sessions, /switch, /capture, /kill handlers |
+
+**Validated Features:**
+- Identity binding: /link with actorId generation
+- Agent launch: /launch with type validation + policy check
+- Session management: /sessions, /switch with identity guard
+- Capture output: /capture with redaction + line limits
+- Kill session: /kill with audit trail
+
+---
+
+### 1.19 Remote Shell + Copilot CLI (156 tests) - Sprint 83
+
+**Location:** `tests/bridge/repo/`, `tests/bridge/copilot/`, `tests/bridge/shell/`, `tests/channels/telegram/remote-commands.test.ts`
+**Authority:** ADR-024 D4/D5, Sprint 83
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| repo/repo-registry.test.ts | 17 | PASS | Repo CRUD, path validation (CA4), atomic writes (MF-3) |
+| repo/chat-focus.test.ts | 10 | PASS | Focus get/set/clear, multi-chat, atomic writes (MF-3) |
+| copilot/copilot-bridge.test.ts | 17 | PASS | Runtime detect, suggest, explain, ANSI strip, status |
+| shell/shell-allowlist.test.ts | 68 | PASS | 25 allowed + 32 blocked + 11 metacharacter (MF-1) |
+| shell/shell-session-manager.test.ts | 13 | PASS | UUID marker, timeout, capture, queue, redaction (MF-2) |
+| telegram/remote-commands.test.ts | 30 | PASS | 9 handlers + executeApprovedRun (MF-5) |
+
+**Validated Features:**
+- Repo Context: /repos add/remove/list, /focus, /where with no-focus messaging (CA6)
+- Copilot CLI: detect() with priority (copilot-cli > gh-copilot > none), suggest/explain with ANSI strip
+- Shell Allowlist (CRITICAL SECURITY):
+  - Metacharacter guard: `$()`, backticks, `;`, `&&`, `||`, `>`, `<` all blocked (MF-1)
+  - Pipe segment validation: all segments checked against allowlist (W-4)
+  - Read-only positive allowlist: git read, ls, cat, head, tail, wc, file, find (no -exec), rg, grep
+  - Blocked: sudo, rm, mv, cp, curl, wget, python -c, bash, git push/commit/reset
+  - Path protection: /etc/, ~/.ssh/, ~/.aws/, ~/.kube/
+- Shell Session Manager: UUID marker protocol, poll-based capture, redactBridgeOutput (MF-2)
+- /run Approval Gate: commandDigest binding, full command display (CTO W-3), buildCleanEnv (CA5)
+- executeApprovedRun: execFile only (CTO C3/A7), audit trail, redaction, envAllowlist passthrough
+- Atomic writes: write-to-tmp + renameSync in both registries (MF-3)
+- /approve wired to executeApprovedRun in telegram-poll.mjs (MF-4)
+
+---
+
+### 1.20 Previously Known Failures (RESOLVED)
 
 | File | Was Failing | Fix Applied | Sprint Fixed |
 |------|-------------|-------------|--------------|
@@ -453,7 +528,24 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | **Manual mt-79-smart-init.mjs** | **35** | ~30s | **35/35 PASS** (6 phases, open-pencil live) |
 | **Total** | **66** | <1s | **Full Smart Init pipeline** |
 
-### 4.2 Sprint 80 Test Summary (SDLC Content Quality + Gate Fixes)
+### 4.2 Sprint 82-83 Test Summary (Notification Bridge + Remote Shell)
+
+| Module | Tests | Time | Coverage |
+|--------|-------|------|----------|
+| bridge/tmux-bridge.test.ts | 16 | <10ms | TmuxBridge operations |
+| bridge/session-registry.test.ts | 23 | <15ms | Session persistence |
+| bridge/agent-launcher.test.ts | 12 | <10ms | Agent launch |
+| bridge/security/ (4 suites) | 151 | <50ms | Audit, policy, input, output |
+| bridge-commands.test.ts | 27 | <10ms | 6 Telegram bridge handlers |
+| repo/repo-registry.test.ts | 17 | <20ms | Repo CRUD + atomic writes |
+| repo/chat-focus.test.ts | 10 | <15ms | Focus tracking + atomic writes |
+| copilot/copilot-bridge.test.ts | 17 | <5ms | Runtime detect, suggest, explain |
+| shell/shell-allowlist.test.ts | 68 | <5ms | 25 allowed + 32 blocked + 11 metacharacter |
+| shell/shell-session-manager.test.ts | 13 | ~33s | UUID marker, timeout (30s), queue |
+| remote-commands.test.ts | 30 | <10ms | 9 handlers + executeApprovedRun |
+| **Total** | **384** | **~34s** | **Full bridge + remote shell pipeline** |
+
+### 4.3 Sprint 80 Test Summary (SDLC Content Quality + Gate Fixes)
 
 | Module | Tests | Time | Coverage |
 |--------|-------|------|----------|
@@ -540,7 +632,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Zalo Commands Live (Sprint 77) | 10 | 0 | 10 (requires live Zalo API) |
 | Smart Init — open-pencil (Sprint 79) | 35 | 35 | 0 |
 | Content Quality — open-pencil (Sprint 80) | 34 | 34 | 0 |
-| **TOTAL** | **194** | **168** | **26** |
+| Bridge Telegram (Sprint 82) | 42 | 42 | 0 |
+| Remote Shell + Copilot CLI (Sprint 83) | 42 | 0 | 42 |
+| **TOTAL** | **278** | **210** | **68** |
 
 ### 5.1 Team Agent Routing Manual Tests (Sprint 74)
 
@@ -654,6 +748,24 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 > These scores reflect Phase 1 (Sprint 80 Steps 1-5) generated docs. Phase 2 gate-driven prompts + refinement loop will improve quality on next `compliance fix` re-run.
 
 **Executed:** 2026-03-06 | **Script:** `tests/manual/mt-80-content-quality.mjs` | **Result:** 34/34 PASS
+
+### 5.7 Remote Shell + Copilot CLI Manual Tests (Sprint 83)
+
+**Authority:** ADR-024 D4/D5 Managed Shell Sessions
+
+| Phase | Tests | Description |
+|-------|-------|-------------|
+| Phase 1: Repo Context (8) | MT-83-01..08 | /repos add/list/remove, /focus, /where, no-focus message, path validation |
+| Phase 2: Shell Allowlist Security (10) | MT-83-09..18 | Allowed commands, metacharacter bypass (MF-1), pipe validation, path blocks |
+| Phase 3: /sh Read-Only Shell (6) | MT-83-19..24 | git status, ls, grep, blocked cmd redirect to /run, redacted output |
+| Phase 4: /attach Capture (3) | MT-83-25..27 | Capture output, no-session error, line count param |
+| Phase 5: /run Approval Gate (8) | MT-83-28..35 | Approval request, full command display (W-3), /approve exec, /reject, audit |
+| Phase 6: Copilot CLI (4) | MT-83-36..39 | /cp status, /cp suggest (no-focus), detect() runtime, ANSI stripping |
+| Phase 7: Security Invariants (3) | MT-83-40..42 | buildCleanEnv, actor identity guard, audit trail completeness |
+| **Total** | **42** | **All Sprint 83 acceptance criteria** |
+
+**Status:** PENDING — requires `pnpm build` + manual execution
+**Script:** `tests/manual/mt-83-remote-shell.mjs`
 
 ---
 
@@ -830,24 +942,30 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 9. ~~Sprint 78: Local Ollama Router + ConversationStore 70 tests~~ DONE
 10. ~~Sprint 79: Smart Init 31 unit + 35 manual tests (35/35 PASS)~~ DONE
 11. ~~Sprint 80: SDLC Content Quality 27 unit + 34 manual tests (34/34 PASS)~~ DONE
+12. ~~Sprint 82: Notification Bridge Core 73 unit tests~~ DONE
+13. ~~Sprint 82.5: Bridge Telegram Wiring 27 unit tests~~ DONE
+14. ~~Sprint 82: Manual Tests 42/42 PASS~~ DONE
+15. ~~Sprint 83: Remote Shell + Copilot CLI 156 unit tests + CTO MF fixes~~ DONE
+16. ~~Sprint 83: Manual Tests 42/42 PASS~~ PENDING
 
-### Short-term (Sprint 81+)
+### Short-term (Sprint 84+)
 
-1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
-2. OTT PATCH mode end-to-end integration test (file modification flow)
-3. Team cross-delegation integration tests (team→team handoff via OTT)
-4. Property-based testing for state machine
+1. Sprint 84: Permission Approval via Telegram (async polling) tests
+2. Sprint 85: Hook Installer + Bridge Doctor tests
+3. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
+4. OTT PATCH mode end-to-end integration test (file modification flow)
 5. Investigate BUG-012 (checkpoint.test.ts flaky)
-6. Smart Init: language detection for monorepos (TypeScript in subdirectory)
-7. Run `compliance fix` on open-pencil with AI bridge to validate quality improvement
+6. Bridge live E2E: `/sh git status` on running server with real tmux
+7. Bridge live E2E: `/run npm test` approval flow end-to-end
 
-### Long-term (Sprint 81+)
+### Long-term (Sprint 86+)
 
-1. Mutation testing for critical paths
+1. Mutation testing for critical paths (bridge security modules)
 2. CI/CD pipeline integration
 3. Load testing with large codebases
 4. External user acceptance testing
 5. Webhook stress testing (rate limit + concurrent connections)
+6. Bridge stress testing: concurrent shell sessions + queue overflow
 
 ---
 
@@ -856,6 +974,18 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 ```bash
 # Run all tests
 pnpm test
+
+# Run Sprint 83 Remote Shell + Copilot CLI
+pnpm vitest run tests/bridge/repo/ tests/bridge/copilot/ tests/bridge/shell/ tests/channels/telegram/remote-commands.test.ts
+
+# Run Sprint 83 Manual Tests (42 tests)
+node tests/manual/mt-83-remote-shell.mjs
+
+# Run Sprint 82 Bridge Core
+pnpm vitest run tests/bridge/
+
+# Run Sprint 82 Manual Tests (42 tests)
+node tests/manual/mt-82-bridge-telegram.mjs
 
 # Run Sprint 80 SDLC Content Quality
 pnpm vitest run tests/sdlc/compliance/content-generator.test.ts tests/sdlc/gates/gate-engine.test.ts
@@ -871,10 +1001,6 @@ node tests/manual/mt-79-smart-init.mjs
 
 # Run Sprint 77 Zalo Channel
 pnpm vitest run tests/channels/zalo/
-
-# Run Sprint 77 Zalo Manual Tests (requires live Zalo API)
-node tests/manual/mt-76-zalo-bot.mjs
-node tests/manual/mt-77-zalo-commands.mjs
 
 # Run Sprint 78 Local Router + Conversation
 pnpm vitest run tests/agents/routing/local-router.test.ts tests/channels/conversation/
@@ -927,7 +1053,11 @@ pnpm test --coverage
 | 78 | 70 | 5,086 | 99.8% |
 | 79 | 31 | 5,117 | 99.8% |
 | 80 | 27 | 5,155 | 99.8% |
+| 82 | 73 | 5,228 | 99.8% |
+| 82.5 | 27 | 5,255 | 99.8% |
+| 83 | 156 | 5,411 | 99.8% |
+| 83-MF | +128 (fixes) | 5,539 | 99.8% |
 
 ---
 
-*Master Test Plan v6.0 | SDLC Framework v6.1.1 | Sprint 80*
+*Master Test Plan v7.0 | SDLC Framework v6.1.1 | Sprint 83*

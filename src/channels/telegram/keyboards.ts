@@ -50,6 +50,8 @@ export const CALLBACK_PREFIX = {
   AGENT_SELECT: "agent:",
   TEAM_SELECT: "team:",
   MODE: "mode:",
+  // Sprint 85 — Permission Approval
+  PERMISSION: "perm:",
 } as const;
 
 // ============================================================================
@@ -277,6 +279,30 @@ export function createYesNoKeyboard(
 }
 
 /**
+ * Create permission approval keyboard (Sprint 85).
+ *
+ * Shows Approve / Deny inline buttons for a hook permission request.
+ */
+export function createPermissionKeyboard(
+  permissionId: string,
+): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "✅ Approve",
+          callback_data: `${CALLBACK_PREFIX.PERMISSION}approve:${permissionId}`,
+        },
+        {
+          text: "❌ Deny",
+          callback_data: `${CALLBACK_PREFIX.PERMISSION}deny:${permissionId}`,
+        },
+      ],
+    ],
+  };
+}
+
+/**
  * Create workflow status keyboard with actions.
  */
 export function createWorkflowKeyboard(
@@ -317,7 +343,7 @@ export function createWorkflowKeyboard(
  */
 export interface ParsedCallback {
   /** Action type */
-  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "unknown";
+  action: "handoff" | "confirm" | "reject" | "cancel" | "status" | "agent_select" | "team_select" | "mode" | "permission" | "unknown";
   /** Target (agent, patchId, workflowId, teamId) */
   target: string;
   /** Additional data (intent, etc.) */
@@ -402,6 +428,22 @@ export function parseCallbackData(callbackData: string): ParsedCallback {
       result.data = parts[1];
     }
     return result;
+  }
+
+  // Permission format: perm:approve:permId or perm:deny:permId
+  if (callbackData.startsWith(CALLBACK_PREFIX.PERMISSION)) {
+    const parts = callbackData.slice(CALLBACK_PREFIX.PERMISSION.length).split(":");
+    const target = parts[0] ?? "";
+    const data = parts[1] ?? "";
+    // MF-5: Validate non-empty permissionId — reject malformed callbacks
+    if (!data || !target) {
+      return { action: "unknown", target: callbackData };
+    }
+    return {
+      action: "permission",
+      target, // "approve" or "deny"
+      data,   // permissionId
+    };
   }
 
   // Status format: status:id

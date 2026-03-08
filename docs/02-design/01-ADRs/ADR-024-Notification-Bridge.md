@@ -1,14 +1,14 @@
 ---
 spec_id: ADR-024
 title: "Notification Bridge + Multi-Agent Session Management"
-spec_version: "1.0.0"
+spec_version: "1.1.0"
 status: accepted
 tier: STANDARD
 stage: "02-design"
 category: technical
 owner: "@architect"
 created: 2026-03-06
-last_updated: 2026-03-06
+last_updated: 2026-03-07
 related_adrs: ["ADR-019", "ADR-020", "ADR-021"]
 ---
 
@@ -85,6 +85,34 @@ CEO uses 4 AI agents in parallel: **Claude Code, Cursor CLI, Codex CLI, Gemini C
 - Unlinked users receive: `"Use /link to connect your EndiorBot identity first."`
 
 **Rationale**: Same pattern as SDLC Orchestrator identity binding. Single source of truth for "who issued this command."
+
+### D4. Managed Shell Sessions (Date: 2026-03-07, Sprint 83)
+
+**Context**: Sprint 83 introduces `/sh` (read-only shell) and `/run` (approval-gated execution) via Telegram. This appears to contradict D1's `shellPanesDisabled = true` invariant.
+
+**Decision**:
+- `shellPanesDisabled` blocks sendKeys of shell commands through **agent panes** (tmux paste-buffer to Claude/Cursor/Codex/Gemini prompts). This invariant is UNCHANGED.
+- ShellSessionManager is a **separate execution path** in `endiorbot-shell` tmux session (not `endiorbot` agent session). It has its own security stack:
+  - `/sh`: read-only allowlist only (positive list, no blocklist bypass risk)
+  - `/run`: always approval-gated (`commandDigest` binding, no replay)
+  - All: `actorId` allowlist, `ExecRunner` (`execFile` only), audit trail
+- These are architecturally different: agent pane protection != managed shell access.
+- ShellSessionManager does NOT use `sendKeys` paste-buffer for command execution in `/run`. `/run` uses `ExecRunner.exec()` (`execFile`) directly. Only `/sh` uses tmux sendKeys (with allowlist enforcement).
+
+**Rationale**: CEO needs remote shell access via Telegram for operational tasks. The read-only allowlist + approval gate + actor identity provides sufficient security without weakening the agent pane protection invariant.
+
+### D5. Copilot CLI as ToolBridge (Date: 2026-03-07, Sprint 83)
+
+**Context**: GitHub Copilot CLI provides `suggest` and `explain` capabilities. CEO wants access from Telegram. Copilot CLI is a one-shot tool, NOT a persistent agent — it does not belong in the `AgentProviderType` registry.
+
+**Decision**:
+- `CopilotBridge` is a **ToolBridge** (one-shot `execFile`) — separate from `AgentLauncher` (persistent tmux sessions).
+- Runtime detection: prefer `copilot` binary (`github/copilot-cli`), fallback to `gh copilot` only if present and not deprecated.
+- Capability probe via `--help` before first use — no hardcoded flags.
+- Output: ANSI-stripped, redacted via `redactBridgeOutput()`, capped at 3500 chars for Telegram.
+- 15s execution timeout.
+
+**Rationale**: Mixing one-shot tools into the persistent session registry creates confusion (ADR-024/ADR-010 separation). ToolBridge pattern is explicit about lifecycle: invoke → capture output → done.
 
 ---
 
@@ -187,6 +215,41 @@ CEO uses 4 AI agents in parallel: **Claude Code, Cursor CLI, Codex CLI, Gemini C
 - `screen` has fewer features and less active development
 - CEO already uses tmux for development workflow
 
+### A7. ExecRunner Contract (CTO C3, Sprint 83)
+
+**Decision**: All subprocess execution in bridge modules uses an `ExecRunner` interface backed by `execFile()`.
+
+```typescript
+interface ExecRunner {
+  exec(binary: string, args: string[], opts: ExecOpts): Promise<ExecResult>;
+}
+```
+
+- Implementation MUST use `execFile()` from `node:child_process`
+- **NEVER** `exec()`, `spawn({shell: true})`, or `child_process.exec()`
+- Matches TmuxBridge pattern from Sprint 82
+- `ExecRunner` definition lives in `src/bridge/types.ts` (single definition)
+- DI: test suites mock `ExecRunner`, no real subprocess in unit tests
+
+**Rationale**: `execFile` does not invoke a shell interpreter, preventing shell injection. The DI interface enables fast unit tests with deterministic behavior.
+
+### A8. Per-Invocation UUID Marker Protocol (CTO W-1, Sprint 83)
+
+**Decision**: Shell output capture uses a per-invocation UUID marker instead of static strings or time-based sleep.
+
+```
+1. marker = __ENDIORBOT_${uuid.slice(0,8)}__
+2. sendKeys(`${cmd}; echo "${marker}:$?"`)
+3. Poll capturePane every 500ms (max 30s)
+4. When output contains ${marker}:<exitCode>:
+   - Extract output between command echo and marker
+   - Parse exit code
+   - Redact via redactBridgeOutput()
+5. On timeout: return partial capture with timedOut: true
+```
+
+**Rationale**: Static markers (e.g., `__ENDIORBOT_DONE__`) can collide with grep output, test logs, or other commands that echo that string. UUID-based markers have negligible collision probability.
+
 ---
 
 ## Architecture
@@ -255,12 +318,19 @@ Layer 2: EndiorBot governance (ActionControlPlane, existing)
 - **C3 (CTO)**: Regression gate: 5155+ tests per sprint merge, no new `any`
 - **CA3 (CPO)**: Permission timeout default 3min (not 5min), configurable via env
 - **CC2 (CTO)**: Hook config format verified against current Claude Code version before Sprint 83
+- **C4 (CTO, Sprint 83)**: ExecRunner uses `execFile()` only — never `exec()` or `spawn({shell: true})`
+- **CA4 (CPO, Sprint 83)**: `/repos add` validates: directory exists + has `.git` + no path traversal
+- **CA5 (CPO, Sprint 83)**: `envAllowlist` defaults empty — `buildCleanEnv()` = PATH + HOME + LANG + allowlist only
+- **CA6 (CPO, Sprint 83)**: No-focus graceful message — never crash on missing `/focus`
 - `shellPanesDisabled` is not overridable — safety invariant
 
 ### Risks
 - sendKeys is still an execution surface even with constraints → mitigated by riskMode + positive allowlist + shell pane block
 - Capture redaction regex may miss new credential patterns → mitigated by deny-by-default for high-sensitivity patterns
 - tmux dependency → `isAvailable()` check with clear install instructions
+- Copilot CLI may be deprecated or change flags → mitigated by capability probe + `detect()` fallback chain
+- `/sh` allowlist bypass (e.g., `find -exec`) → mitigated by explicit pattern matching + edge case tests
+- `/run` command substitution after approval → mitigated by `commandDigest` binding (sha256 + actorId + chatId)
 
 ---
 
@@ -269,11 +339,14 @@ Layer 2: EndiorBot governance (ActionControlPlane, existing)
 | Sprint | Scope | Priority |
 |--------|-------|----------|
 | 82 | TmuxBridge + Security + Agent Launcher (no free-text) | P0 |
-| 83 | HookServer + Stop Notification + 2-Way Chat | P1 |
+| 82.5 | Telegram Command Wiring — 6 bridge handlers into `telegram-commands.ts` + `telegram-poll.mjs` | P0 |
+| 83 | Copilot CLI Bridge + Repo Context + Managed Shell (`/sh` + `/run`) | P1 |
 | 84 | Permission Approval via Telegram (async polling) | P1 |
 | 85 | Hook Installer + Bridge Doctor | P2 |
 
-Sprint 82 scope is locked to: `/link`, `/launch`, `/sessions`, `/capture`, `/switch`, `/kill`.
+Sprint 82 scope is locked to: core modules (TmuxBridge, SessionRegistry, AgentLauncher, 4-layer security).
+Sprint 82.5 scope: wire `/link`, `/launch`, `/sessions`, `/capture`, `/switch`, `/kill` into Telegram.
+Sprint 83 scope: `/focus`, `/where`, `/repos`, `/cp suggest`, `/cp explain`, `/cp status`, `/sh`, `/attach`, `/run`.
 
 ---
 
@@ -288,3 +361,6 @@ Sprint 82 scope is locked to: `/link`, `/launch`, `/sessions`, `/capture`, `/swi
 - CTO Review v2: 3 conditions (C1–C3), all addressed
 - CTO Review v3: 10/10 approved
 - CPO Review: 3 advisory conditions (CA1–CA3), all incorporated
+- Sprint 83 PM review: 10 points + 5 ACs, all resolved
+- Sprint 83 CTO review: 3 blocks (BLOCK-1–3) + 3 warnings (W-1–3) + 4 conditions (C1–C4), all resolved
+- Sprint 83 CPO review: APPROVED, 3 advisory conditions (CA4–CA6), all incorporated

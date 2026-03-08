@@ -555,11 +555,50 @@ endiorbot autopilot "Build auth system" --gate C --duration 2h --budget 10
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+| 2026-03-07 | Bridge & Intelligence roadmap (Sprint 84-92) | ADR-024/025/026 + CTO 10/10 final sign-off |
+| 2026-03-07 | Claude Code Agent Teams (ADR-026) | Sprint 89-91, CTO 9/10→10/10, feature flag gating |
+| 2026-03-07 | Sprint 84 SOUL Bridge Foundation complete | 66 tests, Strategy A/B, PJM 7.5/10 all resolved |
 | 2026-03-01 | Master Plan v3.2 FINAL approved | Vision v2.2 + 12 P0 + CTO sign-off |
 | 2026-03-01 | 6 CTO P0 additions | Gate A paths, Stage 03, 2-tier verify, etc. |
 | 2026-03-01 | v1.0 target: Sprint 61-62 | Init + Compliance focus |
 | 2026-02-28 | Agent Orchestration complete | 3 modes: read/patch/interactive |
 | 2026-02-28 | Identity = CEO Tool | 4-expert panel: scope crisis resolution |
+
+---
+
+## 22. Bridge & Intelligence System (Sprint 82-92)
+
+**Added:** 2026-03-07 — CTO APPROVED 10/10 Final Sign-Off
+
+EndiorBot's Bridge system enables remote multi-agent management from Telegram. The Intelligence system progressively injects persona, brain, context, and evaluator layers into Bridge sessions.
+
+```
+Sprint 82-84  ✅ COMPLETE   Bridge Foundation + SOUL Persona (ADR-024, ADR-025)
+Sprint 85-86  📋 PLANNED    Permission Approval + /send Command (ADR-024 complete)
+Sprint 87-88  📋 PLANNED    Brain L4 + Evaluator + Vibecoding (Intelligence parity)
+Sprint 89-91  📋 PLANNED    Claude Code Agent Teams (ADR-026)
+Sprint 92     📋 PLANNED    Unified App Launcher
+```
+
+### ADRs
+
+| ADR | Title | Sprint | CTO Score |
+|-----|-------|--------|-----------|
+| ADR-024 | Notification Bridge + Multi-Agent Session Management | 82-86 | 10/10 |
+| ADR-025 | Session Intelligence Envelope + 3-Layer Context Model | 84-88 | 8/10 |
+| ADR-026 | Claude Code Agent Teams | 89-91 | 9/10→10/10 |
+
+### 3-Layer Context Model (ADR-025)
+
+| Layer | When | Content | Sprint |
+|-------|------|---------|--------|
+| Launch-time (immutable) | Session creation | SOUL persona, Brain L4, Team charter | 84, 87, 89 |
+| Turn-time (mutable) | Each /send | Sprint goals, blockers, permissions | 85, 86 |
+| Post-turn (derived) | After agent output | Evaluator score, vibecoding | 88 |
+
+**Total effort:** ~288h across 8 remaining sprints, ~195 new tests (5605 → ~5800+)
+
+See [Roadmap](../01-planning/roadmap.md) Tier 4 for full sprint breakdown.
 
 ---
 

@@ -105,6 +105,13 @@ export const FEATURE_FLAGS = {
    * @sprint 72
    */
   AUTONOMY_MODE: false,
+
+  /**
+   * Enable Agent Teams file generation for Claude Code.
+   * When enabled, `bridge install-teams` generates team leader agent files.
+   * @sprint 89
+   */
+  AGENT_TEAMS: false,
 } as const;
 
 // ============================================================================
@@ -240,6 +247,7 @@ export const FEATURE_FLAG_SPRINTS: Record<string, FeatureFlagKey[]> = {
   "66-67": ["SEARCH_ZOEKT"],
   "68": ["STAGE_CONTRACTS", "PATCH_MANAGER"],
   "72": ["AUTONOMY_MODE"],
+  "89": ["AGENT_TEAMS"],
 };
 
 /**

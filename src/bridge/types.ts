@@ -4,11 +4,13 @@
  * Core types for Notification Bridge + Multi-Agent Session Management.
  *
  * @module bridge/types
- * @version 1.0.0
- * @date 2026-03-06
+ * @version 1.1.0
+ * @date 2026-03-07
  * @authority ADR-024 Notification Bridge
- * @stage 04 - BUILD (Sprint 82)
+ * @stage 04 - BUILD (Sprint 82, 82.5, 83)
  */
+
+import type { AgentRole } from "./intelligence/envelope.js";
 
 // ============================================================================
 // Agent Provider Types
@@ -85,6 +87,14 @@ export interface BridgeSession {
   status: SessionStatus;
   /** Risk mode (governs sendKeys + capture capabilities) */
   riskMode: SessionRiskMode;
+  /** Agent role persona (Sprint 84 — SOUL Bridge) */
+  agentRole?: AgentRole;
+  /** SHA256 hash of the SOUL content injected at launch (Sprint 84) */
+  soulContentHash?: string;
+  /** SHA256 hash of Brain L4 content injected at launch (Sprint 87) */
+  brainContentHash?: string;
+  /** SHA256 hash of Context content injected at launch (Sprint 87) */
+  contextHash?: string;
   /** PID of the agent process (if known) */
   providerPid?: number;
   /** Last error message */
@@ -93,6 +103,22 @@ export interface BridgeSession {
   createdAt: string;
   /** ISO 8601 last activity timestamp */
   lastActivityAt: string;
+}
+
+// ============================================================================
+// Launch Options (Sprint 84 — ADR-025)
+// ============================================================================
+
+/**
+ * Options for launching an AI agent via AgentLauncher.
+ */
+export interface LaunchOptions {
+  agentType: AgentProviderType;
+  projectPath: string;
+  actorId: string;
+  riskMode?: SessionRiskMode;
+  /** Agent role for SOUL injection (Sprint 84 — ADR-025) */
+  agentRole?: AgentRole;
 }
 
 // ============================================================================
@@ -139,6 +165,13 @@ export interface BridgePolicy {
   captureRedactPatterns: string[];
   /** Block sendKeys to bare shell panes (always true — safety invariant) */
   shellPanesDisabled: boolean;
+  // Sprint 83 — Managed Shell (ADR-024 D4)
+  /** Max shell sessions per repo (default 1) */
+  shellSessionsPerRepo: number;
+  /** Max total shell sessions across all repos (default 3) */
+  maxShellSessions: number;
+  /** Actor IDs allowed to use /sh, /run, /cp commands */
+  shellActorAllowlist: string[];
 }
 
 // ============================================================================
@@ -183,7 +216,26 @@ export type BridgeAuditEventType =
   | "hook_permission"
   | "permission_decision"
   | "policy_violation"
-  | "identity_link";
+  | "identity_link"
+  // Sprint 83 — Repo Context, Copilot CLI, Managed Shell
+  | "repo_focus"
+  | "copilot_detect"
+  | "copilot_suggest"
+  | "copilot_explain"
+  | "shell_send"
+  | "shell_capture"
+  | "run_request"
+  | "run_approved"
+  | "run_rejected"
+  | "run_executed"
+  // Sprint 84 — SOUL Bridge
+  | "soul_strategy_selected"
+  // Sprint 86 — /send Command
+  | "send_command"
+  // Sprint 87 — Brain L4 + Context Anchoring
+  | "brain_context_injected"
+  // Sprint 88 — Evaluator + Vibecoding
+  | "evaluation_recorded";
 
 export type BridgeAuditActor = "telegram" | "hook" | "system";
 
@@ -210,6 +262,42 @@ export interface BridgeAuditEntry {
 }
 
 // ============================================================================
+// Permission Request (Sprint 85 — ADR-024 §8.4)
+// ============================================================================
+
+export type PermissionDecision = "approve" | "deny" | "timeout";
+
+/**
+ * A pending permission request forwarded from a Claude Code hook.
+ */
+export interface PermissionRequest {
+  /** Unique permission ID (perm_<timestamp>_<hex>) */
+  id: string;
+  /** Associated bridge session */
+  sessionId: string;
+  /** tmux target for sendKeys relay */
+  tmuxTarget: string;
+  /** Agent provider type */
+  agentType: AgentProviderType;
+  /** Tool requesting permission (Bash, Edit, Write, etc.) */
+  toolName: string;
+  /** File path affected (if applicable) */
+  filePath?: string;
+  /** Risk mode of the operation */
+  riskMode: string;
+  /** HMAC nonce (for audit linkage) */
+  nonce: string;
+  /** ISO 8601 creation timestamp */
+  createdAt: string;
+  /** ISO 8601 expiry timestamp (5 min TTL) */
+  expiresAt: string;
+  /** Final decision (set on resolve) */
+  decision?: PermissionDecision;
+  /** ISO 8601 decision timestamp */
+  decidedAt?: string;
+}
+
+// ============================================================================
 // Redact Result
 // ============================================================================
 
@@ -225,4 +313,45 @@ export interface RedactResult {
   reason?: string;
   /** Credential violations found */
   violations: string[];
+}
+
+// ============================================================================
+// ExecRunner Contract (ADR-024 A7, CTO C3)
+// ============================================================================
+
+/**
+ * Options for ExecRunner.exec().
+ */
+export interface ExecOpts {
+  /** Working directory */
+  cwd?: string;
+  /** Timeout in milliseconds */
+  timeout?: number;
+  /** Environment variables (replaces process.env entirely) */
+  env?: Record<string, string>;
+}
+
+/**
+ * Result of ExecRunner.exec().
+ */
+export interface ExecResult {
+  /** Standard output */
+  stdout: string;
+  /** Standard error */
+  stderr: string;
+  /** Exit code (0 = success) */
+  exitCode: number;
+}
+
+/**
+ * ExecRunner — dependency-injectable subprocess executor.
+ *
+ * Implementation MUST use execFile() from node:child_process.
+ * NEVER exec(), spawn({shell: true}), or child_process.exec().
+ * Matches TmuxBridge pattern from Sprint 82.
+ *
+ * @authority ADR-024 A7
+ */
+export interface ExecRunner {
+  exec(binary: string, args: string[], opts?: ExecOpts): Promise<ExecResult>;
 }

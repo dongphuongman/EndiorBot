@@ -29,6 +29,43 @@ const { initializeProvidersFromEnv } = await import(join(root, "dist/providers/i
 const { getProviderRegistry } = await import(join(root, "dist/providers/provider-registry.js"));
 const { getClaudeCodeBridge } = await import(join(root, "dist/agents/invoke/index.js"));
 
+// Bridge command handlers (Sprint 82.5)
+const {
+  handleLinkCommand,
+  getLinkedActorId,
+  handleLaunchCommand,
+  handleSessionsCommand,
+  handleSwitchCommand,
+  handleCaptureCommand,
+  handleKillCommand,
+  handleAgentsCommand,
+  handleTeamsCommand,
+  handleGateCommand,
+  handleComplianceCommand,
+  handleFixCommand,
+  handleConsultCommand,
+  handleConfigCommand,
+  handleInitCommand,
+  handleModeCommand,
+  handleWebhookCommand,
+  generateHelpMessage,
+} = await import(join(root, "dist/channels/telegram/telegram-commands.js"));
+
+// Remote command handlers (Sprint 83)
+const {
+  handleReposCommand,
+  handleFocusCommand,
+  handleWhereCommand,
+  handleCpCommand,
+  handleShCommand,
+  handleAttachCommand,
+  handleRunCommand,
+  executeApprovedRun,
+} = await import(join(root, "dist/channels/telegram/remote-commands.js"));
+
+// Approval queue access (Sprint 83 MF-4)
+const { getApprovalQueue } = await import(join(root, "dist/gateway/methods/approval.js"));
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -322,6 +359,177 @@ function formatResponse(agent, result) {
 channel.onMessage(async (msg) => {
   const rawText = stripSanitizerWrapper(msg.content);
   console.log(`[Telegram] IN: ${rawText.slice(0, 120)}`);
+
+  // ── Bridge commands (Sprint 82.5) — bypass AI router ──────────────
+  const trimmed = rawText.trim();
+  if (trimmed.startsWith("/")) {
+    const parts = trimmed.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1);
+    const userId = String(msg.from?.id ?? msg.metadata?.userId ?? "unknown");
+    const username = msg.from?.username ?? msg.metadata?.username;
+    const LINK_MSG = "Use /link to connect your EndiorBot identity first.";
+
+    let bridgeHandled = true;
+    try {
+      switch (cmd) {
+        case "/link": {
+          const result = handleLinkCommand(userId, username);
+          await channel.send(result.response);
+          break;
+        }
+        case "/launch": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = await handleLaunchCommand(args, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/sessions": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = handleSessionsCommand();
+          await channel.send(result.response);
+          break;
+        }
+        case "/switch": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = handleSwitchCommand(args, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/capture": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = await handleCaptureCommand(args, actorId, userId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/kill": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = await handleKillCommand(args, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/help": {
+          await channel.send(generateHelpMessage());
+          break;
+        }
+        // ── Remote commands (Sprint 83 — ADR-024 D4/D5) ──────────────
+        case "/repos": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const result = handleReposCommand(args);
+          await channel.send(result.response);
+          break;
+        }
+        case "/focus": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = handleFocusCommand(args, chatId, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/where": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = handleWhereCommand(chatId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/cp": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = await handleCpCommand(args, chatId, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/sh": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = await handleShCommand(args, chatId, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/attach": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = await handleAttachCommand(args, chatId, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/run": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const chatId = String(msg.metadata?.chatId ?? msg.from?.id ?? userId);
+          const result = await handleRunCommand(args, chatId, actorId);
+          await channel.send(result.response);
+          break;
+        }
+        case "/approve": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const approvalId = args[0];
+          if (!approvalId) { await channel.send("Usage: /approve <approval-id>"); break; }
+          const queue = getApprovalQueue();
+          const request = queue.get(approvalId);
+          if (!request) { await channel.send(`Approval "${approvalId}" not found.`); break; }
+          if (request.status !== "pending") { await channel.send(`Request already ${request.status}.`); break; }
+          // Mark as approved
+          request.status = "approved";
+          request.respondedAt = Date.now();
+          request.respondedBy = actorId;
+          // Execute the approved command (MF-4)
+          const details = request.details || {};
+          if (details.cmd && details.repoPath && details.repo) {
+            const chatId = String(details.chatId || msg.metadata?.chatId || userId);
+            await channel.send(`Approved. Executing: \`${String(details.cmd).slice(0, 50)}\`...`);
+            const runResult = await executeApprovedRun(
+              String(details.cmd),
+              String(details.repoPath),
+              String(details.repo),
+              actorId,
+              chatId,
+              Array.isArray(details.envAllowlist) ? details.envAllowlist : [],
+            );
+            await channel.send(runResult.response);
+          } else {
+            await channel.send("Approved (no executable command attached).");
+          }
+          break;
+        }
+        case "/reject": {
+          const actorId = getLinkedActorId(userId);
+          if (!actorId) { await channel.send(LINK_MSG); break; }
+          const approvalId = args[0];
+          if (!approvalId) { await channel.send("Usage: /reject <approval-id>"); break; }
+          const queue = getApprovalQueue();
+          const request = queue.get(approvalId);
+          if (!request) { await channel.send(`Approval "${approvalId}" not found.`); break; }
+          if (request.status !== "pending") { await channel.send(`Request already ${request.status}.`); break; }
+          request.status = "rejected";
+          request.respondedAt = Date.now();
+          request.respondedBy = actorId;
+          await channel.send(`Rejected: ${request.message}`);
+          break;
+        }
+        default:
+          bridgeHandled = false;
+      }
+    } catch (e) {
+      console.error(`[Telegram] Bridge command error (${cmd}):`, e.message);
+      try { await channel.send(`Command error: ${e.message}`); } catch { /* send failed */ }
+      return;
+    }
+    if (bridgeHandled) return;
+  }
 
   // Step 1: Route via local Ollama (fast, ~2s)
   let routeResult = await routeViaOllama(rawText);
