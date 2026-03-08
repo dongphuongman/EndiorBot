@@ -144,10 +144,6 @@ export {
   serializeEnvelopeForInjection,
 } from "./intelligence/envelope-builder.js";
 
-// Sprint 89 — Agent Teams
-export type { TeamInstallResult } from "./intelligence/team-installer.js";
-export { installTeams, TEAM_LEADERS } from "./intelligence/team-installer.js";
-
 // Sprint 88 — Evaluator + Vibecoding
 export type { EvaluatorEnvelope, EvaluatorSignals } from "./intelligence/envelope.js";
 export { evaluateOutput } from "./intelligence/output-evaluator.js";
@@ -158,3 +154,7 @@ export {
   getEvaluationStorePath,
   generateEvaluationId,
 } from "./intelligence/evaluation-store.js";
+
+// Sprint 89 — Agent Teams
+export type { TeamInstallResult } from "./intelligence/team-installer.js";
+export { installTeams, TEAM_LEADERS } from "./intelligence/team-installer.js";

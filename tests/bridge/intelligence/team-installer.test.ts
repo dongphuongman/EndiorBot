@@ -329,6 +329,8 @@ describe("TeamInstaller — installTeams()", () => {
     expect(TEAM_LEADERS.pm).toBe("planning");
     expect(TEAM_LEADERS.architect).toBe("design");
     expect(TEAM_LEADERS.ceo).toBe("executive");
+    expect(TEAM_LEADERS.reviewer).toBe("qa");
+    expect(TEAM_LEADERS.tester).toBe("qa");
   });
 
   // --------------------------------------------------------------------------

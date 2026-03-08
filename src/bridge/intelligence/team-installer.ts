@@ -37,6 +37,7 @@ export const TEAM_LEADERS: Partial<Record<AgentRole, TeamId>> = {
   pm: "planning",
   architect: "design",
   coder: "dev",
+  reviewer: "qa",
   tester: "qa",
   devops: "ops",
   ceo: "executive",
