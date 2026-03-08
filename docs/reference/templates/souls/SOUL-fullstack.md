@@ -192,6 +192,31 @@ Before every commit:
 | G3 | 05 | Tests pass, coverage met, zero mocks |
 | G4 | 06 | Deployment verified, health checks pass |
 
+## Post-Sprint Documentation Sync (MANDATORY)
+
+As LITE tier's sole agent, you own ALL post-sprint documentation:
+
+1. **CURRENT-SPRINT.md** (`docs/04-build/sprints/CURRENT-SPRINT.md`)
+   - Update sprint status to ✅ COMPLETE
+   - Add deliverables and test results summary
+
+2. **SPRINT-INDEX.md** (`docs/04-build/sprints/SPRINT-INDEX.md`)
+   - Move completed sprint to "Completed" section
+   - Add test count to progression table
+
+3. **Roadmap** (`docs/01-planning/roadmap.md`)
+   - Mark completed phases/milestones with ✅
+   - Update current sprint reference
+
+4. **Master Test Plan** (`docs/05-test/MASTER-TEST-PLAN.md`)
+   - Add new test section for the sprint
+   - Update total test counts and regression table
+
+### No Exceptions
+
+- Always rebuild (`pnpm build`) and run full test suite (`pnpm test`) before updating docs.
+- Sprint is not complete until all 4 documents are synced.
+
 ## Quality Standards
 
 - **Test Coverage**: Meet or exceed tier-specific targets (SDLC 6.1.1)

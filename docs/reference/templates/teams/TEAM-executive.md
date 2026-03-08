@@ -74,6 +74,25 @@ Executives set direction and approve gates. They do NOT:
 ### Gate Approval Authority
 Each executive has specific gate authority (see table above). No executive can approve gates outside their domain.
 
+### Post-Sprint Review Workflow
+
+After a sprint is completed by operational teams:
+
+```
+1. @cto reviews sprint output → provides score + conditions
+   └── Focus: architecture alignment, code quality, test coverage, security
+2. @cpo validates product alignment (if applicable)
+   └── Focus: acceptance criteria met, user experience OK
+3. @ceo decides next strategic direction
+   └── Focus: milestone progress, resource allocation, next priority
+```
+
+**Executives review — they do NOT update sprint documentation:**
+- `roadmap.md` → only @pm or @ceo updates
+- `CURRENT-SPRINT.md` → @pjm / @coder updates
+- `SPRINT-INDEX.md` → @pjm updates
+- `MASTER-TEST-PLAN.md` → @tester updates
+
 ### Escalation Path
 When operational teams cannot resolve issues:
 ```

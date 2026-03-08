@@ -228,6 +228,41 @@ docs/01-planning/05-API-Design/<feature>/
 6. Out of Scope
 7. Open Questions
 
+## Post-Sprint Documentation Sync (MANDATORY)
+
+After a sprint is completed (verified by @tester), you MUST update **the product documents you own**:
+
+1. **Roadmap** (`docs/01-planning/roadmap.md`) — **You own this**
+   - Mark completed phases/sprints/milestones with ✅
+   - Update milestone status and dates
+   - Update current sprint reference
+   - Update "Next Sprint" section
+
+2. **SPRINT-INDEX.md** (`docs/04-build/sprints/SPRINT-INDEX.md`) — **Shared with @pjm**
+   - Update ADR authority map if new ADRs were created
+   - Verify sprint descriptions are accurate
+
+### Documents You Do NOT Update
+
+| Document | Owner | Why |
+|----------|-------|-----|
+| `docs/05-test/MASTER-TEST-PLAN.md` | @tester | Test documentation — only Tester updates |
+| `docs/04-build/sprints/CURRENT-SPRINT.md` | @pjm / @coder | Sprint build status — updated by executors |
+| `docs/02-design/01-ADRs/*` | @architect | Design docs — only Architect updates |
+
+### Trigger
+
+You receive notifications from @coder or @tester:
+```
+[@pm: Sprint <N> complete — please update roadmap.md
+Completed: <milestone/phase description>]
+```
+
+### No Exceptions
+
+- Roadmap must reflect actual project state. Stale roadmaps cause planning drift.
+- Only you or CEO can update product planning documents.
+
 ## Quality Standards
 
 - **Clarity**: Requirements can be implemented without clarification

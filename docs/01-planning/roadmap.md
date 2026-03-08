@@ -146,37 +146,39 @@
 | 83 | Copilot CLI Bridge + Repo Context + Managed Shell | ✅ |
 | 84 | SOUL Bridge Foundation — persona injection via Strategy A/B | ✅ |
 
-### Phase 2: Bridge Completion (Sprint 85-86)
+### Phase 2: Bridge Completion (Sprint 85-86) ✅ COMPLETE
 
-| Sprint | Scope | Authority |
-|--------|-------|-----------|
-| 85 | Permission Approval via Telegram | ADR-024 §8.4 |
-| 86 | /send Command + Hook Installer | ADR-024 §8.5 |
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 85 | Permission Approval via Telegram — hook verification + relay | ✅ |
+| 86 | /send Command + Turn Context — sendKeys relay + context injection | ✅ |
 
 ADR-024 complete at Sprint 86.
 
-### Phase 3: Intelligence Integration (Sprint 87-88)
+### Phase 3: Intelligence Integration (Sprint 87-88) ✅ COMPLETE
 
-| Sprint | Scope | Authority |
-|--------|-------|-----------|
-| 87 | Brain L4 + Context Anchoring in Bridge | ADR-025 |
-| 88 | Evaluator + Vibecoding in Bridge Output Pipeline | ADR-025 |
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 87 | Brain L4 + Context Anchoring in Bridge — 3-layer envelope injection | ✅ |
+| 88 | Evaluator + Vibecoding in Bridge Output Pipeline — 5-signal scoring | ✅ |
 
 Intelligence parity at Sprint 88. 3-layer context model complete.
 
-### Phase 4: Agent Teams (Sprint 89-91)
+### Phase 4: Agent Teams (Sprint 89-91) ✅ COMPLETE
 
-| Sprint | Scope | Authority |
-|--------|-------|-----------|
-| 89 | Team file generation — `install-teams` CLI | ADR-026 |
-| 90 | Telegram `/launch --as-team` + Smart Routing | ADR-026 |
-| 91 | Team monitoring, cost tracking, lifecycle | ADR-026 |
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 89 | Team file generation — `install-teams` CLI + team installer | ✅ |
+| 90 | Telegram `/launch --as-team` + complexity gate + smart routing | ✅ |
+| 91 | Team monitoring, cost tracking, `/team-health`, `/kill-team` | ✅ |
 
-### Phase 5: Infrastructure (Sprint 92)
+### Phase 5: Infrastructure (Sprint 92) ✅ COMPLETE
 
-| Sprint | Scope | Authority |
-|--------|-------|-----------|
-| 92 | Unified App Launcher — single process + PID | ADR-024 |
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 92 | Unified App Launcher — lock file + PID tracking + crash recovery | ✅ |
+
+**Tier 4 COMPLETE** — All 11 sprints (82-92) delivered. 5,859 tests passing.
 
 ### ADR List (Bridge & Intelligence)
 
@@ -191,14 +193,14 @@ Intelligence parity at Sprint 88. 3-layer context model complete.
 | System | Layer | Sprint | Method |
 |--------|-------|--------|--------|
 | SOUL Templates | Launch-time | 84 ✅ | `--agent` / `--append-system-prompt-file` |
-| Permission Approval | Turn-time | 85 | Async polling via Telegram |
-| /send + Hooks | Turn-time | 86 | sendKeys task prefix |
-| Brain L4 + Context | Launch+Turn | 87 | Envelope → CLI + sendKeys |
-| Evaluator + Vibecoding | Post-turn | 88 | Capture → pipeline → store |
-| Agent Teams (files) | Launch-time | 89 | Team-aware agent files |
-| Agent Teams (Telegram) | Turn-time | 90 | `/launch --as-team` |
-| Team Monitoring | Post-turn | 91 | Dashboard, cost tracking |
-| Unified Launcher | Infrastructure | 92 | Single process + PID |
+| Permission Approval | Turn-time | 85 ✅ | Async polling via Telegram |
+| /send + Hooks | Turn-time | 86 ✅ | sendKeys task prefix |
+| Brain L4 + Context | Launch+Turn | 87 ✅ | Envelope → CLI + sendKeys |
+| Evaluator + Vibecoding | Post-turn | 88 ✅ | Capture → pipeline → store |
+| Agent Teams (files) | Launch-time | 89 ✅ | Team-aware agent files |
+| Agent Teams (Telegram) | Turn-time | 90 ✅ | `/launch --as-team` |
+| Team Monitoring | Post-turn | 91 ✅ | Dashboard, cost tracking |
+| Unified Launcher | Infrastructure | 92 ✅ | Single process + PID |
 
 ---
 
@@ -217,21 +219,33 @@ Per Master Plan v2.0, these are explicitly excluded:
 
 ## Milestones
 
-| Milestone | Target | Criteria |
-|-----------|--------|----------|
-| **M1: MVP CLI** | End Sprint 54 | consult, gate, switch work |
-| **M2: Brain Integration** | End Sprint 55 | L4 injection, provenance |
-| **M3: Pro Features** | End Sprint 58 | Session resume, magic links |
-| **M4: Desktop** | End Sprint 62 | Desktop app functional |
+| Milestone | Target | Criteria | Status |
+|-----------|--------|----------|--------|
+| **M1: MVP CLI** | End Sprint 54 | consult, gate, switch work | ✅ DONE |
+| **M2: Brain Integration** | End Sprint 55 | L4 injection, provenance | ✅ DONE |
+| **M3: Pro Features** | End Sprint 58 | Session resume, magic links | ✅ DONE |
+| **M4: Desktop** | End Sprint 62 | Desktop app functional | ✅ DONE |
+| **M5: Notification Bridge** | End Sprint 86 | tmux bridge, permissions, /send | ✅ DONE |
+| **M6: Intelligence** | End Sprint 88 | SOUL + Brain + Context + Evaluator | ✅ DONE |
+| **M7: Agent Teams** | End Sprint 91 | Team launch, monitoring, cost | ✅ DONE |
+| **M8: Unified Launcher** | End Sprint 92 | PID tracking, crash recovery, lock | ✅ DONE |
+
+---
+
+## Current Sprint
+
+**Sprint 92 (Unified Launcher)** — COMPLETE
+
+Next sprint: TBD (Tier 4 Bridge & Intelligence complete)
 
 ---
 
 ## References
 
 - [Master Plan v2.0](../00-foundation/master-plan.md) - Identity & scope
-- [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md) - Current sprint
+- [Sprint 92 Plan](../04-build/sprints/sprint-92-unified-launcher.md) - Latest completed sprint
 
 ---
 
 *CEO Power Tool | SDLC Framework v6.1.1 - Stage 01: Planning*
-*Identity: LOCKED (2026-02-28)*
+*Identity: LOCKED (2026-03-08)*

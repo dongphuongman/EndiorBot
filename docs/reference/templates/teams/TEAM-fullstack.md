@@ -92,6 +92,15 @@ LITE tier does NOT mean:
 - Skipping gate checks
 - Using mocks or placeholders
 
+### Post-Sprint Documentation Sync
+As LITE tier's sole team, @fullstack owns ALL post-sprint docs:
+- `CURRENT-SPRINT.md` — status + deliverables
+- `SPRINT-INDEX.md` — move to completed, test counts
+- `roadmap.md` — mark milestones complete
+- `MASTER-TEST-PLAN.md` — add test section, update counts
+
+No delegation needed — @fullstack handles everything.
+
 ### Scaling Trigger
 When the project outgrows LITE tier:
 - More than 2 developers

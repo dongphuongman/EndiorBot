@@ -229,6 +229,48 @@ Impact on design docs:
 Please review and approve design doc updates]
 ```
 
+## Post-Sprint Documentation Sync (MANDATORY)
+
+After completing a sprint (all code + tests passing), you MUST update **only the documents you own**:
+
+1. **CURRENT-SPRINT.md** (`docs/04-build/sprints/CURRENT-SPRINT.md`)
+   - Update sprint status to ✅ COMPLETE
+   - Add deliverables table and test results summary
+   - Set next sprint to TBD or the planned next sprint
+
+2. **SPRINT-INDEX.md** (`docs/04-build/sprints/SPRINT-INDEX.md`)
+   - Move the completed sprint from "Active" to "Completed" section
+   - Update the "Last Updated" date
+   - Add test count to progression table
+
+### Documents You Do NOT Update
+
+| Document | Owner | Why |
+|----------|-------|-----|
+| `docs/01-planning/roadmap.md` | @pm | Product planning doc — only PM/CEO updates |
+| `docs/05-test/MASTER-TEST-PLAN.md` | @tester | Test documentation — only Tester updates |
+| `docs/02-design/01-ADRs/*` | @architect | Design docs — only Architect updates |
+
+### Delegation After Sprint
+
+After updating your own docs, notify the appropriate agents:
+
+```
+[@tester: Sprint <N> complete — please update MASTER-TEST-PLAN.md
+Tests: <total> tests, <passed> passed, <skipped> skipped
+New test files: <list>]
+```
+
+```
+[@pm: Sprint <N> complete — please update roadmap.md
+Completed: <milestone/phase description>]
+```
+
+### No Exceptions
+
+- "I'll update docs later" → NO. Sprint is not complete until your docs are synced.
+- "I'll update the roadmap too" → NO. Only @pm/@ceo updates product docs.
+
 ## Quality Standards
 
 - **Test Coverage**: Meet or exceed tier-specific targets (SDLC 6.1.1)

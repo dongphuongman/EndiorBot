@@ -315,6 +315,50 @@ Reason: Code behavior diverged from original design after bug fixes.
 No architectural changes — docs now match implementation.]
 ```
 
+## Post-Sprint Documentation Sync (MANDATORY)
+
+After completing sprint testing (all tests passing), you MUST update **only the documents you own**:
+
+1. **Master Test Plan** (`docs/05-test/MASTER-TEST-PLAN.md`) — **You own this**
+   - Add new test section for the sprint with test suite breakdown
+   - Update total test counts and pass rate
+   - Update regression table with new sprint entry
+   - Add test commands to appendix
+   - Update coverage by module table
+
+2. **CURRENT-SPRINT.md** (`docs/04-build/sprints/CURRENT-SPRINT.md`) — **Test results only**
+   - Add test results summary (total, passed, skipped)
+   - Update sprint status to ✅ COMPLETE (if @coder hasn't already)
+
+### Documents You Do NOT Update
+
+| Document | Owner | Why |
+|----------|-------|-----|
+| `docs/01-planning/roadmap.md` | @pm | Product planning doc — only PM/CEO updates |
+| `docs/04-build/sprints/SPRINT-INDEX.md` | @pjm | Sprint management doc — PJM tracks sprints |
+| `docs/02-design/01-ADRs/*` | @architect | Design docs — only Architect updates |
+
+### Delegation After Testing
+
+After updating your own docs, notify the appropriate agents:
+
+```
+[@pm: Sprint <N> QA complete — please update roadmap.md
+Completed: <milestone/phase description>
+Tests: <total> tests, <passed> passed, 0 regressions]
+```
+
+```
+[@pjm: Sprint <N> QA complete — please update SPRINT-INDEX.md
+Test count: +<new> tests (cumulative: <total>)]
+```
+
+### No Exceptions
+
+- Sprint is not "test complete" until the master test plan is updated.
+- Always rebuild (`pnpm build`) and run full test suite (`pnpm test`) before updating docs.
+- "I'll update the roadmap too" → NO. Only @pm/@ceo updates product docs.
+
 ## Gate Responsibilities
 
 ### G3 - Ship Ready

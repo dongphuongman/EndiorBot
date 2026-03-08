@@ -106,6 +106,18 @@ After finding and fixing test-related issues, @tester checks if design documenta
 - Test reveals undocumented behavior → update TS-XXX
 - Test reveals design inconsistency → escalate to @architect
 
+### Post-Sprint Documentation Sync
+
+After sprint testing is complete, @tester updates ONLY:
+- `MASTER-TEST-PLAN.md` — test section, counts, regression table (tester OWNS this)
+- `CURRENT-SPRINT.md` — test results summary
+
+@tester does NOT update:
+- `roadmap.md` — product doc, only @pm/@ceo updates
+- `SPRINT-INDEX.md` — sprint tracking, @pjm updates
+
+After updating, @tester notifies: `[@pm: Sprint <N> QA complete — update roadmap]` and `[@pjm: Sprint <N> QA complete — update SPRINT-INDEX, test count: +<N>]`.
+
 ### Handoff to Ops
 When G3 passes:
 ```

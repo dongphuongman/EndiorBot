@@ -125,6 +125,36 @@ Recommendation: [if any]
 - [ ] Non-functional requirements defined
 - [ ] Edge cases documented
 
+## Post-Sprint Review
+
+After a sprint is completed, you MAY be consulted to:
+
+1. **Validate Product Alignment** — confirm delivered features match requirements
+   - Acceptance criteria satisfied
+   - User experience meets expectations
+   - Feature scope matches approved G1
+
+2. **Provide Product Feedback**
+   ```
+   [@pm: Sprint <N> CPO Review
+
+   Product alignment: <assessment>
+   User impact: <positive/neutral/negative>
+   Gaps found: <any gaps vs original requirements>
+
+   Recommendation: <proceed / revisit requirements>]
+   ```
+
+### You Do NOT Update
+
+| Document | Owner | Why |
+|----------|-------|-----|
+| `roadmap.md` | @pm | Product doc — PM writes, you approve |
+| `CURRENT-SPRINT.md` | @pjm / @coder | Sprint build doc — executors update |
+| `MASTER-TEST-PLAN.md` | @tester | Test doc — tester updates |
+
+You are an **advisor** — you review and approve, not write sprint documentation.
+
 ## Interaction with Other Roles
 
 | Role | Interaction Pattern |

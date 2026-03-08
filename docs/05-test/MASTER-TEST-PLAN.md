@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 7.0
-**Date:** 2026-03-07 (Updated after Sprint 82.5 + Sprint 83 completion)
+**Version:** 8.0
+**Date:** 2026-03-08 (Updated after Sprint 84-92 completion)
 **Framework:** SDLC v6.1.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v2.4 Notification Bridge — Remote Shell + Copilot CLI (ADR-024 D4/D5)
+**Milestone:** v2.8 Unified Launcher — Session Intelligence, Agent Teams, Process Monitor (ADR-024/025/026)
 
 ---
 
@@ -16,20 +16,20 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ```
         ┌─────────────────┐
-        │  Manual (236+)  │  ← User acceptance, exploratory
+        │  Manual (278+)  │  ← User acceptance, exploratory
         ├─────────────────┤
         │    E2E (74)     │  ← End-to-end workflows
         ├─────────────────┤
         │ Integration(197)│  ← Component integration ✅ Sprint 68-72
         ├─────────────────┤
-        │  Unit (5500+)   │  ← Function-level tests
+        │  Unit (5800+)   │  ← Function-level tests
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 83): 2026-03-07**
-- **Total Tests:** 5,539 (5,538 passing | 0 failing | 10 skipped)
+**Current Status (Post-Sprint 92): 2026-03-08**
+- **Total Tests:** 5,859 (5,849 passing | 0 failing | 10 skipped)
 - **Pass Rate:** 99.8%
-- **New Tests (Sprint 68-83):** 1,368 tests added
+- **New Tests (Sprint 68-92):** 1,688 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
   - Sprint 72 (Autonomous Agent): 184 tests (+ 44 golden scenarios type tests)
@@ -44,6 +44,15 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
   - Sprint 82 (Notification Bridge Core): 73 tests
   - Sprint 82.5 (Bridge Telegram Wiring): 27 tests
   - Sprint 83 (Remote Shell + Copilot CLI): 156 tests (+ CTO MF fixes)
+  - Sprint 84 (SOUL Bridge): 21 tests (agent-installer + soul-loader + envelope)
+  - Sprint 85 (Permission Approval): 41 tests (hook-verifier + handler + relay + installer)
+  - Sprint 86 (/send Command + Turn Context): 32 tests (send-command + turn-context)
+  - Sprint 87 (Brain L4 + Context Anchoring): 31 tests (brain-loader + context-builder + envelope-builder)
+  - Sprint 88 (Evaluator + Vibecoding): 37 tests (output-evaluator + evaluation-store)
+  - Sprint 89 (Agent Teams Files): 20 tests (team-installer)
+  - Sprint 90 (Agent Teams Telegram): 23 tests (team-launch + team-display + complexity-gate)
+  - Sprint 91 (Team Monitoring): 30 tests (team-monitor + team-monitoring commands)
+  - Sprint 92 (Unified Launcher): 21 tests (lock-manager + process-monitor + unified-launcher)
 - **Tech Debt:** 1 flaky test (checkpoint.test.ts:462 — pre-existing since Sprint 35-40)
 
 ---
@@ -453,7 +462,187 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-### 1.20 Previously Known Failures (RESOLVED)
+### 1.20 SOUL Bridge + Agent Installer (21 tests) - Sprint 84
+
+**Location:** `tests/bridge/agent-launcher.soul.test.ts`, `tests/agents/channel-router.soul-loader.test.ts`, `tests/bridge/intelligence/agent-installer.test.ts`
+**Authority:** ADR-025 Session Intelligence Envelope
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| agent-launcher.soul.test.ts | 13 | PASS | SOUL injection strategies (native-agent, append-system-prompt-file), audit |
+| channel-router.soul-loader.test.ts | 8 | PASS | Channel router SoulLoader integration |
+
+**Validated Features:**
+- Strategy A: `--agent <role>` (native agent file)
+- Strategy B: `--append-system-prompt-file` (SOUL temp file with 0o600 perms)
+- Agent installer: 13 agent `.md` files with frontmatter per role
+- Audit event: `soul_strategy_selected` with strategy + source details
+- SOUL temp file lifecycle: create on launch, clean on kill (CTO W-2)
+
+---
+
+### 1.21 Permission Approval (41 tests) - Sprint 85
+
+**Location:** `tests/bridge/hooks/`
+**Authority:** ADR-024 §8.4
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| hook-verifier.test.ts | 12 | PASS | HMAC-SHA256 verification, nonce format, replay detection |
+| hook-handler.test.ts | 8 | PASS | Hook event parsing, session lookup, audit |
+| permission-relay.test.ts | 12 | PASS | Permission request forwarding, TTL, decision relay |
+| hook-installer.test.ts | 9 | PASS | Hook script generation, file permissions, idempotency |
+
+**Validated Features:**
+- HMAC-SHA256 verification with timing-safe comparison
+- Nonce format: `sessionId:randomHex`, replay protection window
+- Permission forwarding to Telegram with 5-min TTL
+- Hook installer: generates `.claude/hooks/` scripts
+- Decision relay: approve/deny → sendKeys back to tmux pane
+
+---
+
+### 1.22 /send Command + Turn Context (32 tests) - Sprint 86
+
+**Location:** `tests/channels/telegram/send-command.test.ts`, `tests/bridge/intelligence/turn-context.test.ts`
+**Authority:** ADR-024 §8.5
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| send-command.test.ts | 12 | PASS | /send handler, input sanitization, session lookup, audit |
+| turn-context.test.ts | 20 | PASS | Context building, active project loading, prefix cap |
+
+**Validated Features:**
+- `/send <message>` command: relay text input to active session's tmux pane
+- Turn-time context: active project injection on each /send
+- Input sanitization before sendKeys relay
+- Audit event: `send_command` with content hash
+
+---
+
+### 1.23 Brain L4 + Context Anchoring (31 tests) - Sprint 87
+
+**Location:** `tests/bridge/intelligence/brain-loader.test.ts`, `tests/bridge/intelligence/context-builder.test.ts`, `tests/bridge/intelligence/envelope-builder.test.ts`
+**Authority:** ADR-025 Session Intelligence Envelope
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| brain-loader.test.ts | 11 | PASS | Mental model loading, formatting, token budget, hashing |
+| context-builder.test.ts | 10 | PASS | Active project context, formatting, hashing |
+| envelope-builder.test.ts | 10 | PASS | Full envelope assembly, missing layers, serialization |
+
+**Validated Features:**
+- Brain L4: Mental models loaded + formatted + SHA256 hashed
+- Context: Active project context injected at session start
+- Envelope builder: assembles persona + brain + context into single injection
+- Token budget: brain 1K + context 1K caps
+- Graceful degradation: missing layers → partial envelope (non-fatal)
+
+---
+
+### 1.24 Evaluator + Vibecoding (37 tests) - Sprint 88
+
+**Location:** `tests/bridge/intelligence/output-evaluator.test.ts`, `tests/bridge/intelligence/evaluation-store.test.ts`
+**Authority:** ADR-025
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| output-evaluator.test.ts | 26 | PASS | 5-signal scoring, weighted average, summary, null returns |
+| evaluation-store.test.ts | 11 | PASS | JSONL append, load with per-line resilience, path format |
+
+**Validated Features:**
+- 5 quality signals: code-test ratio, comment density, error patterns, complexity, lint compliance
+- Weighted vibecoding index (0-100 scale)
+- Summary generation with actionable feedback
+- JSONL evaluation store with per-line corruption resilience
+- `MIN_TEXT_LENGTH` guard for short outputs
+
+---
+
+### 1.25 Agent Teams Files (20 tests) - Sprint 89
+
+**Location:** `tests/bridge/intelligence/team-installer.test.ts`
+**Authority:** ADR-026 Agent Teams
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| team-installer.test.ts | 20 | PASS | Feature flag gating, team file generation, fullstack exclusion (C3), agent tool isolation (C7) |
+
+**Validated Features:**
+- Feature flag gating: `AGENT_TEAMS` required to generate team files
+- Team file generation: `<teamId>-team.md` in `.claude/agents/`
+- Fullstack exclusion (CTO C3): no team file for single-agent teams
+- Zero-member skip: teams with no members don't get files
+- Agent tool isolation (CTO C7): correct tool restrictions per role
+- Charter content: frontmatter, teammates, delegation rules
+- Force/skip behavior + path traversal guard
+
+---
+
+### 1.26 Agent Teams Telegram (23 tests) - Sprint 90
+
+**Location:** `tests/channels/telegram/team-launch.test.ts`, `tests/channels/telegram/team-display.test.ts`, `tests/bridge/intelligence/complexity-gate.test.ts`
+**Authority:** ADR-026 Agent Teams
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| team-launch.test.ts | ~7 | PASS | /launch --as-team, complexity gate, team leader SOUL |
+| team-display.test.ts | ~6 | PASS | /team-status, team session listing, display formatting |
+| complexity-gate.test.ts | 10 | PASS | Task length, keyword detection, case-insensitive |
+
+**Validated Features:**
+- `/launch --as-team <teamId>`: launch team leader with team file
+- Complexity gate: min task length + keyword detection before team launch
+- Team leader SOUL injection via native `--agent` with team file
+- `/team-status`: display team sessions with role + status
+- `assessComplexity()`: `MIN_TASK_LENGTH` + `COMPLEXITY_KEYWORDS` matching
+
+---
+
+### 1.27 Team Monitoring (30 tests) - Sprint 91
+
+**Location:** `tests/bridge/teams/team-monitor.test.ts`, `tests/channels/telegram/team-monitoring.test.ts`
+**Authority:** ADR-026, CTO A4
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| team-monitor.test.ts | 16 | PASS | Health checks, cost tracking, stuck detection, threshold callbacks |
+| team-monitoring.test.ts | 14 | PASS | /team-health, /kill-team, cost callback handlers |
+
+**Validated Features:**
+- Team health checks: per-member status (healthy, stuck, crashed, idle)
+- Cost tracking: simulated cost aggregation with USD threshold
+- Stuck detection: idle > `teamStuckIdleThresholdSec` → marked stuck
+- `/team-health`: display per-member health with status icons
+- `/kill-team <teamId>`: kill all team sessions + audit `team_killed`
+- Cost threshold callback: notify CEO when cost exceeds limit
+- Cost extend/stop actions via inline keyboard
+
+---
+
+### 1.28 Unified Launcher (21 tests) - Sprint 92
+
+**Location:** `tests/bridge/launcher/`
+**Authority:** ADR-024 (Sprint 92)
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| lock-manager.test.ts | 6 | PASS | Acquire, stale lock removal, duplicate prevention, release, isRunning |
+| process-monitor.test.ts | 7 | PASS | PID alive, crash detect, auto-restart, team crash, crash-loop cap (MF-1) |
+| unified-launcher.test.ts | 8 | PASS | Start/stop lifecycle, lock, recovery, zombie pane (F2), multiple sessions |
+
+**Validated Features:**
+- Lock file singleton: `~/.endiorbot/launcher.lock` with PID + stale detection
+- Process monitor: 15s poll, PID liveness check, auto-restart with same SOUL/team context
+- Restart cap (CTO MF-1): max 3 restarts per 5 min window → exhaust notification
+- Zombie pane detection (CTO F2): pane alive + PID dead → kill zombie + markError
+- Session recovery: active sessions → check pane + PID → recovered vs lost
+- Audit symmetry: `launcher_started` + `launcher_stopped` (CTO F1)
+- CLI: `endiorbot bridge launcher start/stop/status`
+
+---
+
+### 1.29 Previously Known Failures (RESOLVED)
 
 | File | Was Failing | Fix Applied | Sprint Fixed |
 |------|-------------|-------------|--------------|
@@ -545,7 +734,35 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | remote-commands.test.ts | 30 | <10ms | 9 handlers + executeApprovedRun |
 | **Total** | **384** | **~34s** | **Full bridge + remote shell pipeline** |
 
-### 4.3 Sprint 80 Test Summary (SDLC Content Quality + Gate Fixes)
+### 4.3 Sprint 84-92 Test Summary (Bridge Intelligence + Teams + Launcher)
+
+| Module | Tests | Sprint | Coverage |
+|--------|-------|--------|----------|
+| agent-launcher.soul.test.ts | 13 | 84 | SOUL injection strategies |
+| channel-router.soul-loader.test.ts | 8 | 84 | Channel router + SoulLoader |
+| hook-verifier.test.ts | 12 | 85 | HMAC verification |
+| hook-handler.test.ts | 8 | 85 | Hook event parsing |
+| permission-relay.test.ts | 12 | 85 | Permission forwarding |
+| hook-installer.test.ts | 9 | 85 | Hook script generation |
+| send-command.test.ts | 12 | 86 | /send handler |
+| turn-context.test.ts | 20 | 86 | Turn-time context |
+| brain-loader.test.ts | 11 | 87 | Brain L4 loading |
+| context-builder.test.ts | 10 | 87 | Context envelope |
+| envelope-builder.test.ts | 10 | 87 | Full envelope assembly |
+| output-evaluator.test.ts | 26 | 88 | 5-signal vibecoding |
+| evaluation-store.test.ts | 11 | 88 | JSONL evaluation store |
+| team-installer.test.ts | 20 | 89 | Team file generation |
+| complexity-gate.test.ts | 10 | 90 | Task complexity assessment |
+| team-launch.test.ts | ~7 | 90 | Team launch commands |
+| team-display.test.ts | ~6 | 90 | Team status display |
+| team-monitor.test.ts | 16 | 91 | Health checks, cost tracking |
+| team-monitoring.test.ts | 14 | 91 | /team-health, /kill-team |
+| lock-manager.test.ts | 6 | 92 | Lock file singleton |
+| process-monitor.test.ts | 7 | 92 | PID poll + crash recovery |
+| unified-launcher.test.ts | 8 | 92 | Orchestrator + zombie detect |
+| **Total** | **256** | **84-92** | **Full intelligence + teams + launcher** |
+
+### 4.4 Sprint 80 Test Summary (SDLC Content Quality + Gate Fixes)
 
 | Module | Tests | Time | Coverage |
 |--------|-------|------|----------|
@@ -814,14 +1031,14 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ### 8.1 Automated Regression Suite
 
-**Baseline:** 5,155 tests passing (Sprint 80)
+**Baseline:** 5,859 tests passing (Sprint 92)
 
 **Regression Gate:**
 - BLOCK if > 5% tests fail
 - WARN if > 1% tests fail
 - PASS if <= 1% tests fail
 
-**Current:** 0/5,155 = 0% (0 failing, 10 skipped)
+**Current:** 0/5,859 = 0% (0 failing, 10 skipped)
 
 ### 8.2 Sprint-Specific Regression
 
@@ -838,21 +1055,33 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | 78 | 70 | 0 regressions | PASS |
 | 79 | 31 | 0 regressions | PASS |
 | 80 | 27 | 0 regressions | PASS |
+| 82 | 73 | 0 regressions | PASS |
+| 82.5 | 27 | 0 regressions | PASS |
+| 83 | 156 | 0 regressions | PASS |
+| 84 | 21 | 0 regressions | PASS |
+| 85 | 41 | 0 regressions | PASS |
+| 86 | 32 | 0 regressions | PASS |
+| 87 | 31 | 0 regressions | PASS |
+| 88 | 37 | 0 regressions | PASS |
+| 89 | 20 | 0 regressions | PASS |
+| 90 | 23 | 0 regressions | PASS |
+| 91 | 30 | 0 regressions | PASS |
+| 92 | 21 | 0 regressions | PASS |
 
 ---
 
 ## 9. Test Metrics & KPIs
 
-### 9.1 Current Metrics (Post-Sprint 80)
+### 9.1 Current Metrics (Post-Sprint 92)
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Total tests | 5,155 | - | - |
+| Total tests | 5,859 | - | - |
 | Pass rate | 99.8% | > 99% | ON TARGET |
 | Tech debt tests | 0 failing | < 20 | EXCELLENT |
 | Flaky tests | 0 | 0 | RESOLVED |
-| New tests (Sprint 68-80) | 984 | - | +24% growth |
-| Manual tests | 194 (168 passing, 26 pending) | - | +34 Sprint 80, +35 Sprint 79 |
+| New tests (Sprint 68-92) | 1,688 | - | +40% growth |
+| Manual tests | 278 (210 passing, 68 pending) | - | +42 Sprint 82, +42 Sprint 83 |
 
 ### 9.2 Coverage by Module
 
@@ -871,6 +1100,12 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | Zalo Channel | 153 | ~95% |
 | Local Router + Conversation | 70 | ~90% |
 | Smart Init (Compliance) | 31 | ~98% |
+| Bridge Core (Sprint 82-83) | 256 | ~95% |
+| Bridge Intelligence (Sprint 84-89) | 163 | ~95% |
+| Bridge Hooks (Sprint 85) | 41 | ~95% |
+| Bridge Teams (Sprint 90-91) | 53 | ~95% |
+| Bridge Launcher (Sprint 92) | 21 | ~95% |
+| Telegram Commands (Sprint 86-91) | 68 | ~95% |
 | Other (budget, config, etc.) | ~200 | ~85% |
 
 ---
@@ -918,6 +1153,9 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 - ADR-021 Local Ollama Router (Sprint 78 design authority)
 - ADR-022 Smart Init Codebase Analysis (Sprint 79 design authority)
 - ADR-023 SDLC-Aligned Content Quality (Sprint 80 design authority)
+- ADR-024 Notification Bridge (Sprint 82-86, 92 design authority)
+- ADR-025 Session Intelligence Envelope (Sprint 84, 87-88 design authority)
+- ADR-026 Agent Teams (Sprint 89-91 design authority)
 
 ### 11.2 Test Reports
 
@@ -929,7 +1167,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ## 12. Next Steps
 
-### Completed Actions (Post-Sprint 79)
+### Completed Actions (Post-Sprint 92)
 
 1. ~~Fix BUG-006: cli-smoke status command~~ DONE
 2. ~~Fix tech debt tests (BUG-001, BUG-005)~~ DONE (61 tests rewritten)
@@ -946,19 +1184,26 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 13. ~~Sprint 82.5: Bridge Telegram Wiring 27 unit tests~~ DONE
 14. ~~Sprint 82: Manual Tests 42/42 PASS~~ DONE
 15. ~~Sprint 83: Remote Shell + Copilot CLI 156 unit tests + CTO MF fixes~~ DONE
-16. ~~Sprint 83: Manual Tests 42/42 PASS~~ PENDING
+16. ~~Sprint 84: SOUL Bridge — 21 tests (agent installer + soul loader + envelope)~~ DONE
+17. ~~Sprint 85: Permission Approval — 41 tests (hook verifier/handler/relay/installer)~~ DONE
+18. ~~Sprint 86: /send Command + Turn Context — 32 tests~~ DONE
+19. ~~Sprint 87: Brain L4 + Context Anchoring — 31 tests~~ DONE
+20. ~~Sprint 88: Evaluator + Vibecoding — 37 tests~~ DONE
+21. ~~Sprint 89: Agent Teams Files — 20 tests (team-installer)~~ DONE
+22. ~~Sprint 90: Agent Teams Telegram — 23 tests (complexity-gate + team commands)~~ DONE
+23. ~~Sprint 91: Team Monitoring — 30 tests (team-monitor + monitoring commands)~~ DONE
+24. ~~Sprint 92: Unified Launcher — 21 tests (lock-manager + process-monitor + unified-launcher)~~ DONE
 
-### Short-term (Sprint 84+)
+### Short-term (Sprint 93+)
 
-1. Sprint 84: Permission Approval via Telegram (async polling) tests
-2. Sprint 85: Hook Installer + Bridge Doctor tests
-3. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
-4. OTT PATCH mode end-to-end integration test (file modification flow)
-5. Investigate BUG-012 (checkpoint.test.ts flaky)
-6. Bridge live E2E: `/sh git status` on running server with real tmux
-7. Bridge live E2E: `/run npm test` approval flow end-to-end
+1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
+2. Investigate BUG-012 (checkpoint.test.ts flaky)
+3. Bridge live E2E: `/sh git status` on running server with real tmux
+4. Bridge live E2E: `/run npm test` approval flow end-to-end
+5. Launcher live E2E: `endiorbot bridge launcher start` with real tmux sessions
+6. Team live E2E: full team launch + health monitoring + cost tracking flow
 
-### Long-term (Sprint 86+)
+### Long-term
 
 1. Mutation testing for critical paths (bridge security modules)
 2. CI/CD pipeline integration
@@ -966,6 +1211,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 4. External user acceptance testing
 5. Webhook stress testing (rate limit + concurrent connections)
 6. Bridge stress testing: concurrent shell sessions + queue overflow
+7. Launcher stress testing: concurrent crash recovery + restart cap validation
 
 ---
 
@@ -974,6 +1220,33 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 ```bash
 # Run all tests
 pnpm test
+
+# Run Sprint 92 Unified Launcher
+pnpm vitest run tests/bridge/launcher/
+
+# Run Sprint 91 Team Monitoring
+pnpm vitest run tests/bridge/teams/ tests/channels/telegram/team-monitoring.test.ts
+
+# Run Sprint 90 Agent Teams Telegram
+pnpm vitest run tests/channels/telegram/team-launch.test.ts tests/channels/telegram/team-display.test.ts tests/bridge/intelligence/complexity-gate.test.ts
+
+# Run Sprint 89 Agent Teams Files
+pnpm vitest run tests/bridge/intelligence/team-installer.test.ts
+
+# Run Sprint 88 Evaluator + Vibecoding
+pnpm vitest run tests/bridge/intelligence/output-evaluator.test.ts tests/bridge/intelligence/evaluation-store.test.ts
+
+# Run Sprint 87 Brain L4 + Context
+pnpm vitest run tests/bridge/intelligence/brain-loader.test.ts tests/bridge/intelligence/context-builder.test.ts tests/bridge/intelligence/envelope-builder.test.ts
+
+# Run Sprint 86 /send Command + Turn Context
+pnpm vitest run tests/channels/telegram/send-command.test.ts tests/bridge/intelligence/turn-context.test.ts
+
+# Run Sprint 85 Permission Approval
+pnpm vitest run tests/bridge/hooks/
+
+# Run Sprint 84 SOUL Bridge
+pnpm vitest run tests/bridge/agent-launcher.soul.test.ts tests/agents/channel-router.soul-loader.test.ts
 
 # Run Sprint 83 Remote Shell + Copilot CLI
 pnpm vitest run tests/bridge/repo/ tests/bridge/copilot/ tests/bridge/shell/ tests/channels/telegram/remote-commands.test.ts

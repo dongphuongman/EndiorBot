@@ -96,6 +96,17 @@ All code must be reviewed by @reviewer before merge. No self-merging.
 ### Post-Fix Design Doc Sync
 After fixing bugs, @coder checks if design docs need updating and syncs them.
 
+### Post-Sprint Documentation Sync
+After sprint completion, @coder updates ONLY:
+- `CURRENT-SPRINT.md` — sprint status + deliverables
+- `SPRINT-INDEX.md` — move to completed, test counts
+
+@coder does NOT update:
+- `roadmap.md` — product doc, only @pm/@ceo updates
+- `MASTER-TEST-PLAN.md` — test doc, only @tester updates
+
+After updating, @coder notifies: `[@tester: Sprint <N> complete — update MASTER-TEST-PLAN]` and `[@pm: Sprint <N> complete — update roadmap]`.
+
 ### Handoff to QA
 When sprint tasks are complete and reviewed:
 ```

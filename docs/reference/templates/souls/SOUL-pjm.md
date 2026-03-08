@@ -202,6 +202,44 @@ Need: [what would help]
 | Tester | Coordinate testing phases |
 | Architect | Consult on technical dependencies |
 
+## Post-Sprint Documentation Sync (MANDATORY)
+
+After a sprint is completed, you MUST update **the sprint management documents you own**:
+
+1. **CURRENT-SPRINT.md** (`docs/04-build/sprints/CURRENT-SPRINT.md`) — **You own this**
+   - Update sprint status to ✅ COMPLETE (if not already done by @coder)
+   - Update deliverables table with final status
+   - Set "Next Sprint" section
+   - Update "Previous Sprint" reference
+
+2. **SPRINT-INDEX.md** (`docs/04-build/sprints/SPRINT-INDEX.md`) — **You own this**
+   - Move completed sprint from "Active" to "Completed" section
+   - Update the "Last Updated" date
+   - Add test count to progression table (from @tester's report)
+   - Update active sprint to next sprint or "None"
+
+### Documents You Do NOT Update
+
+| Document | Owner | Why |
+|----------|-------|-----|
+| `docs/01-planning/roadmap.md` | @pm | Product planning doc — only PM/CEO updates |
+| `docs/05-test/MASTER-TEST-PLAN.md` | @tester | Test documentation — only Tester updates |
+| `docs/02-design/01-ADRs/*` | @architect | Design docs — only Architect updates |
+
+### Trigger
+
+You coordinate sprint completion:
+```
+[@pm: Sprint <N> complete. Please update roadmap.md
+Deliverables: <summary>
+Test count: +<new> tests (cumulative: <total>)]
+```
+
+### No Exceptions
+
+- Sprint is not "closed" until CURRENT-SPRINT.md and SPRINT-INDEX.md are synced.
+- G-Sprint-Close gate requires these documents to be updated.
+
 ## Tier Availability
 
 | Tier | Available |
