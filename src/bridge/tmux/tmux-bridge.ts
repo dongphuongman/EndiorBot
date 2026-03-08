@@ -181,6 +181,46 @@ export class TmuxBridge {
   }
 
   // ==========================================================================
+  // Sprint 92 — PID + Pane ID Retrieval
+  // ==========================================================================
+
+  /**
+   * Get the PID of the process running in a tmux pane.
+   * Returns null if the pane does not exist.
+   */
+  async getPanePid(target: string): Promise<number | null> {
+    try {
+      const { stdout } = await this.exec([
+        "display-message",
+        "-t", target,
+        "-p", "#{pane_pid}",
+      ]);
+      const pid = parseInt(stdout.trim(), 10);
+      return Number.isNaN(pid) ? null : pid;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get the stable pane ID (e.g. "%3") for a tmux pane.
+   * Used for session re-attachment after launcher restart.
+   */
+  async getPaneId(target: string): Promise<string | null> {
+    try {
+      const { stdout } = await this.exec([
+        "display-message",
+        "-t", target,
+        "-p", "#{pane_id}",
+      ]);
+      const id = stdout.trim();
+      return id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ==========================================================================
   // Private
   // ==========================================================================
 

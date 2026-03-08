@@ -22,6 +22,11 @@ import type { Command } from "commander";
 import { installAgents } from "../../bridge/intelligence/agent-installer.js";
 import { installHooks } from "../../bridge/hooks/hook-installer.js";
 import { installTeams } from "../../bridge/intelligence/team-installer.js";
+import { LockManager, UnifiedLauncher } from "../../bridge/launcher/index.js";
+import { getSessionRegistry } from "../../bridge/session-registry.js";
+import { getTmuxBridge } from "../../bridge/tmux/tmux-bridge.js";
+import { getAgentLauncher } from "../../bridge/agent-launcher.js";
+import { getBridgeAuditLogger } from "../../bridge/security/bridge-audit.js";
 
 // ============================================================================
 // Terminal Colors
@@ -218,6 +223,123 @@ function installTeamsAction(projectPath: string, options: InstallTeamsOptions): 
 }
 
 // ============================================================================
+// Sprint 92 — Launcher Actions
+// ============================================================================
+
+/**
+ * Start the unified launcher (foreground).
+ */
+async function launcherStartAction(): Promise<void> {
+  console.log("");
+  console.log(dim("Starting unified launcher..."));
+  console.log("");
+
+  const launcher = new UnifiedLauncher({
+    registry: getSessionRegistry(),
+    tmux: getTmuxBridge(),
+    agentLauncher: getAgentLauncher(),
+    audit: getBridgeAuditLogger(),
+  });
+
+  const result = await launcher.start();
+
+  if (!result.success) {
+    console.error(red(`✗ ${result.error}`));
+    process.exit(1);
+  }
+
+  console.log(green("✓ Launcher started") + dim(` (PID ${process.pid})`));
+
+  if (result.staleLockRemoved) {
+    console.log(yellow("  ○ Stale lock removed"));
+  }
+  if (result.recoveredSessions !== undefined && result.recoveredSessions > 0) {
+    console.log(green(`  ✓ ${result.recoveredSessions} session(s) recovered`));
+  }
+  if (result.lostSessions !== undefined && result.lostSessions > 0) {
+    console.log(red(`  ✗ ${result.lostSessions} session(s) lost`));
+  }
+
+  console.log("");
+  console.log(dim("  Press Ctrl+C to stop"));
+  console.log("");
+
+  // Register signal handlers
+  const shutdown = async (): Promise<void> => {
+    console.log("");
+    console.log(dim("Shutting down launcher..."));
+    await launcher.stop();
+    console.log(green("✓ Launcher stopped"));
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+
+  // Keep process alive
+  await new Promise(() => {});
+}
+
+/**
+ * Stop the running launcher.
+ */
+function launcherStopAction(): void {
+  const lock = new LockManager();
+  const status = lock.isRunning();
+
+  if (!status.running || status.pid === undefined) {
+    console.log(yellow("No launcher is running."));
+    return;
+  }
+
+  try {
+    process.kill(status.pid, "SIGTERM");
+    console.log(green(`✓ Sent SIGTERM to launcher (PID ${status.pid})`));
+  } catch (err) {
+    console.error(red(`✗ Failed to stop launcher: ${err instanceof Error ? err.message : String(err)}`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Show launcher status and active sessions.
+ */
+function launcherStatusAction(): void {
+  const lock = new LockManager();
+  const lockStatus = lock.isRunning();
+
+  console.log("");
+
+  if (!lockStatus.running) {
+    console.log(yellow("Launcher: not running"));
+  } else {
+    const uptime = lockStatus.startTime
+      ? Math.floor((Date.now() - lockStatus.startTime) / 1000)
+      : 0;
+    const uptimeStr = `${Math.floor(uptime / 60)}m ${uptime % 60}s`;
+    console.log(green(`Launcher: running`) + dim(` (PID ${lockStatus.pid}, uptime ${uptimeStr})`));
+  }
+
+  // Show active sessions
+  const registry = getSessionRegistry();
+  const sessions = registry.getActive();
+
+  if (sessions.length === 0) {
+    console.log(dim("  No active sessions"));
+  } else {
+    console.log(`  Active sessions: ${sessions.length}`);
+    for (const s of sessions) {
+      const role = s.agentRole ? ` @${s.agentRole}` : "";
+      const team = s.teamId ? ` (${s.teamId}-team)` : "";
+      const pid = s.providerPid ? ` PID:${s.providerPid}` : "";
+      console.log(dim(`    ${s.id} ${s.agentType}${role}${team}${pid}`));
+    }
+  }
+
+  console.log("");
+}
+
+// ============================================================================
 // Command Registration
 // ============================================================================
 
@@ -247,4 +369,24 @@ export function registerBridgeCommand(program: Command): void {
     .option("--force", "Overwrite existing team files")
     .option("--tier <tier>", "Project tier (LITE/STANDARD/PROFESSIONAL/ENTERPRISE)", "STANDARD")
     .action(installTeamsAction);
+
+  // Sprint 92 — Unified Launcher CLI
+  const launcher = bridge
+    .command("launcher")
+    .description("Manage the unified session launcher");
+
+  launcher
+    .command("start")
+    .description("Start the unified launcher (foreground)")
+    .action(launcherStartAction);
+
+  launcher
+    .command("stop")
+    .description("Stop the running launcher")
+    .action(launcherStopAction);
+
+  launcher
+    .command("status")
+    .description("Show launcher status and active sessions")
+    .action(launcherStatusAction);
 }

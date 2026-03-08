@@ -235,6 +235,22 @@ export class AgentLauncher {
 
       this.registry.add(session);
 
+      // Sprint 92: Populate providerPid + tmuxPaneId (best-effort)
+      try {
+        const panePid = await this.tmux.getPanePid(tmuxInfo.target);
+        const paneId = await this.tmux.getPaneId(tmuxInfo.target);
+        const pidUpdates: Partial<BridgeSession> = {};
+        if (panePid !== null) pidUpdates.providerPid = panePid;
+        if (paneId !== null) pidUpdates.tmuxPaneId = paneId;
+        pidUpdates.launcherStartTime = Date.now();
+        if (Object.keys(pidUpdates).length > 0) {
+          this.registry.update(sessionId, pidUpdates);
+          Object.assign(session, pidUpdates);
+        }
+      } catch {
+        // PID tracking is best-effort — don't fail the launch
+      }
+
       // 9. Audit log
       audit.log({
         event: "session_create",

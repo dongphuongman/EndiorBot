@@ -100,6 +100,10 @@ export interface BridgeSession {
   teamId?: TeamId;
   /** PID of the agent process (if known) */
   providerPid?: number;
+  /** tmux pane ID for session re-attachment (e.g. "%3") */
+  tmuxPaneId?: string;
+  /** Unix ms timestamp when launcher started this session */
+  launcherStartTime?: number;
   /** Last error message */
   lastError?: string;
   /** ISO 8601 creation timestamp */
@@ -254,7 +258,12 @@ export type BridgeAuditEventType =
   | "team_status_checked"
   | "team_cost_threshold"
   | "team_cost_extended"
-  | "team_killed";
+  | "team_killed"
+  // Sprint 92 — Unified Launcher
+  | "launcher_started"
+  | "launcher_stopped"
+  | "session_recovered"
+  | "session_crash_restart";
 
 export type BridgeAuditActor = "telegram" | "hook" | "system";
 

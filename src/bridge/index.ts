@@ -173,3 +173,23 @@ export {
   formatTeamDashboard,
   ESTIMATED_TOKENS_PER_MINUTE,
 } from "./teams/team-monitor.js";
+
+// Sprint 92 — Unified Launcher
+export {
+  LockManager,
+  ProcessMonitor,
+  UnifiedLauncher,
+  MAX_RESTARTS,
+  RESTART_WINDOW_MS,
+  DEFAULT_POLL_INTERVAL_MS,
+} from "./launcher/index.js";
+export type {
+  LockFileContent,
+  LockManagerDeps,
+  AcquireResult,
+  ProcessMonitorDeps,
+  PollResult,
+  UnifiedLauncherDeps,
+  StartResult,
+  LauncherStatus,
+} from "./launcher/index.js";
