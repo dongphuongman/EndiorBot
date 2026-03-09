@@ -205,18 +205,18 @@ describe("GateEngine — coverage: checker", () => {
 // OTT /gate command (Step 12a)
 // ============================================================================
 
-describe("OTT /gate command — references gate recommend", () => {
-  it("gate info message says 'gate recommend' not 'gate check'", () => {
+describe("OTT /gate command — Telegram-native response", () => {
+  it("gate info message uses @pm agent mention (not CLI reference)", () => {
     const result = handleGateCommand(["G2"]);
     expect(result.success).toBe(true);
-    expect(result.response).toContain("gate recommend");
-    expect(result.response).not.toContain("gate check");
+    expect(result.response).toContain("@pm check gate");
+    expect(result.response).not.toContain("endiorbot");
   });
 
-  it("gate help message does not reference gate check", () => {
+  it("gate help message shows usage example", () => {
     const result = handleGateCommand([]);
     expect(result.success).toBe(true);
-    expect(result.response).not.toContain("gate check");
+    expect(result.response).toContain("/gate <gateId>");
   });
 });
 

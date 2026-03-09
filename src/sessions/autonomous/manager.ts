@@ -41,6 +41,7 @@ import {
   type AutonomousEvent,
   type AutonomousEventListener,
 } from "./types.js";
+import type { ContextLifecycleManager } from "../../context/transfer/context-lifecycle.js";
 
 // ============================================================================
 // Autonomous Session Manager
@@ -106,6 +107,9 @@ export class AutonomousSessionManager {
 
   // Event listeners
   private listeners: AutonomousEventListener[] = [];
+
+  // Sprint 97: Context lifecycle integration (T3)
+  private contextLifecycle: ContextLifecycleManager | undefined;
 
   // Session state
   private startTime: Date;
@@ -317,6 +321,23 @@ export class AutonomousSessionManager {
       tasksInQueue: this.taskQueue.length,
     });
 
+    // Sprint 97: Inject prior context before first task (CTO F5: additive hook)
+    if (this.contextLifecycle) {
+      try {
+        const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
+        await this.contextLifecycle.onSessionStart(
+          this.config.projectId,
+          this.config.sessionId,
+          this.config.sprintGoal,
+          undefined,
+          sdlcStage ?? undefined,
+        );
+      } catch {
+        // Non-critical — session continues without prior context
+        this.log.warn("Context injection failed, continuing without prior context");
+      }
+    }
+
     while (this.isRunning && !this.isPaused) {
       // Check budget
       if (!this.checkBudgetAvailable()) {
@@ -338,6 +359,24 @@ export class AutonomousSessionManager {
         break;
       }
 
+      // Sprint 97: Mid-session context refresh (CTO F5: inside loop condition check)
+      if (this.contextLifecycle) {
+        this.contextLifecycle.incrementTurn();
+
+        if (this.contextLifecycle.shouldRefresh()) {
+          try {
+            const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
+            await this.contextLifecycle.refreshContext(
+              this.config.sprintGoal,
+              undefined,
+              sdlcStage ?? undefined,
+            );
+          } catch {
+            // Non-critical — continue with existing context
+          }
+        }
+      }
+
       // Get next task
       const task = this.getNextTask();
       if (!task) {
@@ -354,6 +393,27 @@ export class AutonomousSessionManager {
 
       // Execute task
       await this.executeTask(task);
+
+      // Sprint 97: Increment turn count for refresh tracking
+      if (this.contextLifecycle) {
+        this.contextLifecycle.incrementTurn();
+      }
+    }
+
+    // Sprint 97: Extract context after loop exits (CTO F5: additive hook)
+    if (this.contextLifecycle) {
+      try {
+        const results = Array.from(this.completedTasks.values()).map((r) => ({
+          agent: "autonomous",
+          success: r.success,
+          output: r.output ?? "",
+        }));
+        const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
+        await this.contextLifecycle.onSessionEnd(results, undefined, sdlcStage ?? undefined);
+      } catch {
+        // Non-critical — context extraction failure doesn't affect session result
+        this.log.warn("Context extraction failed at session end");
+      }
     }
 
     this.log.info("Autonomous loop finished", {
@@ -798,6 +858,14 @@ export class AutonomousSessionManager {
    */
   removeEventListener(listener: AutonomousEventListener): void {
     this.listeners = this.listeners.filter((l) => l !== listener);
+  }
+
+  /**
+   * Set context lifecycle manager for T3 cross-session context.
+   * Sprint 97: Additive hook — does not restructure runLoop() (CTO F5).
+   */
+  setContextLifecycle(lifecycle: ContextLifecycleManager): void {
+    this.contextLifecycle = lifecycle;
   }
 
   /**

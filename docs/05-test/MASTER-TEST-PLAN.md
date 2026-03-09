@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 8.0
-**Date:** 2026-03-08 (Updated after Sprint 84-92 completion)
+**Version:** 10.0
+**Date:** 2026-03-08 (Updated after Sprint 94 completion)
 **Framework:** SDLC v6.1.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v2.8 Unified Launcher — Session Intelligence, Agent Teams, Process Monitor (ADR-024/025/026)
+**Milestone:** v3.0 Canonical Types + Channel Policy Engine — EndiorMessage, ChannelPolicyEngine, script retirement (ADR-002/024)
 
 ---
 
@@ -22,14 +22,14 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
         ├─────────────────┤
         │ Integration(197)│  ← Component integration ✅ Sprint 68-72
         ├─────────────────┤
-        │  Unit (5800+)   │  ← Function-level tests
+        │  Unit (5850+)   │  ← Function-level tests
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 92): 2026-03-08**
-- **Total Tests:** 5,859 (5,849 passing | 0 failing | 10 skipped)
+**Current Status (Post-Sprint 94): 2026-03-08**
+- **Total Tests:** 5,935 (5,935 passing | 0 failing | 10 skipped)
 - **Pass Rate:** 99.8%
-- **New Tests (Sprint 68-92):** 1,688 tests added
+- **New Tests (Sprint 68-93):** 1,725 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
   - Sprint 72 (Autonomous Agent): 184 tests (+ 44 golden scenarios type tests)
@@ -53,6 +53,8 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
   - Sprint 90 (Agent Teams Telegram): 23 tests (team-launch + team-display + complexity-gate)
   - Sprint 91 (Team Monitoring): 30 tests (team-monitor + team-monitoring commands)
   - Sprint 92 (Unified Launcher): 21 tests (lock-manager + process-monitor + unified-launcher)
+  - Sprint 93 (Gateway-Centric Unified App): 37 tests (command-dispatcher + ingress + bridge-commands + telegram-ott-adapter + serve-command)
+  - Sprint 94 (Canonical Types + Channel Policy): 48 tests (protocol-types + converters + channel-policy-engine + approve-reject + health-enhanced + canonical-flow)
 - **Tech Debt:** 1 flaky test (checkpoint.test.ts:462 — pre-existing since Sprint 35-40)
 
 ---
@@ -642,7 +644,59 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ---
 
-### 1.29 Previously Known Failures (RESOLVED)
+### 1.29 Gateway-Centric Unified App (37 tests) - Sprint 93
+
+**Location:** `tests/commands/`, `tests/gateway/`, `tests/channels/telegram/`, `tests/cli/`
+**Authority:** ADR-024 + ADR-002 (Sprint 93)
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| command-dispatcher.test.ts | 11 | PASS | Register, dispatch, has, isSensitive, requiresLink, factory, requireLinkedActor |
+| ingress.test.ts | 8 | PASS | Command routing, AI chat, unknown cmd error, @botname strip, metadata |
+| bridge-commands.test.ts | 4 | PASS | cmd.* registration, sensitive auth check, count |
+| telegram-ott-adapter.test.ts | 10 | PASS | Truncation (under/over/exact), interface, factory, Zalo helpers |
+| serve-command.test.ts | 4 | PASS | Registration, --no-telegram/--no-zalo, --port, B1 collision |
+
+**Validated Features:**
+- CommandDispatcher: central registry for 23+ commands, `SENSITIVE_COMMANDS` + `LINKED_COMMANDS` sets
+- `requireLinkedActor()` helper (Fix #4): unified identity check across handlers
+- GatewayIngress: single entry point (`handleInbound()`), Fix #1 unknown cmd → error, Fix #2 unified auth
+- Bridge Commands: `cmd.*` Gateway methods, R3 sensitive command auth
+- Router Chat: `router.chat` thin passthrough with agent/model/latencyMs metadata
+- Telegram OTT adapter: truncation to 4096 chars, `OttAdapter` interface
+- Zalo OTT adapter: 2000 char limit, `stripMarkdown()`, plain text only
+- `endiorbot serve`: unified startup, `--port`, `--no-telegram`, `--no-zalo`, B1 name collision avoidance
+- Graceful shutdown: reverse order, 5s per component, 20s max
+
+---
+
+### 1.30 Canonical Types + Channel Policy Engine (48 tests) - Sprint 94
+
+**Location:** `tests/protocol/`, `tests/policy/`, `tests/commands/`, `tests/monitoring/`, `tests/integration/`
+**Authority:** ADR-002 + ADR-024 (Sprint 94)
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| protocol/types.test.ts | 13 | PASS | EndiorMessage creation, optional fields, isValidEndiorMessage, isValidChannelSource, validateMessageContent, generateMessageId |
+| protocol/converters.test.ts | 10 | PASS | fromInboundMessage, toInboundMessage, round-trip, fromOTTMessage, fromIncomingMessage, toInboundResponse |
+| policy/channel-policy-engine.test.ts | 10 | PASS | Under/over limit, Telegram/Zalo/Web policies, overridePolicy, resetLimits, getStats, content length |
+| commands/approve-reject.test.ts | 6 | PASS | /approve valid/not-found/already-resolved/no-arg, /reject valid/no-arg |
+| monitoring/health-enhanced.test.ts | 7 | PASS | OTT adapter metrics, channel router metrics, enhanced collectHealthReport |
+| integration/canonical-flow.test.ts | 2 | PASS | OTTMessage → EndiorMessage → policy allowed, content length denial |
+
+**Validated Features:**
+- Canonical types: EndiorMessage, EndiorRequest, EndiorResponse, ChannelSource (ADR-002 portable)
+- CTO F1: ISO 8601 string timestamps; CTO F4: `${channel}-${vendorId}` message IDs
+- Converters: 5 bidirectional converters (InboundMessage, OTTMessage, IncomingMessage), round-trip preservation
+- Channel Policy Engine: per-channel sliding-window rate limits (30/20/60/120 msgs/min)
+- Policy overrides and reset; per-channel statistics tracking
+- /approve with executeApprovedRun integration (CTO F2); /reject with status update
+- Health report: OTT adapter status (running/stopped), channel router readiness
+- Integration: full canonical flow from OTT raw message through policy check
+
+---
+
+### 1.31 Previously Known Failures (RESOLVED)
 
 | File | Was Failing | Fix Applied | Sprint Fixed |
 |------|-------------|-------------|--------------|
@@ -1278,6 +1332,12 @@ pnpm vitest run tests/channels/zalo/
 # Run Sprint 78 Local Router + Conversation
 pnpm vitest run tests/agents/routing/local-router.test.ts tests/channels/conversation/
 
+# Run Sprint 94 Canonical Types + Channel Policy Engine
+pnpm vitest run tests/protocol/ tests/policy/ tests/commands/approve-reject.test.ts tests/monitoring/health-enhanced.test.ts tests/integration/canonical-flow.test.ts
+
+# Run Sprint 93 Gateway-Centric Unified App
+pnpm vitest run tests/commands/command-dispatcher.test.ts tests/gateway/ingress.test.ts tests/gateway/methods/bridge-commands.test.ts tests/channels/telegram/telegram-ott-adapter.test.ts tests/cli/serve-command.test.ts
+
 # Run Sprint 76 OTT Channel Enhancement
 pnpm vitest run tests/channels/ott/ott-enhancement.test.ts
 
@@ -1330,7 +1390,18 @@ pnpm test --coverage
 | 82.5 | 27 | 5,255 | 99.8% |
 | 83 | 156 | 5,411 | 99.8% |
 | 83-MF | +128 (fixes) | 5,539 | 99.8% |
+| 84 | 21 | 5,560 | 99.8% |
+| 85 | 41 | 5,601 | 99.8% |
+| 86 | 32 | 5,633 | 99.8% |
+| 87 | 31 | 5,664 | 99.8% |
+| 88 | 37 | 5,701 | 99.8% |
+| 89 | 20 | 5,721 | 99.8% |
+| 90 | 23 | 5,744 | 99.8% |
+| 91 | 30 | 5,774 | 99.8% |
+| 92 | 21 | 5,795 | 99.8% |
+| 93 | 37 | 5,887 | 99.8% |
+| 94 | 48 | 5,935 | 100% |
 
 ---
 
-*Master Test Plan v7.0 | SDLC Framework v6.1.1 | Sprint 83*
+*Master Test Plan v10.0 | SDLC Framework v6.1.1 | Sprint 94*

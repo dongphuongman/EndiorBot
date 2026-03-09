@@ -16,8 +16,10 @@
  * @sdlc SDLC Framework 6.1.1
  */
 
-import { resolve } from "node:path";
+import { resolve, join, dirname } from "node:path";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { fork, type ChildProcess } from "node:child_process";
 import type { Command } from "commander";
 import { installAgents } from "../../bridge/intelligence/agent-installer.js";
 import { installHooks } from "../../bridge/hooks/hook-installer.js";
@@ -227,13 +229,81 @@ function installTeamsAction(projectPath: string, options: InstallTeamsOptions): 
 // ============================================================================
 
 /**
- * Start the unified launcher (foreground).
+ * Resolve the project root directory (from dist/cli/commands/ → project root).
  */
-async function launcherStartAction(): Promise<void> {
+function getProjectRoot(): string {
+  // __dirname equivalent for ESM
+  const thisFile = fileURLToPath(import.meta.url);
+  // dist/cli/commands/bridge.js → project root (3 levels up)
+  return resolve(dirname(thisFile), "..", "..", "..");
+}
+
+/**
+ * Spawn a child service (Telegram or Gateway) as a forked process.
+ */
+function spawnService(
+  scriptPath: string,
+  label: string,
+): ChildProcess | null {
+  if (!existsSync(scriptPath)) {
+    console.log(yellow(`  ○ ${label}: script not found (${scriptPath})`));
+    return null;
+  }
+
+  const child = fork(scriptPath, [], {
+    stdio: ["ignore", "pipe", "pipe", "ipc"],
+    env: { ...process.env },
+    detached: false,
+  });
+
+  // Prefix child stdout/stderr with label
+  child.stdout?.on("data", (data: Buffer) => {
+    const lines = data.toString().trimEnd().split("\n");
+    for (const line of lines) {
+      console.log(dim(`[${label}]`) + ` ${line}`);
+    }
+  });
+
+  child.stderr?.on("data", (data: Buffer) => {
+    const lines = data.toString().trimEnd().split("\n");
+    for (const line of lines) {
+      console.error(red(`[${label}]`) + ` ${line}`);
+    }
+  });
+
+  child.on("exit", (code) => {
+    if (code !== 0 && code !== null) {
+      console.error(red(`  ✗ ${label} exited with code ${code}`));
+    }
+  });
+
+  return child;
+}
+
+interface LauncherStartOptions {
+  noTelegram?: boolean;
+  noGateway?: boolean;
+}
+
+/**
+ * Start the unified launcher (foreground).
+ *
+ * Starts all services in one process:
+ * 1. Session Manager (lock + PID tracking + crash recovery)
+ * 2. Telegram Polling (CEO command channel)
+ * 3. Web Gateway (WebSocket API)
+ */
+async function launcherStartAction(options: LauncherStartOptions): Promise<void> {
+  const root = getProjectRoot();
+  const childProcesses: ChildProcess[] = [];
+
   console.log("");
-  console.log(dim("Starting unified launcher..."));
+  console.log(dim("╔══════════════════════════════════════════╗"));
+  console.log(dim("║") + green("  EndiorBot — Unified Launcher") + dim("            ║"));
+  console.log(dim("╚══════════════════════════════════════════╝"));
   console.log("");
 
+  // 1. Start session manager
   const launcher = new UnifiedLauncher({
     registry: getSessionRegistry(),
     tmux: getTmuxBridge(),
@@ -244,32 +314,92 @@ async function launcherStartAction(): Promise<void> {
   const result = await launcher.start();
 
   if (!result.success) {
-    console.error(red(`✗ ${result.error}`));
+    console.error(red(`✗ Session Manager: ${result.error}`));
     process.exit(1);
   }
 
-  console.log(green("✓ Launcher started") + dim(` (PID ${process.pid})`));
+  console.log(green("  ✓ Session Manager") + dim(` (PID ${process.pid})`));
 
   if (result.staleLockRemoved) {
-    console.log(yellow("  ○ Stale lock removed"));
+    console.log(yellow("    ○ Stale lock removed"));
   }
   if (result.recoveredSessions !== undefined && result.recoveredSessions > 0) {
-    console.log(green(`  ✓ ${result.recoveredSessions} session(s) recovered`));
+    console.log(green(`    ✓ ${result.recoveredSessions} session(s) recovered`));
   }
   if (result.lostSessions !== undefined && result.lostSessions > 0) {
-    console.log(red(`  ✗ ${result.lostSessions} session(s) lost`));
+    console.log(red(`    ✗ ${result.lostSessions} session(s) lost`));
+  }
+
+  // 2. Start Telegram polling
+  //    MF-1 (Sprint 94): Detect serve mode or stub scripts → skip spawn + print migration
+  if (process.env.ENDIORBOT_SERVE_MODE === "true") {
+    console.log(dim("  ○ Telegram Polling: managed by `endiorbot serve`"));
+    console.log(dim("  ○ Web Gateway: managed by `endiorbot serve`"));
+  } else if (!options.noTelegram || !options.noGateway) {
+    if (!options.noTelegram) {
+      const telegramScript = join(root, "scripts", "telegram-poll.mjs");
+      const telegram = spawnService(telegramScript, "Telegram");
+      if (telegram) {
+        childProcesses.push(telegram);
+        console.log(green("  ✓ Telegram Polling") + dim(` (PID ${telegram.pid})`));
+      }
+    } else {
+      console.log(dim("  ○ Telegram Polling: skipped (--no-telegram)"));
+    }
+
+    // 3. Start Web Gateway
+    if (!options.noGateway) {
+      const gatewayScript = join(root, "scripts", "web-gateway.mjs");
+      const gateway = spawnService(gatewayScript, "Gateway");
+      if (gateway) {
+        childProcesses.push(gateway);
+        console.log(green("  ✓ Web Gateway") + dim(` (PID ${gateway.pid})`));
+      }
+    } else {
+      console.log(dim("  ○ Web Gateway: skipped (--no-gateway)"));
+    }
   }
 
   console.log("");
-  console.log(dim("  Press Ctrl+C to stop"));
+  console.log(dim("  Press Ctrl+C to stop all services"));
   console.log("");
 
-  // Register signal handlers
+  // Graceful shutdown: stop all child processes + launcher
+  let shuttingDown = false;
   const shutdown = async (): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
     console.log("");
-    console.log(dim("Shutting down launcher..."));
+    console.log(dim("Shutting down..."));
+
+    // Kill child processes
+    for (const child of childProcesses) {
+      if (child.pid && !child.killed) {
+        child.kill("SIGTERM");
+      }
+    }
+
+    // Wait for children to exit (max 5s)
+    await Promise.race([
+      Promise.all(childProcesses.map((c) =>
+        new Promise<void>((resolve) => {
+          if (c.killed || c.exitCode !== null) { resolve(); return; }
+          c.on("exit", () => resolve());
+        })
+      )),
+      new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+    ]);
+
+    // Force kill any remaining
+    for (const child of childProcesses) {
+      if (child.pid && !child.killed) {
+        child.kill("SIGKILL");
+      }
+    }
+
     await launcher.stop();
-    console.log(green("✓ Launcher stopped"));
+    console.log(green("✓ All services stopped"));
     process.exit(0);
   };
 
@@ -377,7 +507,9 @@ export function registerBridgeCommand(program: Command): void {
 
   launcher
     .command("start")
-    .description("Start the unified launcher (foreground)")
+    .description("Start the unified launcher (all services)")
+    .option("--no-telegram", "Skip Telegram polling")
+    .option("--no-gateway", "Skip Web Gateway")
     .action(launcherStartAction);
 
   launcher

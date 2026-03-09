@@ -155,3 +155,69 @@ export {
   type AnchorBudgetAllocation,
   type BudgetStrategy,
 } from "./anchor-budget.js";
+
+// ============================================================================
+// Cross-Session Context Transfer (Sprint 96)
+// ============================================================================
+
+export {
+  // Types
+  type ContextQualityScore,
+  type QualityWeights,
+  type TransferContextType,
+  type TransferableContext,
+  type ContextTransferConfig,
+  type ContextSelectionResult,
+  type ContextQualityGateResult,
+  type QualityViolation,
+  type TransferStoreStats,
+  DEFAULT_QUALITY_WEIGHTS,
+  DEFAULT_TRANSFER_CONFIG,
+  ALL_TRANSFER_CONTEXT_TYPES,
+
+  // Quality Scorer
+  ContextQualityScorer,
+  getContextQualityScorer,
+  resetContextQualityScorer,
+
+  // Quality Gate
+  ContextQualityGate,
+  getContextQualityGate,
+  resetContextQualityGate,
+
+  // Store
+  ContextTransferStore,
+  getContextTransferStore,
+  resetContextTransferStore,
+
+  // Extractor
+  SessionContextExtractor,
+
+  // Selector
+  ContextSelector,
+  getContextSelector,
+  resetContextSelector,
+
+  // Sprint 97: T3 types
+  type RetentionLevel,
+  type RetentionMetrics,
+  type ContextCheckpointState,
+  type ContextRefreshConfig,
+  RETENTION_THRESHOLDS,
+  DEFAULT_REFRESH_CONFIG,
+
+  // Sprint 97: Injector
+  ContextInjector,
+  getContextInjector,
+  resetContextInjector,
+
+  // Sprint 97: Retention Tracker
+  RetentionTracker,
+  getRetentionTracker,
+  resetRetentionTracker,
+
+  // Sprint 97: Lifecycle Manager
+  ContextLifecycleManager,
+  getContextLifecycleManager,
+  resetContextLifecycleManager,
+} from "./transfer/index.js";

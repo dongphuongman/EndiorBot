@@ -403,13 +403,21 @@ describe("TelegramChannel", () => {
       expect(result?.response).toContain("/status");
     });
 
-    it("should handle unknown command", async () => {
+    it("should return null for unknown commands (forwarded to onMessage handler)", async () => {
       const channel = createTelegramChannel(createTestConfig());
 
       const result = await channel.handleCommand("/unknown");
 
-      expect(result?.success).toBe(false);
-      expect(result?.response).toContain("Unknown command");
+      expect(result).toBeNull();
+    });
+
+    it("should strip @botname suffix from commands", async () => {
+      const channel = createTelegramChannel(createTestConfig());
+
+      const result = await channel.handleCommand("/help@Endior_bot");
+
+      expect(result?.success).toBe(true);
+      expect(result?.response).toContain("Commands");
     });
 
     it("should require approval ID for /approve", async () => {

@@ -99,7 +99,29 @@ Two unsanitized echo vulnerabilities in `telegram-commands.ts`:
 
 `sanitizeForEcho()` (already exists at line 25) strips Markdown special chars and limits to 50 chars.
 
-### 6. Zalo READ-Only Runtime Assertion (W1)
+### 6. OTT Commands Must Not Reference CLI (Hotfix 2026-03-09)
+
+**Problem:** 6 command handlers (`/consult`, `/gate`, `/compliance`, `/fix`, `/config`, `/init`) responded with `Run \`endiorbot ...\`` — directing users to run CLI commands from within a Telegram chat, which is impossible.
+
+**Design Rule:** OTT command responses MUST only suggest actions available in the current channel:
+- Agent mentions: `@researcher <query>`, `@pm check gate G2 status`
+- Slash commands: `/fix --dry-run`, `/mode patch`
+- NEVER: `Run \`endiorbot ...\`` or any CLI invocation
+
+**Affected Handlers:**
+
+| Command | Before (CLI leak) | After (Telegram-native) |
+|---------|-------------------|------------------------|
+| `/consult` | Run `endiorbot consult "..."` | Use: `@researcher <query>` |
+| `/gate` | Run `endiorbot gate recommend ...` | Use: `@pm check gate ... status` |
+| `/compliance` | Run `endiorbot compliance score` | Use: `@pm check compliance status` |
+| `/fix` | Run `endiorbot compliance fix` | Use: `@pm run compliance fix` |
+| `/config` | Run `endiorbot config show` | Use: `@pm show project config` |
+| `/init` | Run `endiorbot init --status` | Use: `@pm check init status` |
+
+**File:** `src/channels/telegram/telegram-commands.ts` — 6 handlers updated, 0 tests broken (184 Telegram tests pass).
+
+### 7. Zalo READ-Only Runtime Assertion (W1)
 
 Add explicit guard in `invokeZaloAgent()`:
 

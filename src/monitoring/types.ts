@@ -87,6 +87,35 @@ export interface MemoryInfo {
 }
 
 // ============================================================================
+// OTT Adapter Health (Sprint 94 D5)
+// ============================================================================
+
+/**
+ * OTT adapter status.
+ */
+export type OttAdapterStatus = "running" | "stopped" | "error";
+
+/**
+ * OTT adapter health information.
+ */
+export interface OttAdapterHealthInfo {
+  /** Adapter name (e.g. "telegram", "zalo") */
+  name: string;
+  /** Current status */
+  status: OttAdapterStatus;
+}
+
+/**
+ * Channel router health information.
+ */
+export interface ChannelRouterHealthInfo {
+  /** Whether the router is initialized and ready */
+  routerReady: boolean;
+  /** Number of available AI providers */
+  providerCount: number;
+}
+
+// ============================================================================
 // Health Report
 // ============================================================================
 
@@ -108,6 +137,10 @@ export interface HealthReport {
   gateway: GatewayHealthInfo;
   /** Memory usage */
   memory: MemoryInfo;
+  /** OTT adapter statuses (Sprint 94 D5) */
+  ottAdapters?: OttAdapterHealthInfo[];
+  /** Channel router health (Sprint 94 D5) */
+  channelRouter?: ChannelRouterHealthInfo;
 }
 
 // ============================================================================
@@ -122,4 +155,8 @@ export interface MetricsCollectorOptions {
   checkProviders?: boolean;
   /** Timeout for provider health checks (ms) */
   providerCheckTimeout?: number;
+  /** Names of currently running OTT adapters (Sprint 94 D5) */
+  ottAdapterNames?: string[];
+  /** Channel router info (Sprint 94 D5) */
+  channelRouterInfo?: ChannelRouterHealthInfo;
 }

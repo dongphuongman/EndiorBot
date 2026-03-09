@@ -151,11 +151,10 @@ export function handleGateCommand(args: string[]): CommandResult {
     };
   }
 
-  // Gate check is CLI-bound; OTT provides info message
   const safeGateId = sanitizeForEcho(gateId);
   return {
     success: true,
-    response: `📊 Gate ${safeGateId}\n\nRun \`endiorbot gate recommend ${safeGateId}\` for full evaluation.\nOr use: \`@pm check gate ${safeGateId} status\``,
+    response: `📊 Gate ${safeGateId}\n\nUse: \`@pm check gate ${safeGateId} status\` for full evaluation.`,
   };
 }
 
@@ -168,7 +167,7 @@ export function handleComplianceCommand(args: string[]): CommandResult {
   if (!subCommand || subCommand === "score" || subCommand === "check") {
     return {
       success: true,
-      response: "📋 *Compliance*\n\nRun `endiorbot compliance score` for full report.\nOr use: `@pm check compliance status`\n\nTo fix issues: `/fix --dry-run`",
+      response: "📋 *Compliance*\n\nUse: `@pm check compliance status` for full report.\n\nTo fix issues: `/fix --dry-run`",
     };
   }
 
@@ -203,12 +202,11 @@ export function handleFixCommand(args: string[]): CommandResult {
   }
 
   parts.push("");
-  parts.push("Run `endiorbot compliance fix` for full execution.");
-  parts.push("Or use: `@pm run compliance fix" + (dryRun ? " --dry-run" : "") + (stage ? ` --stage ${sanitizeForEcho(stage)}` : "") + "`");
+  parts.push("Use: `@pm run compliance fix" + (dryRun ? " --dry-run" : "") + (stage ? ` --stage ${sanitizeForEcho(stage)}` : "") + "`");
   parts.push("");
   parts.push("Options:");
   parts.push("  `/fix` — preview (dry-run)");
-  parts.push("  `/fix --yes` — apply fixes (via CLI)");
+  parts.push("  `/fix --yes` — apply fixes");
   parts.push("  `/fix --stage 01-planning` — fix specific stage");
 
   return { success: true, response: parts.join("\n") };
@@ -228,7 +226,7 @@ export function handleConsultCommand(args: string[]): CommandResult {
 
   return {
     success: true,
-    response: `🧠 *Consultation*\n\nQuery: ${sanitizeForEcho(query.slice(0, 200))}\n\nRun \`endiorbot consult "${sanitizeForEcho(query.slice(0, 100))}"\` for full multi-model response.\nOr use: \`@researcher ${sanitizeForEcho(query.slice(0, 100))}\``,
+    response: `🧠 *Consultation*\n\nQuery: "${sanitizeForEcho(query.slice(0, 200))}"\n\nUse: \`@researcher ${sanitizeForEcho(query.slice(0, 100))}\` for full multi-model response.`,
   };
 }
 
@@ -238,7 +236,7 @@ export function handleConsultCommand(args: string[]): CommandResult {
 export function handleConfigCommand(): CommandResult {
   return {
     success: true,
-    response: "⚙️ *Project Config*\n\nRun `endiorbot config show` for full configuration.\nOr use: `@pm show project config`",
+    response: "⚙️ *Project Config*\n\nUse: `@pm show project config` for full configuration.",
   };
 }
 
@@ -248,7 +246,7 @@ export function handleConfigCommand(): CommandResult {
 export function handleInitCommand(): CommandResult {
   return {
     success: true,
-    response: "🏗️ *Init Status*\n\nRun `endiorbot init --status` to check project initialization.\nOr use: `@pm check init status`",
+    response: "🏗️ *Init Status*\n\nUse: `@pm check init status` to check project initialization.",
   };
 }
 

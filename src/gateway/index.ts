@@ -66,6 +66,13 @@ export {
 // Methods
 export * from "./methods/index.js";
 
+// Ingress (Sprint 93 — single entry point for OTT adapters)
+export {
+  GatewayIngress,
+  type InboundMessage,
+  type InboundResponse,
+} from "./ingress.js";
+
 // Chat Handler (Sprint 54 - 3-Model Consultation)
 export {
   ChatHandler,

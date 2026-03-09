@@ -2,22 +2,33 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.1.1
-**Last Updated**: 2026-03-08 (Sprint 92 Complete)
+**Last Updated**: 2026-03-09 (Sprint 97 Complete)
 
 ---
 
 ## Active Sprint
 
-None — Tier 4 Bridge & Intelligence complete. Next sprint TBD.
+**Sprint 97** — Progressive Trust T3: 120min Autonomous Sessions (PLANNING)
+- [CURRENT-SPRINT.md](CURRENT-SPRINT.md) | [sprint-97](sprint-97-progressive-trust-t3.md)
 
 ---
 
 ## Completed Sprints
 
-### Tier 4: Bridge & Intelligence (Sprint 82-92) — ADR-024/025/026
+### Tier 5: Progressive Autonomy (Sprint 95+) — T2/T3
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 97 | Mar 8-9, 2026 | Progressive Trust T3 — 120min sessions, $10 budget, ≥95% context retention (+78/6,157) | ✅ COMPLETE | [sprint-97](sprint-97-progressive-trust-t3.md) |
+| Sprint 96 | Mar 8, 2026 | Cross-Session Context Transfer + Quality Gates — 4-dim scoring, quality gate, 600-token budget (+85/6,079) | ✅ COMPLETE | [sprint-96](sprint-96-cross-session-context.md) |
+| Sprint 95 | Mar 8, 2026 | Progressive Autonomy T2 — multi-agent routing, GoalDecomposer, SessionRelay (+59/5,994) | ✅ COMPLETE | [sprint-95](sprint-95-progressive-autonomy-t2.md) |
+
+### Tier 4: Bridge & Intelligence (Sprint 82-94) — ADR-024/025/026
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 94 | Mar 8, 2026 | Canonical Types + Channel Policy Engine (ADR-002/024) | ✅ COMPLETE | [sprint-94](sprint-94-canonical-types-channel-policy.md) |
+| Sprint 93 | Mar 8, 2026 | Gateway-Centric Unified App — single `serve` command (ADR-024) | ✅ COMPLETE | [sprint-93](sprint-93-gateway-centric-unified-app.md) |
 | Sprint 92 | Mar 8, 2026 | Unified App Launcher — lock + PID + crash recovery | ✅ COMPLETE | [sprint-92](sprint-92-unified-launcher.md) |
 | Sprint 91 | Mar 8, 2026 | Team Monitoring — health, cost, /kill-team (ADR-026) | ✅ COMPLETE | [sprint-91](sprint-91-team-monitoring.md) |
 | Sprint 90 | Mar 8, 2026 | Agent Teams Telegram — /launch --as-team + complexity gate | ✅ COMPLETE | [sprint-90](sprint-90-agent-teams-telegram.md) |
@@ -79,6 +90,11 @@ None — Tier 4 Bridge & Intelligence complete. Next sprint TBD.
 
 | Sprint | Tests | Cumulative |
 |--------|-------|------------|
+| Sprint 97 | +78 | 6,157 |
+| Sprint 96 | +85 | 6,079 |
+| Sprint 95 | +59 | 5,994 |
+| Sprint 94 | +48 | 5,935 |
+| Sprint 93 | +37 | 5,887 |
 | Sprint 92 | +21 | 5,859 |
 | Sprint 91 | +30 | 5,838 |
 | Sprint 90 | +23 | 5,808 |
@@ -109,7 +125,9 @@ None — Tier 4 Bridge & Intelligence complete. Next sprint TBD.
 
 | ADR | Title | Sprints | Status |
 |-----|-------|---------|--------|
-| ADR-024 | Notification Bridge + Multi-Agent Session Mgmt | 82-86, 92 | ✅ COMPLETE |
+| ADR-028 | Progressive Trust T3 | 97 | ✅ COMPLETE |
+| ADR-027 | Cross-Session Context Transfer | 96 | ✅ COMPLETE |
+| ADR-024 | Notification Bridge + Multi-Agent Session Mgmt | 82-86, 92-94 | ✅ COMPLETE |
 | ADR-025 | Session Intelligence Envelope + 3-Layer Context | 84, 87-88 | ✅ COMPLETE |
 | ADR-026 | Claude Code Agent Teams | 89-91 | ✅ COMPLETE |
 | ADR-023 | SDLC-Aligned Content Quality | 80 | ✅ COMPLETE |

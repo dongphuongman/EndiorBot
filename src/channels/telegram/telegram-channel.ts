@@ -435,6 +435,15 @@ export class TelegramChannel implements BidirectionalChannel {
         false,
         result.reply_markup as Record<string, unknown> | undefined,
       );
+    } else if (incoming && this.messageHandler) {
+      // Unknown command — forward to onMessage handler (bridge commands like /link, /launch)
+      try {
+        await this.messageHandler(incoming);
+      } catch (error) {
+        this.log.error("Message handler error (forwarded command)", {
+          error: (error as Error).message,
+        });
+      }
     }
   }
 
@@ -443,7 +452,8 @@ export class TelegramChannel implements BidirectionalChannel {
    */
   async handleCommand(text: string): Promise<CommandResult | null> {
     const parts = text.trim().split(/\s+/);
-    const command = parts[0]?.toLowerCase();
+    // Strip @botname suffix (Telegram sends "/link@Endior_bot" in group chats)
+    const command = parts[0]?.toLowerCase().split("@")[0];
     const args = parts.slice(1);
 
     switch (command) {
@@ -510,10 +520,9 @@ export class TelegramChannel implements BidirectionalChannel {
         return handleEvalCommand(args, this.config?.chatId ?? "telegram");
 
       default:
-        return {
-          success: false,
-          response: `Unknown command: ${command}\nUse /help for available commands.`,
-        };
+        // Unknown command — return null to let onMessage handler process it
+        // (bridge commands like /link, /launch, /sessions are handled by telegram-poll.mjs)
+        return null;
     }
   }
 

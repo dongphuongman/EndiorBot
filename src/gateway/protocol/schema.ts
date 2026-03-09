@@ -135,7 +135,12 @@ export type GatewayMethod =
   // System methods
   | "system.ping"
   | "system.version"
-  | "system.stats";
+  | "system.stats"
+  // Sprint 93: Bridge commands (dynamic cmd.* namespace)
+  | `cmd.${string}`
+  // Sprint 93: Router chat methods
+  | "router.chat"
+  | "router.status";
 
 // ============================================================================
 // Method Parameters

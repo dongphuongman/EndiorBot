@@ -18,6 +18,10 @@ import { registerApprovalMethods } from "./approval.js";
 import { registerCheckpointMethods } from "./checkpoints.js";
 import { registerAgentMethods } from "./agents.js";
 import { registerChatMethods } from "./chat.js";
+
+// Sprint 93: Bridge commands + Router chat
+export { registerBridgeCommandMethods, getBridgeCommandCount } from "./bridge-commands.js";
+export { registerRouterChatMethods } from "./router-chat.js";
 import { registerEvalMethods } from "./eval.js";
 import { registerOptimizerMethods } from "./optimizer.js";
 import { registerToolsMethods } from "./tools.js";

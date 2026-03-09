@@ -17,6 +17,8 @@ import type {
   GatewayHealthInfo,
   MemoryInfo,
   MetricsCollectorOptions,
+  OttAdapterHealthInfo,
+  ChannelRouterHealthInfo,
 } from "./types.js";
 import { getProviderRegistry } from "../providers/provider-registry.js";
 import {
@@ -179,6 +181,39 @@ export function getGatewayMetrics(
 }
 
 // ============================================================================
+// OTT Adapter Metrics (Sprint 94 D5)
+// ============================================================================
+
+/**
+ * Get OTT adapter health info from a list of running adapter names.
+ * Adapters not in runningNames are considered stopped.
+ */
+export function getOttAdapterMetrics(
+  runningNames: string[],
+  allNames: string[] = ["telegram", "zalo"],
+): OttAdapterHealthInfo[] {
+  const runningSet = new Set(runningNames);
+  return allNames.map((name) => ({
+    name,
+    status: runningSet.has(name) ? "running" as const : "stopped" as const,
+  }));
+}
+
+// ============================================================================
+// Channel Router Metrics (Sprint 94 D5)
+// ============================================================================
+
+/**
+ * Get channel router health info.
+ */
+export function getChannelRouterMetrics(
+  routerReady: boolean,
+  providerCount: number,
+): ChannelRouterHealthInfo {
+  return { routerReady, providerCount };
+}
+
+// ============================================================================
 // Status Calculation
 // ============================================================================
 
@@ -254,7 +289,7 @@ export async function collectHealthReport(
   // Calculate uptime
   const uptime = Math.floor((Date.now() - PROCESS_START_TIME) / 1000);
 
-  return {
+  const report: HealthReport = {
     status,
     uptime,
     timestamp: new Date().toISOString(),
@@ -263,6 +298,16 @@ export async function collectHealthReport(
     gateway,
     memory,
   };
+
+  // Sprint 94 D5: Add OTT adapter and channel router metrics if provided
+  if (options.ottAdapterNames) {
+    report.ottAdapters = getOttAdapterMetrics(options.ottAdapterNames);
+  }
+  if (options.channelRouterInfo) {
+    report.channelRouter = options.channelRouterInfo;
+  }
+
+  return report;
 }
 
 // ============================================================================

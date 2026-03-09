@@ -79,6 +79,7 @@ export class WebGatewayServer {
   private log = createLogger("web-gateway");
   private htmlContent: string = "";
   private webhookHandler: WebhookHandler | null = null;
+  private _healthCollector: (() => Promise<unknown>) | null = null;
 
   constructor(config?: Partial<GatewayConfig>) {
     this._config = resolveGatewayConfig(config);
@@ -193,6 +194,32 @@ export class WebGatewayServer {
   // ==========================================================================
 
   /**
+   * Set health collector for enhanced /api/health (Sprint 94 D5).
+   */
+  setHealthCollector(collector: () => Promise<unknown>): void {
+    this._healthCollector = collector;
+  }
+
+  /**
+   * Get connection stats for health reporting (Sprint 94 D5).
+   */
+  getConnectionStats(): { totalConnections: number; activeConnections: number; messagesReceived: number; messagesSent: number } {
+    return {
+      totalConnections: this.clients.size,
+      activeConnections: this.clients.size,
+      messagesReceived: 0,
+      messagesSent: 0,
+    };
+  }
+
+  /**
+   * Get number of registered methods (Sprint 94 D5).
+   */
+  getMethodCount(): number {
+    return this.methods.size;
+  }
+
+  /**
    * Set webhook handler for OTT channels (Sprint 76).
    * Routes POST /webhook/* to the handler.
    */
@@ -270,6 +297,19 @@ export class WebGatewayServer {
   }
 
   private serveHealth(res: ServerResponse): void {
+    // Sprint 94 D5: Return enhanced health report if collector is available
+    if (this._healthCollector) {
+      this._healthCollector()
+        .then((report) => {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(report));
+        })
+        .catch(() => {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }));
+        });
+      return;
+    }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }));
   }

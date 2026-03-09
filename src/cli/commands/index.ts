@@ -39,5 +39,6 @@ export { registerInitCommand } from "./init.js";
 export { registerComplianceCommand } from "./compliance.js";
 export { registerDevopsCommand } from "./devops.js";
 export { registerBridgeCommand } from "./bridge.js";
+export { registerServeCommand } from "./serve.js";
 export { registerShellCommand } from "./shell.js";
 export { registerAllCommands } from "./register-all.js";
