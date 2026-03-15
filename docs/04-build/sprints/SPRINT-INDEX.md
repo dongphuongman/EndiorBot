@@ -1,24 +1,45 @@
 # Sprint Index
 
 **Project**: EndiorBot
-**Framework**: SDLC 6.1.1
-**Last Updated**: 2026-03-09 (Sprint 97 Complete)
+**Framework**: SDLC 6.1.2
+**Last Updated**: 2026-03-16 (Sprint 110.5 COMPLETE — RL Serve Wiring + ADR-033 + Validation Set; Sprint 111a next)
 
 ---
 
 ## Active Sprint
 
-**Sprint 97** — Progressive Trust T3: 120min Autonomous Sessions (PLANNING)
-- [CURRENT-SPRINT.md](CURRENT-SPRINT.md) | [sprint-97](sprint-97-progressive-trust-t3.md)
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 111a | Mar 2026 | Offline Replay + Shadow Mode — Tinker rollouts, Qwen shadow responses, 20+ on-policy samples | 🔜 PLANNED | — |
+
+## Deferred Sprint
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 108 | Mar 13, 2026 | Async Notifications — `notifyFn` PATCH approval, Zalo bus + debounce, bus metrics in `/api/status` (ADR-032 Phase 3) | 🚧 DEFERRED | [sprint-108](sprint-108-async-notifications.md) |
 
 ---
 
 ## Completed Sprints
 
-### Tier 5: Progressive Autonomy (Sprint 95+) — T2/T3
+### Tier 5: Progressive Autonomy + Gap Closure (Sprint 95+) — T2/T3
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 110.5 | Mar 15-16, 2026 | RL Serve Wiring + ADR-033 Finalization + Validation Set v1 — keyboard live in production (CTO 9.2/10) | ✅ COMPLETE | [sprint-110.5](sprint-110.5-rl-serve-wiring.md) |
+| Sprint 110 | Mar 15-16, 2026 | RL Feedback Capture — 👍/🔄/👎 loop, correlationId plumbing, JSONL buffer (CTO 9/10) | ✅ COMPLETE | [sprint-110](sprint-110-rl-feedback-capture.md) |
+| Sprint 109 | Mar 15, 2026 | gstack Best Practices — `allowed-tools` in 13 SOUL files, `pnpm lint:souls` validator, `/sprint-close` command (CTO 9/10) | ✅ COMPLETE | [sprint-109](sprint-109-gstack-best-practices.md) |
+| Sprint 108 | — | Async Notifications (DEFERRED — see Deferred Sprint above) | — | — |
+| Sprint 107 | Mar 12, 2026 | Bus Reliability — `BusDebounce` + `BusDedup` + consumer dedup guard (ADR-032 Phase 2 P0) | ✅ COMPLETE | [sprint-107](sprint-107-bus-reliability.md) |
+| Sprint 106 | Mar 12, 2026 | Event Bus Foundation — decouple Telegram polling from AI processing, `EventEmitterBus`, `BusConsumer`, async OTT adapter (ADR-032 Phase 1) | ✅ COMPLETE | [sprint-106](sprint-106-event-bus-foundation.md) |
+| Sprint 105 | Mar 11-12, 2026 | Mode-Aware Agent Routing — PATCH intent classifier, CEO confirmation (5-min TTL), budget guardrails (ADR-031 GAP-003) | ✅ COMPLETE | [sprint-105](sprint-105-mode-aware-routing.md) |
+| Sprint 104 | Mar 11, 2026 | Bridge Risk Mode — `--risk` parsed in `/launch`, `/mode` mutates session state, `/fix` deprecation (ADR-031 GAP-002/004/005) | ✅ COMPLETE | [sprint-104](sprint-104-bridge-risk-mode.md) |
+| Sprint 103 | Mar 11, 2026 | /fix Dry-Run on All Channels — executeFixCommand() shared handler, /compliance fix alias (ADR-031 GAP-001/005) | ✅ COMPLETE | [sprint-103](sprint-103-fix-all-channels.md) |
+| Sprint 102 | Mar 11, 2026 | Unified Command Architecture — move handlers to src/commands/, extract executeInitCommand() (ADR-030) (+0/6,349) | ✅ COMPLETE | [sprint-102](sprint-102-unified-command-architecture.md) |
+| Sprint 101 | Mar 11, 2026 | Tier-Aware Routing + ClawVault Memory Foundation — workspace tier resolver, getAgentModel wiring, memory module (+33/6,349) | ✅ COMPLETE | [sprint-101](sprint-101-tier-routing-clawvault.md) |
+| Sprint 100 | Mar 10, 2026 | SASE 6.1.2 Full Alignment — tier matrix, tier-aware model routing, multi-agent history (+29/6,316) | ✅ COMPLETE | [sprint-100](sprint-100-sase-alignment.md) |
+| Sprint 99 | Mar 10, 2026 | Per-Chat Workspace + Unified Channel Architecture — WorkspaceResolver, Web→Ingress, SOUL 6.1.2 (+24/6,287) | ✅ COMPLETE | [sprint-99](sprint-99-workspace-channel.md) |
+| Sprint 98 | Mar 9, 2026 | Code-Design Gap Closure — per-agent model routing, conversation context, format passthrough (+106/6,263) | ✅ COMPLETE | [sprint-98](sprint-98-gap-closure.md) |
 | Sprint 97 | Mar 8-9, 2026 | Progressive Trust T3 — 120min sessions, $10 budget, ≥95% context retention (+78/6,157) | ✅ COMPLETE | [sprint-97](sprint-97-progressive-trust-t3.md) |
 | Sprint 96 | Mar 8, 2026 | Cross-Session Context Transfer + Quality Gates — 4-dim scoring, quality gate, 600-token budget (+85/6,079) | ✅ COMPLETE | [sprint-96](sprint-96-cross-session-context.md) |
 | Sprint 95 | Mar 8, 2026 | Progressive Autonomy T2 — multi-agent routing, GoalDecomposer, SessionRelay (+59/5,994) | ✅ COMPLETE | [sprint-95](sprint-95-progressive-autonomy-t2.md) |
@@ -90,6 +111,14 @@
 
 | Sprint | Tests | Cumulative |
 |--------|-------|------------|
+| Sprint 105 | +24 | 6,426 |
+| Sprint 104 | +13 | 6,402 |
+| Sprint 103 | +13 | 6,389 |
+| Sprint 102 | +0 | 6,376 |
+| Sprint 101 | +33 | 6,349 |
+| Sprint 100 | +29 | 6,316 |
+| Sprint 99 | +24 | 6,287 |
+| Sprint 98 | +106 | 6,263 |
 | Sprint 97 | +78 | 6,157 |
 | Sprint 96 | +85 | 6,079 |
 | Sprint 95 | +59 | 5,994 |
@@ -125,6 +154,9 @@
 
 | ADR | Title | Sprints | Status |
 |-----|-------|---------|--------|
+| ADR-031 | Channel × Command Feature Matrix & Gap Closure | 103-105 | ✅ IMPLEMENTED (2026-03-12) |
+| ADR-030 | Unified Command Architecture | 102 | ✅ COMPLETE |
+| ADR-029 | Per-Chat Workspace + Unified Channel | 99 | ✅ COMPLETE |
 | ADR-028 | Progressive Trust T3 | 97 | ✅ COMPLETE |
 | ADR-027 | Cross-Session Context Transfer | 96 | ✅ COMPLETE |
 | ADR-024 | Notification Bridge + Multi-Agent Session Mgmt | 82-86, 92-94 | ✅ COMPLETE |
@@ -141,4 +173,4 @@
 ---
 
 **Maintained by**: @pm (AI)
-**SDLC Framework**: 6.1.1
+**SDLC Framework**: 6.1.2

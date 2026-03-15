@@ -1,106 +1,77 @@
-# Current Sprint: Sprint 97 — Progressive Trust T3: 120min Autonomous Sessions
+# Current Sprint: Sprint 111a — Offline Replay + Shadow Mode
 
-**Sprint Duration**: March 8-9, 2026
-**Sprint Goal**: Wire context transfer into autonomous session lifecycle — inject, refresh, extract, track ≥95% retention
-**Status**: COMPLETE
-**Priority**: P0 (Intelligence)
-**Framework**: SDLC 6.1.1
-**Authority**: Sprint 96 CURRENT-SPRINT + ADR-027 + ADR-028 + AUTONOMY_GATE_CONFIG.C
-**Previous Sprint**: Sprint 96 COMPLETE — Cross-Session Context Transfer + Quality Gates (85 tests, 6,079 total)
-**CTO Review**: 8.5/10 APPROVED (0 Must-Fix, 5 Findings — all resolved)
-**CPO Review**: APPROVED unconditionally
-**Tests**: +78 new (6,157 total), 0 regressions
+**Sprint Duration**: March 2026
+**Sprint Goal**: Run first Tinker rollout session (not Sprint 110 JSONL — see ADR-033 D10), collect 20+ Qwen on-policy samples, shadow mode evaluation
+**Status**: 🔜 PLANNED
+**Priority**: P1
+**Framework**: SDLC 6.1.2
+**Authority**: ADR-033
+**Previous Sprint**: Sprint 110.5 COMPLETE — RL Serve Wiring + ADR-033 + Validation Set (CTO 9.2/10 APPROVED)
+**Prerequisites**: `TINKER_API_KEY` set, 👍/👎 samples accumulating (1/20 collected)
+**ADR**: [ADR-033](../../02-design/01-ADRs/ADR-033-OpenClaw-RL-Training-Architecture.md)
 
 ---
 
-## Sprint 97 Deliverables
+## Sprint 110 Summary (COMPLETE — CTO 9/10 APPROVED)
 
 | Deliverable | Status |
 |-------------|--------|
-| T3 Config — DEFAULT_T3_CONFIG aligned with Gate C (120min, $10, 6 agents, mixed strategy) | ✅ DONE |
-| ContextInjector — inject prior session context at session start (600-token budget) | ✅ DONE |
-| RetentionTracker — measure per-session retention rate, validate ≥95% target | ✅ DONE |
-| ContextLifecycleManager — orchestrate inject → refresh → extract across session lifecycle | ✅ DONE |
-| Mid-session refresh — every 30 turns or 30 min for long sessions | ✅ DONE |
-| Checkpoint context — save/restore context selection state in checkpoints | ✅ DONE |
-| AutonomousSessionManager integration — wire lifecycle into runLoop() | ✅ DONE |
-| Barrel exports — context/transfer/index.ts + context/index.ts updated | ✅ DONE |
-| ADR-028 — Progressive Trust T3 architecture decision record | ✅ DONE |
-| Tests — 78 tests across 6 test files | ✅ DONE |
+| `sendMessageWithId()` — returns `message_id` from Telegram API | ✅ COMPLETE |
+| `ChannelSendFn` opts — ADD `correlationId?`, `isTrainableTurn?`, `provider?` (5 files) | ✅ COMPLETE |
+| `src/rl/types.ts` — `FeedbackStatus`, `FeedbackLabel`, `RLTurn`, `RLSession`, `RLRecord`, `RLEventLogEntry` | ✅ COMPLETE |
+| `src/rl/session-tracker.ts` — `RLSessionTracker` (30-min idle-timeout, correlationId primary key) | ✅ COMPLETE |
+| `src/rl/feedback-service.ts` — `RLFeedbackService` (tracker + dataStore + eventLog) | ✅ COMPLETE |
+| `src/rl/data-store.ts` — `RLDataStore` (training JSONL) + `RLEventLog` (all-turns event log) | ✅ COMPLETE |
+| `src/rl/observability.ts` + `src/rl/index.ts` | ✅ COMPLETE |
+| `telegram-channel.ts` — 3-button keyboard + `rl_fb:*` callback handler + `setFeedbackService()` | ✅ COMPLETE |
+| 16 new tests (session-tracker ×6, feedback-service ×5, data-store ×3, rl-feedback ×2) | ✅ 21/21 pass |
+| SF-1 fix: `globalTurnCounter` → instance field `turnCounter` | ✅ COMPLETE |
+
+**Gap discovered during 110.5 planning**: `RLFeedbackService` never initialized in `serve.ts` — serve wiring is Sprint 110.5 Track A (P0 blocker).
 
 ---
 
-## CTO Review Fixes (ALL RESOLVED)
+## Sprint 110.5 Deliverables
 
-| # | Severity | Issue | Resolution | Status |
-|---|----------|-------|------------|--------|
-| F1 | Medium | Checkpoint integration unspecified | `partialResults["contextTransfer"]` — no schema change | ✅ DONE |
-| F2 | Medium | Retention rate structurally capped | `selectedTokens / gatedTokens` (not totalAvailableTokens) | ✅ DONE |
-| F3 | Low | Swap threshold missing | ≥0.1 composite improvement required (DEFAULT_REFRESH_CONFIG.swapThreshold) | ✅ DONE |
-| F4 | Info | DEFAULT_T3_CONFIG placement | Same file as DEFAULT_T2_CONFIG (CTO C4: no new imports) | ✅ DONE |
-| F5 | Info | Integration must be additive | 3 hooks in runLoop(): inject before, refresh inside, extract after | ✅ DONE |
+### Track A: Serve Wiring (P0 — BLOCKER)
 
----
+| # | Deliverable | Status |
+|---|------------|--------|
+| 1 | `src/channels/telegram/telegram-ott-adapter.ts` — ADD optional `feedbackService?` param | ✅ COMPLETE |
+| 2 | `src/cli/commands/serve.ts` — INIT `RLFeedbackService` + 15-min expiry timer + inject | ✅ COMPLETE |
+| 3 | `tests/channels/telegram/ott-serve-wiring.test.ts` — 3 tests | ✅ COMPLETE (33/33 pass) |
+| 4 | Manual test: 👍/🔄/👎 keyboard visible in real Telegram after agent response | ✅ CONFIRMED (2026-03-15) |
 
-## New Files (3)
+### Track B: OpenClaw Tinker Validation (P2 — ADR-033 finalized, training deferred to 111a)
 
-| # | File | Lines | Tests |
-|---|------|-------|-------|
-| 1 | `src/context/transfer/context-injector.ts` | ~140 | 12 |
-| 2 | `src/context/transfer/retention-tracker.ts` | ~185 | 17 |
-| 3 | `src/context/transfer/context-lifecycle.ts` | ~250 | 18 |
+| # | Deliverable | Status |
+|---|------------|--------|
+| 5 | Collect 20+ real feedback samples (via normal EndiorBot usage) | 🔄 IN PROGRESS (1/20 collected) |
+| 6 | ~~Run `run.py --method rl` with Sprint 110 JSONL~~ → **REVISED**: Sprint 110 JSONL → offline SFT (HF); Sprint 111a = first Tinker run | ✅ REVISED (ADR-033 D2/D10) |
+| 7 | Validate Tinker training (loss curve) | ⏳ DEFERRED to Sprint 111a (requires TINKER_API_KEY + Qwen rollouts) |
+| 8 | Finalize ADR-033 Q1-Q4 → FINALIZED | ✅ COMPLETE (Q1-Q4 resolved, D10 added) |
 
-## Modified Files (5)
+### Track C: Validation Set (P2 — parallel)
 
-| # | File | Changes |
-|---|------|---------|
-| 4 | `src/autonomy/types.ts` | +18 lines: DEFAULT_T3_CONFIG |
-| 5 | `src/context/transfer/types.ts` | +65 lines: T3 types (RetentionLevel, RETENTION_THRESHOLDS, RetentionMetrics, ContextCheckpointState, ContextRefreshConfig, DEFAULT_REFRESH_CONFIG) |
-| 6 | `src/context/transfer/context-selector.ts` | CTO F2: retention formula fix (gatedTokens) |
-| 7 | `src/sessions/autonomous/manager.ts` | +30 lines: contextLifecycle field, setContextLifecycle(), 3 additive hooks in runLoop() |
-| 8 | `src/context/transfer/index.ts` | +40 lines: barrel exports for Sprint 97 modules |
-| 9 | `src/context/index.ts` | +25 lines: re-exports for Sprint 97 modules |
-
-## Documentation (2)
-
-| # | File |
-|---|------|
-| 10 | `docs/02-design/01-ADRs/ADR-028-Progressive-Trust-T3.md` |
-| 11 | `docs/04-build/sprints/sprint-97-progressive-trust-t3.md` |
+| # | Deliverable | Status |
+|---|------------|--------|
+| 9 | 20 curated Q&A pairs × 4 roles (pm/architect/coder/reviewer) for kill-criteria measurement | ✅ COMPLETE — [rl-validation-set-v1.md](../../05-test/rl-validation-set-v1.md) (80 prompts) |
 
 ---
 
-## Test Results (78 tests — ALL PASS)
+## Deferred Sprint: Sprint 108 — Async Notifications (PLANNED)
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `tests/autonomy/t3-config.test.ts` | 8 | Gate C alignment, T2 vs T3 differences, strategy, per-subtask timeout |
-| `tests/context/transfer/t3-types.test.ts` | 13 | ADR-002 zero imports, retention thresholds, metrics construction, checkpoint state, refresh config |
-| `tests/context/transfer/context-injector.test.ts` | 12 | Inject at start, double-injection guard, goal/tags/stage passthrough, checkpoint save/restore, cleanup |
-| `tests/context/transfer/retention-tracker.test.ts` | 17 | Retention calculation, level classification, ≥95% pass, refresh tracking, session end, aggregate metrics, history |
-| `tests/context/transfer/context-lifecycle.test.ts` | 18 | Session start/end, refresh triggers (turn/time), swap threshold, checkpoint, status, increment turn |
-| `tests/sessions/autonomous/t3-integration.test.ts` | 10 | Gate C config, setContextLifecycle, injection at start, extraction at end, checkpoint, backward compat |
-| **Total** | **78** | **ALL PASS** |
+Sprint 108 (notifyFn PATCH approval, Zalo bus wiring, bus metrics) is deferred — independent track from RL work. Will be scheduled after Sprint 111 or when capacity allows.
 
-**Full Suite**: 6,157 tests (6,157 passing + 10 skipped) — 0 regressions
-
----
-
-## Verification (ALL PASSED)
-
-| Check | Result |
-|-------|--------|
-| `tsc --noEmit` — 0 TypeScript errors | ✅ |
-| `vitest run` — 6,157 tests, 0 regressions | ✅ |
-| CTO F1: Checkpoint via partialResults | ✅ |
-| CTO F2: Retention = selectedTokens / gatedTokens | ✅ |
-| CTO F3: Swap threshold ≥0.1 | ✅ |
-| CTO F5: Additive hooks (no runLoop restructure) | ✅ |
-| ADR-002: types.ts ZERO imports | ✅ |
-| Backward compat: works without lifecycle set | ✅ |
+| Deliverable | Status |
+|-------------|--------|
+| `src/bus/types.ts` — ADD `notifyFn?: ChannelSendFn` to `BusInboundMessage` | PLANNED |
+| `telegram-ott-adapter.ts` — set `busMsg.notifyFn = replyFn` | PLANNED |
+| `src/gateway/ingress.ts` — extract `notifyFn`, pass to `router.callAI()` | PLANNED |
+| `src/channels/zalo/zalo-ott-adapter.ts` — bus + debounce wiring | PLANNED |
+| `src/gateway/server.ts` — ADD `setBus()` + bus stats in `/api/status` | PLANNED |
+| 15 tests (notify-fn ×5, zalo-bus ×7, bus-metrics ×3) | PLANNED |
 
 ---
 
-**Last Updated**: 2026-03-09 (by @coder — Sprint 97 COMPLETE)
-**Sprint Owner**: @coder (AI)
-**Sprint Status**: COMPLETE
+**Last Updated**: 2026-03-15 (Track A COMPLETE + keyboard confirmed; Track B ADR-033 FINALIZED; Track C + Sprint 111a pending)
