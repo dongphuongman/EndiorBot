@@ -38,9 +38,11 @@ import {
   handleTeamCostCallback,
   generateHelpMessage,
   type CommandResult,
-} from "./telegram-commands.js";
+} from "../../commands/handlers.js";
 import { parseCallbackData } from "./keyboards.js";
 import { getConversationStore } from "../conversation/store.js";
+import type { RLFeedbackService } from "../../rl/index.js";
+import type { FeedbackLabel } from "../../rl/types.js";
 
 // ============================================================================
 // Types
@@ -112,6 +114,30 @@ const REQUEST_TIMEOUT_MS = 35000;
 const LONG_POLLING_TIMEOUT = 25;
 
 // ============================================================================
+// Sprint 110: RL Feedback Keyboard helpers
+// ============================================================================
+
+/** Callback data prefix for RL feedback buttons */
+const RL_FB_PREFIX = "rl_fb";
+
+/**
+ * Build 3-button RL feedback inline keyboard.
+ * Callback data: "rl_fb:{label}:{correlationId}"
+ * Sprint 110: good/partial/bad. Hint capture in Sprint 112.
+ */
+function makeRlFeedbackKeyboard(correlationId: string): Record<string, unknown> {
+  return {
+    inline_keyboard: [
+      [
+        { text: "👍 Good", callback_data: `${RL_FB_PREFIX}:good:${correlationId}` },
+        { text: "🔄 Partial", callback_data: `${RL_FB_PREFIX}:partial:${correlationId}` },
+        { text: "👎 Bad", callback_data: `${RL_FB_PREFIX}:bad:${correlationId}` },
+      ],
+    ],
+  };
+}
+
+// ============================================================================
 // TelegramChannel
 // ============================================================================
 
@@ -139,6 +165,8 @@ export class TelegramChannel implements BidirectionalChannel {
   private messageHandler: IncomingMessageHandler | null = null;
   private pendingMessages: IncomingMessage[] = [];
   private currentMode: string = "READ";
+  /** Sprint 110: RL feedback service (optional — set via setFeedbackService()) */
+  private feedbackService: RLFeedbackService | null = null;
 
   constructor(config?: TelegramChannelConfig) {
     this.config = config ?? loadTelegramConfig();
@@ -156,20 +184,72 @@ export class TelegramChannel implements BidirectionalChannel {
   }
 
   // ==========================================================================
+  // Sprint 110: RL Feedback Service injection
+  // ==========================================================================
+
+  /**
+   * Inject RL feedback service for feedback keyboard attachment.
+   * Optional — channel works without it (keyboards not attached if null).
+   * Called from serve.ts after channel + feedbackService are constructed.
+   * See ADR-033 D3 (hook location in channel adapter).
+   */
+  setFeedbackService(service: RLFeedbackService): void {
+    this.feedbackService = service;
+  }
+
+  // ==========================================================================
   // IChannel Implementation
   // ==========================================================================
 
   /**
-   * Send a plain text message.
+   * Send a message with optional format and RL feedback hints.
+   * @param options.format - "markdown" enables Telegram Markdown parse_mode; "plain" (default) sends as-is.
+   * @param options.correlationId - Sprint 110: app-level ID for RL feedback keyboard linking (Step 0.5).
+   * @param options.isTrainableTurn - Sprint 110: true for agent responses eligible for RL training.
+   * @param options.provider - Sprint 110: AI provider/model name (for JSONL record).
    */
-  async send(message: string): Promise<boolean> {
+  async send(
+    message: string,
+    options?: {
+      format?: string;
+      correlationId?: string;
+      isTrainableTurn?: boolean;
+      provider?: string;
+      /** Sprint 111a: inbound conversation context for RL training record */
+      request?: Array<{ role: string; content: string }>;
+    },
+  ): Promise<boolean> {
     if (!this.config) {
       this.log.warn("Cannot send: Telegram not configured");
       return false;
     }
 
     try {
-      const result = await this.sendMessage(message);
+      const useMarkdown = options?.format === "markdown";
+
+      // Sprint 110 (Step 8): RL feedback keyboard path
+      // When correlationId + isTrainableTurn: attach 3-button keyboard via sendMessageWithId().
+      // Feedback scope guard (CPO C4): keyboard attached only after addTurn + setMessageId succeed.
+      if (options?.correlationId && options?.isTrainableTurn) {
+        const keyboard = makeRlFeedbackKeyboard(options.correlationId);
+        const messageId = await this.sendMessageWithId(message, useMarkdown, keyboard);
+        if (messageId && this.feedbackService) {
+          const agentParams: import("../../rl/feedback-service.js").AgentResponseParams = {
+            chatId: String(this.config.chatId),
+            correlationId: options.correlationId,
+            telegramMessageId: messageId,
+            provider: options.provider ?? "unknown",
+            isTrainableTurn: true,
+            response: message,
+            durationMs: 0, // Sprint 111+: thread actual durationMs through opts
+          };
+          if (options.request) agentParams.request = options.request;
+          this.feedbackService.onAgentResponse(agentParams);
+        }
+        return messageId !== null;
+      }
+
+      const result = await this.sendMessage(message, useMarkdown);
       return result;
     } catch (error) {
       this.log.error("Failed to send message", {
@@ -433,7 +513,7 @@ export class TelegramChannel implements BidirectionalChannel {
       await this.sendMessage(
         result.response,
         false,
-        result.reply_markup as Record<string, unknown> | undefined,
+        result.replyMarkup as Record<string, unknown> | undefined,
       );
     } else if (incoming && this.messageHandler) {
       // Unknown command — forward to onMessage handler (bridge commands like /link, /launch)
@@ -492,7 +572,7 @@ export class TelegramChannel implements BidirectionalChannel {
         return handleConfigCommand();
 
       case "/init":
-        return handleInitCommand();
+        return handleInitCommand(args);
 
       case "/mode": {
         const modeResult = handleModeCommand(args, this.currentMode);
@@ -670,6 +750,33 @@ export class TelegramChannel implements BidirectionalChannel {
     const data = query.data;
     if (!data) return;
 
+    // Sprint 110: RL feedback callback — handled BEFORE parseCallbackData()
+    // Format: "rl_fb:{label}:{correlationId}"
+    // correlationId may contain ":" (channel-senderId-timestamp), so split at most 2 times.
+    if (data.startsWith(`${RL_FB_PREFIX}:`)) {
+      const firstColon = data.indexOf(":");
+      const secondColon = data.indexOf(":", firstColon + 1);
+      if (secondColon !== -1) {
+        const label = data.slice(firstColon + 1, secondColon) as FeedbackLabel;
+        const correlationId = data.slice(secondColon + 1);
+
+        // Validate label (guard against corrupt callback data)
+        if (label === "good" || label === "partial" || label === "bad") {
+          if (this.feedbackService) {
+            this.feedbackService.onFeedback(correlationId, label);
+          } else {
+            // Orphan: feedbackService not wired — log + drop silently
+            this.log.debug("RL feedback received but feedbackService not set", { correlationId, label });
+          }
+        }
+      }
+      // Answer callback query to dismiss loading indicator (no text shown)
+      await this.apiCall("answerCallbackQuery", "POST", {
+        callback_query_id: query.id,
+      });
+      return;
+    }
+
     const parsed = parseCallbackData(data);
     const actorId = this.config?.chatId ?? "telegram";
 
@@ -704,7 +811,7 @@ export class TelegramChannel implements BidirectionalChannel {
       await this.sendMessage(
         result.response,
         false,
-        result.reply_markup as Record<string, unknown> | undefined,
+        result.replyMarkup as Record<string, unknown> | undefined,
       );
     }
   }
@@ -712,6 +819,20 @@ export class TelegramChannel implements BidirectionalChannel {
   // ==========================================================================
   // Telegram API
   // ==========================================================================
+
+  /**
+   * Send a "typing..." chat action indicator.
+   * Telegram displays this for ~5 seconds per call.
+   */
+  async sendChatAction(action = "typing"): Promise<boolean> {
+    if (!this.config) return false;
+
+    const response = await this.apiCall("sendChatAction", "POST", {
+      chat_id: this.config.chatId,
+      action,
+    });
+    return response.ok;
+  }
 
   /**
    * Send a message to the configured chat.
@@ -744,6 +865,43 @@ export class TelegramChannel implements BidirectionalChannel {
 
     const response = await this.apiCall("sendMessage", "POST", body);
     return response.ok;
+  }
+
+  /**
+   * Send a message and return the Telegram message_id for RL feedback linking.
+   * Returns null if not configured, API fails, or result lacks message_id.
+   * Used by send() when correlationId is present (Sprint 110 RL feedback capture).
+   *
+   * Design choice: separate from sendMessage() to preserve existing callers' boolean API.
+   * See ADR-033 D4 and sprint-110-rl-feedback-capture.md Step 0.
+   */
+  private async sendMessageWithId(
+    text: string,
+    useMarkdown = false,
+    replyMarkup?: Record<string, unknown>,
+  ): Promise<number | null> {
+    if (!this.config) return null;
+
+    const body: Record<string, unknown> = {
+      chat_id: this.config.chatId,
+      text,
+    };
+
+    if (useMarkdown) {
+      body.parse_mode = this.config.parseMode;
+    }
+
+    if (this.config.disableNotification) {
+      body.disable_notification = true;
+    }
+
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+
+    const response = await this.apiCall<{ message_id: number }>("sendMessage", "POST", body);
+    if (!response.ok || !response.result?.message_id) return null;
+    return response.result.message_id;
   }
 
   /**
