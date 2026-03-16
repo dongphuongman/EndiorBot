@@ -242,9 +242,9 @@ If any kill criterion triggers, OpenClaw-RL tier is disabled and remaining JSONL
 
 ## References
 
-- `OpenClaw-RL/openclaw-trl/run.py` — Primary training entry point (SFT + GRPO via TRL)
-- `OpenClaw-RL/openclaw-trl/README.md` — Setup + usage guide
-- `OpenClaw-RL/openclaw-rl/openclaw_api_server.py` — Optional: FastAPI **production serving** server (Sprint 111b, RTX 5090 path)
+- `openclaw-trl/run.py` — Primary training entry point (SFT + GRPO via TRL)
+- `openclaw-trl/README.md` — Setup + usage guide
+- `openclaw-trl/` promoted into EndiorBot repo root (2026-03-16 — OpenClaw-RL nested repo removed)
 - Sprint 110: `src/rl/` module — capture infrastructure (👍/🔄/👎 keyboard, JSONL store)
 - Sprint 111a: first `run.py --method sft` invocation + GRPO setup
 - Sprint 111b: Gated rollout (Tier 4, `ENABLE_RL_TIER=true`)

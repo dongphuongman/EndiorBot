@@ -68,3 +68,4 @@ secrets/
 # Desktop app build artifacts
 apps/desktop/release/
 apps/desktop/dist-electron/
+openclaw-trl/__pycache__/
