@@ -1,13 +1,13 @@
 # Current Sprint: Sprint 111a — Offline Replay + Shadow Mode
 
 **Sprint Duration**: March 2026
-**Sprint Goal**: Run first Tinker rollout session (not Sprint 110 JSONL — see ADR-033 D10), collect 20+ Qwen on-policy samples, shadow mode evaluation
+**Sprint Goal**: Run first TRL SFT training on Sprint 110 JSONL, then GRPO setup with Ollama rollouts — HuggingFace TRL path (Tinker dead, ADR-033 amended)
 **Status**: 🔜 PLANNED
 **Priority**: P1
 **Framework**: SDLC 6.1.2
-**Authority**: ADR-033
+**Authority**: ADR-033 (amended 2026-03-16 — Tinker → TRL)
 **Previous Sprint**: Sprint 110.5 COMPLETE — RL Serve Wiring + ADR-033 + Validation Set (CTO 9.2/10 APPROVED)
-**Prerequisites**: `TINKER_API_KEY` set, 👍/👎 samples accumulating (1/20 collected)
+**Prerequisites**: `pip install trl>=0.12.0 transformers peft`, 10+ good feedback records (1/10 collected)
 **ADR**: [ADR-033](../../02-design/01-ADRs/ADR-033-OpenClaw-RL-Training-Architecture.md)
 
 ---
