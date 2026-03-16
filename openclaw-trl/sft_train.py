@@ -74,7 +74,7 @@ def run_sft(config: TRLConfig) -> None:
         dtype = torch.float32
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
-        torch_dtype=dtype,
+        dtype=dtype,  # transformers>=4.47: torch_dtype → dtype
         device_map=device if device != "mps" else None,
         trust_remote_code=True,
     )
@@ -125,7 +125,7 @@ def run_sft(config: TRLConfig) -> None:
         model=model,
         args=args,
         train_dataset=dataset,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,  # trl>=0.12: tokenizer → processing_class
         formatting_func=formatting_fn,
         max_seq_length=config.max_seq_length,
     )
