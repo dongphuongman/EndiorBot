@@ -22,8 +22,8 @@ import os
 
 from datasets import Dataset
 from peft import LoraConfig, TaskType, get_peft_model
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-from trl import SFTTrainer
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from trl import SFTConfig, SFTTrainer
 
 from config import TRLConfig
 from data_loader import records_to_sft_examples
@@ -94,9 +94,9 @@ def run_sft(config: TRLConfig) -> None:
         model = get_peft_model(model, lora_cfg)
         model.print_trainable_parameters()
 
-    # Training args
+    # Training args — trl>=0.12: SFTConfig replaces TrainingArguments (includes max_seq_length)
     output_dir = os.path.join(config.output_dir, "sft")
-    args = TrainingArguments(
+    args = SFTConfig(
         output_dir=output_dir,
         per_device_train_batch_size=config.batch_size,
         gradient_accumulation_steps=config.gradient_accumulation_steps,
@@ -110,7 +110,7 @@ def run_sft(config: TRLConfig) -> None:
         fp16=(device == "cuda"),
         bf16=(device == "mps"),   # SF-2: enable bf16 on MPS (Apple Silicon M2+)
         dataloader_num_workers=0,
-        resume_from_checkpoint=config.resume_from_checkpoint or None,
+        max_seq_length=config.max_seq_length,  # trl>=0.12: moved to SFTConfig
     )
 
     def formatting_fn(example):
@@ -127,7 +127,6 @@ def run_sft(config: TRLConfig) -> None:
         train_dataset=dataset,
         processing_class=tokenizer,  # trl>=0.12: tokenizer → processing_class
         formatting_func=formatting_fn,
-        max_seq_length=config.max_seq_length,
     )
 
     logger.info("[SFT] starting training (steps=%d) ...", config.max_steps)
