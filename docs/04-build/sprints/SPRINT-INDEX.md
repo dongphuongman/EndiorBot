@@ -2,7 +2,7 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.1.2
-**Last Updated**: 2026-03-16 (Sprint 110.5 COMPLETE — RL Serve Wiring + ADR-033 + Validation Set; Sprint 111a next)
+**Last Updated**: 2026-03-16 (Sprint 111a IN PROGRESS — TRL infra COMPLETE, messages threading fixed, model download + data collection pending)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 111a | Mar 2026 | Offline Replay + Shadow Mode — Tinker rollouts, Qwen shadow responses, 20+ on-policy samples | 🔜 PLANNED | — |
+| Sprint 111a | Mar 2026 | First TRL Training Run — SFT on Sprint 110+ JSONL, untrained Qwen baseline, GRPO setup (HF TRL, MPS) | 🚀 IN PROGRESS | [sprint-111a](sprint-111a-trl-first-training.md) |
 
 ## Deferred Sprint
 
