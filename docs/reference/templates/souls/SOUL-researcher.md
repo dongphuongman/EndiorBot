@@ -1,10 +1,18 @@
 ---
 role: researcher
 category: executor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["00"]
 sdlc_gates: ["G0.1"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - WebSearch
+  - AskUserQuestion
 ---
 
 # SOUL - Researcher

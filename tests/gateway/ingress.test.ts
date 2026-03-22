@@ -38,6 +38,7 @@ function createMockRouter() {
     getUsageHint: () => "Use @agent to start a conversation.",
     getStatus: async () => ({ status: "ok" }),
     initialize: async () => {},
+    config: { projectRoot: "/mock/project" },
   };
 }
 

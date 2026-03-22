@@ -150,10 +150,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <script>
 (function(){
-  let ws=null, clientId=null, connected=false, waitingResponse=false;
+  let ws=null, connected=false, waitingResponse=false;
   let reconnectDelay=1000;
   const maxReconnectDelay=30000;
   let msgId=0;
+
+  // Sprint 99: Persistent clientId for per-chat workspace + history
+  let clientId=localStorage.getItem('endiorbot-client-id');
+  if(!clientId){clientId='web-'+Math.random().toString(36).slice(2,10);localStorage.setItem('endiorbot-client-id',clientId)}
 
   const $=id=>document.getElementById(id);
   const msgArea=$('messages'), input=$('msgInput'), sendBtn=$('sendBtn');
@@ -223,7 +227,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     // JSON-RPC 2.0 format
     if(d.jsonrpc==='2.0'){
       if(d.method==='welcome'){
-        clientId=d.params?.clientId;
         $('dVersion').textContent=d.params?.serverVersion||'1.0.0';
         return;
       }
@@ -236,13 +239,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       if(d.result){
         waitingResponse=false;
         typingEl.style.display='none';
+        let text='';
         if(typeof d.result==='string'){
-          addMsg('bot',d.result);
+          text=d.result;
         }else if(d.result.text||d.result.content){
-          addMsg('bot',d.result.text||d.result.content);
+          text=d.result.text||d.result.content;
         }else{
-          addMsg('bot',JSON.stringify(d.result,null,2));
+          text=JSON.stringify(d.result,null,2);
         }
+        // Sprint 99: Show metadata (agent, model, latencyMs) from Ingress pipeline
+        let meta='';
+        if(d.result.agent||d.result.model||d.result.latencyMs){
+          const parts=[];
+          if(d.result.agent)parts.push('@'+d.result.agent);
+          if(d.result.model)parts.push(d.result.model);
+          if(d.result.latencyMs)parts.push(d.result.latencyMs+'ms');
+          meta=' ['+parts.join(' | ')+']';
+        }
+        addMsg('bot',text);
+        if(meta)addMsg('system',meta);
         return;
       }
       if(d.error){
@@ -264,11 +279,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     const text=input.value.trim();
     if(!text||!connected)return;
 
-    // Send as JSON-RPC 2.0
+    // Send as JSON-RPC 2.0 — web channel uses router.chat for full AI pipeline
     const rpc={
       jsonrpc:'2.0',
-      method:'chat',
-      params:{message:text},
+      method:'router.chat',
+      params:{message:text, senderId:clientId, chatId:'web-'+clientId},
       id:++msgId
     };
     ws.send(JSON.stringify(rpc));
@@ -331,8 +346,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   function updateDashboard(){
     $('dConn').textContent=connected?'Connected':'Disconnected';
     $('dConn').style.color=connected?'var(--success)':'var(--error)';
-    $('dSessions').textContent=connected?'1':'0';
-    $('dUptime').textContent='--';
+    if(connected&&ws){
+      // Fetch real stats via JSON-RPC
+      const statsId=++msgId;
+      const verId=++msgId;
+      const pending=new Map();
+      const handler=e=>{
+        try{
+          const d=JSON.parse(e.data);
+          if(d.id===statsId&&d.result){
+            $('dSessions').textContent=String(d.result.activeConnections??0);
+            const sec=d.result.uptimeSec||0;
+            const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+            $('dUptime').textContent=h>0?h+'h '+m+'m':m>0?m+'m '+s+'s':s+'s';
+          }
+          if(d.id===verId&&d.result){
+            $('dVersion').textContent=d.result.gateway||'1.0.0';
+          }
+          pending.delete(d.id);
+          if(pending.size===0)ws.removeEventListener('message',handler);
+        }catch{}
+      };
+      ws.addEventListener('message',handler);
+      pending.set(statsId,1);pending.set(verId,1);
+      ws.send(JSON.stringify({jsonrpc:'2.0',method:'system.stats',id:statsId}));
+      ws.send(JSON.stringify({jsonrpc:'2.0',method:'system.version',id:verId}));
+    }else{
+      $('dSessions').textContent='0';
+      $('dUptime').textContent='--';
+    }
   }
 
   init();

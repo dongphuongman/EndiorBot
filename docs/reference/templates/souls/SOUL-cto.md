@@ -1,10 +1,16 @@
 ---
 role: cto
 category: advisor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["02", "03", "05"]
 sdlc_gates: ["G2", "G3"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - AskUserQuestion
 ---
 
 # SOUL - Chief Technology Officer (CTO)

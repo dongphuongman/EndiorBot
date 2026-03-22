@@ -15,7 +15,11 @@
  */
 
 import { WebSocketServer, WebSocket, type RawData } from "ws";
+import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { randomUUID } from "crypto";
+import { readFileSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import type {
   GatewayConfig,
   ConnectionStats,
@@ -39,6 +43,20 @@ import {
   internalError,
   unauthorized,
 } from "./protocol/errors.js";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/** Paths to search for the web UI HTML file */
+const HTML_PATHS = [
+  join(__dirname, "web", "index.html"),
+  join(__dirname, "..", "..", "src", "gateway", "web", "index.html"),
+  join(process.cwd(), "src", "gateway", "web", "index.html"),
+];
 
 // ============================================================================
 // Types
@@ -75,6 +93,7 @@ type MethodHandler = (
  * 4. Ping/pong heartbeat
  */
 export class GatewayServer implements IGatewayServer {
+  private httpServer: ReturnType<typeof createServer> | null = null;
   private wss: WebSocketServer | null = null;
   private clients: Map<string, ExtendedWebSocket> = new Map();
   private methods: Map<string, MethodHandler> = new Map();
@@ -82,6 +101,7 @@ export class GatewayServer implements IGatewayServer {
   private _stats: ConnectionStats;
   private _config: GatewayConfig;
   private _isRunning = false;
+  private htmlContent = "";
 
   constructor(config?: Partial<GatewayConfig>) {
     this._config = resolveGatewayConfig(config);
@@ -92,6 +112,8 @@ export class GatewayServer implements IGatewayServer {
       messagesSent: 0,
       startedAt: new Date(),
     };
+
+    this.loadHtmlContent();
 
     // Register built-in methods
     this.registerBuiltinMethods();
@@ -117,7 +139,10 @@ export class GatewayServer implements IGatewayServer {
   }
 
   /**
-   * Start the gateway server.
+   * Start the gateway server (HTTP + WebSocket on same port).
+   *
+   * Web channel is first-class: browser gets full UI at http://host:port/
+   * Desktop/CLI connects via ws://host:port/ws
    */
   async start(): Promise<void> {
     if (this._isRunning) {
@@ -130,10 +155,13 @@ export class GatewayServer implements IGatewayServer {
       throw new Error(`Invalid configuration: ${validation.errors.join(", ")}`);
     }
 
-    // Create WebSocket server
+    // Create HTTP server (serves web UI + API endpoints)
+    this.httpServer = createServer(this.handleHttpRequest.bind(this));
+
+    // Attach WebSocket server to HTTP server at /ws path
     this.wss = new WebSocketServer({
-      port: this._config.port,
-      host: this._config.host,
+      server: this.httpServer,
+      path: "/ws",
       maxPayload: this._config.maxMessageSize,
     });
 
@@ -146,19 +174,13 @@ export class GatewayServer implements IGatewayServer {
 
     // Wait for server to be listening
     await new Promise<void>((resolve, reject) => {
-      if (!this.wss) {
-        return reject(new Error("WebSocket server not initialized"));
-      }
-
-      this.wss.on("listening", () => {
+      this.httpServer?.listen(this._config.port, this._config.host, () => {
         this._isRunning = true;
         this._stats.startedAt = new Date();
         resolve();
       });
 
-      this.wss.on("error", (err) => {
-        reject(err);
-      });
+      this.httpServer?.on("error", reject);
     });
   }
 
@@ -166,7 +188,7 @@ export class GatewayServer implements IGatewayServer {
    * Stop the gateway server.
    */
   async stop(): Promise<void> {
-    if (!this._isRunning || !this.wss) {
+    if (!this._isRunning) {
       return;
     }
 
@@ -179,18 +201,18 @@ export class GatewayServer implements IGatewayServer {
     }
     this.clients.clear();
 
-    // Close server
+    // Close WebSocket server, then HTTP server
     await new Promise<void>((resolve, reject) => {
-      this.wss?.close((err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+      this.wss?.close(() => {
+        this.httpServer?.close((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
       });
     });
 
     this.wss = null;
+    this.httpServer = null;
     this._isRunning = false;
   }
 
@@ -492,6 +514,73 @@ export class GatewayServer implements IGatewayServer {
 
       throw new Error("Invalid token");
     });
+  }
+
+  // ==========================================================================
+  // HTTP Handling (Web Channel — first-class, full EndiorBot features)
+  // ==========================================================================
+
+  private loadHtmlContent(): void {
+    for (const htmlPath of HTML_PATHS) {
+      if (existsSync(htmlPath)) {
+        try {
+          this.htmlContent = readFileSync(htmlPath, "utf-8");
+          return;
+        } catch {
+          // Try next path
+        }
+      }
+    }
+
+    // Fallback HTML
+    this.htmlContent = `<!DOCTYPE html>
+<html><head><title>EndiorBot</title></head>
+<body style="background:#0f1117;color:#e4e4e7;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<div style="text-align:center">
+<h1>EndiorBot Gateway</h1>
+<p>Web UI not found. Connect via WebSocket at ws://localhost:${this._config.port}/ws</p>
+</div>
+</body></html>`;
+  }
+
+  private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
+    const url = req.url ?? "/";
+
+    // CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (url === "/" || url === "/index.html") {
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+      });
+      res.end(this.htmlContent);
+    } else if (url === "/api/status") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        ok: true,
+        activeConnections: this.clients.size,
+        uptimeSec: this._stats.startedAt
+          ? Math.floor((Date.now() - this._stats.startedAt.getTime()) / 1000)
+          : 0,
+        serverVersion: "1.0.0",
+      }));
+    } else if (url === "/api/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }));
+    } else {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Not Found");
+    }
   }
 
   // ==========================================================================

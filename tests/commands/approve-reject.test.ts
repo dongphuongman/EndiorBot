@@ -12,7 +12,7 @@ import { createCommandDispatcher } from "../../src/commands/index.js";
 import type { CommandDispatcher } from "../../src/commands/command-dispatcher.js";
 
 // Mock the identity linkage so withLinkedActor succeeds
-vi.mock("../../src/channels/telegram/telegram-commands.js", async (importOriginal) => {
+vi.mock("../../src/commands/handlers.js", async (importOriginal) => {
   const orig = await importOriginal() as Record<string, unknown>;
   return {
     ...orig,
@@ -31,7 +31,7 @@ vi.mock("../../src/gateway/methods/approval.js", () => ({
 }));
 
 // Mock executeApprovedRun
-vi.mock("../../src/channels/telegram/remote-commands.js", async (importOriginal) => {
+vi.mock("../../src/commands/remote-handlers.js", async (importOriginal) => {
   const orig = await importOriginal() as Record<string, unknown>;
   return {
     ...orig,

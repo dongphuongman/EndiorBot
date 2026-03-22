@@ -42,6 +42,8 @@ export type ChannelSendFn = (
      * Set to [{role: "user", content: <inbound_text>}] for trainable turns.
      */
     request?: Array<{ role: string; content: string }>;
+    /** Sprint 114 (CTO C1): Token usage from AI call for RL pipeline */
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
   },
 ) => Promise<boolean>;
 

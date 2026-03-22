@@ -7,7 +7,7 @@
  *
  * Sprint 87: Adds per-session turn counter for context refresh triggers.
  * Note: turn-context.ts stays standalone (CTO MF-2 — no brain dependency).
- * Refresh orchestration happens in handleSendCommand() in telegram-commands.ts.
+ * Refresh orchestration happens in handleSendCommand() in commands/handlers.ts.
  *
  * @module bridge/intelligence/turn-context
  * @version 1.1.0
@@ -90,6 +90,8 @@ export interface TurnContextData {
   sprint?: string;
   blockers?: string;
   task?: string;
+  /** Dynamic workspace context from git (Sprint 114). */
+  workspace?: string;
 }
 
 // ============================================================================
@@ -108,11 +110,12 @@ export function buildTurnContext(data?: TurnContextData): string {
   const sprint = data.sprint ?? "unknown";
   const blockers = data.blockers ?? "none";
   const task = data.task ?? "none";
+  const workspace = data.workspace ?? "";
 
   let prefix = `${CONTEXT_HEADER}
 Sprint: ${sprint}
 Blockers: ${blockers}
-Task: ${task}
+Task: ${task}${workspace ? `\n${workspace}` : ""}
 ${CONTEXT_FOOTER}
 `;
 

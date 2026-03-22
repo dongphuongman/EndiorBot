@@ -116,7 +116,8 @@ export type GatewayEventType =
   | "agent.status"
   | "gate.status"
   | "notification"
-  | "error";
+  | "error"
+  | "bus.response"; // Sprint 106: async command/chat response via EventEmitterBus (ADR-032)
 
 /**
  * Gateway event payload.

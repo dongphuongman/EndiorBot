@@ -1,15 +1,16 @@
 # Sprint Index
 
 **Project**: EndiorBot
-**Framework**: SDLC 6.1.2
-**Last Updated**: 2026-03-16 (Sprint 111a IN PROGRESS — TRL infra COMPLETE, messages threading fixed, model download + data collection pending)
+**Framework**: SDLC 6.2.0
+**Last Updated**: 2026-03-22 (Sprint 113 COMPLETE — Cross-System Agent Protocol; Sprint 114 IN PROGRESS; Sprint 111a IN PROGRESS)
 
 ---
 
-## Active Sprint
+## Active Sprints
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 114 | Mar 22-23, 2026 | Context-Aware Token Tracking — token usage in AIResult, workspace context injection, `/cost` command, RL→SOUL enrichment foundation | 🚀 IN PROGRESS | [sprint-114](sprint-114-context-aware-token-tracking.md) |
 | Sprint 111a | Mar 2026 | First TRL Training Run — SFT on Sprint 110+ JSONL, untrained Qwen baseline, GRPO setup (HF TRL, MPS) | 🚀 IN PROGRESS | [sprint-111a](sprint-111a-trl-first-training.md) |
 
 ## Deferred Sprint
@@ -26,6 +27,8 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 113 | Mar 20-21, 2026 | Cross-System Agent Communication — MTClaw MCP bridge, `@mtclaw.*` namespace, 8 tools + 21 agents accessible (CTO 9.5/10) | ✅ COMPLETE | [sprint-113](sprint-113-cross-system-agent-protocol.md) |
+| Sprint 112 | Mar 18, 2026 | SDLC 6.2.0 Alignment — framework version bump (5 files), `sdlc_framework` frontmatter (13 SOULs), Long-Running Protocol (5 executors) (CTO 9.5/10) | ✅ COMPLETE | [sprint-112](sprint-112-sdlc-620-alignment.md) |
 | Sprint 110.5 | Mar 15-16, 2026 | RL Serve Wiring + ADR-033 Finalization + Validation Set v1 — keyboard live in production (CTO 9.2/10) | ✅ COMPLETE | [sprint-110.5](sprint-110.5-rl-serve-wiring.md) |
 | Sprint 110 | Mar 15-16, 2026 | RL Feedback Capture — 👍/🔄/👎 loop, correlationId plumbing, JSONL buffer (CTO 9/10) | ✅ COMPLETE | [sprint-110](sprint-110-rl-feedback-capture.md) |
 | Sprint 109 | Mar 15, 2026 | gstack Best Practices — `allowed-tools` in 13 SOUL files, `pnpm lint:souls` validator, `/sprint-close` command (CTO 9/10) | ✅ COMPLETE | [sprint-109](sprint-109-gstack-best-practices.md) |
@@ -173,4 +176,4 @@
 ---
 
 **Maintained by**: @pm (AI)
-**SDLC Framework**: 6.1.2
+**SDLC Framework**: 6.2.0

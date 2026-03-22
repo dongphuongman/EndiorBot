@@ -94,7 +94,7 @@ def run_sft(config: TRLConfig) -> None:
         model = get_peft_model(model, lora_cfg)
         model.print_trainable_parameters()
 
-    # Training args — trl>=0.12: SFTConfig replaces TrainingArguments (includes max_seq_length)
+    # Training args — trl>=0.12: SFTConfig replaces TrainingArguments (max_seq_length → max_length)
     output_dir = os.path.join(config.output_dir, "sft")
     args = SFTConfig(
         output_dir=output_dir,
@@ -110,7 +110,7 @@ def run_sft(config: TRLConfig) -> None:
         fp16=(device == "cuda"),
         bf16=(device == "mps"),   # SF-2: enable bf16 on MPS (Apple Silicon M2+)
         dataloader_num_workers=0,
-        max_seq_length=config.max_seq_length,  # trl>=0.12: moved to SFTConfig
+        max_length=config.max_seq_length,  # trl>=0.12: moved to SFTConfig (param renamed max_length)
     )
 
     def formatting_fn(example):

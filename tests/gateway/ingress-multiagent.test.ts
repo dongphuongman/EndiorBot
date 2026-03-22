@@ -39,6 +39,7 @@ function createMockRouter(routeResult: RouteResult | null): ChannelRouter {
     getUsageHint: vi.fn(() => "Usage: @agent message"),
     formatResponse: vi.fn((agent: string, result: AIResult) => `[@${agent}] ${result.content}`),
     getStatus: vi.fn(),
+    config: { projectRoot: "/mock/project" },
   } as unknown as ChannelRouter;
 }
 

@@ -54,12 +54,13 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 ### Custom Commands Available
 - `/project:gate <gate-id>` - Check SDLC gate status
 - `/project:consult <query>` - Multi-model consultation
+- `/sprint-close` - Automated sprint closure (test, build, commit, docs)
 
 ## Project Context
 
 - **Project:** EndiorBot
 - **Type:** Solo developer tool for enterprise-scale projects
-- **Framework:** MTS SDLC Framework 6.1.1
+- **Framework:** MTS SDLC Framework 6.2.0
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
 ## Configuration Files
@@ -76,11 +77,15 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 ## Working Directory
 
 ```
-~/.endiorbot/           # State directory
-  ├── projects/         # Project contexts
-  ├── evidence/         # Gate evidence
-  ├── backups/          # Daily/weekly backups
-  └── config.json       # User preferences
+~/.endiorbot/              # State directory
+  ├── projects/            # Project contexts
+  ├── evidence/            # Gate evidence
+  ├── backups/             # Daily/weekly backups
+  ├── repos.json           # Registered repos (ADR-029)
+  ├── chat-focus.json      # Per-chat workspace focus (ADR-029)
+  ├── rl-training-data/    # RL feedback JSONL (ADR-033)
+  ├── audit-logs/          # Bridge audit logs
+  └── config.json          # User preferences
 ```
 
 ## Environment Variables
@@ -104,19 +109,29 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 ### File Organization
 ```
 src/
+├── agents/        # Agent orchestration (ChannelRouter, SOUL, teams)
+│   ├── intelligence/  # Brain L4, context anchoring
+│   ├── orchestrator/  # Team registry, goal decomposer
+│   └── types/         # Handoff, team types
+├── bridge/        # Claude Code Bridge (tmux, sessions, security)
+│   ├── launcher/      # Unified agent launcher
+│   ├── repo/          # RepoRegistry, ChatFocus, WorkspaceResolver
+│   └── security/      # Audit, redactor, output scrub
+├── bus/           # MessageBus (EventEmitter, debounce, dedup)
+├── channels/      # OTT adapters (Telegram, Zalo)
+├── cli/           # CLI commands (init, serve, sprint-close)
+├── commands/      # Unified command handlers (30 commands)
 ├── config/        # Configuration management
-├── cli/           # CLI commands
-├── agents/        # AI agent logic
-│   ├── quality/   # Reflect, history compactor
-│   └── resilience/ # Failover, tracking
-├── security/      # Sanitizer, scrubber, guard
-├── sdlc/          # Gate engine, CRP/MRP
+├── gateway/       # HTTP/WS server, Ingress
+├── memory/        # ClawVault memory module
+├── providers/     # AI model providers (Anthropic, OpenAI, Gemini, Ollama)
+├── rl/            # RL feedback capture (JSONL, data store)
+├── sdlc/          # Gate engine, compliance, scaffold
 │   ├── gates/     # Gate evaluation
+│   ├── scaffold/  # Init templates (CLAUDE.md, IDENTITY.md, etc.)
 │   └── vibecoding/ # Quality index
-├── providers/     # AI model providers
-├── gateway/       # WebSocket server
-├── channels/      # Message channels
-└── ceo/           # CEO convenience features
+├── security/      # Sanitizer, scrubber, guard
+└── sessions/      # Session state machine, resilience, checkpoints
 ```
 
 ## Commands
@@ -133,10 +148,11 @@ pnpm lint           # Check code style
 ### CLI
 ```bash
 ./endiorbot.mjs --help           # Show help
-./endiorbot.mjs start <project>  # Start project
-./endiorbot.mjs switch <project> # Switch context
+./endiorbot.mjs serve            # Unified serve (Web + Telegram + Zalo)
+./endiorbot.mjs init             # Initialize SDLC structure
 ./endiorbot.mjs gate status      # Show gate status
 ./endiorbot.mjs consult <query>  # Multi-model query
+./endiorbot.mjs compliance check # Verify SDLC compliance
 ```
 
 ## SDLC Integration
@@ -303,6 +319,7 @@ const mentalModels = await getBrain().getMentalModels();
 
 ---
 
-*Claude Code integration for EndiorBot v2.0*
+*Claude Code integration for EndiorBot v1.0.0*
 *Identity: CEO Power Tool (LOCKED)*
-*SDLC Framework v6.1.1*
+*SDLC Framework v6.2.0*
+*Sprint 112+ | 6,400+ tests | 30 OTT commands | 13 SOUL agents*

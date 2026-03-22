@@ -37,6 +37,8 @@ export interface CommandContext {
   chatId?: string;
   /** Vendor-specific raw message data */
   rawMessage?: unknown;
+  /** Sprint 99: Resolved workspace path (ADR-029 AD-5) */
+  workspace?: string;
 }
 
 export type CommandHandler = (ctx: CommandContext) => Promise<CommandResult>;

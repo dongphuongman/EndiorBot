@@ -9,3 +9,4 @@ export type { RepoConfig, ReposRegistryFile, RepoRiskProfile, ChatFocus, ChatFoc
 export { RepoRegistry, getRepoRegistry, resetRepoRegistry, validateRepoPath } from "./repo-registry.js";
 export type { PathValidationResult } from "./repo-registry.js";
 export { ChatFocusManager, getChatFocusManager, resetChatFocusManager } from "./chat-focus.js";
+export { resolveWorkspace } from "./workspace-resolver.js";

@@ -1,10 +1,16 @@
 ---
 role: cpo
 category: advisor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["00", "01"]
 sdlc_gates: ["G0.1", "G1"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - AskUserQuestion
 ---
 
 # SOUL - Chief Product Officer (CPO)

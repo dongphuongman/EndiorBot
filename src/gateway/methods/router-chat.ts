@@ -1,42 +1,44 @@
 /**
- * Router Chat Gateway Methods — Sprint 93
+ * Router Chat Gateway Methods — Sprint 93 + Sprint 99
  *
- * Thin passthrough to ChannelRouter pipeline. Returns full response
- * with metadata (agent, model, latencyMs) per R2.
+ * Sprint 99: Routes through GatewayIngress instead of ChannelRouter directly.
+ * This enforces the architectural invariant: ALL interfaces → Ingress.
+ * CTO MF-1: Returns metadata (agent, model, latencyMs) via InboundResponse.
  *
  * @module gateway/methods/router-chat
- * @version 1.0.0
- * @authority Sprint 93 Plan (R2)
- * @sprint 93
+ * @version 2.0.0
+ * @authority ADR-029 AD-4, Sprint 99
+ * @sprint 99
  */
 
 import type { GatewayServer } from "../server.js";
 import type { ChannelRouter } from "../../agents/channel-router.js";
-import type { GoalDecomposer } from "../../autonomy/goal-decomposer.js";
-import type { MultiAgentDispatcher } from "../../autonomy/multi-agent-dispatcher.js";
+import type { GatewayIngress, InboundMessage } from "../ingress.js";
 
 // ============================================================================
 // Registration
 // ============================================================================
 
 /**
- * Register AI chat methods via ChannelRouter.
+ * Register AI chat methods via GatewayIngress.
+ *
+ * Sprint 99: Web → Ingress (same pipeline as Telegram).
+ * Accepts optional `senderId` and `chatId` for per-chat workspace + history.
  *
  * Methods:
- * - router.chat — Send a message through the ChannelRouter AI pipeline
+ * - router.chat — Send a message through GatewayIngress pipeline
  * - router.status — Get current router status (providers, mode)
  */
 export function registerRouterChatMethods(
   server: GatewayServer,
   router: ChannelRouter,
-  goalDecomposer?: GoalDecomposer,
-  multiAgentDispatcher?: MultiAgentDispatcher,
+  ingress?: GatewayIngress,
 ): void {
   /**
-   * router.chat — Route message through AI pipeline.
+   * router.chat — Route message through Ingress pipeline.
    *
-   * Params: { message: string }
-   * Returns: { text, agent, model, latencyMs }
+   * Params: { message: string, senderId?: string, chatId?: string }
+   * Returns: { text, agent, model, latencyMs, format? }
    */
   server.registerMethod("router.chat", async (params: unknown) => {
     const p = (params ?? {}) as Record<string, unknown>;
@@ -51,6 +53,32 @@ export function registerRouterChatMethods(
       };
     }
 
+    // Sprint 99: Route through Ingress when available (architectural invariant)
+    if (ingress) {
+      const senderId = String(p.senderId ?? "web-anonymous");
+      const chatId = p.chatId ? String(p.chatId) : `web-${senderId}`;
+
+      const startMs = Date.now();
+      const msg: InboundMessage = {
+        channel: "web",
+        senderId,
+        content: message,
+        metadata: { chatId },
+      };
+
+      const response = await ingress.handleInbound(msg);
+      const latencyMs = Date.now() - startMs;
+
+      return {
+        text: response.text,
+        agent: response.metadata?.agent ?? null,
+        model: response.metadata?.model ?? null,
+        latencyMs: response.metadata?.latencyMs ?? latencyMs,
+        format: response.format ?? null,
+      };
+    }
+
+    // Fallback: direct router call (backward compat when ingress not provided)
     const routeResult = await router.routeMessage(message);
     if (!routeResult) {
       return {
@@ -61,24 +89,6 @@ export function registerRouterChatMethods(
       };
     }
 
-    // ── Sprint 95: Multi-agent routing ──
-    if (
-      goalDecomposer &&
-      multiAgentDispatcher &&
-      (routeResult.agents.length > 1 || goalDecomposer.shouldDecompose(routeResult.task))
-    ) {
-      const startMs = Date.now();
-      const decomposition = goalDecomposer.decompose(routeResult.task, routeResult.agents);
-      const aggregated = await multiAgentDispatcher.dispatch(decomposition, router);
-      return {
-        text: aggregated.text,
-        agent: aggregated.agents.join(", "),
-        model: "multi-agent",
-        latencyMs: Date.now() - startMs,
-      };
-    }
-
-    // ── Single-agent path (backward compatible) ──
     const agent = routeResult.agents[0] ?? "assistant";
     const startMs = Date.now();
     const result = await router.callAI(agent, routeResult.task);

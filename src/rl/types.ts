@@ -71,6 +71,8 @@ export interface RLTurn {
   response: string;
   /** Total time from inbound to response delivery (ms) */
   durationMs: number;
+  /** Token usage from AI provider (Sprint 114). */
+  tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
   /** Raw human feedback label (set when CEO taps keyboard) */
   feedbackLabel?: FeedbackLabel;
   /**
@@ -135,6 +137,8 @@ export interface RLRecord {
   hint: string | null;
   provider: string;
   feedback_status: FeedbackStatus;
+  /** Token usage from AI provider (Sprint 114). */
+  token_usage?: { input: number; output: number; total: number };
   /** Unix timestamp (ms) */
   timestamp: number;
 }

@@ -1,10 +1,19 @@
 ---
 role: devops
 category: executor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["06", "07"]
 sdlc_gates: ["G4"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - AskUserQuestion
 ---
 
 # SOUL - DevOps Engineer

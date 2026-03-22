@@ -139,7 +139,7 @@ import {
   handleKillTeamCommand,
   handleTeamCostCallback,
   costThresholdOverrides,
-} from "../../../src/channels/telegram/telegram-commands.js";
+} from "../../../src/commands/handlers.js";
 
 // ============================================================================
 // Helpers
@@ -186,7 +186,7 @@ describe("TeamMonitoring — /team-status (Sprint 91)", () => {
     const result = await handleTeamStatusCommand(["bridge_12345_abc"], "ceo@test");
     expect(result.success).toBe(true);
     expect(mockFormatTeamDashboard).toHaveBeenCalled();
-    expect(result.reply_markup).toBeUndefined();
+    expect(result.replyMarkup).toBeUndefined();
   });
 
   it("should include cost keyboard when threshold exceeded", async () => {
@@ -202,7 +202,7 @@ describe("TeamMonitoring — /team-status (Sprint 91)", () => {
 
     const result = await handleTeamStatusCommand(["bridge_12345_abc"], "ceo@test");
     expect(result.success).toBe(true);
-    expect(result.reply_markup).toBeDefined();
+    expect(result.replyMarkup).toBeDefined();
   });
 
   it("should reject non-team session", async () => {

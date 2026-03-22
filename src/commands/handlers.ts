@@ -14,13 +14,16 @@
  * @authority ADR-019 OTT Channel + ADR-024 Notification Bridge + ADR-030 Unified Commands
  */
 
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
+
+
 import type { AgentRole } from "../agents/types/handoff.js";
 import type { TeamId } from "../agents/types/team.js";
 import { getTeamRegistry } from "../agents/orchestrator/team-registry.js";
 import { getAgentIcon } from "../channels/telegram/keyboards.js";
-import { VALID_AGENT_TYPES, CAPTURE_LINE_LIMITS, type AgentProviderType, type SessionRiskMode } from "../bridge/types.js";
+import { VALID_AGENT_TYPES, CAPTURE_LINE_LIMITS, type AgentProviderType, type SessionRiskMode, type BridgeAuditActor } from "../bridge/types.js";
 import { getAgentLauncher } from "../bridge/agent-launcher.js";
 import { isValidAgentRole, VALID_AGENT_ROLES } from "../bridge/intelligence/envelope.js";
 import { getSessionRegistry } from "../bridge/session-registry.js";
@@ -56,8 +59,8 @@ import { createPricingRegistry } from "../budget/pricing-registry.js";
  */
 export function sanitizeForEcho(input: string): string {
   return input
-    .replace(/[*_`\[\]()~>#+\-=|{}.!\\]/g, "")
-    .slice(0, 50);
+    .replace(/[*_`\[\]()~>#+|{}\\]/g, "")
+    .slice(0, 80);
 }
 
 // ============================================================================
@@ -863,27 +866,29 @@ const TEAM_GATE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export { pendingTeamLaunches, pendingTeamTimeouts, TEAM_GATE_TIMEOUT_MS };
 
 /**
- * Handle /link command — bind Telegram identity to EndiorBot actorId.
+ * Handle /link command — bind channel identity to EndiorBot actorId.
  */
 export function handleLinkCommand(
-  telegramUserId: string,
+  userId: string,
   username?: string,
+  channel?: string,
 ): CommandResult {
   const actorId = "ceo@endiorbot";
-  identityMap.set(telegramUserId, actorId);
+  identityMap.set(userId, actorId);
 
   const displayName = username ?? "unknown";
+  const channelName: BridgeAuditActor = (channel as BridgeAuditActor) ?? "telegram";
 
   getBridgeAuditLogger().log({
     event: "identity_link",
     actorId,
-    actor: "telegram",
-    details: { telegramUserId, username: displayName },
+    actor: channelName,
+    details: { userId, username: displayName, channel: channelName },
   });
 
   return {
     success: true,
-    response: `✅ Linked as *${actorId}* (Telegram: ${sanitizeForEcho(displayName)})
+    response: `✅ Linked as *${actorId}* (${channelName}: ${sanitizeForEcho(displayName)})
 
 Available bridge commands:
   /launch <agent> <path> [--as role] — Launch agent in tmux
@@ -1895,6 +1900,124 @@ export async function handleTeamCostCallback(
 }
 
 // ============================================================================
+// Cost Command (Sprint 114)
+// ============================================================================
+
+/**
+ * Handle /cost command — show token usage and estimated cost.
+ * Reads from RL training JSONL files to aggregate token_usage fields.
+ */
+export function handleCostCommand(args: string[]): CommandResult {
+  const rlDir = join(homedir(), ".endiorbot", "rl-training-data");
+
+  if (!existsSync(rlDir)) {
+    return { success: true, response: "No usage data available yet." };
+  }
+
+  // Parse period: default 24h, optional --period 7d
+  let periodHours = 24;
+  const periodIdx = args.indexOf("--period");
+  if (periodIdx >= 0 && args[periodIdx + 1]) {
+    const val = args[periodIdx + 1]!;
+    if (val.endsWith("d")) periodHours = parseInt(val, 10) * 24;
+    else if (val.endsWith("h")) periodHours = parseInt(val, 10);
+  }
+  const cutoff = Date.now() - periodHours * 60 * 60 * 1000;
+
+  // C5 fix: Build set of date strings within the period to filter filenames
+  const relevantDates = new Set<string>();
+  for (let d = new Date(cutoff); d <= new Date(); d = new Date(d.getTime() + 86_400_000)) {
+    relevantDates.add(d.toISOString().slice(0, 10));
+  }
+
+  // Read JSONL files
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalRecords = 0;
+  let recordsWithTokens = 0;
+  const providerTokens = new Map<string, { input: number; output: number }>();
+
+  try {
+    const files = readdirSync(rlDir).filter((f: string) => {
+      if (!f.endsWith(".jsonl")) return false;
+      // C5 fix: Only read files whose date matches the period
+      const dateMatch = f.match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) return relevantDates.has(dateMatch[1]!);
+      return true; // non-dated files: read anyway
+    });
+    for (const file of files) {
+      const content = readFileSync(join(rlDir, file), "utf-8");
+      for (const line of content.split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const rec = JSON.parse(line) as {
+            timestamp?: number;
+            provider?: string;
+            token_usage?: { input?: number; output?: number; total?: number };
+          };
+          if (rec.timestamp && rec.timestamp < cutoff) continue;
+
+          totalRecords++;
+          const tu = rec.token_usage;
+          if (tu) {
+            recordsWithTokens++;
+            const inp = tu.input ?? 0;
+            const out = tu.output ?? 0;
+            totalInput += inp;
+            totalOutput += out;
+
+            const provider = rec.provider ?? "unknown";
+            const existing = providerTokens.get(provider) ?? { input: 0, output: 0 };
+            existing.input += inp;
+            existing.output += out;
+            providerTokens.set(provider, existing);
+          }
+        } catch { /* skip malformed line */ }
+      }
+    }
+  } catch {
+    return { success: true, response: "Unable to read usage data." };
+  }
+
+  if (totalRecords === 0) {
+    return { success: true, response: `No usage data in the last ${periodHours}h.` };
+  }
+
+  const totalTokens = totalInput + totalOutput;
+
+  // Cost estimation
+  const registry = createPricingRegistry();
+  let totalCost = 0;
+  const providerLines: string[] = [];
+
+  for (const [provider, tokens] of providerTokens) {
+    const cost = registry.calculateCost(provider, tokens.input, tokens.output);
+    totalCost += cost;
+    const providerTotal = tokens.input + tokens.output;
+    providerLines.push(`  ${provider}: $${cost.toFixed(4)} (${providerTotal.toLocaleString()} tokens)`);
+  }
+
+  // C6 fix: Show records with/without token data for clarity
+  const recordsLabel = recordsWithTokens < totalRecords
+    ? `Records: ${totalRecords} (${recordsWithTokens} with token data)`
+    : `Records: ${totalRecords}`;
+
+  const periodLabel = periodHours >= 24 ? `${periodHours / 24}d` : `${periodHours}h`;
+  const lines = [
+    `Token Usage (last ${periodLabel}):`,
+    `  Input:  ${totalInput.toLocaleString()} tokens`,
+    `  Output: ${totalOutput.toLocaleString()} tokens`,
+    `  Total:  ${totalTokens.toLocaleString()} tokens`,
+    `  ${recordsLabel}`,
+    "",
+    `Estimated Cost: ~$${totalCost.toFixed(4)}`,
+    ...providerLines,
+  ];
+
+  return { success: true, response: lines.join("\n") };
+}
+
+// ============================================================================
 // Help Message
 // ============================================================================
 
@@ -1948,6 +2071,7 @@ export function generateHelpMessage(): string {
 
 *System:*
   /config — Project config
+  /cost [--period 7d] — Token usage & cost
   /mode [read|patch] — Set invoke mode
   /webhook [on|off] — Toggle webhook (Telegram)
   /clear — Clear conversation history
@@ -1961,3 +2085,4 @@ export function generateHelpMessage(): string {
   \`@team task\` (routes to leader)
   Example: \`@planning review sprint goals\``;
 }
+

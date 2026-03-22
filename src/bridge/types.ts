@@ -263,9 +263,16 @@ export type BridgeAuditEventType =
   | "launcher_started"
   | "launcher_stopped"
   | "session_recovered"
-  | "session_crash_restart";
+  | "session_crash_restart"
+  // Sprint 105 — Mode-Aware Agent Routing (ADR-031)
+  | "patch_intent_classification"
+  | "patch_confirmation_requested"
+  | "patch_confirmation_approved"
+  | "patch_confirmation_rejected"
+  | "patch_confirmation_expired"
+  | "patch_scope_exceeded";
 
-export type BridgeAuditActor = "telegram" | "hook" | "system";
+export type BridgeAuditActor = "telegram" | "zalo" | "web" | "hook" | "system";
 
 /**
  * Bridge audit log entry (appended to bridge_event_log.jsonl).

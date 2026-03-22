@@ -87,7 +87,7 @@ import {
   handleKillCommand,
   generateHelpMessage,
   sanitizeForEcho,
-} from "../../../src/channels/telegram/telegram-commands.js";
+} from "../../../src/commands/handlers.js";
 import { redactBridgeOutput } from "../../../src/bridge/security/output-redactor.js";
 import type { BridgeSession } from "../../../src/bridge/types.js";
 
@@ -402,9 +402,9 @@ describe("Bridge Commands — Help & Utilities", () => {
     expect(sanitized.length).toBe(0);
   });
 
-  it("BC-27: sanitizeForEcho limits length to 50", () => {
+  it("BC-27: sanitizeForEcho limits length to 80", () => {
     const long = "a".repeat(100);
     const sanitized = sanitizeForEcho(long);
-    expect(sanitized.length).toBe(50);
+    expect(sanitized.length).toBe(80);
   });
 });

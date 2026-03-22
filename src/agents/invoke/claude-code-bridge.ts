@@ -53,6 +53,8 @@ export interface InvokeRequest {
   timeout?: number;
   /** Maximum output tokens */
   maxTokens?: number;
+  /** Model override (default: "sonnet"). Per-agent routing from model-routing-strategy.md */
+  model?: string;
   /** Allowed tools (for READ mode restrictions) */
   allowedTools?: string[];
   /** Disallowed tools (for safety) */
@@ -483,8 +485,9 @@ Output the diff in a code block with \`\`\`diff format.`,
       args.push("--no-session-persistence");
     }
 
-    // Model selection - default to sonnet for cost efficiency
-    args.push("--model", "sonnet");
+    // Model selection — per-agent routing (model-routing-strategy.md)
+    // Default to sonnet for cost efficiency (CLAUDE.md invariant #4)
+    args.push("--model", request.model ?? "sonnet");
 
     // Note: --max-budget-usd only works with API key, not OAuth subscription
     // When using OAuth (Max 200), quota is managed by Anthropic, not USD budget

@@ -28,6 +28,7 @@ import {
 } from "../types/handoff.js";
 import type { TeamId } from "../types/team.js";
 import type { TeamRegistry } from "./team-registry.js";
+import type { CrossSystemRoute } from "../../mtclaw/types.js";
 
 // ============================================================================
 // Types
@@ -49,6 +50,8 @@ export interface ParsedMention {
   teamId?: TeamId;
   /** Parse warnings (non-fatal) */
   warnings: string[];
+  /** Cross-system route (Sprint 113, ADR-034). When set, agents is empty. */
+  crossSystem?: CrossSystemRoute;
 }
 
 /**
@@ -189,6 +192,22 @@ export function parseOTTMention(input: string): ParseResult {
 
   for (const m of matches) {
     for (const agent of m.agents) {
+      // Cross-system detection: [@mtclaw.<agent>: message] (Sprint 113, ADR-034)
+      if (agent.startsWith("mtclaw.")) {
+        const remoteAgent = agent.slice(7);
+        if (remoteAgent.length > 0) {
+          const result: ParsedMention = {
+            agents: [],
+            message: m.message,
+            originalInput: input,
+            isTeam: false,
+            warnings: [],
+          };
+          result.crossSystem = { system: "mtclaw", agent: remoteAgent, task: m.message };
+          return { success: true, data: result };
+        }
+      }
+
       if (isValidRole(agent)) {
         if (!allAgents.includes(agent as AgentRole)) {
           allAgents.push(agent as AgentRole);
@@ -313,6 +332,24 @@ function parseAgentPart(
         detectedTeamId = lookup.team.id;
         validAgents.push(lookup.team.leader);
         continue;
+      }
+    }
+
+    // 2.5 Cross-system detection: @mtclaw.<agent> (Sprint 113, ADR-034)
+    //     Returns immediately — cross-system is single-route, no multi-agent mixing.
+    //     agents: [] → decomposer bypass (CPO C3). (CTO C4: exactOptionalPropertyTypes)
+    if (candidate.startsWith("mtclaw.")) {
+      const remoteAgent = candidate.slice(7);
+      if (remoteAgent.length > 0) {
+        const result: ParsedMention = {
+          agents: [],
+          message,
+          originalInput,
+          isTeam: false,
+          warnings: [],
+        };
+        result.crossSystem = { system: "mtclaw", agent: remoteAgent, task: message };
+        return { success: true, data: result };
       }
     }
 

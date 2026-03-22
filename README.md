@@ -1,11 +1,11 @@
 # EndiorBot
 
-> **SDLC Control Plane + Agent Orchestrator** — AI assistant that answers in <30s instead of 30-60 min
+> **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
 
-EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects (~1M LOC).
-It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance.
+EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects.
+It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance across CLI, Web, Telegram, and Zalo channels.
 
-**Identity**: SDLC Control Plane + Agent Orchestrator for Claude Code workflow (not a platform, not an SDLC enforcer)
+**Identity**: CEO Power Tool (LOCKED) — not a platform, not an SDLC enforcer.
 
 ## Quick Start
 
@@ -13,131 +13,142 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 # Install
 pnpm install && pnpm build
 
-# Project Setup (Sprint 61)
-endiorbot init                              # Initialize SDLC structure
-endiorbot init --tier STANDARD             # Specify tier
+# Initialize SDLC structure
+endiorbot init                              # Auto-detect tech stack
+endiorbot init --tier STANDARD              # Specify tier
 endiorbot compliance check                  # Verify SDLC compliance
-endiorbot compliance score                  # Quick compliance score
 
-# Agent Orchestration (Sprint 55)
-endiorbot @pm "plan payment gateway"        # PM agent → structured plan
-endiorbot @coder --patch "fix auth bug"     # Coder agent → applies patch
+# Unified Serve (Web + Telegram + Zalo)
+endiorbot serve                             # Start all channels
+endiorbot serve --no-zalo                   # Skip Zalo adapter
+
+# Agent Orchestration (via CLI)
+endiorbot @pm "plan payment gateway"        # PM agent
+endiorbot @coder --patch "fix auth bug"     # Coder agent (PATCH mode)
 endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
-
-# SDLC Control Plane (Sprint 56)
-endiorbot gate recommend G2                 # Show gate recommendation
-endiorbot gate confirm G2 --confirm         # Human confirmation (invariant)
-endiorbot evidence add ./ADR.md --gate G2 --type adr  # Attach evidence
-endiorbot context inject                    # Generate context for Claude Code
 ```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    EndiorBot CLI                                │
-│                                                                 │
-│   @agent → Orchestration → Claude Code → Patch/Interactive      │
-│                                                                 │
-│   ┌──────────────────────────────────────────────────────┐      │
-│   │              Agent Orchestration Layer               │      │
-│   │  @pm → @architect → @coder → @reviewer → @tester     │      │
-│   │  (READ mode)  (READ)    (PATCH)   (READ)   (READ)    │      │
-│   └──────────────────────────────────────────────────────┘      │
-│                                                                 │
-│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│   │   Claude    │  │   GPT-4o    │  │   Gemini    │            │
-│   │  (Primary)  │  │ (Critique)  │  │  (Review)   │            │
-│   └─────────────┘  └─────────────┘  └─────────────┘            │
-│                                                                 │
-│   Brain: L4 Mental Models → L3 Structures → L2 Patterns        │
+│                    EndiorBot Unified Serve                       │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │   Web    │  │ Telegram │  │   Zalo   │  │   CLI    │        │
+│  │:18790/ws │  │  @bot    │  │ Bot API  │  │ endiorbot│        │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
+│       └──────────────┼───────────┬─┘             │              │
+│                ┌─────▼─────┐     │               │              │
+│                │ MessageBus│◄────┘               │              │
+│                │ (debounce │                     │              │
+│                │  + dedup) │                     │              │
+│                └─────┬─────┘                     │              │
+│                ┌─────▼──────────────────────┐    │              │
+│                │     GatewayIngress         │◄───┘              │
+│                │  /commands → Dispatcher    │                   │
+│                │  @agents  → ChannelRouter  │                   │
+│                └─────┬─────────────┬────────┘                   │
+│                      │             │                            │
+│          ┌───────────▼──┐   ┌──────▼──────┐                    │
+│          │ CommandDisp. │   │ChannelRouter│                    │
+│          │ (30 commands)│   │ Bridge+Cloud│                    │
+│          └──────────────┘   └──────┬──────┘                    │
+│                                    │                            │
+│  ┌─────────────┐  ┌───────────┐  ┌▼────────────┐              │
+│  │ Claude Code │  │  Gemini   │  │   Ollama    │              │
+│  │  Bridge     │  │  2.5 Flash│  │ (local LLM) │              │
+│  │ (Primary)   │  │ (Fallback)│  │ (Router)    │              │
+│  └─────────────┘  └───────────┘  └─────────────┘              │
+│                                                                  │
+│  Per-Chat Workspace: /repos + /focus + resolveWorkspace()       │
+│  SOUL Templates: 13 agents × tier-aware model selection          │
+│  Brain: L4 Mental Models → L3 Structures → L2 Patterns          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Core Features (Sprint 55-56)
-
-### Agent Orchestration (Sprint 55)
-
-| Command | Mode | Description |
-|---------|------|-------------|
-| `endiorbot @pm "task"` | READ | Planning, requirements analysis |
-| `endiorbot @architect "task"` | READ | Design decisions, ADRs |
-| `endiorbot @coder --patch "task"` | PATCH | Code generation, applies patch |
-| `endiorbot @reviewer "task"` | READ | Code review, suggestions |
-| `endiorbot @consult "query"` | READ | Multi-model consultation |
-
-### SDLC Control Plane (Sprint 56)
-
-| Command | Description |
-|---------|-------------|
-| `endiorbot gate recommend G2` | Show gate recommendation (read-only) |
-| `endiorbot gate confirm G2 --confirm` | Human confirmation (invariant: Agent ≠ Authority) |
-| `endiorbot evidence list` | List evidence for current project |
-| `endiorbot evidence add <uri> --gate G2 --type adr` | Attach evidence to gate |
-| `endiorbot evidence verify` | Verify all evidence still valid |
-| `endiorbot context status` | Show Brain layers and token budget |
-| `endiorbot context inject` | Generate context for Claude Code |
-| `endiorbot context search "query"` | RAG search across Brain layers |
-
-### Other Features
-
-| Feature | Command | Status |
-|---------|---------|--------|
-| 3-Model Consultation | `endiorbot consult` | ✅ Implemented |
-| Gate Status | `endiorbot gate status` | ✅ Implemented |
-| Project Switch | `endiorbot switch` | ✅ Implemented |
-| Brain L4 Injection | Auto at session start | ✅ Implemented |
-
-## Brain (4-Layer Iceberg)
-
-| Layer | Content | Inject When |
-|-------|---------|-------------|
-| L4 Mental Models | Decision heuristics | Session start |
-| L3 Structures | Module maps | Project switch |
-| L2 Patterns | Error signatures | On similar errors |
-| L1 Events | Session logs | Never (too noisy) |
-
 ## Channels
 
-| Channel | Status | Purpose |
+| Channel | Access | Purpose |
 |---------|--------|---------|
-| Web (localhost:18790) | Active | Browser chat interface |
-| Telegram (@Endior_bot) | Active | Mobile notifications |
-| Zalo (Bot Endior) | Active | OTT messaging |
+| Web UI | `http://localhost:18790` | Browser chat interface |
+| Telegram | `@Endior_bot` | Mobile OTT |
+| Zalo | `Bot Endior` (zapps.me) | Mobile OTT (Vietnam) |
+| CLI | `endiorbot @agent "task"` | Terminal |
 
-## Time Savings
+### OTT Commands (Telegram / Zalo)
 
-| Task | Before | After | Savings |
-|------|--------|-------|---------|
-| Architecture decision | 30-60 min | <30s | 98% |
-| Gate evaluation | 20 min | 1 min | 95% |
-| Context switch | 5 min | <2s | 99% |
+```
+/link                           # Bind identity (required after restart)
+/repos add myapp /path/to/repo  # Register a repo
+/focus myapp                    # Set active repo for this chat
+/where                          # Show current focus
+@pm plan the next sprint        # Talk to PM agent
+@coder fix the login bug        # Talk to Coder agent
+/launch claude --as coder       # Launch Claude Code in tmux
+/sessions                       # List active tmux sessions
+/switch <sessionId>             # Switch active session
+/help                           # Full command list (30 commands)
+```
 
-## Roadmap (Sprint 57-62)
+## Agent Orchestration
 
-| Sprint | Focus | Status |
-|--------|-------|--------|
-| 57 | OTT Agent Integration (Telegram/Zalo) | Planned |
-| 58 | Production Hardening & Desktop App | Planned |
-| 59 | Cross-Project Workflows & SE4H Roles | Planned |
-| 60 | Performance & Polish | Planned |
-| 61 | Project Setup (`init`, `compliance`) | ✅ Complete |
-| 62 | v1.0 Stabilization | 🎯 In Progress |
+13 SOUL-based agents with tier-aware model selection:
 
-## Documentation
+| Agent | Category | Mode | Use Case |
+|-------|----------|------|----------|
+| `@pm` | executor | READ | Planning, requirements, sprints |
+| `@architect` | executor | READ | Design decisions, ADRs |
+| `@coder` | executor | PATCH | Code generation, bug fixes |
+| `@reviewer` | executor | READ | Code review, quality audit |
+| `@tester` | executor | READ | Test strategy, test writing |
+| `@fullstack` | executor | PATCH | Full-stack implementation |
+| `@devops` | executor | PATCH | CI/CD, infrastructure |
+| `@pjm` | executor | READ | Project management |
+| `@researcher` | executor | READ | Research, analysis |
+| `@ceo` | advisor | READ | Strategic decisions |
+| `@cto` | advisor | READ | Technical review |
+| `@cpo` | advisor | READ | Product review |
+| `@assistant` | router | READ | General queries |
 
-- [Master Plan v3.1](./docs/00-foundation/master-plan.md) - Identity & full roadmap
-- [IDENTITY.md](./IDENTITY.md) - Who am I
-- [CLAUDE.md](./CLAUDE.md) - Claude Code integration
-- [Sprint 56-60 Plan](./docs/04-build/sprints/SPRINT-56-60-PLAN.md) - Current sprint plan
+### Multi-Agent Routing
+
+Messages with multiple @agents or complex tasks are automatically decomposed:
+```
+@pm @cto review the authentication module
+→ GoalDecomposer splits task → MultiAgentDispatcher runs in parallel
+```
+
+## SDLC Framework
+
+| Tier | Files | Stages | Agents |
+|------|-------|--------|--------|
+| LITE | 2 (CLAUDE.md, IDENTITY.md) | 4 | 3 |
+| STANDARD | 3 (+AGENTS.md) | 7 | 6 |
+| PROFESSIONAL | 4 (+USER.md) | 10 | 10 |
+| ENTERPRISE | 6 (+TOOLS.md, HEARTBEAT.md) | 11 | 13 |
+
+## Per-Chat Workspace (ADR-029)
+
+Different chats can focus on different repos simultaneously:
+```
+# Chat A (Telegram DM): focused on EndiorBot
+/focus endiorbot
+@pm check sprint status
+
+# Chat B (Zalo): focused on openfang-auto-clip
+/focus openfang
+@coder fix the video parser
+```
 
 ## Development
 
 ```bash
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (810+ passing)
+pnpm test         # Run tests (6,400+ passing)
 pnpm lint         # Check style
+pnpm lint:souls   # Validate 13 SOUL templates
 ```
 
 ## Invariants
@@ -146,8 +157,15 @@ pnpm lint         # Check style
 1. THIN CLIENT PATTERN: Commands call ./endiorbot.mjs core
 2. STDIN JSON FOR HOOKS: Hooks receive JSON via stdin
 3. ENDIORBOT SOUL = GOVERNANCE: EndiorBot decides WHAT, Claude Code executes HOW
-4. AGENT ≠ AUTHORITY: EndiorBot RECOMMENDS, CEO CONFIRMS
+4. DEFAULT MODEL = SONNET: Opus only for explicit architecture decisions
 ```
+
+## Documentation
+
+- [IDENTITY.md](./IDENTITY.md) - Project identity
+- [CLAUDE.md](./CLAUDE.md) - Claude Code integration
+- [AGENTS.md](./AGENTS.md) - Agent guidelines
+- [Sprint Index](./docs/04-build/sprints/SPRINT-INDEX.md) - All sprints (29-112+)
 
 ## Links
 
@@ -160,4 +178,4 @@ UNLICENSED - Private repository
 
 ---
 
-*EndiorBot v3.1 | SDLC Control Plane + Agent Orchestrator | SDLC Framework v6.1.1*
+*EndiorBot v1.0.0 | CEO Power Tool | SDLC Framework v6.2.0*

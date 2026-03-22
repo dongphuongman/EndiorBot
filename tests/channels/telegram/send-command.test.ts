@@ -104,7 +104,7 @@ vi.mock("../../../src/bridge/intelligence/evaluation-store.js", () => ({
 // Imports (after mocks)
 // ============================================================================
 
-import { handleSendCommand } from "../../../src/channels/telegram/telegram-commands.js";
+import { handleSendCommand } from "../../../src/commands/handlers.js";
 import type { BridgeSession } from "../../../src/bridge/types.js";
 
 // ============================================================================

@@ -37,6 +37,17 @@ import { ChannelPolicyEngine } from "../../policy/channel-policy-engine.js";
 import { collectHealthReport } from "../../monitoring/metrics.js";
 import { GoalDecomposer } from "../../autonomy/goal-decomposer.js";
 import { MultiAgentDispatcher } from "../../autonomy/multi-agent-dispatcher.js";
+// Sprint 106 (ADR-032): Event Bus Foundation
+// Sprint 107 (ADR-032): Bus Reliability — Debounce + Dedup
+import { getMessageBus, resetMessageBus } from "../../bus/message-bus.js";
+import { BusConsumer } from "../../bus/consumer.js";
+import { BusDebounce } from "../../bus/debounce.js";
+import { BusDedup } from "../../bus/dedup.js";
+// Sprint 110.5 (ADR-033): RL Feedback Service — CEO 👍/🔄/👎 keyboard
+import { RLFeedbackService } from "../../rl/feedback-service.js";
+// Sprint 113 (ADR-034): Cross-System Agent Communication — EndiorBot ↔ MTClaw
+import { MTClawBridge } from "../../mtclaw/bridge.js";
+import { loadMTClawConfig } from "../../mtclaw/config.js";
 
 // ============================================================================
 // Terminal Colors
@@ -127,9 +138,28 @@ async function serveAction(options: ServeOptions): Promise<void> {
       console.log(green(`  ${providerCount} AI provider(s) ready`));
     }
 
+    // 1.5 MTClaw Bridge — optional cross-system agent communication (Sprint 113, ADR-034)
+    let mtclawBridge: MTClawBridge | undefined;
+    try {
+      const mcpConfig = loadMTClawConfig();
+      if (mcpConfig) {
+        mtclawBridge = new MTClawBridge(mcpConfig);
+        await mtclawBridge.connect();
+        components.push({ name: "MTClawBridge", stop: async () => { await mtclawBridge!.disconnect(); } });
+        console.log(green("  MTClaw Bridge ready"));
+      } else {
+        console.log(dim("  MTClaw Bridge: not configured (skipped)"));
+      }
+    } catch (e) {
+      console.log(yellow(`  MTClaw Bridge: ${(e as Error).message} (skipped)`));
+    }
+
     // 2. ChannelRouter (AI routing SSOT)
     console.log(dim("  Initializing ChannelRouter..."));
-    const router = createChannelRouter();
+    // CTO C4: exactOptionalPropertyTypes — only pass mtclawBridge if defined
+    const routerConfig: Partial<import("../../agents/channel-router.js").ChannelRouterConfig> = {};
+    if (mtclawBridge) routerConfig.mtclawBridge = mtclawBridge;
+    const router = createChannelRouter(routerConfig);
     await router.initialize();
     console.log(green("  ChannelRouter ready"));
 
@@ -151,12 +181,29 @@ async function serveAction(options: ServeOptions): Promise<void> {
     const ingress = new GatewayIngress(dispatcher, router, policyEngine, goalDecomposer, multiAgentDispatcher);
     console.log(green("  GatewayIngress ready"));
 
+    // 4.5. Message Bus (Sprint 106, ADR-032) — decouples channel polling from AI processing
+    //      Sprint 107: Debounce + Dedup for reliability
+    const bus = getMessageBus();
+    const busDebounce = new BusDebounce(500); // 500ms last-message-wins per sender
+    const busDedup = new BusDedup();          // 20min TTL, 1000 max entries
+    const busConsumer = new BusConsumer(bus, ingress, busDedup);
+    busConsumer.start();
+    components.push({
+      name: "MessageBus",
+      stop: async () => {
+        busConsumer.stop();
+        busDebounce.cancel(); // flush all pending timers
+        resetMessageBus();
+      },
+    });
+    console.log(green("  MessageBus ready (EventEmitter, debounce=500ms, dedup=20min)"));
+
     // 5. Gateway Server
     console.log(dim("  Starting Gateway server..."));
     const server = createGatewayServer({ port });
     registerAllMethods(server);
     registerBridgeCommandMethods(server, dispatcher);
-    registerRouterChatMethods(server, router, goalDecomposer, multiAgentDispatcher);
+    registerRouterChatMethods(server, router, ingress);
     setGatewayServer(server);
     await server.start();
     components.push({
@@ -166,15 +213,38 @@ async function serveAction(options: ServeOptions): Promise<void> {
         setGatewayServer(null);
       },
     });
-    console.log(green(`  Gateway started on ws://127.0.0.1:${port}`));
+    console.log(green(`  Gateway started on http://127.0.0.1:${port} (web) | ws://127.0.0.1:${port}/ws`));
+
+    // Wire bus outbound events → WebSocket broadcast (Sprint 106, ADR-032)
+    // Web UI clients subscribed to "bus.response" receive async responses
+    bus.onOutbound((msg) => {
+      server.broadcast({
+        type: "bus.response",
+        timestamp: Date.now(),
+        data: {
+          correlationId: msg.correlationId,
+          text: msg.text,
+          isError: msg.isError ?? false,
+        },
+      });
+    });
 
     // Track running OTT adapter names for health report
     const runningAdapters: string[] = [];
 
+    // 5.5. RL Feedback Service (Sprint 110.5, ADR-033) — must be init before OTT adapters
+    const feedbackService = new RLFeedbackService();
+    const rlExpireTimer = setInterval(() => { feedbackService.expireStale(); }, 15 * 60 * 1000);
+    components.push({
+      name: "RLFeedbackService",
+      stop: async () => { clearInterval(rlExpireTimer); },
+    });
+    console.log(green("  RLFeedbackService ready (15-min expiry timer)"));
+
     // 6. OTT Adapters (R5: error boundary per adapter)
     if (!options.noTelegram) {
       try {
-        const telegram = createTelegramOttAdapter(ingress);
+        const telegram = createTelegramOttAdapter(ingress, bus, busDebounce, feedbackService); // Sprint 110.5: pass feedbackService
         if (telegram) {
           await telegram.start();
           components.push({ name: "Telegram", stop: () => telegram.stop() });

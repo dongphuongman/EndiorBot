@@ -45,6 +45,8 @@ export interface AgentResponseParams {
    * Optional — omitted for non-trainable turns.
    */
   request?: Array<{ role: string; content: string }>;
+  /** Token usage from AI provider (Sprint 114). */
+  tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
 }
 
 /**
@@ -113,6 +115,9 @@ export class RLFeedbackService {
     }
     if (params.request !== undefined) {
       turn.request = params.request;
+    }
+    if (params.tokenUsage !== undefined) {
+      turn.tokenUsage = params.tokenUsage;
     }
 
     this.tracker.addTurn(params.chatId, turn);

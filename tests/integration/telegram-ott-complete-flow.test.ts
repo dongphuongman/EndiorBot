@@ -26,7 +26,7 @@ import {
   handleFixCommand,
   handleConfigCommand,
   handleInitCommand,
-} from "../../src/channels/telegram/telegram-commands.js";
+} from "../../src/commands/handlers.js";
 
 // ============================================================================
 // Helpers — reproduce OTT adapter behavior
@@ -65,6 +65,7 @@ function createRealParserRouter() {
     getUsageHint: () => "Dùng @agent hoặc [@agent: task] để gọi agent.",
     getStatus: async () => ({ status: "ok" }),
     initialize: async () => {},
+    config: { projectRoot: "/mock/project" },
   };
   return router;
 }
@@ -343,10 +344,10 @@ describe("E2E: Slash command responses — no CLI references", () => {
     expect(result.response).toContain("@pm");
   });
 
-  it("/init — no CLI references", () => {
-    const result = handleInitCommand();
+  it("/init — no CLI references", async () => {
+    const result = await handleInitCommand([], undefined);
     assertNoCLIReferences(result.response, "/init");
-    expect(result.response).toContain("@pm");
+    expect(result.response).toMatch(/focus|workspace/i);
   });
 });
 

@@ -352,10 +352,10 @@ describe("handleZaloCommand", () => {
   // ========================================================================
 
   describe("/init", () => {
-    it("should show init status", async () => {
+    it("should show workspace-required message when no workspace", async () => {
       const handled = await handleZaloCommand("/init", sendFn);
       expect(handled).toBe(true);
-      expect(messages[0]).toContain("Init Status");
+      expect(messages[0]).toMatch(/focus|workspace/i);
     });
   });
 

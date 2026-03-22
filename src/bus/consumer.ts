@@ -145,6 +145,9 @@ export class BusConsumer {
         sendOpts.provider = (response.metadata.model as string | undefined) ?? "unknown";
         // Sprint 111a: thread inbound content as conversation context for RL training records
         sendOpts.request = [{ role: "user", content: msg.content }];
+        // Sprint 114 (CTO C1): thread tokenUsage for RL pipeline
+        const tu = response.metadata.tokenUsage as { inputTokens: number; outputTokens: number; totalTokens: number } | undefined;
+        if (tu) sendOpts.tokenUsage = tu;
       } else {
         sendOpts.isTrainableTurn = false;
       }

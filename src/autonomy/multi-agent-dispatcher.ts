@@ -100,6 +100,8 @@ export class MultiAgentDispatcher {
   async dispatch(
     decomposition: GoalDecomposition,
     router: ChannelRouter,
+    workspace?: string,
+    history?: Array<{ role: string; content: string }>,
   ): Promise<AggregatedResponse> {
     const relayCtx = this.relay.createRelay(
       decomposition.goalId,
@@ -126,7 +128,7 @@ export class MultiAgentDispatcher {
           }
 
           const context = this.relay.buildAgentContext(relayCtx, subtask.agent);
-          const result = await this.executeSubtask(subtask, router, context);
+          const result = await this.executeSubtask(subtask, router, context, workspace, history);
           results.push(result);
           totalCost += result.estimatedCostUsd;
 
@@ -138,12 +140,12 @@ export class MultiAgentDispatcher {
 
       case "parallel":
         // CTO F4: Promise.allSettled for error isolation
-        results.push(...await this.executeParallel(decomposition.subtasks, router));
+        results.push(...await this.executeParallel(decomposition.subtasks, router, workspace, history));
         break;
 
       case "mixed":
         // Group by dependency: no-deps → parallel, with-deps → sequential after deps
-        results.push(...await this.executeMixed(decomposition, router, relayCtx));
+        results.push(...await this.executeMixed(decomposition, router, relayCtx, workspace, history));
         break;
     }
 
@@ -171,6 +173,8 @@ export class MultiAgentDispatcher {
     subtask: Subtask,
     router: ChannelRouter,
     context?: string,
+    workspace?: string,
+    history?: Array<{ role: string; content: string }>,
   ): Promise<SubtaskResult> {
     this.emit("subtask:start", subtask.id, subtask.id, subtask.agent, `Starting @${subtask.agent}`);
 
@@ -181,7 +185,7 @@ export class MultiAgentDispatcher {
     const start = Date.now();
     try {
       const aiResult = await Promise.race<AIResult>([
-        router.callAI(subtask.agent, taskWithContext),
+        router.callAI(subtask.agent, taskWithContext, history, workspace),
         this.timeoutPromise(this.config.perSubtaskTimeoutMs),
       ]);
 
@@ -224,9 +228,11 @@ export class MultiAgentDispatcher {
   private async executeParallel(
     subtasks: Subtask[],
     router: ChannelRouter,
+    workspace?: string,
+    history?: Array<{ role: string; content: string }>,
   ): Promise<SubtaskResult[]> {
     const promises = subtasks.map((subtask) =>
-      this.executeSubtask(subtask, router),
+      this.executeSubtask(subtask, router, undefined, workspace, history),
     );
 
     // CTO F4: allSettled prevents cascading failures
@@ -256,6 +262,8 @@ export class MultiAgentDispatcher {
     decomposition: GoalDecomposition,
     router: ChannelRouter,
     relayCtx: ReturnType<SessionRelay["createRelay"]>,
+    workspace?: string,
+    history?: Array<{ role: string; content: string }>,
   ): Promise<SubtaskResult[]> {
     const results: SubtaskResult[] = [];
     const completed = new Set<string>();
@@ -281,14 +289,14 @@ export class MultiAgentDispatcher {
       if (ready.length === 1) {
         const subtask = ready[0]!;
         const context = this.relay.buildAgentContext(relayCtx, subtask.agent);
-        const result = await this.executeSubtask(subtask, router, context);
+        const result = await this.executeSubtask(subtask, router, context, workspace, history);
         results.push(result);
         if (result.success) {
           this.relay.recordSubtaskResult(relayCtx, result);
           completed.add(subtask.id);
         }
       } else {
-        const parallel = await this.executeParallel(ready, router);
+        const parallel = await this.executeParallel(ready, router, workspace, history);
         for (const result of parallel) {
           results.push(result);
           if (result.success) {

@@ -112,7 +112,7 @@ import {
   handleAttachCommand,
   handleRunCommand,
   executeApprovedRun,
-} from "../../../src/channels/telegram/remote-commands.js";
+} from "../../../src/commands/remote-handlers.js";
 
 // ============================================================================
 // /repos

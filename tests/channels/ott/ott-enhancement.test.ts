@@ -19,7 +19,7 @@
  * @authority ADR-019 OTT Channel Enhancement
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 // Telegram commands
 import {
@@ -34,7 +34,7 @@ import {
   handleModeCommand,
   handleWebhookCommand,
   generateHelpMessage,
-} from '../../../src/channels/telegram/telegram-commands.js';
+} from '../../../src/commands/handlers.js';
 
 // Keyboards
 import {
@@ -73,6 +73,19 @@ import { messages } from '../../../src/i18n/messages.js';
 
 import type { AgentRole } from '../../../src/agents/types/handoff.js';
 import type { IncomingMessage, ServerResponse } from 'http';
+
+// ============================================================================
+// Mocks for session-aware commands (handleModeCommand)
+// ============================================================================
+
+vi.mock('../../../src/bridge/agent-launcher.js', () => ({
+  getAgentLauncher: vi.fn(),
+}));
+
+vi.mock('../../../src/bridge/session-registry.js', () => ({
+  getSessionRegistry: vi.fn(),
+  resetSessionRegistry: vi.fn(),
+}));
 
 // ============================================================================
 // Mock team registry for team commands
@@ -238,32 +251,67 @@ describe('Telegram Commands (Sprint 76)', () => {
   });
 
   describe('handleInitCommand', () => {
-    it('should return init status info', () => {
-      const result = handleInitCommand();
-      expect(result.success).toBe(true);
-      expect(result.response).toContain('Init Status');
+    it('should return workspace-required message when no workspace', async () => {
+      const result = await handleInitCommand([], undefined);
+      expect(result.success).toBe(false);
+      expect(result.response).toMatch(/focus|workspace/i);
     });
   });
 
   describe('handleModeCommand', () => {
-    it('should show current mode when no args', () => {
-      const result = handleModeCommand([], 'READ');
+    /** Set up a fake session via handleLaunchCommand (only way to populate activeSessionMap). */
+    async function setupSession(actorId: string, initialMode: 'read' | 'patch' = 'read') {
+      const sessionId = 'ott-mode-test-' + Math.random().toString(36).slice(2);
+      const fakeSession = {
+        id: sessionId,
+        riskMode: initialMode,
+        status: 'active',
+        agentType: 'claude',
+        tmuxTarget: 'endiorbot:0',
+        projectPath: '/tmp/test',
+        actorId,
+        createdAt: Date.now(),
+      };
+      const { getAgentLauncher } = await import('../../../src/bridge/agent-launcher.js');
+      vi.mocked(getAgentLauncher).mockReturnValue({
+        launch: vi.fn().mockResolvedValue({ success: true, session: fakeSession }),
+      } as never);
+      const { handleLaunchCommand } = await import('../../../src/commands/handlers.js');
+      await handleLaunchCommand(['claude', '/tmp/test'], actorId);
+      const { getSessionRegistry } = await import('../../../src/bridge/session-registry.js');
+      vi.mocked(getSessionRegistry).mockReturnValue({
+        get: vi.fn((id: string) => (id === sessionId ? fakeSession : undefined)),
+        list: vi.fn().mockReturnValue([fakeSession]),
+      } as never);
+      return { fakeSession, sessionId };
+    }
+
+    it('should show current mode when no args', async () => {
+      const actorId = 'ott-mode-show-' + Math.random().toString(36).slice(2);
+      await setupSession(actorId, 'read');
+      const result = handleModeCommand([], actorId);
       expect(result.success).toBe(true);
       expect(result.response).toContain('READ');
     });
 
-    it('should handle read mode', () => {
-      const result = handleModeCommand(['read'], 'PATCH');
+    it('should handle read mode', async () => {
+      const actorId = 'ott-mode-read-' + Math.random().toString(36).slice(2);
+      await setupSession(actorId, 'patch');
+      const result = handleModeCommand(['read'], actorId);
       expect(result.response).toContain('READ');
     });
 
-    it('should handle patch mode request', () => {
-      const result = handleModeCommand(['patch'], 'READ');
+    it('should handle patch mode request', async () => {
+      const actorId = 'ott-mode-patch-' + Math.random().toString(36).slice(2);
+      await setupSession(actorId, 'read');
+      const result = handleModeCommand(['patch'], actorId);
       expect(result.response).toContain('PATCH');
     });
 
-    it('should reject unknown mode', () => {
-      const result = handleModeCommand(['unknown'], 'READ');
+    it('should reject unknown mode', async () => {
+      const actorId = 'ott-mode-unknown-' + Math.random().toString(36).slice(2);
+      await setupSession(actorId, 'read');
+      const result = handleModeCommand(['unknown'], actorId);
       expect(result.success).toBe(false);
       expect(result.response).toContain('Unknown mode');
     });
@@ -430,8 +478,8 @@ describe('Mode Confirm Keyboard (Sprint 76)', () => {
     const keyboard = createModeConfirmKeyboard('req-123');
     const allButtons = keyboard.inline_keyboard.flat();
     const callbacks = allButtons.map(b => b.callback_data);
-    expect(callbacks.some(c => c.includes('confirm'))).toBe(true);
-    expect(callbacks.some(c => c.includes('cancel'))).toBe(true);
+    expect(callbacks.some(c => c?.includes('confirm'))).toBe(true);
+    expect(callbacks.some(c => c?.includes('cancel'))).toBe(true);
   });
 
   it('should parse mode callback', () => {
@@ -826,8 +874,17 @@ describe('CTO P1-1: Input sanitization in error responses', () => {
     expect(result.response).toContain('unknown sub-command');
   });
 
-  it('should sanitize Markdown chars in /mode unknown mode', () => {
-    const result = handleModeCommand(['[link](http://evil.com)'], 'READ');
+  it('should sanitize Markdown chars in /mode unknown mode', async () => {
+    const actorId = 'ott-sanitize-mode-' + Math.random().toString(36).slice(2);
+    const sessionId = 'ott-san-mode-sess-' + Math.random().toString(36).slice(2);
+    const fakeSession = { id: sessionId, riskMode: 'read' as const, status: 'active', agentType: 'claude', tmuxTarget: 'endiorbot:0', projectPath: '/tmp/test', actorId, createdAt: Date.now() };
+    const { getAgentLauncher } = await import('../../../src/bridge/agent-launcher.js');
+    vi.mocked(getAgentLauncher).mockReturnValue({ launch: vi.fn().mockResolvedValue({ success: true, session: fakeSession }) } as never);
+    const { handleLaunchCommand } = await import('../../../src/commands/handlers.js');
+    await handleLaunchCommand(['claude', '/tmp/test'], actorId);
+    const { getSessionRegistry } = await import('../../../src/bridge/session-registry.js');
+    vi.mocked(getSessionRegistry).mockReturnValue({ get: vi.fn((id: string) => (id === sessionId ? fakeSession : undefined)), list: vi.fn().mockReturnValue([fakeSession]) } as never);
+    const result = handleModeCommand(['[link](http://evil.com)'], actorId);
     expect(result.response).not.toContain('[link]');
     expect(result.response).not.toContain('http://evil.com');
     expect(result.response).toContain('Unknown mode');

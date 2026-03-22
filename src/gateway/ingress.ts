@@ -19,6 +19,8 @@ import type { ChannelPolicyEngine } from "../policy/channel-policy-engine.js";
 import type { ChannelSource } from "../protocol/types.js";
 import type { GoalDecomposer } from "../autonomy/goal-decomposer.js";
 import type { MultiAgentDispatcher } from "../autonomy/multi-agent-dispatcher.js";
+import { getConversationStore } from "../channels/conversation/store.js";
+import { resolveWorkspace } from "../bridge/repo/workspace-resolver.js";
 
 // ============================================================================
 // Types
@@ -42,6 +44,14 @@ export interface InboundResponse {
   format?: "markdown" | "plain" | "html";
   /** Optional inline keyboard / button data */
   replyMarkup?: unknown;
+  /** Optional response metadata (Sprint 99 — CTO MF-1: preserves Web UI display) */
+  metadata?: {
+    agent?: string;
+    model?: string;
+    latencyMs?: number;
+    /** Sprint 114 (CTO C1): Token usage from AI call for RL pipeline threading */
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+  };
 }
 
 // ============================================================================
@@ -121,6 +131,11 @@ export class GatewayIngress {
       if (chatIdVal) ctx.chatId = chatIdVal;
       if (msg.metadata) ctx.rawMessage = msg.metadata;
 
+      // Sprint 99: Resolve workspace for commands (ADR-029 AD-5)
+      const cmdChatId = chatIdVal ?? msg.senderId;
+      const cmdWorkspace = resolveWorkspace(cmdChatId, this.router.config.projectRoot);
+      if (cmdWorkspace !== this.router.config.projectRoot) ctx.workspace = cmdWorkspace;
+
       const result = await this.dispatcher.dispatch(cmdName, ctx);
 
       if (!result) {
@@ -139,6 +154,31 @@ export class GatewayIngress {
       return { text: this.router.getUsageHint() };
     }
 
+    // ── Sprint 98: Conversation context (OTT-001 gap closure) ──
+    const chatId = msg.metadata?.chatId ? String(msg.metadata.chatId) : msg.senderId;
+    const store = getConversationStore();
+    const history = store.get(chatId);
+
+    // ── Sprint 99: Per-chat workspace resolution (ADR-029 AD-1) ──
+    const workspace = resolveWorkspace(chatId, this.router.config.projectRoot);
+
+    // Store user turn
+    store.add(chatId, "user", text);
+
+    // ── Sprint 113 (ADR-034): Cross-system route → bypass decomposer AND callAI (CPO C3 + CTO C6) ──
+    // MUST be before multi-agent block: shouldDecompose() may trigger on task keywords
+    // even when the route is cross-system. Cross-system always takes priority.
+    if (routeResult.crossSystem) {
+      const startMs = Date.now();
+      const result = await this.router.callMTClaw(routeResult.crossSystem);
+      store.add(chatId, "assistant", result.content);
+      return {
+        text: this.router.formatResponse(`mtclaw.${routeResult.crossSystem.agent}`, result),
+        format: "markdown" as const,
+        metadata: { agent: `mtclaw.${routeResult.crossSystem.agent}`, model: "mtclaw-mcp", latencyMs: Date.now() - startMs },
+      };
+    }
+
     // ── Sprint 95: Multi-agent routing ──
     // When multiple agents detected OR GoalDecomposer identifies multi-agent need,
     // route through the autonomy pipeline. Single-agent path remains unchanged.
@@ -147,23 +187,47 @@ export class GatewayIngress {
       this.multiAgentDispatcher &&
       (routeResult.agents.length > 1 || this.goalDecomposer.shouldDecompose(routeResult.task))
     ) {
+      const startMs = Date.now();
       const decomposition = this.goalDecomposer.decompose(
         routeResult.task,
         routeResult.agents,
       );
-      const aggregated = await this.multiAgentDispatcher.dispatch(decomposition, this.router);
-      const response: InboundResponse = { text: aggregated.text };
+      const aggregated = await this.multiAgentDispatcher.dispatch(decomposition, this.router, workspace, history);
+      const responseText = aggregated.text;
+      store.add(chatId, "assistant", responseText);
+      const response: InboundResponse = {
+        text: responseText,
+        metadata: {
+          agent: routeResult.agents.join(", "),
+          model: "multi-agent",
+          latencyMs: Date.now() - startMs,
+        },
+      };
       if (aggregated.format) response.format = aggregated.format;
       return response;
     }
 
     // ── Single-agent path (backward compatible) ──
     const agent = routeResult.agents[0] ?? "assistant";
-    const result = await this.router.callAI(agent, routeResult.task);
+    const startMs = Date.now();
+    const result = await this.router.callAI(agent, routeResult.task, history, workspace);
+    const responseText = this.router.formatResponse(agent, result);
+
+    // Store assistant turn
+    store.add(chatId, "assistant", responseText);
+
+    const responseMeta: NonNullable<InboundResponse["metadata"]> = {
+      agent,
+      model: result.provider,
+      latencyMs: Date.now() - startMs,
+    };
+    // Sprint 114 (CTO C1): Thread tokenUsage for RL pipeline
+    if (result.tokenUsage) responseMeta.tokenUsage = result.tokenUsage;
 
     return {
-      text: this.router.formatResponse(agent, result),
+      text: responseText,
       format: "markdown" as const,
+      metadata: responseMeta,
     };
   }
 }

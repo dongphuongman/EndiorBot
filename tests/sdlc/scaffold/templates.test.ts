@@ -237,8 +237,8 @@ describe("generateAgentsMd", () => {
     const liteContent = generateAgentsMd(liteProject);
     const standardContent = generateAgentsMd(testProject);
 
-    // LITE tier has 2 agents, STANDARD has more
-    expect(liteContent).toContain("Total Agents:** 2");
+    // LITE tier has 3 agents (SASE 6.1.2), STANDARD has more
+    expect(liteContent).toContain("Total Agents:** 3");
     expect(standardContent).toContain("Total Agents:** ");
     // The roster table should contain pm for STANDARD but not LITE
     expect(liteContent).toContain("| @coder |");
@@ -246,13 +246,13 @@ describe("generateAgentsMd", () => {
     expect(standardContent).toContain("| @pm |");
   });
 
-  it("should include architect agent for PROFESSIONAL+", () => {
+  it("should include architect agent for STANDARD+ (SASE 6.1.2)", () => {
+    const liteContent = generateAgentsMd(liteProject);
     const standardContent = generateAgentsMd(testProject);
-    const enterpriseContent = generateAgentsMd(enterpriseProject);
 
-    // Check the roster table specifically (not usage examples)
-    expect(standardContent).not.toContain("| @architect |");
-    expect(enterpriseContent).toContain("| @architect |");
+    // SASE 6.1.2: architect is STANDARD tier (was PROFESSIONAL)
+    expect(liteContent).not.toContain("| @architect |");
+    expect(standardContent).toContain("| @architect |");
   });
 
   it("should include SASE section", () => {
@@ -340,7 +340,7 @@ describe("getAgentById", () => {
 
     expect(architect).toBeDefined();
     expect(architect?.model).toBe("opus");
-    expect(architect?.minTier).toBe("PROFESSIONAL");
+    expect(architect?.minTier).toBe("STANDARD");
   });
 
   it("should find ceo agent", () => {

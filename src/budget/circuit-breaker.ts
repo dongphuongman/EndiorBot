@@ -25,7 +25,7 @@ import type {
 export const DEFAULT_THRESHOLDS = {
   warning: 0.5, // 50% - warn
   critical: 0.8, // 80% - notify + prepare fallback
-  limit: 1.0, // 100% - pause/switch to NQH (api.nqh-internal.example)
+  limit: 1.0, // 100% - pause/switch to NQH (ai.nqh-internal.example)
 } as const;
 
 /** Default cool-down period in milliseconds (30 seconds) */

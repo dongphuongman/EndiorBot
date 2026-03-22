@@ -103,7 +103,7 @@ import {
   handleComplexityGateCallback,
   pendingTeamLaunches,
   pendingTeamTimeouts,
-} from "../../../src/channels/telegram/telegram-commands.js";
+} from "../../../src/commands/handlers.js";
 
 // ============================================================================
 // Tests
@@ -183,7 +183,7 @@ describe("Team Launch — --as-team Flag (Sprint 90)", () => {
 
     expect(result.success).toBe(true);
     expect(result.response).toContain("Complexity Gate");
-    expect(result.reply_markup).toBeDefined();
+    expect(result.replyMarkup).toBeDefined();
     expect(pendingTeamLaunches.size).toBe(1);
   });
 

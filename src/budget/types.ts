@@ -30,7 +30,7 @@ export type TaskType =
 export interface LimitAction {
   /** Action type */
   action: "pause_and_notify" | "switch_to_nqh" | "fail_fast";
-  /** Fallback model for 'switch_to_nqh' action (api.nqh-internal.example) */
+  /** Fallback model for 'switch_to_nqh' action (ai.nqh-internal.example) */
   fallback_model?: string;
   /** Milliseconds to wait before escalating */
   pause_duration?: number;
@@ -487,7 +487,7 @@ export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
 
   on_limit_reached: {
     action: "pause_and_notify",
-    fallback_model: "nqh/qwen3-coder", // api.nqh-internal.example
+    fallback_model: "nqh/qwen3-coder", // ai.nqh-internal.example
     pause_duration: 60000, // 1 minute
   },
 

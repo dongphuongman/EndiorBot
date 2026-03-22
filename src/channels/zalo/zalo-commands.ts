@@ -2,7 +2,7 @@
  * Zalo Command Handler
  *
  * Dispatches slash commands for Zalo channel by reusing shared handlers
- * from telegram-commands.ts and stripping Markdown for plain text output.
+ * from commands/handlers.ts and stripping Markdown for plain text output.
  *
  * Sprint 77 — ADR-020: OTT Channel Completion
  *
@@ -25,7 +25,7 @@ import {
   handleInitCommand,
   sanitizeForEcho,
   type CommandResult,
-} from "../telegram/telegram-commands.js";
+} from "../../commands/handlers.js";
 import type { ZaloSendFn } from "./agent-handler.js";
 import { getConversationStore } from "../conversation/store.js";
 
@@ -201,7 +201,7 @@ export async function handleZaloCommand(
       result = handleConfigCommand();
       break;
     case "/init":
-      result = handleInitCommand();
+      result = await handleInitCommand(args);
       break;
     case "/approve":
       result = handleZaloApprove(args);

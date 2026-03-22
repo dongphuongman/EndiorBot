@@ -102,7 +102,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
       output_per_1k: 0.0003,
       notes: "Fast, very economical",
     },
-    // NQH Infrastructure (api.nqh-internal.example)
+    // NQH Infrastructure (ai.nqh-internal.example)
     "nqh/qwen3-coder": {
       provider: "nqh",
       input_per_1k: 0,

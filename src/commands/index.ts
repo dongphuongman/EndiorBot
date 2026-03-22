@@ -2,7 +2,7 @@
  * Commands Module — barrel export + factory.
  *
  * Creates a CommandDispatcher with all 17+ commands registered.
- * Wraps existing handlers from telegram-commands.ts and remote-commands.ts.
+ * Wraps shared handlers from handlers.ts and remote-handlers.ts.
  *
  * @module commands
  * @version 1.0.0
@@ -21,13 +21,13 @@ export {
 import { CommandDispatcher, requireLinkedActor } from "./command-dispatcher.js";
 import type { CommandContext, CommandResult } from "./command-dispatcher.js";
 
-// Import existing handlers from telegram-commands
+// Import shared command handlers
 import {
   handleAgentsCommand,
   handleTeamsCommand,
   handleGateCommand,
   handleComplianceCommand,
-  handleFixCommand,
+  executeFixCommand,
   handleConsultCommand,
   handleConfigCommand,
   handleInitCommand,
@@ -43,11 +43,12 @@ import {
   handleEvalCommand,
   handleTeamStatusCommand,
   handleKillTeamCommand,
+  handleCostCommand,
   generateHelpMessage,
   getLinkedActorId,
-} from "../channels/telegram/telegram-commands.js";
+} from "./handlers.js";
 
-// Import remote commands
+// Import remote command handlers
 import {
   handleReposCommand,
   handleFocusCommand,
@@ -57,7 +58,7 @@ import {
   handleAttachCommand,
   handleRunCommand,
   executeApprovedRun,
-} from "../channels/telegram/remote-commands.js";
+} from "./remote-handlers.js";
 
 // Import approval queue (Sprint 94: /approve + /reject migration)
 import {
@@ -101,20 +102,27 @@ export function createCommandDispatcher(): CommandDispatcher {
 
   d.register("gate", async (ctx) => handleGateCommand(ctx.args));
 
-  d.register("compliance", async (ctx) => handleComplianceCommand(ctx.args));
+  d.register("compliance", async (ctx) => {
+    // Sprint 103 (CPO C3): "compliance fix" → delegate to executeFixCommand
+    if (ctx.args[0] === "fix") {
+      return executeFixCommand(ctx.args.slice(1), ctx.workspace);
+    }
+    return handleComplianceCommand(ctx.args);
+  });
 
-  d.register("fix", async (ctx) => handleFixCommand(ctx.args));
+  d.register("fix", async (ctx) => executeFixCommand(ctx.args, ctx.workspace));
 
   d.register("consult", async (ctx) => handleConsultCommand(ctx.args));
 
   d.register("config", async () => handleConfigCommand());
 
-  d.register("init", async () => handleInitCommand());
+  d.register("init", async (ctx) => handleInitCommand(ctx.args, ctx.workspace));
 
-  d.register("mode", async (ctx) => {
-    // Mode state is per-adapter; default to "read" when called from Gateway
-    return handleModeCommand(ctx.args, "read");
-  });
+  // Sprint 104: /mode now mutates session.riskMode via actorId lookup (GAP-004)
+  // Breaking change: unlinked users get "No active session" instead of help text.
+  d.register("mode", withLinkedActor(async (ctx, actorId) => {
+    return handleModeCommand(ctx.args, actorId);
+  }));
 
   d.register("webhook", async (ctx) => {
     // Webhook state is per-adapter; default to false when called from Gateway
@@ -123,12 +131,13 @@ export function createCommandDispatcher(): CommandDispatcher {
 
   // ── Identity linking ──
 
-  d.register("link", async (ctx) => handleLinkCommand(ctx.userId, ctx.username));
+  d.register("link", async (ctx) => handleLinkCommand(ctx.userId, ctx.username, ctx.channel));
 
   // ── Bridge commands (require linked identity) ──
 
   d.register("launch", withLinkedActor(async (ctx, actorId) => {
-    return handleLaunchCommand(ctx.args, actorId);
+    // Sprint 99: Pass workspace from CommandContext (ADR-029 AD-6)
+    return handleLaunchCommand(ctx.args, actorId, ctx.workspace);
   }));
 
   d.register("sessions", withLinkedActor(async () => {
@@ -174,7 +183,7 @@ export function createCommandDispatcher(): CommandDispatcher {
   d.register("repos", async (ctx) => handleReposCommand(ctx.args));
 
   d.register("focus", withLinkedActor(async (ctx, actorId) => {
-    return handleFocusCommand(ctx.args, ctx.chatId ?? ctx.userId, actorId);
+    return handleFocusCommand(ctx.args, ctx.chatId ?? ctx.userId, actorId, ctx.channel);
   }));
 
   d.register("where", async (ctx) => {
@@ -252,7 +261,11 @@ export function createCommandDispatcher(): CommandDispatcher {
     return { success: true, response: `Rejected: ${request.message}` };
   }));
 
-  // ── Help command (F3: reuse generateHelpMessage from telegram-commands) ──
+  // ── Sprint 114: Cost command (no auth needed — info only) ──
+
+  d.register("cost", async (ctx) => handleCostCommand(ctx.args));
+
+  // ── Help command (F3: reuse generateHelpMessage from handlers) ──
 
   d.register("help", async () => ({
     success: true,

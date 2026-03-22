@@ -29,7 +29,7 @@ vi.mock("../../../src/sdlc/gates/gate-store.js", () => ({
 
 import { GateEngine, resetGateEngine } from "../../../src/sdlc/gates/gate-engine.js";
 import { getChecklist } from "../../../src/sdlc/gates/gate-checklist.js";
-import { handleGateCommand } from "../../../src/channels/telegram/telegram-commands.js";
+import { handleGateCommand } from "../../../src/commands/handlers.js";
 
 // ============================================================================
 // Helpers

@@ -1,10 +1,16 @@
 ---
 role: pjm
 category: executor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["01", "04"]
 sdlc_gates: ["G-Sprint", "G-Sprint-Close"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - AskUserQuestion
 ---
 
 # SOUL - Project Manager (PJM)

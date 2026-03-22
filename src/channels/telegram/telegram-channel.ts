@@ -217,6 +217,8 @@ export class TelegramChannel implements BidirectionalChannel {
       provider?: string;
       /** Sprint 111a: inbound conversation context for RL training record */
       request?: Array<{ role: string; content: string }>;
+      /** Sprint 114 (CTO C1): Token usage from AI call for RL pipeline */
+      tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
     },
   ): Promise<boolean> {
     if (!this.config) {
@@ -244,6 +246,8 @@ export class TelegramChannel implements BidirectionalChannel {
             durationMs: 0, // Sprint 111+: thread actual durationMs through opts
           };
           if (options.request) agentParams.request = options.request;
+          // Sprint 114 (CTO C1): thread tokenUsage for RL pipeline
+          if (options.tokenUsage) agentParams.tokenUsage = options.tokenUsage;
           this.feedbackService.onAgentResponse(agentParams);
         }
         return messageId !== null;
@@ -903,6 +907,7 @@ export class TelegramChannel implements BidirectionalChannel {
     if (!response.ok || !response.result?.message_id) return null;
     return response.result.message_id;
   }
+
 
   /**
    * Make an API call to Telegram.

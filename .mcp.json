@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mtclaw": {
+      "type": "url",
+      "url": "https://mtclaw.nqh-internal.example/mcp",
+      "headers": {
+        "X-Tenant-ID": "nqh"
+      }
+    }
+  }
+}

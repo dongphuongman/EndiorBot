@@ -15,20 +15,9 @@ import { createLogger } from "../../logging/index.js";
 import { t } from "../../i18n/index.js";
 import { fmt, formatDuration } from "../ui/format.js";
 import { createSpinner } from "../ui/progress.js";
-import {
-  detectProject,
-  scaffoldProject,
-  createBackup,
-  migrateConfig,
-  writeMigratedConfig,
-  type ProjectTier,
-  type InitOptions,
-  type InitResult,
-  type DetectionResult,
-} from "../../sdlc/scaffold/index.js";
+import type { ProjectTier } from "../../sdlc/scaffold/index.js";
 import { saveActiveProject } from "../../config/paths.js";
-import { collectProjectContext } from "../../sdlc/compliance/project-context-collector.js";
-import type { ProjectSnapshot } from "../../sdlc/compliance/fix-types.js";
+import { executeInitCommand, type ExecuteInitResult, type ExecuteInitOptions } from "../../commands/handlers.js";
 
 const logger = createLogger("init-command");
 
@@ -79,16 +68,17 @@ interface InitCommandOptions {
 // ============================================================================
 
 /**
- * Execute init command.
+ * Execute init command — CLI wrapper around shared executeInitCommand().
+ *
+ * Adds CLI-specific UX: spinners, colored output, process.exit.
+ * Core logic lives in executeInitCommand() (commands/handlers.ts).
+ * Sprint 102: Unified Command Architecture.
  */
 async function executeInit(
   projectName: string | undefined,
   options: InitCommandOptions
 ): Promise<void> {
-  const startTime = Date.now();
   const targetPath = resolve(options.path);
-
-  // Resolve project name
   const name = projectName ?? basename(targetPath);
 
   // Validate tier
@@ -101,59 +91,59 @@ async function executeInit(
 
   logger.info("Starting init", { name, tier, path: targetPath });
 
-  // Step 1: Codebase analysis (before detect — gives templates context)
-  let snapshot: ProjectSnapshot | undefined;
-  if (!options.skipAnalysis && !options.analyze) {
-    const analysisSpinner = createSpinner("Analyzing codebase...");
-    try {
-      snapshot = await collectProjectContext(targetPath, tier);
-      const parts = [
-        snapshot.techStack.language,
-        snapshot.techStack.framework,
-        snapshot.techStack.packageManager && `(${snapshot.techStack.packageManager})`,
-        snapshot.techStack.desktop,
-      ].filter(Boolean);
-      analysisSpinner.succeed(`Tech stack: ${parts.join(", ")}`);
-    } catch {
+  // Show analysis spinner
+  const analysisSpinner = (!options.skipAnalysis && !options.analyze)
+    ? createSpinner("Analyzing codebase...")
+    : null;
+
+  // Call shared init command (exactOptionalPropertyTypes: build opts conditionally)
+  const initOpts: ExecuteInitOptions = { projectName: name, tier, targetPath };
+  if (options.force) initOpts.force = options.force;
+  if (options.analyze) initOpts.analyze = options.analyze;
+  if (options.skipAnalysis) initOpts.skipAnalysis = options.skipAnalysis;
+  const result = await executeInitCommand(initOpts);
+
+  // Show analysis result
+  if (analysisSpinner) {
+    if (result.techStackSummary) {
+      analysisSpinner.succeed(result.techStackSummary);
+    } else {
       analysisSpinner.warn("Codebase analysis failed — using generic placeholders");
-      // snapshot remains undefined → templates fall back to generic
     }
   }
 
-  // Step 2: Detect existing structure
-  console.log(fmt.info("Detecting existing SDLC structure..."));
-  const detection = detectProject(targetPath);
-
   // Display detection result
-  displayDetectionResult(detection);
+  displayDetectionResult(result);
 
-  // Step 3: Handle based on state
-  const initOpts: InitOptions = {
-    projectName: name,
-    tier,
-    path: targetPath,
-    analyze: options.analyze ?? false,
-    force: options.force ?? false,
-    noScaffold: options.scaffold === false,
-    refresh: options.refresh ?? false,
-  };
-  if (snapshot) initOpts.snapshot = snapshot;
-  const result = await handleProjectState(detection, initOpts);
+  // Display progress messages
+  for (const msg of result.messages) {
+    if (!msg.startsWith("Tech stack:") && !msg.startsWith("Codebase analysis")) {
+      console.log(fmt.info(msg));
+    }
+  }
 
-  // Step 4: Display result
-  displayResult(result, Date.now() - startTime);
+  if (!result.success) {
+    console.error(fmt.error(result.error ?? "Init failed"));
+    if (result.error?.includes("--force")) {
+      console.log("Use --force to overwrite with EndiorBot structure.");
+    }
+    return;
+  }
 
-  // Step 5: Save active project (if not dry-run)
-  if (!options.analyze && result.created.length > 0) {
+  // Display step results
+  displayStepResult(result);
+
+  // Save active project (if not dry-run)
+  const createdCount = result.steps.filter((s) => s.status === "created").length;
+  if (!options.analyze && createdCount > 0) {
     try {
       saveActiveProject({
         name,
         path: targetPath,
-        tier,
+        tier: result.tier as ProjectTier,
         startedAt: Date.now(),
       });
     } catch (error) {
-      // Non-fatal - log and continue
       logger.debug("Failed to save active project state", {
         error: error instanceof Error ? error.message : String(error),
       });
@@ -162,277 +152,14 @@ async function executeInit(
 }
 
 // ============================================================================
-// State Handlers
+// Display Functions (CLI-specific formatting)
 // ============================================================================
 
 /**
- * Handle project based on detected state.
+ * Display detection result from shared ExecuteInitResult.
  */
-async function handleProjectState(
-  detection: DetectionResult,
-  options: InitOptions
-): Promise<InitResult> {
-  const startTime = Date.now();
-
-  switch (detection.state) {
-    case "FRESH":
-      return handleFreshProject(options, startTime);
-
-    case "ENDIORBOT":
-      return handleEndiorBotProject(detection, options, startTime);
-
-    case "PARTIAL":
-      return handlePartialProject(detection, options, startTime);
-
-    case "TINYSDLC":
-    case "SDLC_ORCHESTRATOR":
-      return handleMigration(detection, options, startTime);
-
-    case "UNKNOWN":
-      if (options.force) {
-        console.log(fmt.warning("Force mode - migrating unknown config to EndiorBot format..."));
-        const backupPath = await createBackup(options.path!, detection.existingFiles);
-        if (backupPath) {
-          console.log(fmt.info(`Backup created: ${backupPath}`));
-        }
-        return handleFreshProject(options, startTime);
-      }
-      console.log(fmt.warning("Unknown config format detected."));
-      console.log("Use --force to overwrite with EndiorBot structure.");
-      return createEmptyResult(detection.state, options.tier!, startTime);
-
-    default:
-      return createEmptyResult(detection.state, options.tier!, startTime);
-  }
-}
-
-/**
- * Handle fresh project (no SDLC files).
- */
-async function handleFreshProject(
-  options: InitOptions,
-  startTime: number
-): Promise<InitResult> {
-  console.log(fmt.info("Fresh project - creating full scaffold..."));
-
-  const spinner = options.analyze ? null : createSpinner("Scaffolding project...");
-
-  const scaffoldOpts: Parameters<typeof scaffoldProject>[0] = {
-    projectName: options.projectName!,
-    projectDescription: "",
-    tier: options.tier!,
-    targetPath: options.path!,
-    dryRun: options.analyze ?? false,
-    force: options.force ?? false,
-  };
-  if (options.snapshot) scaffoldOpts.snapshot = options.snapshot;
-  const result = await scaffoldProject(scaffoldOpts);
-
-  spinner?.succeed("Scaffold complete");
-
-  return {
-    created: result.steps.filter((s) => s.status === "created").map((s) => s.path),
-    updated: result.steps.filter((s) => s.status === "updated").map((s) => s.path),
-    preserved: result.steps.filter((s) => s.status === "preserved").map((s) => s.path),
-    skipped: result.steps.filter((s) => s.status === "skipped").map((s) => s.path),
-    durationMs: Date.now() - startTime,
-    detectedState: "FRESH",
-    tier: options.tier!,
-  };
-}
-
-/**
- * Handle existing EndiorBot project.
- */
-async function handleEndiorBotProject(
-  detection: DetectionResult,
-  options: InitOptions,
-  startTime: number
-): Promise<InitResult> {
-  if (options.force) {
-    // Create backup before force
-    console.log(fmt.warning("Force mode - creating backup..."));
-    const backupPath = await createBackup(options.path!, detection.existingFiles);
-    console.log(fmt.info(`Backup created: ${backupPath}`));
-
-    return handleFreshProject(options, startTime);
-  }
-
-  if (options.refresh) {
-    console.log(fmt.info("Refresh mode - updating managed sections..."));
-    // Refresh logic will be in Sprint 61a-2
-    console.log(fmt.warning("Refresh mode will be available in next update."));
-  }
-
-  // Default: Check if updates needed
-  const missingFiles = detection.missingFiles;
-
-  if (missingFiles.length === 0) {
-    console.log(fmt.success("Project is up to date. No changes needed."));
-    return {
-      created: [],
-      updated: [],
-      preserved: detection.existingFiles,
-      skipped: [],
-      durationMs: Date.now() - startTime,
-      detectedState: "ENDIORBOT",
-      tier: detection.configTier ?? options.tier!,
-    };
-  }
-
-  // Complete missing files
-  console.log(fmt.info(`Found ${missingFiles.length} missing files. Completing...`));
-
-  const endiorOpts: Parameters<typeof scaffoldProject>[0] = {
-    projectName: options.projectName!,
-    tier: detection.configTier ?? options.tier!,
-    targetPath: options.path!,
-    dryRun: options.analyze ?? false,
-    force: false,
-  };
-  if (options.snapshot) endiorOpts.snapshot = options.snapshot;
-  const result = await scaffoldProject(endiorOpts);
-
-  return {
-    created: result.steps.filter((s) => s.status === "created").map((s) => s.path),
-    updated: result.steps.filter((s) => s.status === "updated").map((s) => s.path),
-    preserved: result.steps.filter((s) => s.status === "preserved").map((s) => s.path),
-    skipped: result.steps.filter((s) => s.status === "skipped").map((s) => s.path),
-    durationMs: Date.now() - startTime,
-    detectedState: "ENDIORBOT",
-    tier: detection.configTier ?? options.tier!,
-  };
-}
-
-/**
- * Handle partial project (has docs/ but no config).
- */
-async function handlePartialProject(
-  detection: DetectionResult,
-  options: InitOptions,
-  startTime: number
-): Promise<InitResult> {
-  // Use detected tier from docs/ or specified tier
-  const tier = detection.structureTier ?? options.tier!;
-
-  if (detection.structureTier && detection.structureTier !== options.tier) {
-    console.log(fmt.warning(
-      `Detected tier from docs/: ${detection.structureTier} (specified: ${options.tier})`
-    ));
-    console.log(fmt.info(`Using detected tier: ${tier}`));
-  }
-
-  console.log(fmt.info("Partial project - completing structure..."));
-
-  const partialOpts: Parameters<typeof scaffoldProject>[0] = {
-    projectName: options.projectName!,
-    tier,
-    targetPath: options.path!,
-    dryRun: options.analyze ?? false,
-    force: options.force ?? false,
-  };
-  if (options.snapshot) partialOpts.snapshot = options.snapshot;
-  const result = await scaffoldProject(partialOpts);
-
-  return {
-    created: result.steps.filter((s) => s.status === "created").map((s) => s.path),
-    updated: result.steps.filter((s) => s.status === "updated").map((s) => s.path),
-    preserved: result.steps.filter((s) => s.status === "preserved").map((s) => s.path),
-    skipped: result.steps.filter((s) => s.status === "skipped").map((s) => s.path),
-    durationMs: Date.now() - startTime,
-    detectedState: "PARTIAL",
-    tier,
-  };
-}
-
-/**
- * Handle migration from tinysdlc or SDLC Orchestrator.
- */
-async function handleMigration(
-  detection: DetectionResult,
-  options: InitOptions,
-  startTime: number
-): Promise<InitResult> {
-  const source = detection.generator ?? detection.state.toLowerCase();
-  console.log(fmt.warning(`Detected ${source} config - migrating to EndiorBot...`));
-
-  // Perform migration
-  const migrationOptions: Parameters<typeof migrateConfig>[1] = {
-    createBackup: true,
-    dryRun: options.analyze ?? false,
-  };
-  if (options.tier) migrationOptions.tier = options.tier;
-  const migrationResult = await migrateConfig(detection, migrationOptions);
-
-  if (!migrationResult.success || !migrationResult.config) {
-    console.error(fmt.error(`Migration failed: ${migrationResult.error}`));
-    console.log("Use --force to overwrite with fresh EndiorBot structure.");
-    return createEmptyResult(detection.state, options.tier!, startTime);
-  }
-
-  // Show backup info
-  if (migrationResult.backupPath) {
-    console.log(fmt.info(`Backup created: ${migrationResult.backupPath}`));
-  }
-
-  // Write migrated config
-  if (!options.analyze && detection.configPath) {
-    await writeMigratedConfig(detection.configPath, migrationResult.config);
-    console.log(fmt.success(`Config migrated from ${source}`));
-  }
-
-  // Now scaffold remaining structure
-  console.log(fmt.info("Creating remaining scaffold structure..."));
-
-  const tier = migrationResult.config.tier as ProjectTier;
-  const scaffoldConfig: Parameters<typeof scaffoldProject>[0] = {
-    projectName: migrationResult.config.project.name,
-    tier,
-    targetPath: options.path!,
-    dryRun: options.analyze ?? false,
-    force: false,
-    detection, // Pass detection to avoid re-writing config
-  };
-  if (migrationResult.config.project.description) {
-    scaffoldConfig.projectDescription = migrationResult.config.project.description;
-  }
-  if (options.snapshot) scaffoldConfig.snapshot = options.snapshot;
-  const result = await scaffoldProject(scaffoldConfig);
-
-  // Build result with config as updated
-  const created = result.steps.filter((s) => s.status === "created").map((s) => s.path);
-  const updated = result.steps.filter((s) => s.status === "updated").map((s) => s.path);
-  const preserved = result.steps.filter((s) => s.status === "preserved").map((s) => s.path);
-  const skipped = result.steps.filter((s) => s.status === "skipped").map((s) => s.path);
-
-  // Add config to updated if it was migrated
-  if (!options.analyze && detection.configPath && !updated.includes(detection.configPath)) {
-    updated.push(detection.configPath);
-  }
-
-  return {
-    created,
-    updated,
-    preserved,
-    skipped,
-    durationMs: Date.now() - startTime,
-    detectedState: detection.state,
-    tier,
-    migrated: {
-      from: source,
-      originalConfig: detection.rawConfig,
-    },
-  };
-}
-
-// ============================================================================
-// Display Functions
-// ============================================================================
-
-/**
- * Display detection result.
- */
-function displayDetectionResult(detection: DetectionResult): void {
+function displayDetectionResult(result: ExecuteInitResult): void {
+  const detection = result.detection;
   const stateColors: Record<string, (s: string) => string> = {
     FRESH: fmt.green,
     ENDIORBOT: fmt.cyan,
@@ -441,6 +168,8 @@ function displayDetectionResult(detection: DetectionResult): void {
     SDLC_ORCHESTRATOR: fmt.yellow,
     UNKNOWN: fmt.red,
   };
+
+  console.log(fmt.info("Detecting existing SDLC structure..."));
 
   const colorFn = stateColors[detection.state] ?? fmt.gray;
   console.log(`   Status: ${colorFn(detection.state)}`);
@@ -461,59 +190,65 @@ function displayDetectionResult(detection: DetectionResult): void {
     console.log(`   Existing files: ${detection.existingFiles.length}`);
   }
 
+  console.log(`   Selected tier: ${result.tier} (${result.tierSource})`);
   console.log();
 }
 
 /**
- * Display init result.
+ * Display step results from shared ExecuteInitResult.
  */
-function displayResult(result: InitResult, totalMs: number): void {
+function displayStepResult(result: ExecuteInitResult): void {
   console.log();
 
-  if (result.created.length > 0) {
+  const created = result.steps.filter((s) => s.status === "created");
+  const updated = result.steps.filter((s) => s.status === "updated");
+  const preserved = result.steps.filter((s) => s.status === "preserved");
+  const skipped = result.steps.filter((s) => s.status === "skipped");
+
+  if (created.length > 0) {
     console.log(fmt.bold("Created:"));
-    for (const file of result.created) {
-      console.log(`  ${fmt.green("✅")} ${file}`);
+    for (const step of created) {
+      console.log(`  ${fmt.green("+")} ${step.path}`);
     }
   }
 
-  if (result.updated.length > 0) {
+  if (updated.length > 0) {
     console.log(fmt.bold("Updated:"));
-    for (const file of result.updated) {
-      console.log(`  ${fmt.blue("🔄")} ${file}`);
+    for (const step of updated) {
+      console.log(`  ${fmt.blue("~")} ${step.path}`);
     }
   }
 
-  if (result.preserved.length > 0 && result.preserved.length <= 5) {
+  if (preserved.length > 0 && preserved.length <= 5) {
     console.log(fmt.bold("Preserved:"));
-    for (const file of result.preserved) {
-      console.log(`  ${fmt.yellow("⏭️")} ${file}`);
+    for (const step of preserved) {
+      console.log(`  ${fmt.yellow("-")} ${step.path}`);
     }
-  } else if (result.preserved.length > 5) {
-    console.log(fmt.dim(`Preserved: ${result.preserved.length} files`));
+  } else if (preserved.length > 5) {
+    console.log(fmt.dim(`Preserved: ${preserved.length} files`));
   }
 
-  if (result.skipped.length > 0 && result.skipped.length <= 5) {
+  if (skipped.length > 0 && skipped.length <= 5) {
     console.log(fmt.bold("Skipped:"));
-    for (const file of result.skipped) {
-      console.log(`  ${fmt.gray("⏭️")} ${file}`);
+    for (const step of skipped) {
+      console.log(`  ${fmt.gray("-")} ${step.path}`);
     }
-  } else if (result.skipped.length > 5) {
-    console.log(fmt.dim(`Skipped: ${result.skipped.length} files (up to date)`));
+  } else if (skipped.length > 5) {
+    console.log(fmt.dim(`Skipped: ${skipped.length} files (up to date)`));
   }
 
   console.log();
 
-  const total = result.created.length + result.updated.length;
+  const total = created.length + updated.length;
   if (total > 0) {
-    console.log(fmt.success(`Project initialized! (${formatDuration(totalMs)})`));
+    console.log(fmt.success(`Project initialized! (${formatDuration(result.durationMs)})`));
     console.log();
     console.log("Next steps:");
     console.log("  1. Review IDENTITY.md and add project details");
     console.log("  2. Run: ./endiorbot.mjs compliance check");
     console.log("  3. Start Claude Code: claude .");
   } else {
-    console.log(fmt.info(`No changes made. (${formatDuration(totalMs)})`));
+    console.log(fmt.info(`No changes made. (${formatDuration(result.durationMs)})`));
   }
 }
 
@@ -532,21 +267,3 @@ function validateTier(tier: string): ProjectTier | null {
   return null;
 }
 
-/**
- * Create empty result for unsupported states.
- */
-function createEmptyResult(
-  state: string,
-  tier: ProjectTier,
-  startTime: number
-): InitResult {
-  return {
-    created: [],
-    updated: [],
-    preserved: [],
-    skipped: [],
-    durationMs: Date.now() - startTime,
-    detectedState: state as any,
-    tier,
-  };
-}

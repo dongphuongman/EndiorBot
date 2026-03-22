@@ -1,10 +1,16 @@
 ---
 role: ceo
 category: advisor
+sdlc_framework: "6.2.0"
 version: 1.0.0
 sdlc_stages: ["00", "06", "09"]
 sdlc_gates: ["G0.1", "G4"]
 created: 2026-02-21
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - AskUserQuestion
 ---
 
 # SOUL - Chief Executive Officer (CEO)

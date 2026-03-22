@@ -148,7 +148,7 @@ export function handleReposCommand(args: string[]): CommandResult {
     if (!result.success) {
       return { success: false, response: `Failed to add repo: ${result.error}` };
     }
-    return { success: true, response: `✅ Repo "${name}" registered at ${sanitizeForEcho(path.slice(0, 50))}` };
+    return { success: true, response: `✅ Repo "${name}" registered at ${sanitizeForEcho(path)}` };
   }
 
   if (subCmd === "remove" && args[1]) {
@@ -166,7 +166,7 @@ export function handleReposCommand(args: string[]): CommandResult {
 
   const lines = ["📂 *Registered Repos*", ""];
   for (const r of repos) {
-    lines.push(`• *${r.name}* — ${sanitizeForEcho(r.path.slice(0, 50))}`);
+    lines.push(`• *${r.name}* — ${sanitizeForEcho(r.path)}`);
     if (r.riskProfile) lines.push(`  Risk: ${r.riskProfile}`);
   }
   lines.push("", "Use /focus <name> to set active repo.");
@@ -176,7 +176,7 @@ export function handleReposCommand(args: string[]): CommandResult {
 /**
  * Handle /focus command — set repo focus for current chat.
  */
-export function handleFocusCommand(args: string[], chatId: string, actorId: string): CommandResult {
+export function handleFocusCommand(args: string[], chatId: string, actorId: string, channel?: string): CommandResult {
   const repoName = args[0];
   if (!repoName) {
     return { success: false, response: "Usage: /focus <repo-name>\nUse /repos to list available repos." };
@@ -192,11 +192,11 @@ export function handleFocusCommand(args: string[], chatId: string, actorId: stri
   getBridgeAuditLogger().log({
     event: "repo_focus",
     actorId,
-    actor: "telegram",
+    actor: (channel ?? "telegram") as import("../bridge/types.js").BridgeAuditActor,
     details: { chatId, repoName, repoPath: repo.path },
   });
 
-  const parts = [`🎯 Focused on *${repo.name}*`, `Path: ${sanitizeForEcho(repo.path.slice(0, 50))}`];
+  const parts = [`🎯 Focused on *${repo.name}*`, `Path: ${sanitizeForEcho(repo.path)}`];
   if (repo.defaultBranch) parts.push(`Branch: ${repo.defaultBranch}`);
   return { success: true, response: parts.join("\n") };
 }
@@ -218,7 +218,7 @@ export function handleWhereCommand(chatId: string): CommandResult {
   const lines = [
     `📍 *Current Focus*`,
     `Repo: ${repo.name}`,
-    `Path: ${sanitizeForEcho(repo.path.slice(0, 50))}`,
+    `Path: ${sanitizeForEcho(repo.path)}`,
   ];
   if (repo.defaultBranch) lines.push(`Branch: ${repo.defaultBranch}`);
   if (repo.riskProfile) lines.push(`Risk: ${repo.riskProfile}`);

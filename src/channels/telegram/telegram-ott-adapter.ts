@@ -141,6 +141,8 @@ export function createTelegramOttAdapter(
           if (opts?.isTrainableTurn !== undefined) sendOpts.isTrainableTurn = opts.isTrainableTurn;
           if (opts?.provider) sendOpts.provider = opts.provider;
           if (opts?.request) sendOpts.request = opts.request;
+          // Sprint 114 (CTO C1): thread tokenUsage for RL pipeline
+          if (opts?.tokenUsage) sendOpts.tokenUsage = opts.tokenUsage;
           return channel.send(truncateForTelegram(text), sendOpts);
         };
 
@@ -163,10 +165,11 @@ export function createTelegramOttAdapter(
         busMsg.metadata = metadata;
 
         // CTO C2 (non-blocking): best-effort progress message — don't block enqueue
-        const agentMatchBus = rawText.match(/^@(\w+)/);
+        // Sprint 113: [\w.]+ to capture cross-system mentions like @mtclaw.bod
+        const agentMatchBus = rawText.match(/^@([\w.]+)/);
         if (agentMatchBus) {
           const agentName = agentMatchBus[1] ?? "agent";
-          const model = getAgentModel(agentName) ?? "sonnet";
+          const model = agentName.startsWith("mtclaw.") ? "mtclaw-mcp" : (getAgentModel(agentName) ?? "sonnet");
           channel.send(`⏳ @${agentName} đang xử lý... (${model})`).catch(() => {});
         }
 
@@ -182,11 +185,12 @@ export function createTelegramOttAdapter(
       // Sync fallback (bus=undefined — existing behavior, all current tests pass)
 
       // UX: Send progress status for AI chat (agent mentions take 30-60s)
-      const agentMatch = rawText.match(/^@(\w+)/);
+      // Sprint 113: [\w.]+ to capture cross-system mentions like @mtclaw.bod
+      const agentMatch = rawText.match(/^@([\w.]+)/);
       if (agentMatch) {
         const agentName = agentMatch[1] ?? "agent";
         // OTT adapter: no workspace context → ENTERPRISE default (CTO F1: cosmetic, same behavior)
-        const model = getAgentModel(agentName) ?? "sonnet";
+        const model = agentName.startsWith("mtclaw.") ? "mtclaw-mcp" : (getAgentModel(agentName) ?? "sonnet");
         await channel.send(`⏳ @${agentName} đang xử lý... (${model})`);
         // Keep "typing..." indicator alive every 4s while waiting
         typingInterval = setInterval(() => {
@@ -212,6 +216,8 @@ export function createTelegramOttAdapter(
       if (!sent) {
         console.error("[TelegramOTT] Failed to send response to Telegram");
       }
+
+
     } catch (error) {
       // Clear typing indicator on error
       if (typingInterval) {

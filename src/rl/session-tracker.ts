@@ -176,6 +176,15 @@ export class RLSessionTracker {
       timestamp: turn.feedbackAt,
     };
 
+    // Sprint 114: Thread token usage into training record
+    if (turn.tokenUsage) {
+      record.token_usage = {
+        input: turn.tokenUsage.inputTokens,
+        output: turn.tokenUsage.outputTokens,
+        total: turn.tokenUsage.totalTokens,
+      };
+    }
+
     return record;
   }
 

@@ -88,7 +88,7 @@ vi.mock("../../../src/agents/orchestrator/team-registry.js", () => ({
 import {
   handleSessionsCommand,
   handleCaptureCommand,
-} from "../../../src/channels/telegram/telegram-commands.js";
+} from "../../../src/commands/handlers.js";
 
 // ============================================================================
 // Helpers
@@ -157,7 +157,7 @@ describe("Team Display — /capture (Sprint 90)", () => {
 
     // Need to set active session for the actor
     const { default: _unused, ...commands } = await import(
-      "../../../src/channels/telegram/telegram-commands.js"
+      "../../../src/commands/handlers.js"
     );
 
     const result = await handleCaptureCommand([], "ceo@endiorbot", "12345");

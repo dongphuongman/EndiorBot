@@ -398,8 +398,8 @@ export const TIER_ROOT_FILES: Record<ProjectTier, string[]> = {
  * Agent count per tier.
  */
 export const TIER_AGENT_COUNT: Record<ProjectTier, number> = {
-  LITE: 2,
-  STANDARD: 5,
+  LITE: 3,
+  STANDARD: 6,
   PROFESSIONAL: 10,
-  ENTERPRISE: 12,
+  ENTERPRISE: 13,
 };
