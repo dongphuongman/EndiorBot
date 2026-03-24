@@ -47,7 +47,7 @@ describe("Gateway Agent Methods", () => {
     registerAllMethods(server);
     await server.start();
 
-    const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+    const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
     const messages: Record<string, unknown>[] = [];
 
     client.on("message", (data) => {
@@ -239,32 +239,16 @@ describe("Gateway Agent Methods", () => {
       client.close();
     });
 
-    it("should return consultation result", async () => {
+    // Sprint 116 T5a: agents.consult now returns 501 (Zero Mock Policy)
+    it("should return 501 not wired error", async () => {
       const { client, messages } = await setupServerAndClient();
 
       const response = await sendRequest(client, messages, "agents.consult", {
         query: "What is the best approach for caching?",
       });
 
-      const result = response.result as ConsultationResult;
-      expect(result.responses).toBeDefined();
-      expect(result.responses.length).toBeGreaterThan(0);
-      expect(result.consensus).toBeDefined();
-      expect(result.selectedResponse).toBeDefined();
-
-      client.close();
-    });
-
-    it("should use specified models", async () => {
-      const { client, messages } = await setupServerAndClient();
-
-      const response = await sendRequest(client, messages, "agents.consult", {
-        query: "Compare Redis vs Memcached",
-        models: ["gpt-4", "claude-3-opus"],
-      });
-
-      const result = response.result as ConsultationResult;
-      expect(result.responses).toHaveLength(2);
+      expect(response.error).toBeDefined();
+      expect((response.error as { message: string }).message).toContain("not yet wired");
 
       client.close();
     });

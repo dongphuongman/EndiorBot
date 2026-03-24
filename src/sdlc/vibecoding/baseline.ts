@@ -8,7 +8,7 @@
  * @version 1.0.0
  * @date 2026-02-27
  * @status ACTIVE - Sprint 53
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -48,7 +48,7 @@ export interface BaselineData {
 
 const BASELINE_DIR = join(homedir(), ".endiorbot", "vibecoding");
 const BASELINE_FILE = join(BASELINE_DIR, "baseline.json");
-const VERSION = "1.0.0";
+const VERSION = "0.1.0-beta.1";
 
 // ============================================================================
 // Baseline Manager Class

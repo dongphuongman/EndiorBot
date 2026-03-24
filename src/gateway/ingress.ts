@@ -19,8 +19,13 @@ import type { ChannelPolicyEngine } from "../policy/channel-policy-engine.js";
 import type { ChannelSource } from "../protocol/types.js";
 import type { GoalDecomposer } from "../autonomy/goal-decomposer.js";
 import type { MultiAgentDispatcher } from "../autonomy/multi-agent-dispatcher.js";
+import type { ChannelSendFn } from "../bus/types.js";
 import { getConversationStore } from "../channels/conversation/store.js";
 import { resolveWorkspace } from "../bridge/repo/workspace-resolver.js";
+import { sanitize } from "../security/input-sanitizer.js";
+import { createLogger } from "../utils/logger.js";
+
+const log = createLogger("gateway.ingress");
 
 // ============================================================================
 // Types
@@ -148,6 +153,12 @@ export class GatewayIngress {
       return response;
     }
 
+    // ── Sprint 116 T2: Sanitize input before AI routing ──
+    const { sanitized: sanitizedText, violations } = sanitize(text, msg.channel);
+    if (violations.length > 0) {
+      log.warn("Input sanitization violations", { channel: msg.channel, senderId: msg.senderId, violations });
+    }
+
     // ── AI chat via ChannelRouter ──
     const routeResult = await this.router.routeMessage(text);
     if (!routeResult) {
@@ -210,7 +221,14 @@ export class GatewayIngress {
     // ── Single-agent path (backward compatible) ──
     const agent = routeResult.agents[0] ?? "assistant";
     const startMs = Date.now();
-    const result = await this.router.callAI(agent, routeResult.task, history, workspace);
+    // Sprint 115 (T3): Extract notifyFn from bus metadata for approval notifications
+    const rawNotify = msg.metadata?.notifyFn;
+    const notifyFn = typeof rawNotify === "function"
+      ? (rawNotify as ChannelSendFn)
+      : undefined;
+    // Use sanitized text for AI call (defense-in-depth against prompt injection)
+    const sanitizedTask = violations.length > 0 ? sanitizedText : routeResult.task;
+    const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn);
     const responseText = this.router.formatResponse(agent, result);
 
     // Store assistant turn

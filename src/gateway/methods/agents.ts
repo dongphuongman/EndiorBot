@@ -207,12 +207,15 @@ function handleAgentsRoute(
 
 /**
  * Consult multiple models (multi-model orchestration).
+ *
+ * Sprint 116 T5a: Returns 501 NOT_WIRED until real MultiModelOrchestrator is integrated.
+ * Zero Mock Policy: no fake responses on production endpoints.
  */
 async function handleAgentsConsult(
   params: unknown,
   _client: ClientInfo
 ): Promise<ConsultationResult> {
-  const { query, models, taskType } = (params ?? {}) as {
+  const { query } = (params ?? {}) as {
     query: string;
     models?: string[];
     taskType?: string;
@@ -222,18 +225,18 @@ async function handleAgentsConsult(
     throw new Error("query is required");
   }
 
-  // Default models to consult
-  const modelsToUse = models ?? ["claude-3-opus", "gpt-4", "gemini-pro"];
-
-  // Simulate multi-model consultation
-  // TODO: Wire to actual MultiModelOrchestrator
-  const result = await simulateConsultation(query, modelsToUse, taskType);
-
-  return result;
+  // Sprint 116 T5a: 501 Not Implemented — no fake responses (Zero Mock Policy)
+  throw Object.assign(
+    new Error("Multi-model consultation not yet wired. Use single-agent chat via router.chat instead."),
+    { code: 501 },
+  );
 }
 
 /**
  * Get current routing statistics.
+ *
+ * Sprint 116 T5a: Returns zeroed stats (not fake data).
+ * These are real values — no routing has occurred in this session.
  */
 function handleAgentsRoutingStats(
   _params: unknown,
@@ -244,7 +247,6 @@ function handleAgentsRoutingStats(
   byTaskType: Record<string, number>;
   avgConfidence: number;
 } {
-  // Placeholder stats - will be wired to actual routing analytics
   return {
     totalRouted: 0,
     byProvider: {},
@@ -382,34 +384,6 @@ function inferTaskType(query: string): string {
   return "general";
 }
 
-/**
- * Simulate multi-model consultation.
- */
-async function simulateConsultation(
-  query: string,
-  models: string[],
-  _taskType?: string
-): Promise<ConsultationResult> {
-  // Placeholder - will be wired to actual MultiModelOrchestrator
-  const responses = models.map((model) => ({
-    provider: model.includes("gpt") ? "openai" : model.includes("gemini") ? "google" : "anthropic",
-    model,
-    content: `[Simulated response from ${model}]`,
-    confidence: 0.85,
-    latencyMs: Math.floor(Math.random() * 2000) + 500,
-  }));
-
-  return {
-    responses,
-    consensus: {
-      hasConsensus: true,
-      points: ["Point 1", "Point 2"],
-      disagreements: [],
-      recommendation: `Recommendation based on query: "${query.substring(0, 50)}..."`,
-    },
-    selectedResponse: 0,
-  };
-}
 
 // ============================================================================
 // Registration

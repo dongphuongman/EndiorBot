@@ -77,6 +77,12 @@ export interface BusInboundMessage {
    * Registered by the channel adapter; called by BusConsumer after processing.
    */
   replyFn: ChannelSendFn;
+  /**
+   * Sprint 115 (T3): Optional notification function for progress/approval messages.
+   * Same signature as replyFn. Called by channel-router when PATCH approval is needed,
+   * so CEO sees the approval prompt immediately (before waitForApproval blocks).
+   */
+  notifyFn?: ChannelSendFn;
 }
 
 /**
@@ -122,6 +128,10 @@ export interface BusStats {
   inFlight: number;
   /** Bus start timestamp (ms) */
   startedAt: number;
+  /** Sprint 115 (T5): Number of active inbound listeners */
+  inboundListeners: number;
+  /** Sprint 115 (T5): Number of active outbound listeners */
+  outboundListeners: number;
 }
 
 // ============================================================================

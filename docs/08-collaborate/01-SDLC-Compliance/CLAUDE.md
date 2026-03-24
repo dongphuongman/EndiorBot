@@ -63,6 +63,40 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 - **Framework:** MTS SDLC Framework 6.2.0
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/Minh-Tam-Solution/EndiorBot.git
+cd EndiorBot && pnpm install
+
+# 2. Configure environment
+cp .env.example .env
+# Set ANTHROPIC_API_KEY, GOOGLE_API_KEY (minimum)
+
+# 3. Build and verify
+pnpm build && pnpm test
+
+# 4. Run
+./endiorbot.mjs serve  # Web + Telegram + Zalo channels
+```
+
+## Top 5 Architecture Decisions
+
+1. **TypeScript monorepo** — Single codebase, unified types, no micro-service overhead for solo dev (ADR-005)
+2. **4-channel OTT architecture** — Web, Telegram, Zalo, CLI share unified command handlers (ADR-030)
+3. **Per-chat workspace resolution** — Each chat maps to a repo via `~/.endiorbot/repos.json` (ADR-029)
+4. **Claude Code Bridge via tmux** — Session management without child processes, survives disconnects (ADR-006)
+5. **SDLC Gate Engine as code** — Gates evaluated programmatically, not manually checked (ADR-004)
+
+## Constraints
+
+- **Solo developer** — No team reviews; AI agents handle code review, testing, QA
+- **Budget** — Default model is Sonnet; Opus reserved for architecture decisions only
+- **Token budget** — 2K tokens/turn max, 3 blocks/turn, hard reset every 30 turns
+- **Node.js >= 20** — Required for ES2022 features and NodeNext module resolution
+- **Beta stability** — APIs may change between 0.x releases; no SLA guarantees
+
 ## Configuration Files
 
 | File | Purpose |
@@ -319,7 +353,7 @@ const mentalModels = await getBrain().getMentalModels();
 
 ---
 
-*Claude Code integration for EndiorBot v1.0.0*
+*Claude Code integration for EndiorBot v0.1.0-beta.1*
 *Identity: CEO Power Tool (LOCKED)*
 *SDLC Framework v6.2.0*
-*Sprint 112+ | 6,400+ tests | 30 OTT commands | 13 SOUL agents*
+*Sprint 118+ | 6,596+ tests | 30 OTT commands | 13 SOUL agents*

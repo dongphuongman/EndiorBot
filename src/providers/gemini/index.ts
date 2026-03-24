@@ -31,7 +31,7 @@ import type {
   Tool,
 } from "../types.js";
 import { ProviderError } from "../types.js";
-import { RateLimiter } from "../../gateway/auth.js";
+import { RateLimiter } from "../../security/rate-limiter.js";
 
 // ============================================================================
 // Types

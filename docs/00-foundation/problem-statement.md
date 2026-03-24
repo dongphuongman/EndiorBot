@@ -123,7 +123,7 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 | Solo developer focus | Not enterprise team features |
 | Lightweight infrastructure | No heavy DB, Redis, MinIO |
 | TypeScript ecosystem | Must integrate with Claude Code |
-| SDLC Framework v6.1.1 | Must be compliant |
+| SDLC Framework v6.2.0 | Must be compliant |
 
 ---
 
@@ -153,9 +153,9 @@ endiorbot switch <project>      # Minimal context
 ## References
 
 - [Master Plan v2.0](./master-plan.md) - Identity & roadmap
-- [MTS SDLC Framework v6.1.1](/.sdlc-framework)
+- [MTS SDLC Framework v6.2.0](/.sdlc-framework)
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.1.1 - Stage 00: Foundation*
+*CEO Power Tool | SDLC Framework v6.2.0 - Stage 00: Foundation*
 *Identity: LOCKED (2026-02-28)*

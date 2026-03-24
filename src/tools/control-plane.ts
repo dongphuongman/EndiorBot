@@ -132,7 +132,13 @@ export class ToolControlPlane {
     const risk = this.policyEngine.getToolRisk(toolName) ?? 'ADMIN';
 
     try {
-      // Phase 1: Mock execution (real Composio client in Day 5-6)
+      // Sprint 116 T5b: Guard against mock execution in production (Zero Mock Policy)
+      if (!this.composioClient.isMockMode()) {
+        throw new Error(
+          `Tool execution not wired: ${toolName}. Composio integration pending. ` +
+          `Set COMPOSIO_API_KEY or enable mockMode explicitly for testing.`
+        );
+      }
       const output = await this.mockExecute(toolName, args);
       const duration = Date.now() - startTime;
 

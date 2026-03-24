@@ -12,4 +12,4 @@
 - Lessons learned
 
 ---
-*SDLC Framework 6.1.1*
+*SDLC Framework 6.2.0*

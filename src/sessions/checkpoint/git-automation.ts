@@ -14,10 +14,10 @@
  * @authority ADR-006 Checkpoint State Model
  * @pillar 3 - Software Engineering 3.0
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 import type {
   CheckpointState,
   CheckpointReason,
@@ -160,6 +160,26 @@ export interface GitCheckpointState {
 }
 
 // ============================================================================
+// Validation Helpers (Sprint 116 — T1 Command Injection Fix)
+// ============================================================================
+
+/** Validate a git ref (SHA, branch name, tag) to prevent command injection. */
+function validateGitRef(ref: string): string {
+  if (!/^[a-zA-Z0-9._\-/~^@{}:]+$/.test(ref)) {
+    throw new Error(`Invalid git ref: ${ref}`);
+  }
+  return ref;
+}
+
+/** Validate a git reset strategy. */
+function validateResetStrategy(strategy: string): string {
+  if (!["soft", "mixed", "hard"].includes(strategy)) {
+    throw new Error(`Invalid reset strategy: ${strategy}`);
+  }
+  return strategy;
+}
+
+// ============================================================================
 // Git Utilities
 // ============================================================================
 
@@ -265,8 +285,10 @@ export function getCommitFiles(commitSha: string, path?: string): string[] {
   try {
     const cwd = path ?? process.cwd();
 
+    const safeRef = validateGitRef(commitSha);
+
     // First try diff-tree for non-root commits
-    let output = execSync(`git diff-tree --no-commit-id --name-only -r ${commitSha}`, {
+    let output = execFileSync("git", ["diff-tree", "--no-commit-id", "--name-only", "-r", safeRef], {
       cwd,
       encoding: "utf8",
       stdio: "pipe",
@@ -274,7 +296,7 @@ export function getCommitFiles(commitSha: string, path?: string): string[] {
 
     // If empty, this might be a root commit - use git show instead
     if (!output) {
-      output = execSync(`git show --name-only --format="" ${commitSha}`, {
+      output = execFileSync("git", ["show", "--name-only", "--format=", safeRef], {
         cwd,
         encoding: "utf8",
         stdio: "pipe",
@@ -388,11 +410,11 @@ export async function autoCommitOnMilestone(
     // Stage files
     const filesToStage = files ?? ["."];
     for (const file of filesToStage) {
-      execSync(`git add "${file}"`, { cwd, stdio: "pipe" });
+      execFileSync("git", ["add", file], { cwd, stdio: "pipe" });
     }
 
     // Commit with message
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, {
+    execFileSync("git", ["commit", "-m", message], {
       cwd,
       stdio: "pipe",
     });
@@ -472,14 +494,16 @@ export async function createCompensationCommit(
   }
 
   try {
+    const safeRef = validateGitRef(originalCommitSha);
+
     // Revert the commit (creates a new commit)
-    execSync(`git revert --no-edit ${originalCommitSha}`, {
+    execFileSync("git", ["revert", "--no-edit", safeRef], {
       cwd,
       stdio: "pipe",
     });
 
     // Amend the message to include our custom message
-    execSync(`git commit --amend -m "${message.replace(/"/g, '\\"')}"`, {
+    execFileSync("git", ["commit", "--amend", "-m", message], {
       cwd,
       stdio: "pipe",
     });
@@ -514,17 +538,20 @@ async function createManualCompensationCommit(
   cwd: string,
 ): Promise<GitOperationResult> {
   try {
+    const safeRef = validateGitRef(originalCommitSha);
+
     // Get the parent commit
-    const parentCommit = execSync(`git rev-parse ${originalCommitSha}^`, {
+    const parentCommit = execFileSync("git", ["rev-parse", safeRef + "^"], {
       cwd,
       encoding: "utf8",
       stdio: "pipe",
     }).trim();
 
     // Checkout each file from parent commit
+    const safeParent = validateGitRef(parentCommit);
     for (const file of files) {
       try {
-        execSync(`git checkout ${parentCommit} -- "${file}"`, {
+        execFileSync("git", ["checkout", safeParent, "--", file], {
           cwd,
           stdio: "pipe",
         });
@@ -535,8 +562,8 @@ async function createManualCompensationCommit(
     }
 
     // Stage and commit
-    execSync("git add -A", { cwd, stdio: "pipe" });
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, {
+    execFileSync("git", ["add", "-A"], { cwd, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", message], {
       cwd,
       stdio: "pipe",
     });
@@ -604,12 +631,12 @@ export async function captureWorkingTree(
 
   try {
     // Use git stash to capture working tree
-    const stashCmd = includeUntracked
-      ? "git stash push --include-untracked"
-      : "git stash push";
+    const stashArgs = ["stash", "push"];
+    if (includeUntracked) stashArgs.push("--include-untracked");
 
     const stashMessage = `${ref}: ${description ?? "Checkpoint working tree"}`;
-    execSync(`${stashCmd} -m "${stashMessage}"`, { cwd, stdio: "pipe" });
+    stashArgs.push("-m", stashMessage);
+    execFileSync("git", stashArgs, { cwd, stdio: "pipe" });
 
     // Get stash ref
     const stashRef = execSync("git stash list -1 --format=%H", {
@@ -712,8 +739,9 @@ export async function resetToCommit(
   }
 
   // Verify commit exists
+  const safeRef = validateGitRef(commitSha);
   try {
-    execSync(`git cat-file -e ${commitSha}`, { cwd, stdio: "pipe" });
+    execFileSync("git", ["cat-file", "-e", safeRef], { cwd, stdio: "pipe" });
   } catch {
     return {
       success: false,
@@ -732,7 +760,8 @@ export async function resetToCommit(
   }
 
   try {
-    execSync(`git reset --${strategy} ${commitSha}`, { cwd, stdio: "pipe" });
+    const safeStrategy = validateResetStrategy(strategy);
+    execFileSync("git", ["reset", `--${safeStrategy}`, safeRef], { cwd, stdio: "pipe" });
 
     return {
       success: true,
@@ -786,7 +815,7 @@ export async function createCheckpointBranch(
   }
 
   try {
-    execSync(`git branch "${branchName}"`, { cwd, stdio: "pipe" });
+    execFileSync("git", ["branch", branchName], { cwd, stdio: "pipe" });
 
     return {
       success: true,
@@ -838,7 +867,7 @@ export async function deleteCheckpointBranch(
 
   try {
     const flag = force ? "-D" : "-d";
-    execSync(`git branch ${flag} "${branchName}"`, { cwd, stdio: "pipe" });
+    execFileSync("git", ["branch", flag, branchName], { cwd, stdio: "pipe" });
 
     return {
       success: true,

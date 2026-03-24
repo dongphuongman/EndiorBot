@@ -74,7 +74,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       await new Promise<void>((resolve) => client.on("open", resolve));
 
       expect(server.stats.activeConnections).toBe(1);
@@ -89,7 +89,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
 
       const welcome = await new Promise<Record<string, unknown>>((resolve) => {
         client.on("message", (data) => {
@@ -111,7 +111,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       // Set up message handler BEFORE connection is established
@@ -151,7 +151,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -192,7 +192,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -226,7 +226,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -268,7 +268,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -332,7 +332,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -383,7 +383,7 @@ describe("GatewayServer", () => {
       server = createGatewayServer({ port: testPort });
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const messages: Record<string, unknown>[] = [];
 
       client.on("message", (data) => {
@@ -424,7 +424,7 @@ describe("GatewayServer", () => {
       expect(server.stats.totalConnections).toBe(0);
       expect(server.stats.activeConnections).toBe(0);
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       await new Promise<void>((resolve) => client.on("open", resolve));
 
       expect(server.stats.totalConnections).toBe(1);

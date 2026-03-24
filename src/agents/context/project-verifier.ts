@@ -18,7 +18,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createLogger, type Logger } from "../../logging/index.js";
 
 // ============================================================================
@@ -345,7 +345,7 @@ export class ProjectVerifier {
    */
   private execGit(cwd: string, args: string): string {
     try {
-      return execSync(`git ${args}`, {
+      return execFileSync("git", args.split(/\s+/), {
         cwd,
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],

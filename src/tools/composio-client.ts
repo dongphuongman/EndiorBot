@@ -104,6 +104,13 @@ export class ComposioClient {
   }
 
   /**
+   * Check if running in mock mode (Sprint 116 T5b).
+   */
+  isMockMode(): boolean {
+    return this.config.mockMode;
+  }
+
+  /**
    * Get available tools from Composio for a principal
    */
   async getTools(principal_id: string, apps: string[] = []): Promise<Tool[]> {

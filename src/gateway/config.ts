@@ -27,6 +27,8 @@ export const GatewayEnvVars = {
   TOKEN: "ENDIORBOT_GATEWAY_TOKEN",
   /** Enable authentication */
   AUTH_ENABLED: "ENDIORBOT_GATEWAY_AUTH",
+  /** Allowed CORS origins (comma-separated) */
+  CORS_ORIGINS: "ENDIORBOT_CORS_ORIGINS",
 } as const;
 
 // ============================================================================
@@ -65,6 +67,12 @@ export function loadGatewayConfigFromEnv(): Partial<GatewayConfig> {
   const authEnabled = process.env[GatewayEnvVars.AUTH_ENABLED];
   if (authEnabled !== undefined) {
     config.authEnabled = authEnabled === "true" || authEnabled === "1";
+  }
+
+  // CORS origins (Sprint 116 T3)
+  const corsOrigins = process.env[GatewayEnvVars.CORS_ORIGINS];
+  if (corsOrigins) {
+    config.corsOrigins = corsOrigins.split(",").map((o) => o.trim()).filter(Boolean);
   }
 
   return config;

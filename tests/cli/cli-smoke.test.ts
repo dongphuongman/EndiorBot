@@ -121,7 +121,7 @@ describe("CLI Smoke Tests", () => {
     it("should show version", () => {
       const result = runCli("--version");
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/);
     });
 
     it("should show help", () => {

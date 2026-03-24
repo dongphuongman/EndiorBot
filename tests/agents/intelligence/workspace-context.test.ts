@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock child_process before import
 vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }));
 
 import {
@@ -14,14 +14,14 @@ import {
   formatWorkspaceContext,
   clearWorkspaceContextCache,
 } from "../../../src/agents/intelligence/workspace-context.js";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
-const mockExecSync = vi.mocked(execSync);
+const mockExecFileSync = vi.mocked(execFileSync);
 
 describe("WorkspaceContext", () => {
   beforeEach(() => {
     clearWorkspaceContextCache();
-    mockExecSync.mockReset();
+    mockExecFileSync.mockReset();
   });
 
   afterEach(() => {
@@ -30,7 +30,7 @@ describe("WorkspaceContext", () => {
 
   describe("getWorkspaceContext", () => {
     it("returns context for a git repo", () => {
-      mockExecSync
+      mockExecFileSync
         .mockReturnValueOnce("feature/sprint-114\n") // branch
         .mockReturnValueOnce("fix: token tracking\nfeat: cost command\nrefactor: types\n") // log
         .mockReturnValueOnce(" 5 files changed, 120 insertions(+), 30 deletions(-)\n"); // diff stat
@@ -43,19 +43,19 @@ describe("WorkspaceContext", () => {
     });
 
     it("returns null for non-git directory", () => {
-      mockExecSync.mockImplementation(() => { throw new Error("not a git repo"); });
+      mockExecFileSync.mockImplementation(() => { throw new Error("not a git repo"); });
       const ctx = getWorkspaceContext("/tmp/not-git");
       expect(ctx).toBeNull();
     });
 
     it("returns null when branch command fails", () => {
-      mockExecSync.mockReturnValueOnce(""); // empty branch = not a git repo
+      mockExecFileSync.mockReturnValueOnce(""); // empty branch = not a git repo
       const ctx = getWorkspaceContext("/tmp/empty");
       expect(ctx).toBeNull();
     });
 
     it("caches results for 60s", () => {
-      mockExecSync
+      mockExecFileSync
         .mockReturnValueOnce("main\n")
         .mockReturnValueOnce("commit1\n")
         .mockReturnValueOnce("");
@@ -65,11 +65,11 @@ describe("WorkspaceContext", () => {
 
       expect(ctx1).toEqual(ctx2);
       // execSync called 3 times for first call, 0 times for second (cached)
-      expect(mockExecSync).toHaveBeenCalledTimes(3);
+      expect(mockExecFileSync).toHaveBeenCalledTimes(3);
     });
 
     it("handles empty diff stats", () => {
-      mockExecSync
+      mockExecFileSync
         .mockReturnValueOnce("main\n")
         .mockReturnValueOnce("commit1\n")
         .mockReturnValueOnce(""); // no uncommitted changes
@@ -79,7 +79,7 @@ describe("WorkspaceContext", () => {
     });
 
     it("handles single file changed in diff stats", () => {
-      mockExecSync
+      mockExecFileSync
         .mockReturnValueOnce("main\n")
         .mockReturnValueOnce("")
         .mockReturnValueOnce(" 1 file changed, 3 insertions(+)\n");

@@ -11,7 +11,7 @@
  * @authority ADR-006 CLI Architecture
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { existsSync } from "node:fs";
@@ -24,7 +24,7 @@ import { installGlobalErrorHandlers, formatErrorForCLI } from "../errors/index.j
 import { ensureSecureStateDir } from "../security/secure-fs.js";
 import { resolveStateDir } from "../config/paths.js";
 
-const VERSION = "1.0.0";
+const VERSION = "0.1.0-beta.1";
 
 export async function run(): Promise<void> {
   // Load .env and .env.local from cwd (e.g. project root) so API keys are available for gateway/providers

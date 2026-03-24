@@ -18,7 +18,7 @@
  * @sprint 65
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type { Logger } from "../logging/index.js";
 import { createLogger } from "../logging/index.js";
 import {
@@ -239,8 +239,9 @@ export class GitContextManager {
     let aheadBehind: { ahead: number; behind: number } | undefined;
 
     try {
-      const upstream = execSync(
-        `git rev-parse --abbrev-ref ${name}@{upstream}`,
+      const upstream = execFileSync(
+        "git",
+        ["rev-parse", "--abbrev-ref", `${name}@{upstream}`],
         {
           cwd: this.projectRoot,
           encoding: "utf8",
@@ -252,8 +253,9 @@ export class GitContextManager {
         trackingRemote = upstream;
 
         // Get ahead/behind counts
-        const counts = execSync(
-          `git rev-list --left-right --count ${name}...${upstream}`,
+        const counts = execFileSync(
+          "git",
+          ["rev-list", "--left-right", "--count", `${name}...${upstream}`],
           {
             cwd: this.projectRoot,
             encoding: "utf8",
@@ -295,8 +297,9 @@ export class GitContextManager {
     try {
       // Use --format with delimiters for reliable parsing
       const format = "%H|%h|%s|%an|%ae|%aI";
-      const output = execSync(
-        `git log -${count} --format="${format}"`,
+      const output = execFileSync(
+        "git",
+        ["log", `-${count}`, `--format=${format}`],
         {
           cwd: this.projectRoot,
           encoding: "utf8",
@@ -338,8 +341,9 @@ export class GitContextManager {
 
     try {
       const format = "%H|%h|%s|%an|%ae|%aI";
-      const output = execSync(
-        `git log -${count} --format="${format}" -- "${filepath}"`,
+      const output = execFileSync(
+        "git",
+        ["log", `-${count}`, `--format=${format}`, "--", filepath],
         {
           cwd: this.projectRoot,
           encoding: "utf8",
@@ -390,11 +394,15 @@ export class GitContextManager {
     }
 
     try {
-      const content = execSync(`git show ${ref}:"${filepath}"`, {
-        cwd: this.projectRoot,
-        encoding: "utf8",
-        stdio: "pipe",
-      });
+      const content = execFileSync(
+        "git",
+        ["show", `${ref}:${filepath}`],
+        {
+          cwd: this.projectRoot,
+          encoding: "utf8",
+          stdio: "pipe",
+        }
+      );
 
       return {
         success: true,
@@ -443,11 +451,15 @@ export class GitContextManager {
     }
 
     try {
-      return execSync(`git diff ${fromRef}..${toRef} -- "${filepath}"`, {
-        cwd: this.projectRoot,
-        encoding: "utf8",
-        stdio: "pipe",
-      });
+      return execFileSync(
+        "git",
+        ["diff", `${fromRef}..${toRef}`, "--", filepath],
+        {
+          cwd: this.projectRoot,
+          encoding: "utf8",
+          stdio: "pipe",
+        }
+      );
     } catch {
       return null;
     }
@@ -465,8 +477,9 @@ export class GitContextManager {
     }
 
     try {
-      const output = execSync(
-        `git diff --name-only ${fromRef}..${toRef}`,
+      const output = execFileSync(
+        "git",
+        ["diff", "--name-only", `${fromRef}..${toRef}`],
         {
           cwd: this.projectRoot,
           encoding: "utf8",

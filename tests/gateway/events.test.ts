@@ -103,7 +103,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -157,7 +157,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -205,7 +205,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -256,7 +256,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -302,7 +302,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -353,7 +353,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -395,7 +395,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -438,7 +438,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -482,7 +482,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {
@@ -526,7 +526,7 @@ describe("Gateway Events", () => {
       setGatewayServer(server);
       await server.start();
 
-      const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+      const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
       const receivedEvents: GatewayEvent[] = [];
 
       client.on("message", (data) => {

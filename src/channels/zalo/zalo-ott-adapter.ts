@@ -13,6 +13,9 @@
  */
 
 import type { GatewayIngress, InboundMessage } from "../../gateway/ingress.js";
+import type { IMessageBus, BusInboundMessage, ChannelSendFn } from "../../bus/types.js";
+import type { BusDebounce } from "../../bus/debounce.js";
+import { createCorrelationId } from "../../bus/message-bus.js";
 import {
   getUpdates,
   sendMessage,
@@ -78,6 +81,8 @@ function stripMarkdown(text: string): string {
  */
 export function createZaloOttAdapter(
   ingress: GatewayIngress,
+  bus?: IMessageBus,
+  debounce?: BusDebounce,
 ): OttAdapter | null {
   const envToken = process.env.ENDIORBOT_ZALO_BOT_TOKEN;
   if (!envToken) return null;
@@ -103,6 +108,46 @@ export function createZaloOttAdapter(
           chatType: msg.chat.chat_type,
         },
       };
+
+      // Sprint 115 (T4): Async bus path — non-blocking (mirrors Telegram pattern)
+      if (bus) {
+        const correlationId = createCorrelationId("zalo", msg.from.id);
+
+        // Zalo: opts intentionally unused — Zalo channel excluded from RL pipeline
+        // (no inline keyboard support, plain text only). See CTO review Sprint 115.
+        const replyFn: ChannelSendFn = async (text, _opts) => {
+          const plainText = stripMarkdown(text);
+          const formattedText = truncateForZalo(plainText);
+          await sendMessage(token, { chat_id: msg.chat.id, text: formattedText });
+          return true;
+        };
+
+        const busMsg: BusInboundMessage = {
+          correlationId,
+          channel: "zalo",
+          senderId: msg.from.id,
+          content: msg.text,
+          enqueuedAt: Date.now(),
+          replyFn,
+        };
+        // Sprint 115 (T3): notifyFn = replyFn for approval notifications
+        busMsg.notifyFn = replyFn;
+
+        const metadata: Record<string, unknown> = {
+          chatId: msg.chat.id,
+          messageId: msg.message_id,
+        };
+        if (msg.chat.chat_type) metadata.chatType = msg.chat.chat_type;
+        if (msg.message_id) metadata.dedupKey = `zalo-${msg.message_id}`;
+        busMsg.metadata = metadata;
+
+        if (debounce) {
+          debounce.debounce(busMsg, (m) => bus.publishInbound(m));
+        } else {
+          bus.publishInbound(busMsg);
+        }
+        return; // Non-blocking — BusConsumer calls replyFn() when done
+      }
 
       const response = await ingress.handleInbound(inbound);
 

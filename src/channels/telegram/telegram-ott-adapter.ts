@@ -154,6 +154,9 @@ export function createTelegramOttAdapter(
           enqueuedAt: Date.now(),
           replyFn,
         };
+        // Sprint 115 (T3): notifyFn = replyFn — CEO gets approval prompts via same channel
+        busMsg.notifyFn = replyFn;
+
         // exactOptionalPropertyTypes — build metadata separately, assign only if populated
         const metadata: Record<string, unknown> = {
           chatId: msg.metadata?.chatId ?? msg.senderId,

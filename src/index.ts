@@ -210,5 +210,5 @@ export type {
   EnhancedFixLogEntry,
 } from './agents/fix-logging/types.js';
 
-export const VERSION = '1.0.0';
-export const FRAMEWORK_VERSION = '6.1.1';
+export const VERSION = '0.1.0-beta.1';
+export const FRAMEWORK_VERSION = '6.2.0';

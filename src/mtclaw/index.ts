@@ -16,9 +16,11 @@ export { MTClawBridge } from "./bridge.js";
 export type {
   MTClawConfig,
   CrossSystemRoute,
+  KnowledgeSearchOptions,
   McpToolDef,
   McpToolResult,
   McpContentItem,
   ToolResult,
   MTClawAgentInfo,
 } from "./types.js";
+export { RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "./types.js";

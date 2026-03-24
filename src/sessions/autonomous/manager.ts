@@ -624,24 +624,28 @@ export class AutonomousSessionManager {
   }
 
   /**
-   * Execute task work (simulated - real impl would call model).
+   * Execute task work.
+   *
+   * Sprint 116 T5c: Throws NOT_WIRED in production. Returns deterministic cost
+   * estimate in test mode (no Math.random, no sleep). Zero Mock Policy.
    */
   private async executeTaskWork(
     _task: AutonomousTask,
     tier: ModelTier
   ): Promise<{ cost: number; filesModified?: string[]; filesCreated?: string[] }> {
-    // Simulate work duration based on tier
-    const baseDuration =
-      tier === ModelTier.ELITE ? 5000 : tier === ModelTier.STANDARD ? 2000 : 500;
-    await this.sleep(baseDuration);
+    // Sprint 116 T5c: Guard — real model execution not wired yet
+    if (process.env.NODE_ENV !== "test") {
+      throw new Error(
+        "Autonomous task execution not wired to model provider. " +
+        "This feature is under development. Use single-agent chat instead."
+      );
+    }
 
-    // Estimate cost based on tier
+    // Test-only: deterministic cost estimate (no Math.random)
     const baseCost =
       tier === ModelTier.ELITE ? 0.15 : tier === ModelTier.STANDARD ? 0.03 : 0.005;
 
-    return {
-      cost: baseCost * (0.8 + Math.random() * 0.4), // ±20% variance
-    };
+    return { cost: baseCost };
   }
 
   /**
@@ -937,12 +941,6 @@ export class AutonomousSessionManager {
     this.decisions.push(decision);
   }
 
-  /**
-   * Sleep utility.
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 }
 
 // ============================================================================

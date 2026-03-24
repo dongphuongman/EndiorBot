@@ -15,7 +15,7 @@
  * @authority ADR-001 3-Model Consultation
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { randomUUID } from "crypto";

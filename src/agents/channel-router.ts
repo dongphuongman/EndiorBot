@@ -22,8 +22,13 @@ import { classifyPatchIntent } from "./intelligence/patch-intent-classifier.js";
 import { PATCH_CONFIRMATION_TTL_MS, PATCH_SCOPE_SYSTEM_PROMPT, MAX_PATCH_FILES } from "./intelligence/patch-budget.js";
 import { createApprovalRequest, waitForApproval } from "../gateway/methods/approval.js";
 import { getBridgeAuditLogger } from "../bridge/security/bridge-audit.js";
+import type { ChannelSendFn } from "../bus/types.js";
 import type { MTClawBridge } from "../mtclaw/bridge.js";
-import type { CrossSystemRoute } from "../mtclaw/types.js";
+import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mtclaw/types.js";
+// Sprint 115 (T1): RL prompt enrichment injection
+import { getPromptEnrichment, formatEnrichmentForPrompt } from "../rl/prompt-enrichment.js";
+// Sprint 115 (T2): Workspace context injection (mode-aware)
+import { getWorkspaceContext, formatWorkspaceContext } from "./intelligence/workspace-context.js";
 
 // ============================================================================
 // Constants
@@ -315,11 +320,13 @@ export class ChannelRouter {
     task: string,
     history?: Array<{ role: string; content: string }>,
     workspace?: string,
+    /** Sprint 115 (T3): Optional notification function for approval messages */
+    notifyFn?: ChannelSendFn,
   ): Promise<AIResult> {
     const ws = workspace ?? this.config.projectRoot;
 
     // 1. PRIMARY: Claude Code Bridge
-    const bridgeResult = await this.callClaudeBridge(agent, task, history, ws);
+    const bridgeResult = await this.callClaudeBridge(agent, task, history, ws, notifyFn);
     if (bridgeResult) return bridgeResult;
 
     // 2. FALLBACK: Cloud provider (Gemini/OpenAI/Anthropic)
@@ -350,6 +357,9 @@ export class ChannelRouter {
   /**
    * Call MTClaw agent via cross-system route (Sprint 113, ADR-034).
    * This is a routing DESTINATION, NOT part of callAI() fallback chain (CTO C6).
+   *
+   * Sprint 115 T7: Agents with known RAG collections route to knowledge_search
+   * with hybrid/vector mode instead of agent_chat (faster, collection-scoped).
    */
   async callMTClaw(route: CrossSystemRoute): Promise<AIResult> {
     const bridge = this.config.mtclawBridge;
@@ -366,16 +376,55 @@ export class ChannelRouter {
           break;
         case "knowledge":
           content = await bridge.searchKnowledge(route.task);
+          content = this.appendDocViewerLinks(content);
           break;
-        default:
-          content = await bridge.chatWithAgent(route.agent, route.task);
+        default: {
+          // Sprint 115 T7: Check RAG collection routing for known agents
+          const ragCol = RAG_COLLECTIONS[route.agent];
+          if (ragCol) {
+            content = await bridge.searchKnowledge(route.task, undefined, {
+              collection_id: ragCol.id,
+              search_mode: ragCol.mode,
+            });
+            // Append document viewer hint if response contains doc references
+            content = this.appendDocViewerLinks(content);
+          } else {
+            content = await bridge.chatWithAgent(route.agent, route.task);
+          }
           break;
+        }
       }
       return { content, provider: "mtclaw-mcp", durationMs: Date.now() - start };
     } catch (e) {
       console.warn(`[Router] MTClaw call failed: ${e instanceof Error ? e.message : String(e)}`);
       return { content: "MTClaw request failed. Please try again later.", provider: "mtclaw-mcp", durationMs: Date.now() - start };
     }
+  }
+
+  /**
+   * Append document viewer URLs for any doc_id references in MTClaw response.
+   * Pattern: UUIDs that look like doc references get linked to AI-Platform viewer.
+   */
+  private appendDocViewerLinks(content: string): string {
+    // Match UUID-like doc_id patterns in content (common in RAG responses)
+    const docIdPattern = /\bdoc_id["\s:=]+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+    const matches = [...content.matchAll(docIdPattern)];
+    if (matches.length === 0) return content;
+
+    const seen = new Set<string>();
+    const links: string[] = [];
+    for (const m of matches) {
+      const docId = m[1] ?? "";
+      if (docId && !seen.has(docId)) {
+        seen.add(docId);
+        links.push(`${AI_PLATFORM_DOCS_URL}/${docId}`);
+      }
+    }
+
+    if (links.length > 0) {
+      content += "\n\n📄 Tài liệu tham khảo:\n" + links.map(l => `- ${l}`).join("\n");
+    }
+    return content;
   }
 
   /**
@@ -496,19 +545,35 @@ Never return empty agents[]. Always pick the best matching agent.`,
     task: string,
     history?: Array<{ role: string; content: string }>,
     workspace?: string,
+    /** Sprint 115 (T3): Optional notification function for approval messages */
+    notifyFn?: ChannelSendFn,
   ): Promise<AIResult | null> {
     if (!this.claudeAvailable || !this.bridge) return null;
 
-    const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? []);
-    const tier = resolveWorkspaceTier(workspace ?? this.config.projectRoot);
+    const ws = workspace ?? this.config.projectRoot;
+
+    // Sprint 105 (ADR-031 GAP-003): Classify intent — PATCH for explicit write requests
+    const intent = classifyPatchIntent(task);
+
+    // Sprint 115 (T1+T2): Build system prompt with optional enrichment + workspace context
+    const contextParts: string[] = [];
+    // T2: Workspace context — PATCH/INTERACTIVE only (skip READ to avoid noise)
+    if (intent.intent === "PATCH" && intent.confidence >= 0.8
+        && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
+      const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+      if (wsCtx) contextParts.push(wsCtx);
+    }
+    // T1: RL enrichment (confidence-gated)
+    const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+    if (enrichment) contextParts.push(enrichment);
+    const contextSuffix = contextParts.length > 0 ? "\n" + contextParts.join("\n") : "";
+    const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? []) + contextSuffix;
+    const tier = resolveWorkspaceTier(ws);
     const resolvedModel = getAgentModel(agent, tier);
     if (!resolvedModel) {
       console.warn(`[Router] Agent @${agent} not available at tier ${tier} — using sonnet fallback`);
     }
     const model = resolvedModel ?? "sonnet";
-
-    // Sprint 105 (ADR-031 GAP-003): Classify intent — PATCH for explicit write requests
-    const intent = classifyPatchIntent(task);
 
     // Audit all classifications (CPO C7)
     getBridgeAuditLogger().log({
@@ -527,7 +592,7 @@ Never return empty agents[]. Always pick the best matching agent.`,
 
     // High-confidence PATCH intent → request CEO confirmation before executing
     if (intent.intent === "PATCH" && intent.confidence >= 0.8) {
-      const confirmed = await this.requestPatchConfirmation(agent, task, intent, workspace);
+      const confirmed = await this.requestPatchConfirmation(agent, task, intent, workspace, notifyFn);
       if (confirmed) {
         return this.executePatch(agent, task, systemPrompt, workspace, model);
       }
@@ -579,6 +644,8 @@ Never return empty agents[]. Always pick the best matching agent.`,
     task: string,
     intent: { confidence: number; reason: string },
     workspace?: string,
+    /** Sprint 115 (T3): Optional notification function for approval messages */
+    notifyFn?: ChannelSendFn,
   ): Promise<boolean> {
     const approvalRequest = createApprovalRequest("action", `@${agent} wants to modify files`, {
       details: {
@@ -599,6 +666,12 @@ Never return empty agents[]. Always pick the best matching agent.`,
       actor: "system",
       details: { approvalId: approvalRequest.id, agent, task: task.slice(0, 100) },
     });
+
+    // Sprint 115 (T3): Immediately notify CEO about pending approval — before waitForApproval blocks
+    if (notifyFn) {
+      const approvalMsg = `🔐 *PATCH approval required*\n@${agent} wants to modify files.\n\nApproval ID: \`${approvalRequest.id}\`\nUse /approve ${approvalRequest.id} to allow or /reject ${approvalRequest.id} to cancel.\nExpires in 5 min.`;
+      notifyFn(approvalMsg).catch(() => {}); // best-effort, non-blocking
+    }
 
     try {
       const result = await waitForApproval(approvalRequest.id, PATCH_CONFIRMATION_TTL_MS);
@@ -710,8 +783,18 @@ Never return empty agents[]. Always pick the best matching agent.`,
     // CTO F2: Log tier for cloud fallback observability
     const tier = resolveWorkspaceTier(ws);
     console.log(`[Router] Cloud fallback for @${agent} (workspace tier: ${tier}, model: ${provider.models[0]?.id ?? "unknown"})`);
+    // Sprint 115 (T1+T2): Enrich cloud fallback prompt (mirrors callClaudeBridge pattern)
+    const cloudParts: string[] = [`[Workspace: ${ws}]`];
+    const cloudIntent = classifyPatchIntent(task);
+    if (cloudIntent.intent === "PATCH" && cloudIntent.confidence >= 0.8
+        && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
+      const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+      if (wsCtx) cloudParts.push(wsCtx);
+    }
+    const cloudEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+    if (cloudEnrichment) cloudParts.push(cloudEnrichment);
     const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
-      + `\n\n[Workspace: ${ws}]`;
+      + "\n\n" + cloudParts.join("\n");
     const modelId = provider.models[0]?.id;
     if (!modelId) return null;
 
@@ -751,8 +834,18 @@ Never return empty agents[]. Always pick the best matching agent.`,
     if (!this.config.ollamaRemoteUrl) return null;
 
     const ws = workspace ?? this.config.projectRoot;
+    // Sprint 115 (T1+T2): Enrich remote Ollama prompt (mirrors callClaudeBridge pattern)
+    const ollamaParts: string[] = [`[Workspace: ${ws}]`];
+    const ollamaIntent = classifyPatchIntent(task);
+    if (ollamaIntent.intent === "PATCH" && ollamaIntent.confidence >= 0.8
+        && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
+      const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+      if (wsCtx) ollamaParts.push(wsCtx);
+    }
+    const ollamaEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+    if (ollamaEnrichment) ollamaParts.push(ollamaEnrichment);
     const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
-      + `\n\n[Workspace: ${ws}]`;
+      + "\n\n" + ollamaParts.join("\n");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (this.config.ollamaRemoteApiKey) {
       headers["X-API-Key"] = this.config.ollamaRemoteApiKey;

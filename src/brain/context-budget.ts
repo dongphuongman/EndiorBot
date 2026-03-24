@@ -14,7 +14,7 @@
  * @authority Master Plan v2.0 Section 6
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { createLogger, type Logger } from "../logging/index.js";

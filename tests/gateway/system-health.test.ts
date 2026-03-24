@@ -34,7 +34,7 @@ describe("system.health Gateway Method", () => {
     await server.start();
 
     // Connect client - set up message handler BEFORE open to catch welcome
-    client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+    client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
 
     const welcomePromise = new Promise<void>((resolve) => {
       client.once("message", () => resolve());

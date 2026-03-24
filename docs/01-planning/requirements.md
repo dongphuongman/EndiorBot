@@ -172,5 +172,5 @@ endiorbot switch <project>      # Minimal context
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.1.1 - Stage 01: Planning*
+*CEO Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
 *Identity: LOCKED (2026-02-28)*

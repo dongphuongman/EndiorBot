@@ -247,5 +247,5 @@ Next sprint: TBD (Tier 4 Bridge & Intelligence complete)
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.1.1 - Stage 01: Planning*
+*CEO Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
 *Identity: LOCKED (2026-03-08)*

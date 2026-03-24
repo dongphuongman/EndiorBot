@@ -22,7 +22,7 @@
  * @authority ADR-034-CrossSystem-Agent-Protocol
  */
 
-import type { MTClawConfig, MTClawAgentInfo, ToolResult } from "./types.js";
+import type { MTClawConfig, MTClawAgentInfo, ToolResult, KnowledgeSearchOptions } from "./types.js";
 import { McpToolClient, parseToolResult, AGENT_CHAT_TIMEOUT_MS } from "./mcp-client.js";
 import { createCircuitBreaker, type CircuitBreaker } from "../budget/circuit-breaker.js";
 
@@ -144,11 +144,21 @@ export class MTClawBridge {
    * Search MTClaw knowledge base via knowledge_search tool.
    *
    * @param query - Search query
-   * @param collection - Optional collection filter
+   * @param collection - Optional collection filter (legacy, prefer options.collection_id)
+   * @param options - RAG search options (Sprint 115 — AI-Platform Sprint 92-97)
    */
-  async searchKnowledge(query: string, collection?: string): Promise<string> {
+  async searchKnowledge(query: string, collection?: string, options?: KnowledgeSearchOptions): Promise<string> {
     const args: Record<string, unknown> = { query };
-    if (collection) args.collection = collection;
+
+    // Collection: options.collection_id takes precedence over legacy param
+    const collectionId = options?.collection_id ?? collection;
+    if (collectionId) args.collection = collectionId;
+
+    // Search mode: hybrid for SOP codes, vector for natural language
+    if (options?.search_mode) args.search_mode = options.search_mode;
+
+    // Top-k results (use !== undefined to avoid falsy-zero drop)
+    if (options?.top_k !== undefined) args.top_k = options.top_k;
 
     const result = await this.callToolSafe("knowledge_search", args);
     return result.text;

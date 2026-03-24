@@ -11,7 +11,7 @@
  * @status ACTIVE — Sprint 114
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 // ============================================================================
 // Types
@@ -109,7 +109,7 @@ export function formatWorkspaceContext(ctx: WorkspaceContext | null): string {
 
 function gitExec(args: string, cwd: string): string | null {
   try {
-    return execSync(`git ${args}`, {
+    return execFileSync("git", args.split(/\s+/), {
       cwd,
       encoding: "utf8",
       stdio: "pipe",

@@ -27,7 +27,7 @@ import {
 
 const TEST_PORT = 18798;
 const TEST_HOST = "127.0.0.1";
-const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}`;
+const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}/ws`;
 
 // ============================================================================
 // WebSocket Client Helper

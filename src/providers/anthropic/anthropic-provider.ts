@@ -15,7 +15,7 @@ import type {
   ProviderHealth,
 } from "../types.js";
 import { ProviderError, type ProviderErrorCode } from "../types.js";
-import { RateLimiter } from "../../gateway/auth.js";
+import { RateLimiter } from "../../security/rate-limiter.js";
 
 // Anthropic API response types
 interface AnthropicResponse {

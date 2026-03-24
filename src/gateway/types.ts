@@ -11,7 +11,7 @@
  * @authority ADR-010 Gateway Architecture
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 // ============================================================================
@@ -36,6 +36,8 @@ export interface GatewayConfig {
   pingTimeout: number;
   /** Max message size in bytes (default: 1MB) */
   maxMessageSize: number;
+  /** Allowed CORS origins (default: localhost only). Set to ["*"] for wildcard. */
+  corsOrigins?: string[];
 }
 
 /**

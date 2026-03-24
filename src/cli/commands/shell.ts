@@ -15,7 +15,7 @@
  * @status ACTIVE - Sprint 73
  * @authority TS-011 CLI Session Mode, ADR-016
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
@@ -31,7 +31,7 @@ import {
 } from "../session/index.js";
 import { registerAllCommands } from "./register-all.js";
 
-const VERSION = "1.0.0";
+const VERSION = "0.1.0-beta.1";
 const BANNER_WIDTH = 62;
 
 // ============================================================================

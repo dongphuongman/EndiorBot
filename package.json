@@ -1,7 +1,7 @@
 {
   "name": "endiorbot",
-  "version": "1.0.0",
-  "description": "Solo developer tool for enterprise-scale projects: Claude Code + SDLC framework automation + Multi-model orchestrator",
+  "version": "0.1.0-beta.1",
+  "description": "Solo developer tool for enterprise-scale projects: Claude Code + SDLC framework automation + Multi-model orchestrator (beta)",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -53,9 +53,20 @@
     "ai-assistant"
   ],
   "author": "Minh-Tam-Solution",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
+  },
+  "files": [
+    "dist/",
+    "endiorbot.mjs",
+    ".env.example",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.35.0",

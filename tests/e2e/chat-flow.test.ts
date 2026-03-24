@@ -24,7 +24,7 @@ import type { AIProvider, ChatResponse, ChatChunk, ModelDefinition, ProviderConf
 
 const TEST_PORT = 18797;
 const TEST_HOST = "127.0.0.1";
-const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}`;
+const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}/ws`;
 
 // ============================================================================
 // Mock Provider

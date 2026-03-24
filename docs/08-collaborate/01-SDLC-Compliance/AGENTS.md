@@ -7,7 +7,7 @@ This document defines how AI agents should behave when working within the Endior
 
 ## Core Principles
 
-1. **SDLC Compliance First** - All development follows MTS SDLC Framework 6.1.1
+1. **SDLC Compliance First** - All development follows MTS SDLC Framework 6.2.0
 2. **Quality Gates** - Never bypass gate requirements (G0 → G4)
 3. **Evidence-Based** - Every decision requires documented evidence
 4. **Security-Aware** - Apply input sanitization and output scrubbing
@@ -185,4 +185,4 @@ Agents should:
 ---
 
 *EndiorBot - Solo developer tool for enterprise-scale projects*
-*SDLC Framework v6.1.1 compliant*
+*SDLC Framework v6.2.0 compliant*

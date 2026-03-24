@@ -96,6 +96,8 @@ export class EventEmitterBus implements IMessageBus {
       totalOutbound: this.totalOutbound,
       inFlight: this.inFlight.size,
       startedAt: this.startedAt,
+      inboundListeners: this.emitter.listenerCount(INBOUND_EVENT),
+      outboundListeners: this.emitter.listenerCount(OUTBOUND_EVENT),
     };
   }
 

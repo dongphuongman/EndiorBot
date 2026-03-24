@@ -128,6 +128,13 @@ export class BusConsumer {
     if (msg.metadata !== undefined) {
       inbound.metadata = msg.metadata;
     }
+    // Sprint 115 (T3): Thread notifyFn into metadata for channel-router approval notifications
+    if (msg.notifyFn !== undefined) {
+      if (inbound.metadata === undefined) {
+        inbound.metadata = {};
+      }
+      inbound.metadata.notifyFn = msg.notifyFn;
+    }
 
     try {
       const response = await this.ingress.handleInbound(inbound);

@@ -11,7 +11,7 @@
  * @authority ADR-001 Multi-Model Orchestrator
  * @pillar 3 - Agent Personas
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import type {

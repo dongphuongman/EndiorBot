@@ -105,7 +105,7 @@ describe("E2E: RgProvider", () => {
     const response = await provider.search({
       query: "describe",
       topK: 10,
-      globs: ["**/*.test.ts"],
+      glob: "**/*.test.ts",
     });
 
     // All results should be test files

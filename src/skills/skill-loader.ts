@@ -26,12 +26,12 @@
  * @authority ADR-005 Skills Architecture
  * @pillar 3 - Agent Personas
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type {
   Skill,
   SkillMetadata,
@@ -465,7 +465,7 @@ export class SkillLoader {
 
     for (const req of requires) {
       try {
-        execSync(`which ${req.name}`, { stdio: "ignore" });
+        execFileSync("which", [req.name], { stdio: "ignore" });
       } catch {
         missing.push(req.name);
       }

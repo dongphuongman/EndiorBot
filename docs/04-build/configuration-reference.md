@@ -32,7 +32,7 @@ EndiorBot uses a layered configuration system:
 
   // SDLC Framework settings
   "sdlc": {
-    "frameworkVersion": "6.1.1",
+    "frameworkVersion": "6.2.0",
     "tier": "STANDARD",
     "strict": true
   },
@@ -81,7 +81,7 @@ EndiorBot uses a layered configuration system:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `frameworkVersion` | string | `"6.1.1"` | SDLC framework version |
+| `frameworkVersion` | string | `"6.2.0"` | SDLC framework version |
 | `tier` | string | `"STANDARD"` | Project tier (STANDARD/ENTERPRISE) |
 | `strict` | boolean | `true` | Enforce gate requirements |
 

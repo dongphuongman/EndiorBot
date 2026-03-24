@@ -10,13 +10,13 @@
  * @status ACTIVE - Sprint 56 Implementation
  * @authority Master Plan v3.1
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, basename } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { Command } from "commander";
 
 import { type GateId } from "../../sdlc/gates/gate-checklist.js";
@@ -180,7 +180,7 @@ async function verifyEvidenceItem(item: EvidenceItem): Promise<{ valid: boolean;
   // Git commit evidence
   if (item.type === "commit") {
     try {
-      execSync(`git cat-file -t ${uri}`, { stdio: "pipe" });
+      execFileSync("git", ["cat-file", "-t", uri], { stdio: "pipe" });
       return { valid: true };
     } catch {
       return { valid: false, reason: "Git commit not found" };

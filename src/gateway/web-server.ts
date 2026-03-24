@@ -32,6 +32,7 @@ import {
   internalError,
 } from "./protocol/errors.js";
 import { createLogger } from "../logging/index.js";
+import { VERSION } from "../index.js";
 import type { WebhookHandler } from "../channels/ott/webhook-handler.js";
 
 // ============================================================================
@@ -289,7 +290,7 @@ export class WebGatewayServer {
       activeConnections: this.clients.size,
       uptimeSec: this._startedAt ? Math.floor((Date.now() - this._startedAt.getTime()) / 1000) : 0,
       authEnabled: this._config.authEnabled,
-      serverVersion: "1.0.0",
+      serverVersion: VERSION,
     };
 
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -401,7 +402,7 @@ export class WebGatewayServer {
       method: "welcome",
       params: {
         clientId: client.clientId,
-        serverVersion: "1.0.0",
+        serverVersion: VERSION,
         authRequired: this._config.authEnabled,
       },
     };
@@ -445,8 +446,8 @@ export class WebGatewayServer {
     this.registerMethod("system.ping", () => ({ pong: Date.now() }));
 
     this.registerMethod("system.version", () => ({
-      gateway: "1.0.0",
-      endiorbot: "1.0.0",
+      gateway: VERSION,
+      endiorbot: VERSION,
       protocol: JSONRPC_VERSION,
     }));
 

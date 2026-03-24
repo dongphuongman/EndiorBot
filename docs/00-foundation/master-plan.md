@@ -604,4 +604,4 @@ See [Roadmap](../01-planning/roadmap.md) Tier 4 for full sprint breakdown.
 
 *EndiorBot Master Plan*
 *Identity: CEO Power Tool (LOCKED)*
-*SDLC Framework v6.1.1 compliant*
+*SDLC Framework v6.2.0 compliant*

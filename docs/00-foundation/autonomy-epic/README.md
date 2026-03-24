@@ -3,7 +3,7 @@
 **Version**: 1.1.0
 **Date**: 2026-03-01
 **Status**: ACTIVE
-**SDLC**: Framework 6.1.1
+**SDLC**: Framework 6.2.0
 
 ---
 
@@ -26,7 +26,7 @@ The Autonomy Epic vision has evolved and is now consolidated in:
 
 ## Overview
 
-This directory contains comprehensive SDLC stage documents for the Autonomy Epic (Sprints 35-40), covering stages 00 (Foundation), 02 (Design), and 03 (Integration) per the MTS Framework 6.1.1.
+This directory contains comprehensive SDLC stage documents for the Autonomy Epic (Sprints 35-40), covering stages 00 (Foundation), 02 (Design), and 03 (Integration) per the MTS Framework 6.2.0.
 
 **Total Documents Created**: 7 comprehensive documents
 **Total Lines of Documentation**: ~3,500 lines
@@ -390,7 +390,7 @@ All documents follow semantic versioning:
 
 ### External References
 
-- **MTS Framework 6.1.1**: `docs/SDLC-Framework/`
+- **MTS Framework 6.2.0**: `docs/SDLC-Framework/`
 - **EndiorBot IDENTITY**: `IDENTITY.md`
 - **SDLC Config**: `.sdlc-config.json`
 
@@ -450,4 +450,4 @@ All documents follow semantic versioning:
 ---
 
 *Autonomy Epic - SDLC Documentation Index v1.1.0*
-*EndiorBot SDLC Framework 6.1.1*
+*EndiorBot SDLC Framework 6.2.0*

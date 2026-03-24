@@ -7,7 +7,7 @@
  * @version 1.0.0
  * @date 2026-03-03
  * @status ACTIVE - Sprint 73
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 export { parseTokens } from "./token-parser.js";

@@ -11,7 +11,7 @@
  * @authority ADR-010 Gateway Architecture
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import { WebSocketServer, WebSocket, type RawData } from "ws";
@@ -28,6 +28,9 @@ import type {
   IGatewayServer,
 } from "./types.js";
 import { collectHealthReport } from "../monitoring/index.js";
+import { getMessageBus } from "../bus/message-bus.js";
+import { RateLimiter } from "../security/rate-limiter.js";
+import { VERSION } from "../index.js";
 import { resolveGatewayConfig, validateGatewayConfig } from "./config.js";
 import {
   type JsonRpcRequest,
@@ -102,6 +105,7 @@ export class GatewayServer implements IGatewayServer {
   private _config: GatewayConfig;
   private _isRunning = false;
   private htmlContent = "";
+  private httpRateLimiter = new RateLimiter(60_000, 100);
 
   constructor(config?: Partial<GatewayConfig>) {
     this._config = resolveGatewayConfig(config);
@@ -409,7 +413,7 @@ export class GatewayServer implements IGatewayServer {
       method: "welcome",
       params: {
         clientId: client.clientId,
-        serverVersion: "1.0.0",
+        serverVersion: VERSION,
         authRequired: this._config.authEnabled,
       },
     };
@@ -452,8 +456,8 @@ export class GatewayServer implements IGatewayServer {
     this.registerMethod("system.ping", () => ({ pong: Date.now() }));
 
     this.registerMethod("system.version", () => ({
-      gateway: "1.0.0",
-      endiorbot: "1.0.0",
+      gateway: VERSION,
+      endiorbot: VERSION,
       protocol: JSONRPC_VERSION,
     }));
 
@@ -546,10 +550,27 @@ export class GatewayServer implements IGatewayServer {
   private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
     const url = req.url ?? "/";
 
-    // CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Security headers (Sprint 117 B1)
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:",
+    );
+
+    // CORS headers (Sprint 116 T3: configurable origins, no more wildcard)
+    const allowedOrigins = this._config.corsOrigins ?? [
+      `http://localhost:${this._config.port}`,
+      `http://127.0.0.1:${this._config.port}`,
+    ];
+    const requestOrigin = req.headers.origin ?? "";
+    if (allowedOrigins.includes("*") || allowedOrigins.includes(requestOrigin)) {
+      res.setHeader("Access-Control-Allow-Origin", requestOrigin || (allowedOrigins[0] ?? ""));
+    }
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
@@ -557,14 +578,24 @@ export class GatewayServer implements IGatewayServer {
       return;
     }
 
+    // Rate limiting (Sprint 117 B2) — exempt health endpoints per CPO
+    const isHealthEndpoint = url === "/api/health";
+    if (!isHealthEndpoint) {
+      const clientIp = req.socket.remoteAddress ?? "unknown";
+      const rateCheck = this.httpRateLimiter.check(clientIp);
+      if (!rateCheck.allowed) {
+        res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(Math.ceil(rateCheck.resetIn / 1000)) });
+        res.end(JSON.stringify({ error: "Too Many Requests", retryAfter: Math.ceil(rateCheck.resetIn / 1000) }));
+        return;
+      }
+    }
+
     if (url === "/" || url === "/index.html") {
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-      });
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(this.htmlContent);
     } else if (url === "/api/status") {
+      // Sprint 115 (T5): Include bus metrics in status endpoint
+      const busStats = getMessageBus().getStats();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({
         ok: true,
@@ -572,9 +603,17 @@ export class GatewayServer implements IGatewayServer {
         uptimeSec: this._stats.startedAt
           ? Math.floor((Date.now() - this._stats.startedAt.getTime()) / 1000)
           : 0,
-        serverVersion: "1.0.0",
+        serverVersion: VERSION,
+        bus: {
+          totalInbound: busStats.totalInbound,
+          totalOutbound: busStats.totalOutbound,
+          inFlight: busStats.inFlight,
+          inboundListeners: busStats.inboundListeners,
+          outboundListeners: busStats.outboundListeners,
+          uptimeSec: Math.floor((Date.now() - busStats.startedAt) / 1000),
+        },
       }));
-    } else if (url === "/api/health") {
+    } else if (isHealthEndpoint) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }));
     } else {

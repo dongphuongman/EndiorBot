@@ -49,7 +49,7 @@ describe('Gateway OAuth Methods', () => {
     registerAllMethods(server);
     await server.start();
 
-    const client = new WebSocket(`ws://127.0.0.1:${testPort}`);
+    const client = new WebSocket(`ws://127.0.0.1:${testPort}/ws`);
     const messages: Record<string, unknown>[] = [];
 
     client.on('message', (data) => {

@@ -1,5 +1,11 @@
 # EndiorBot
 
+[![CI](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml/badge.svg)](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/endiorbot)](https://www.npmjs.com/package/endiorbot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> **Beta:** APIs may change between releases. Not recommended for production use yet.
+
 > **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
 
 EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects.
@@ -7,12 +13,30 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 
 **Identity**: CEO Power Tool (LOCKED) — not a platform, not an SDLC enforcer.
 
+## Prerequisites
+
+- Node.js >= 20
+- pnpm (via corepack: `corepack enable`)
+- An AI API key (Anthropic, OpenAI, or Gemini)
+
+## Install
+
+```bash
+# Via npx (no install needed)
+npx endiorbot --help
+npx endiorbot init
+npx endiorbot serve
+
+# Or install globally
+npm install -g endiorbot
+
+# Or via Docker
+docker run -p 18790:18790 endiorbot/endiorbot serve
+```
+
 ## Quick Start
 
 ```bash
-# Install
-pnpm install && pnpm build
-
 # Initialize SDLC structure
 endiorbot init                              # Auto-detect tech stack
 endiorbot init --tier STANDARD              # Specify tier
@@ -63,7 +87,6 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 │                                                                  │
 │  Per-Chat Workspace: /repos + /focus + resolveWorkspace()       │
 │  SOUL Templates: 13 agents × tier-aware model selection          │
-│  Brain: L4 Mental Models → L3 Structures → L2 Patterns          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -128,7 +151,7 @@ Messages with multiple @agents or complex tasks are automatically decomposed:
 | PROFESSIONAL | 4 (+USER.md) | 10 | 10 |
 | ENTERPRISE | 6 (+TOOLS.md, HEARTBEAT.md) | 11 | 13 |
 
-## Per-Chat Workspace (ADR-029)
+## Per-Chat Workspace
 
 Different chats can focus on different repos simultaneously:
 ```
@@ -141,12 +164,28 @@ Different chats can focus on different repos simultaneously:
 @coder fix the video parser
 ```
 
+## Docker
+
+```bash
+# Build
+docker build -t endiorbot .
+
+# Run
+docker run -p 18790:18790 \
+  -e ANTHROPIC_API_KEY=your-key \
+  endiorbot
+
+# With env file
+docker run -p 18790:18790 --env-file .env endiorbot
+```
+
 ## Development
 
 ```bash
+pnpm install      # Install dependencies
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (6,400+ passing)
+pnpm test         # Run tests (6,500+ passing)
 pnpm lint         # Check style
 pnpm lint:souls   # Validate 13 SOUL templates
 ```
@@ -165,17 +204,26 @@ pnpm lint:souls   # Validate 13 SOUL templates
 - [IDENTITY.md](./IDENTITY.md) - Project identity
 - [CLAUDE.md](./CLAUDE.md) - Claude Code integration
 - [AGENTS.md](./AGENTS.md) - Agent guidelines
-- [Sprint Index](./docs/04-build/sprints/SPRINT-INDEX.md) - All sprints (29-112+)
+## Known Limitations (beta)
+
+- Composio tool integration not bundled (install separately if needed)
+- API surface may change between beta releases
+- No SLA or production support guarantee
+- Single-developer tested — community feedback welcome
 
 ## Links
 
 - **Website:** https://endiorbot.nqh-internal.example
 - **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
+
 ## License
 
-UNLICENSED - Private repository
+[MIT](./LICENSE)
 
 ---
 
-*EndiorBot v1.0.0 | CEO Power Tool | SDLC Framework v6.2.0*
+*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.2.0*

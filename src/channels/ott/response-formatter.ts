@@ -10,7 +10,7 @@
  * @status ACTIVE - Sprint 57
  * @authority Master Plan v3.1
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import type { AgentRole, ParsedHandoff } from "../../agents/types/handoff.js";

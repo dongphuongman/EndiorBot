@@ -48,6 +48,8 @@ import { RLFeedbackService } from "../../rl/feedback-service.js";
 // Sprint 113 (ADR-034): Cross-System Agent Communication — EndiorBot ↔ MTClaw
 import { MTClawBridge } from "../../mtclaw/bridge.js";
 import { loadMTClawConfig } from "../../mtclaw/config.js";
+// Sprint 116 T4: Env validation at startup
+import { validateServeEnv, checkProviderKeys } from "../../config/env-schema.js";
 
 // ============================================================================
 // Terminal Colors
@@ -115,6 +117,19 @@ interface Component {
  */
 async function serveAction(options: ServeOptions): Promise<void> {
   const components: Component[] = [];
+
+  // Sprint 116 T4: Validate env vars at startup (fail-fast)
+  try {
+    const env = validateServeEnv();
+    const providerWarning = checkProviderKeys(env);
+    if (providerWarning) {
+      console.log(yellow(`  Warning: ${providerWarning}`));
+    }
+  } catch (err) {
+    console.error(red(`Environment Error: ${(err as Error).message}`));
+    process.exit(1);
+  }
+
   const port = options.port ? parseInt(options.port, 10) : 18790;
 
   if (isNaN(port) || port < 1 || port > 65535) {

@@ -314,4 +314,4 @@ endiorbot gateway status
 
 ---
 
-*EndiorBot CLI Reference v1.0 | Sprint 58 | SDLC Framework 6.1.1*
+*EndiorBot CLI Reference v1.0 | Sprint 58 | SDLC Framework 6.2.0*

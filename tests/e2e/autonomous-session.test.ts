@@ -42,7 +42,7 @@ import type { AIProvider, ChatResponse, ChatChunk, ModelDefinition, ProviderConf
 
 const TEST_PORT = 18799;
 const TEST_HOST = "127.0.0.1";
-const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}`;
+const WS_URL = `ws://${TEST_HOST}:${TEST_PORT}/ws`;
 
 // Simulate time compression: 1 "hour" = 100ms for testing
 const SIMULATED_HOUR_MS = 100;

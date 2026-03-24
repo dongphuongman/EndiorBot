@@ -2,7 +2,7 @@
 
 **Version:** 17.0
 **Date:** 2026-03-12 (Updated for Sprint 107)
-**Framework:** SDLC v6.1.2
+**Framework:** SDLC v6.2.0
 **Coverage:** Unit + Integration + E2E + Manual + Performance
 **Milestone:** v3.7 Bus Reliability — Debounce + Dedup (ADR-032 Phase 2)
 
@@ -1447,4 +1447,4 @@ pnpm test --coverage
 
 ---
 
-*Master Test Plan v11.0 | SDLC Framework v6.1.1 | Sprint 98*
+*Master Test Plan v11.0 | SDLC Framework v6.2.0 | Sprint 98*

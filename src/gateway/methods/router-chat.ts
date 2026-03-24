@@ -14,6 +14,10 @@
 import type { GatewayServer } from "../server.js";
 import type { ChannelRouter } from "../../agents/channel-router.js";
 import type { GatewayIngress, InboundMessage } from "../ingress.js";
+import { sanitize } from "../../security/input-sanitizer.js";
+import { createLogger } from "../../utils/logger.js";
+
+const log = createLogger("gateway.router-chat");
 
 // ============================================================================
 // Registration
@@ -59,10 +63,15 @@ export function registerRouterChatMethods(
       const chatId = p.chatId ? String(p.chatId) : `web-${senderId}`;
 
       const startMs = Date.now();
+      // Sprint 116 T2: Sanitize web input before routing
+      const { sanitized: safeContent, violations } = sanitize(message, "web");
+      if (violations.length > 0) {
+        log.warn("Input sanitization violations", { channel: "web", senderId, violations });
+      }
       const msg: InboundMessage = {
         channel: "web",
         senderId,
-        content: message,
+        content: violations.length > 0 ? safeContent : message,
         metadata: { chatId },
       };
 

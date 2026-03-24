@@ -68,5 +68,21 @@ secrets/
 # Desktop app build artifacts
 apps/desktop/release/
 apps/desktop/dist-electron/
+
+# Python artifacts
 __pycache__/
 *.pyc
+
+# ML/Training artifacts
+openclaw-trl/runs/
+openclaw-trl/__pycache__/
+*.pt
+*.safetensors
+*.ckpt
+
+# Local dev artifacts
+ollama
+.endiorbot-aliases
+
+# EndiorBot local state
+.endiorbot/audit-logs/

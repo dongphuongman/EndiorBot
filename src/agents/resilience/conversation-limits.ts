@@ -21,7 +21,7 @@
  * @authority ADR-005 Python-to-TypeScript Porting
  * @pillar 7 - Quality Assurance System
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 // ============================================================================

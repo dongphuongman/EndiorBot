@@ -1,14 +1,14 @@
 # Sprint 115: RL Prompt Injection + Async UX Completion
 
-**Sprint Duration**: March 23-25, 2026
-**Sprint Goal**: Wire RL prompt enrichment into SOUL agent calls (close feedback loop), inject workspace context into system prompts, and ship Sprint 108 deferred async UX gaps (notifyFn + Zalo bus + bus metrics).
+**Sprint Duration**: March 23-26, 2026
+**Sprint Goal**: Wire RL prompt enrichment into SOUL agent calls (close feedback loop), inject workspace context into system prompts, ship Sprint 108 deferred async UX gaps (notifyFn + Zalo bus + bus metrics), and integrate AI-Platform RAG enhancements (Sprint 92-97) into MTClaw bridge.
 **Status**: PLANNED
-**Priority**: P0 (prompt injection, notifyFn) | P1 (workspace context, Zalo bus, bus metrics)
+**Priority**: P0 (prompt injection, notifyFn) | P1 (workspace context, Zalo bus, bus metrics, RAG integration)
 **Framework**: SDLC 6.2.0
 **Authority**: Pending CTO review — Sprint 114 completion
 **Previous Sprint**: Sprint 114 ✅ — Context-Aware Token Tracking & RL Enrichment
 **Related ADRs**: ADR-032 (Event Bus), ADR-033 (RL Training Architecture)
-**Tests**: ~18 new tests planned
+**Tests**: ~24 new tests planned
 
 ---
 
@@ -214,7 +214,54 @@ Expires in 5 min.
 | 4 | `tests/channels/zalo/zalo-bus-wiring.test.ts` | 3 | bus path, sync fallback, correlationId format |
 | 5 | `tests/gateway/bus-metrics.test.ts` | 3 | bus active, bus null, debounce/dedup stats |
 
-**Total: 18 new tests.**
+**Total: 18 new tests (T1-T5).**
+
+---
+
+### T7: AI-Platform RAG Integration (P1, 0.5d)
+
+**Goal**: Integrate AI-Platform Sprint 92-97 RAG enhancements into MTClaw bridge: collection-scoped queries with agent→collection routing, hybrid search mode for SOP codes, and document viewer URL formatting.
+
+**Modified Files:**
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `src/mtclaw/types.ts` | Add `KnowledgeSearchOptions`, `RAG_COLLECTIONS` map |
+| 2 | `src/mtclaw/bridge.ts` | Extend `searchKnowledge()` with options param (search_mode, user_roles) |
+| 3 | `src/agents/channel-router.ts` | Update `callMTClaw()` routing: agents with known collections → `knowledge_search` with hybrid mode |
+
+**RAG Collection Routing:**
+
+| Agent | Collection UUID | Mode |
+|-------|----------------|------|
+| `sop`, `fnb` | `2954bdb8-abcb-4362-9337-d3acec73c9da` (NQH SOPs, 621 docs) | hybrid |
+| `hr` | `a07f74f0-2148-405c-9597-5afbfd3f9d81` (HR Policies, 21 docs) | hybrid |
+| `cs` | `c3210c7f-0a71-4c42-b54f-6e240bb11c03` (Customer FAQ, 17 docs) | vector |
+| `bod` | `a71d04ed-fc0d-43cb-9cf4-f94f63409f8a` (Compliance & Finance, 40 docs) | hybrid |
+
+**Implementation Notes:**
+- `search_mode: "hybrid"` for SOP/policy collections (BM25+vector fusion, better for Vietnamese SOP codes)
+- `search_mode: "vector"` for Customer FAQ (natural language queries)
+- Unknown agents still route through `chatWithAgent()` (no regression)
+- Document viewer URL: `https://ai.nqh-internal.example/docs/{doc_id}` — extracted from response if present
+- No new dependencies (fetch-based, same MCP protocol)
+
+**AC:**
+- `@mtclaw.sop "SOP livestream"` → hybrid search in NQH SOPs collection
+- `@mtclaw.bod "báo cáo doanh thu"` → hybrid search in Compliance collection
+- `@mtclaw.cs "warranty policy"` → vector search in Customer FAQ collection
+- `@mtclaw.researcher "complex query"` → still uses `chatWithAgent()` (unchanged)
+- Document viewer URLs formatted in responses when doc_ids present
+
+---
+
+### T8: Tests for RAG Integration (0.25d)
+
+| # | Test File | Tests | Coverage |
+|---|-----------|-------|----------|
+| 6 | `tests/mtclaw/rag-collection-routing.test.ts` | 6 | Collection mapping, hybrid/vector mode, unknown agent fallback, searchKnowledge options, doc URL formatting, empty results |
+
+**Total new tests: 18 (T1-T5) + 6 (T8) = 24.**
 
 ---
 
@@ -237,8 +284,12 @@ Expires in 5 min.
 | CREATE | `tests/commands/notify-approval.test.ts` | ~50 |
 | CREATE | `tests/channels/zalo/zalo-bus-wiring.test.ts` | ~40 |
 | CREATE | `tests/gateway/bus-metrics.test.ts` | ~40 |
+| MODIFY | `src/mtclaw/types.ts` | +20 (KnowledgeSearchOptions, RAG_COLLECTIONS) |
+| MODIFY | `src/mtclaw/bridge.ts` | +15 (searchKnowledge options) |
+| MODIFY | `src/agents/channel-router.ts` | +25 (collection routing in callMTClaw) |
+| CREATE | `tests/mtclaw/rag-collection-routing.test.ts` | ~80 |
 
-**Total:** 10 modified + 5 test files = 15 files, ~406 lines.
+**Total:** 13 modified + 6 test files = 19 files, ~546 lines.
 
 ---
 
@@ -298,20 +349,21 @@ CEO feedback            getPromptEnrichment()   formatEnrichmentForPrompt()
 ## Acceptance Criteria
 
 - [ ] `pnpm build` — 0 errors
-- [ ] `pnpm test` — no regressions, 18+ new tests
+- [ ] `pnpm test` — no regressions, 24+ new tests
 - [ ] T1: Agent calls with RL data include enrichment in system prompt
 - [ ] T2: PATCH/INTERACTIVE calls include workspace context
 - [ ] T3: CEO receives approval notification before `waitForApproval()` blocks
 - [ ] T4: Zalo adapter uses bus for async message handling
 - [ ] T5: `/api/status` includes bus metrics
 - [ ] Sprint 114 C7 fixed: exact agent key matching
+- [ ] T7: RAG collection routing maps agents to correct collections with hybrid/vector mode
 
 ---
 
 ## Definition of Done
 
-- [ ] All 5 deliverables + tests implemented
-- [ ] 18+ new tests across 5 test files
+- [ ] All 7 deliverables + tests implemented
+- [ ] 24+ new tests across 6 test files
 - [ ] Sprint doc updated with final status
 - [ ] Sprint 108 debt fully resolved
 - [ ] RL feedback loop verified end-to-end
@@ -328,6 +380,9 @@ CEO feedback            getPromptEnrichment()   formatEnrichmentForPrompt()
 | Redis MessageBus upgrade | Infrastructure sprint scope |
 | A/B test mechanism for enrichment | Needs baseline data from Sprint 115 |
 | ClawVault memory pruning | Separate concern, not on critical path |
+| RAG answer generation via REST API | AI-Platform REST endpoint unclear (Sprint 92-97), use agent_chat wrapper |
+| user_roles ACL pass-through | Depends on MTClaw Sprint 62 (not yet shipped) |
+| query-with-graph (WHY questions) | Multi-hop reasoning, evaluate after base RAG integration proves value |
 
 ---
 

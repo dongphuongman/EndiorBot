@@ -1,13 +1,14 @@
 /**
- * RL → SOUL Prompt Enrichment — Sprint 114
+ * RL → SOUL Prompt Enrichment — Sprint 114 + Sprint 115 (T1)
  *
  * Extracts patterns from RL feedback data to enrich SOUL agent prompts.
- * Foundation only — actual prompt injection deferred to Sprint 115.
+ * Sprint 114: Foundation (getPromptEnrichment, extractPatterns).
+ * Sprint 115 (T1): Confidence scoring, formatEnrichmentForPrompt(), C7 exact match fix.
  *
  * @module rl/prompt-enrichment
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-03-22
- * @status ACTIVE — Sprint 114
+ * @status ACTIVE — Sprint 115 (T1)
  * @authority ADR-033
  */
 
@@ -26,6 +27,32 @@ export interface PromptEnrichment {
   sampleCount: number;
   lastUpdated: Date;
 }
+
+/**
+ * Sprint 115 (T1): Pattern with ECC-instinct-inspired confidence scoring.
+ * Confidence = min(1.0, (feedbackCount / 5) * recencyWeight)
+ * - feedbackCount/5: cold-start tuned (single-user, not /10)
+ * - recencyWeight: 1.0 (7d), 0.7 (7-30d), 0.4 (30d+)
+ */
+/**
+ * @internal Reserved for Sprint 116+ when per-pattern confidence replaces rank-based scoring.
+ */
+export interface PatternWithConfidence {
+  snippet: string;
+  confidence: number;
+}
+
+/** Minimum samples before injecting enrichment (Phase 1 = 5) */
+const MIN_SAMPLES_FOR_ENRICHMENT = 5;
+
+/** Minimum confidence threshold for injection (Phase 1 = 0.5, tighten to 0.7 at 100+ samples) */
+const CONFIDENCE_THRESHOLD = 0.5;
+
+/** Samples needed to tighten threshold to 0.7 (Sprint 116 config change) */
+export const MIN_SAMPLES_FOR_STRONG = 100;
+
+/** Max enrichment output chars (budget-safe, ~50 tokens) */
+const MAX_ENRICHMENT_CHARS = 200;
 
 // ============================================================================
 // Cache
@@ -48,6 +75,50 @@ export function clearEnrichmentCache(): void {
 // ============================================================================
 // Public API
 // ============================================================================
+
+/**
+ * Sprint 115 (T1): Format enrichment for system prompt injection.
+ *
+ * Returns "" if:
+ * - sampleCount < MIN_SAMPLES_FOR_ENRICHMENT (5)
+ * - No patterns with confidence >= threshold
+ *
+ * Max output: MAX_ENRICHMENT_CHARS (200 chars).
+ * ECC lesson: "context window health degrades above 80% usage."
+ */
+export function formatEnrichmentForPrompt(enrichment: PromptEnrichment): string {
+  if (enrichment.sampleCount < MIN_SAMPLES_FOR_ENRICHMENT) return "";
+  if (enrichment.topPatterns.length === 0) return "";
+
+  // For now, use the existing topPatterns (confidence filtering applied in extractPatterns)
+  const threshold = enrichment.sampleCount >= MIN_SAMPLES_FOR_STRONG
+    ? 0.7
+    : CONFIDENCE_THRESHOLD;
+
+  // Filter patterns by computing confidence-like score from position
+  // Top patterns are already sorted by frequency in extractResponsePatterns()
+  const eligiblePatterns = enrichment.topPatterns.filter((_p, idx) => {
+    // Approximate confidence from rank: top-1 = 1.0, top-5 = 0.2
+    const approxConfidence = 1.0 - (idx * 0.2);
+    return approxConfidence >= threshold;
+  });
+
+  if (eligiblePatterns.length === 0) return "";
+
+  const header = "[RL Feedback] Preferred response style:";
+  const patterns = eligiblePatterns
+    .map((p) => `- ${p.slice(0, 60)}`)
+    .join("\n");
+
+  let result = `${header}\n${patterns}`;
+
+  // Budget enforcement
+  if (result.length > MAX_ENRICHMENT_CHARS) {
+    result = result.slice(0, MAX_ENRICHMENT_CHARS - 15) + "\n[...trimmed]";
+  }
+
+  return result;
+}
 
 /**
  * Get prompt enrichment for an agent from RL feedback data.
@@ -109,9 +180,9 @@ function extractPatterns(agentKey: string, dir: string): PromptEnrichment {
         try {
           const rec = JSON.parse(line) as RawRecord;
 
-          // Match agent: provider field contains agent key
-          // e.g., "claude-code", "ai-platform", "cloud" — or specific agent names
-          if (rec.provider && !rec.provider.includes(agentKey) && agentKey !== "*") {
+          // Sprint 115 (T1) C7 fix: exact match replaces .includes() — prevents
+          // "coder" matching "claude-coder-v2" or "pm" matching "ai-platform"
+          if (rec.provider && rec.provider !== agentKey && agentKey !== "*") {
             continue;
           }
 

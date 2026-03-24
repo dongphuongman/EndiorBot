@@ -27,7 +27,7 @@
  */
 
 import type { Command } from "commander";
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -119,8 +119,8 @@ async function executeSprintClose(options: SprintCloseOptions): Promise<void> {
   const scoreNote = options.score ? ` (CTO ${options.score})` : "";
   const commitMsg = `docs(sprint-${sprintNum}): close sprint ${sprintNum}${scoreNote}\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`;
   try {
-    execSync(`git add docs/04-build/sprints/`, { cwd: PROJECT_ROOT, stdio: "inherit" });
-    execSync(`git commit -m ${JSON.stringify(commitMsg)}`, { cwd: PROJECT_ROOT, stdio: "inherit" });
+    execFileSync("git", ["add", "docs/04-build/sprints/"], { cwd: PROJECT_ROOT, stdio: "inherit" });
+    execFileSync("git", ["commit", "-m", commitMsg], { cwd: PROJECT_ROOT, stdio: "inherit" });
     ok("Committed locally");
   } catch (e) {
     fail(`Git commit failed: ${e instanceof Error ? e.message : String(e)}`);

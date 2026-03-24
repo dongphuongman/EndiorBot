@@ -12,7 +12,7 @@
  * @status ACTIVE - Sprint 73
  * @authority TS-011 CLI Session Mode, CTO Review (Blocking Issue #1)
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.1.1
+ * @sdlc SDLC Framework 6.2.0
  */
 
 import type { Command } from "commander";
