@@ -1,7 +1,7 @@
 # EndiorBot
 
 [![CI](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml/badge.svg)](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/endiorbot)](https://www.npmjs.com/package/endiorbot)
+[![npm version](https://img.shields.io/npm/v/@dttai/endiorbot)](https://www.npmjs.com/package/@dttai/endiorbot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Beta:** APIs may change between releases. Not recommended for production use yet.
@@ -23,12 +23,12 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 
 ```bash
 # Via npx (no install needed)
-npx endiorbot --help
-npx endiorbot init
-npx endiorbot serve
+npx @dttai/endiorbot --help
+npx @dttai/endiorbot init
+npx @dttai/endiorbot serve
 
 # Or install globally
-npm install -g endiorbot
+npm install -g @dttai/endiorbot
 
 # Or via Docker
 docker run -p 18790:18790 endiorbot/endiorbot serve
@@ -185,7 +185,7 @@ docker run -p 18790:18790 --env-file .env endiorbot
 pnpm install      # Install dependencies
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (6,500+ passing)
+pnpm test         # Run tests (6,596+ passing)
 pnpm lint         # Check style
 pnpm lint:souls   # Validate 13 SOUL templates
 ```
