@@ -12,9 +12,10 @@
  * @status ACTIVE - Sprint 55B
  */
 
-import { appendFileSync, mkdirSync, existsSync, statSync, renameSync } from "node:fs";
+import { appendFileSync, existsSync, statSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
+import { ensureSecureDir } from "../../security/secure-fs.js";
 import { createLogger, type Logger } from "../../logging/index.js";
 import type { AgentRole } from "../types/handoff.js";
 import type { InvokeMode } from "../invoke/claude-code-bridge.js";
@@ -325,7 +326,7 @@ export class AuditLogger {
   private ensureLogDirectory(): void {
     const dir = dirname(this.config.logPath);
     if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      ensureSecureDir(dir);
       this.log.info("Created audit log directory", { dir });
     }
   }

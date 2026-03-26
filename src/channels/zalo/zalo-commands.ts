@@ -23,6 +23,7 @@ import {
   handleConsultCommand,
   handleConfigCommand,
   handleInitCommand,
+  handleCostCommand,
   sanitizeForEcho,
   type CommandResult,
 } from "../../commands/handlers.js";
@@ -82,6 +83,7 @@ AI:
 
 System:
   /config - Project config
+  /cost - Token usage & cost
   /help - This message
 
 Agent mention:
@@ -199,6 +201,9 @@ export async function handleZaloCommand(
       break;
     case "/config":
       result = handleConfigCommand();
+      break;
+    case "/cost":
+      result = handleCostCommand(args);
       break;
     case "/init":
       result = await handleInitCommand(args);

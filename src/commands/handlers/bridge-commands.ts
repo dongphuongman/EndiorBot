@@ -169,6 +169,7 @@ Example: /launch claude ~/project --as-team dev "Refactor auth module"`,
   let agentRole: AgentRole | undefined;
   let teamId: TeamId | undefined;
   let riskMode: SessionRiskMode | undefined;
+  let deprecationWarning = "";
   const filteredArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--as" && i + 1 < args.length) {
@@ -194,8 +195,12 @@ Example: /launch claude ~/project --as-team dev "Refactor auth module"`,
         };
       }
       i++; // Skip the teamId value
-    } else if (args[i] === "--risk" && i + 1 < args.length) {
+    } else if ((args[i] === "--risk" || args[i] === "--mode") && i + 1 < args.length) {
       // Sprint 104: Parse --risk [read|patch] (GAP-002)
+      // Sprint 119: --mode accepted as deprecated alias (ISSUE-2)
+      if (args[i] === "--mode") {
+        deprecationWarning = "⚠️ --mode is deprecated, use --risk instead.\n\n";
+      }
       const mode = (args[i + 1] ?? "").toLowerCase();
       if (mode === "read" || mode === "patch") {
         riskMode = mode as SessionRiskMode;
@@ -348,7 +353,7 @@ Reason: ${assessment.reason}${taskPreview}`,
 
   return {
     success: true,
-    response: `🚀 *Agent Launched*
+    response: `${deprecationWarning}🚀 *Agent Launched*
 
 Agent: ${session.agentType}${roleLabel}${teamLabel}
 Session: \`${session.id}\`

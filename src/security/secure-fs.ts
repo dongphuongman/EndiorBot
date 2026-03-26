@@ -61,6 +61,8 @@ export function mkdirSecure(dirPath: string, recursive = true): void {
 
   // Create directory with secure permissions
   fs.mkdirSync(dirPath, { recursive, mode: SECURE_DIR_MODE });
+  // Enforce permissions regardless of umask (mkdirSync mode is advisory)
+  fs.chmodSync(dirPath, SECURE_DIR_MODE);
 }
 
 /**

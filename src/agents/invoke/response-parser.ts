@@ -522,6 +522,7 @@ export function parseResponse(output: string): ParsedResponse {
  * Check if response contains a handoff.
  */
 export function hasHandoff(output: string): boolean {
+  HANDOFF_JSON_PATTERN.lastIndex = 0;
   return HANDOFF_JSON_PATTERN.test(output);
 }
 
