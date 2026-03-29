@@ -436,10 +436,10 @@ describe("Phase 5: SOUL version bump 6.1.1 → 6.1.2", () => {
     expect(filesWithVersion.length).toBeGreaterThanOrEqual(7);
   });
 
-  it("all 13 SOUL template files exist", () => {
+  it("all 14 SOUL template files exist", () => {
     const allSouls = [
       "SOUL-architect.md", "SOUL-assistant.md", "SOUL-ceo.md",
-      "SOUL-coder.md", "SOUL-cpo.md", "SOUL-cto.md",
+      "SOUL-coder.md", "SOUL-cpo.md", "SOUL-cso.md", "SOUL-cto.md",
       "SOUL-devops.md", "SOUL-fullstack.md", "SOUL-pjm.md",
       "SOUL-pm.md", "SOUL-researcher.md", "SOUL-reviewer.md",
       "SOUL-tester.md",

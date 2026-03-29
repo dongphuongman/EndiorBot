@@ -96,6 +96,7 @@ describe("handleComplianceCommand", () => {
     const lower = handleComplianceCommand(["check"]);
     const upper = handleComplianceCommand(["CHECK"]);
     expect(lower.success).toBe(upper.success);
+    expect(lower.response).toBe(upper.response);
   });
 });
 

@@ -12,7 +12,7 @@
  */
 
 // ============================================================================
-// Agent Roles (12 SDLC Roles)
+// Agent Roles (14 Roles: 9 SE4A + 4 SE4H + 1 Router)
 // ============================================================================
 
 /**
@@ -30,12 +30,13 @@ export type SE4ARole =
   | "fullstack";  // All stages, LITE tier composite agent
 
 /**
- * SE4H Agents (3 Advisors) - Active at STANDARD+ tier.
+ * SE4H Agents (4 Advisors) - Active at STANDARD+ tier.
  */
 export type SE4HRole =
   | "ceo"         // Strategic direction
   | "cpo"         // Product vision
-  | "cto";        // Technical standards
+  | "cto"         // Technical standards
+  | "cso";        // Security posture (PRO+ tier)
 
 /**
  * Router Agent.
@@ -120,6 +121,7 @@ export const ALLOWED_TRANSITIONS: Record<AgentRole, readonly AgentRole[]> = {
   ceo: [] as const,
   cpo: [] as const,
   cto: [] as const,
+  cso: [] as const,
 
   // Router (routes to SE4A agents)
   assistant: ["researcher", "pm", "pjm", "architect", "coder", "reviewer", "tester", "devops", "fullstack"] as const,
@@ -271,7 +273,7 @@ export function isSE4ARole(role: string): role is SE4ARole {
  * Check if a role is a valid SE4H advisor.
  */
 export function isSE4HRole(role: string): role is SE4HRole {
-  const se4hRoles: SE4HRole[] = ["ceo", "cpo", "cto"];
+  const se4hRoles: SE4HRole[] = ["ceo", "cpo", "cto", "cso"];
   return se4hRoles.includes(role as SE4HRole);
 }
 

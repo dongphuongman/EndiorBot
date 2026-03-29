@@ -1,11 +1,13 @@
 # ADR-011: Composio Tool Integration
 
 **Date**: 2026-02-25
-**Status**: PROPOSED — Pending CEO/PM Sign-off
+**Status**: DEFERRED (Sprint 121)
 **Authority**: Sprint 49 Complete, Multi-Expert Review
 **Pillar**: 2 - Sprint Governance
 **Stage**: 04 - BUILD
-**SDLC**: Framework 6.1.1
+**SDLC**: Framework 6.2.0
+**Deferred Rationale**: Composio integration requires external API dependency (`@composio/core`) and CEO use case validation for specific tool orchestration scenarios (GitHub, Gmail, Calendar). EndiorBot's current architecture (30 OTT commands, 13 SOUL agents, tmux bridge) serves the CEO Power Tool use case without external tool execution. Reopen when a specific tool orchestration need arises that cannot be met by the existing command handler pattern.
+**Reopen Condition**: CEO requests real-world action execution (e.g., "create GitHub issue from chat", "send email from bot") that cannot be handled by existing `/send` command or MTClaw MCP bridge.
 
 ---
 
@@ -575,8 +577,4 @@ Sprint 50 was committed to **Context Engineering** (deferred from Sprint 47).
 
 ---
 
-**Status**: PROPOSED — Awaiting:
-1. PM/CEO scope decision (Context Engineering vs Composio in Sprint 50)
-2. Principal model decision
-3. Approval actor decision
-4. Final CTO sign-off after updates
+**Status**: DEFERRED (Sprint 121) — See header for rationale and reopen condition.

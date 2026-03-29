@@ -19,11 +19,11 @@ describe("SessionIntelligenceEnvelope", () => {
   // --------------------------------------------------------------------------
 
   describe("VALID_AGENT_ROLES", () => {
-    it("should contain exactly 13 roles", () => {
-      expect(VALID_AGENT_ROLES).toHaveLength(13);
+    it("should contain exactly 14 roles", () => {
+      expect(VALID_AGENT_ROLES).toHaveLength(14);
     });
 
-    it("should include all 13 known EndiorBot roles", () => {
+    it("should include all 14 known EndiorBot roles", () => {
       const expected: AgentRole[] = [
         "pm",
         "architect",
@@ -36,6 +36,7 @@ describe("SessionIntelligenceEnvelope", () => {
         "pjm",
         "ceo",
         "cpo",
+        "cso",
         "cto",
         "assistant",
       ];

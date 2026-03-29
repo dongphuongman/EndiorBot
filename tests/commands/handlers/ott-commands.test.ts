@@ -185,6 +185,11 @@ describe("handleTeamsCommand", () => {
     const result = handleTeamsCommand();
     expect(result.success).toBe(true);
   });
+
+  it("handles invalid tier parameter gracefully", () => {
+    const result = handleTeamsCommand("INVALID_TIER" as never);
+    expect(result.success).toBe(true);
+  });
 });
 
 // ============================================================================
@@ -255,98 +260,25 @@ describe("generateHelpMessage", () => {
     expect(help.length).toBeGreaterThan(0);
   });
 
-  it("includes EndiorBot Commands heading", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("EndiorBot Commands");
+  it.each([
+    ["EndiorBot Commands"],
+    ["Workflow:"],
+    ["SDLC:"],
+    ["AI:"],
+    ["Bridge"],
+    ["System:"],
+  ])("includes section: %s", (section) => {
+    expect(generateHelpMessage()).toContain(section);
   });
 
-  it("includes Workflow section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("Workflow:");
+  it.each([
+    ["/launch"], ["/sessions"], ["/capture"], ["/send"], ["/kill"],
+    ["/gate"], ["/compliance"], ["/consult"], ["/agents"], ["/teams"], ["/cost"],
+  ])("includes command: %s", (cmd) => {
+    expect(generateHelpMessage()).toContain(cmd);
   });
 
-  it("includes SDLC section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("SDLC:");
-  });
-
-  it("includes AI section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("AI:");
-  });
-
-  it("includes Bridge section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("Bridge");
-  });
-
-  it("includes System section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("System:");
-  });
-
-  it("includes /launch command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/launch");
-  });
-
-  it("includes /sessions command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/sessions");
-  });
-
-  it("includes /capture command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/capture");
-  });
-
-  it("includes /send command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/send");
-  });
-
-  it("includes /kill command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/kill");
-  });
-
-  it("includes /gate command in SDLC section", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/gate");
-  });
-
-  it("includes /compliance command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/compliance");
-  });
-
-  it("includes /consult command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/consult");
-  });
-
-  it("includes /agents command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/agents");
-  });
-
-  it("includes /teams command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/teams");
-  });
-
-  it("includes /cost command", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("/cost");
-  });
-
-  it("includes @agent mention format examples", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("@agent");
-  });
-
-  it("includes @team mention format examples", () => {
-    const help = generateHelpMessage();
-    expect(help).toContain("@team");
+  it.each([["@agent"], ["@team"]])("includes mention format: %s", (mention) => {
+    expect(generateHelpMessage()).toContain(mention);
   });
 });

@@ -158,6 +158,7 @@ const AGENT_RISK_PROFILES: Record<AgentRole, { baseRisk: RiskLevel; readModeOnly
   ceo: { baseRisk: "LOW", readModeOnly: true },
   cpo: { baseRisk: "LOW", readModeOnly: true },
   cto: { baseRisk: "MEDIUM", readModeOnly: true },
+  cso: { baseRisk: "LOW", readModeOnly: true },
 };
 
 /**

@@ -121,7 +121,7 @@ describe("channel-router — SoulLoader integration (Sprint 84)", () => {
       expect(soul).toBe("Mock SOUL content for role: pm");
     });
 
-    it("returns content for all 13 valid roles without error", () => {
+    it("returns content for all 14 valid roles without error", () => {
       for (const role of VALID_AGENTS) {
         const soul = getAgentSoul(role);
         expect(typeof soul).toBe("string");

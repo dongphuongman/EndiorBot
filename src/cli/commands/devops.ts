@@ -224,7 +224,7 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
   console.log(`│  🚀 DevOps Run                                              │`);
   console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(`│  Project: ${projectPath.slice(-49).padEnd(49)}│`);
-  console.log(`│  Command: ${pm} ${scriptName}`.padEnd(61) + "│");
+  console.log(`│  Command: ${pm} run ${scriptName}`.padEnd(61) + "│");
   console.log("└─────────────────────────────────────────────────────────────┘");
   console.log("");
 
@@ -240,9 +240,9 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
   }
 
   // Run
-  console.log(`🚀 Running: ${pm} ${scriptName}`);
+  console.log(`🚀 Running: ${pm} run ${scriptName}`);
   console.log("");
-  const code = await runCommand(pm, [scriptName], projectPath);
+  const code = await runCommand(pm, ["run", scriptName], projectPath);
   process.exit(code);
 }
 

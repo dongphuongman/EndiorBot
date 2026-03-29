@@ -1,12 +1,13 @@
 # ADR-015: Retrieval Explainability & Evidence
 
 ---
-**Status**: PROPOSED
+**Status**: SUPERSEDED (Sprint 121)
 **Date**: 2026-03-01
 **Author**: CTO + Architect
 **Sprint**: 65+ (Context Anchoring & Beyond)
 **Authority**: Master Plan v4.2, Research "Autonomous SDLC Agent"
 **Supersedes**: None
+**Superseded By**: Sprint 65 Context Anchoring implementation — explainability patterns incorporated into `src/agents/intelligence/workspace-context.ts` (139L, workspace git context injection) and `src/agents/intelligence/patch-intent-classifier.ts` (149L, intent classification with typed reasons). The dual-output logging design was replaced by the simpler RL feedback pipeline (Sprint 110-111, `src/rl/`) which captures per-turn feedback as JSONL for training data.
 **Related**: ADR-014 (Code Search Layer), TS-007
 
 ---

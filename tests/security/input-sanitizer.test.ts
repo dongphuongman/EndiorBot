@@ -54,6 +54,16 @@ describe("InputSanitizer", () => {
       const result = sanitizer.sanitizeExternalInput(unicode);
       expect(result.sanitized).toContain(unicode);
     });
+
+    it("should handle >10K character input without throwing", () => {
+      const sanitizer = new InputSanitizer();
+      const longInput = "A".repeat(10_001);
+      const violations = sanitizer.checkViolations(longInput);
+      expect(violations).toBeInstanceOf(Array);
+      const result = sanitizer.sanitizeExternalInput(longInput);
+      expect(result.sanitized).toContain("[EXTERNAL_INPUT channel=ott]");
+      expect(result.sanitized).toContain("[/EXTERNAL_INPUT]");
+    });
   });
 
   // --------------------------------------------------------------------------

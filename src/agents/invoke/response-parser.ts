@@ -240,7 +240,9 @@ export class ResponseParser {
     const handoffs: HandoffItem[] = [];
     const errors: string[] = [];
 
-    // Find all potential handoff JSON blocks
+    // Reset lastIndex — matchAll copies it from the source regex (g-flag),
+    // so a stale value from a prior .test() call would skip early matches
+    HANDOFF_JSON_PATTERN.lastIndex = 0;
     const matches = output.matchAll(HANDOFF_JSON_PATTERN);
 
     for (const match of matches) {
@@ -355,6 +357,7 @@ export class ResponseParser {
    */
   private extractCodeBlocks(output: string): CodeBlock[] {
     const blocks: CodeBlock[] = [];
+    CODE_BLOCK_PATTERN.lastIndex = 0;
     const matches = output.matchAll(CODE_BLOCK_PATTERN);
 
     for (const match of matches) {

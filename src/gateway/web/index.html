@@ -41,7 +41,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .msg code{background:var(--code-bg);padding:1px 5px;border-radius:3px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px}
 .msg pre{background:var(--code-bg);padding:10px 12px;border-radius:6px;overflow-x:auto;margin:6px 0}
 .msg pre code{background:none;padding:0}
-.msg li{margin-left:18px}
+.msg li{margin-left:18px;margin-bottom:2px}
+.msg ul,.msg ol{margin:6px 0;padding-left:24px}
+.msg h3{font-size:15px;font-weight:600;margin:8px 0 4px}
+.msg h4{font-size:14px;font-weight:600;margin:6px 0 2px}
+.msg hr{border:none;border-top:1px solid var(--border);margin:8px 0}
 .typing{align-self:flex-start;color:var(--text2);font-size:13px;padding:4px 0;display:none}
 .input-area{padding:12px 20px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:8px;align-items:flex-end}
 .input-area textarea{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;resize:none;min-height:42px;max-height:120px;line-height:1.4}
@@ -306,16 +310,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   function safeMarkdown(text){
     if(typeof text!=='string')text=String(text);
     let s=text.replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
-    // Fenced code blocks
+    // Fenced code blocks (preserve newlines inside)
     s=s.replace(/```([\s\S]*?)```/g,(_,c)=>'<pre><code>'+c+'</code></pre>');
     // Inline code
     s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
     // Bold
     s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
     // Italic
-    s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-    // Line breaks
-    s=s.replace(/\n/g,'<br>');
+    s=s.replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+    // Headers (## and ### only — cap at h3/h4 for chat context)
+    s=s.replace(/^### (.+)$/gm,'<h4>$1</h4>');
+    s=s.replace(/^## (.+)$/gm,'<h3>$1</h3>');
+    // Horizontal rules
+    s=s.replace(/^---+$/gm,'<hr>');
+    // Lists — process line-by-line to group consecutive list items
+    s=s.split('\n').reduce((acc,line)=>{
+      const ulMatch=line.match(/^[-*] (.+)$/);
+      const olMatch=line.match(/^\d+\. (.+)$/);
+      if(ulMatch){
+        if(!acc.inUl){acc.out+='<ul>';acc.inUl=true}
+        if(acc.inOl){acc.out+='</ol>';acc.inOl=false}
+        acc.out+='<li>'+ulMatch[1]+'</li>';
+      }else if(olMatch){
+        if(!acc.inOl){acc.out+='<ol>';acc.inOl=true}
+        if(acc.inUl){acc.out+='</ul>';acc.inUl=false}
+        acc.out+='<li>'+olMatch[1]+'</li>';
+      }else{
+        if(acc.inUl){acc.out+='</ul>';acc.inUl=false}
+        if(acc.inOl){acc.out+='</ol>';acc.inOl=false}
+        acc.out+=(acc.out?'<br>':'')+line;
+      }
+      return acc;
+    },{out:'',inUl:false,inOl:false});
+    s=(s.out||'')+(s.inUl?'</ul>':'')+(s.inOl?'</ol>':'');
     return s;
   }
 

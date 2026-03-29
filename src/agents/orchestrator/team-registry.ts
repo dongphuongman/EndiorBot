@@ -58,6 +58,7 @@ const AGENT_DESCRIPTIONS: Record<AgentRole, string> = {
   ceo: "Strategic direction",
   cpo: "Product vision and prioritization",
   cto: "Technical standards and architecture review",
+  cso: "Security architecture, threat modeling, and compliance",
   assistant: "Message routing and delegation",
 };
 

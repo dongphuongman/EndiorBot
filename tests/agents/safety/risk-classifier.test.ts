@@ -141,9 +141,8 @@ describe("RiskClassifier", () => {
 
     it("requires explicit confirmation for HIGH risk", () => {
       const result = classifier.classify({ agent: "coder", mode: "PATCH", task: "fix the bug in service" });
-      if (result.level === "HIGH") {
-        expect(result.confirmation).toBe("explicit");
-      }
+      expect(result.level).toBe("HIGH");
+      expect(result.confirmation).toBe("explicit");
     });
 
     it("maps modify category for 'edit' keyword", () => {
@@ -283,24 +282,20 @@ describe("RiskClassifier", () => {
 
     it("LOW risk → confirmation: none", () => {
       const result = classifier.classify({ agent: "researcher", mode: "READ", task: "list files" });
-      if (result.level === "LOW") {
-        expect(result.confirmation).toBe("none");
-      }
+      expect(result.level).toBe("LOW");
+      expect(result.confirmation).toBe("none");
     });
 
     it("HIGH risk → confirmation: explicit", () => {
-      // Use researcher (LOW base) + PATCH mode + modify task to land exactly on HIGH
       const result = classifier.classify({ agent: "coder", mode: "READ", task: "modify source code" });
-      if (result.level === "HIGH") {
-        expect(result.confirmation).toBe("explicit");
-      }
+      expect(result.level).toBe("HIGH");
+      expect(result.confirmation).toBe("explicit");
     });
 
     it("CRITICAL risk → confirmation: explicit_with_audit", () => {
       const result = classifier.classify({ agent: "devops", mode: "PATCH", task: "delete database" });
-      if (result.level === "CRITICAL") {
-        expect(result.confirmation).toBe("explicit_with_audit");
-      }
+      expect(result.level).toBe("CRITICAL");
+      expect(result.confirmation).toBe("explicit_with_audit");
     });
   });
 
@@ -438,6 +433,16 @@ describe("RiskClassifier", () => {
       expect(modeViolation).toBeDefined();
     });
 
+    it("cso agent is LOW risk and readModeOnly (advisory-only enforcement)", () => {
+      const classifier = makeClassifier();
+      const readResult = classifier.classify({ agent: "cso", mode: "READ", task: "review security" });
+      expect(readResult.level).toBe("LOW");
+      // PATCH mode should trigger mode violation factor
+      const patchResult = classifier.classify({ agent: "cso", mode: "PATCH", task: "review security" });
+      const modeViolation = patchResult.factors.find((f) => f.name === "Mode violation");
+      expect(modeViolation).toBeDefined();
+    });
+
     it("devops agent has CRITICAL base risk", () => {
       const classifier = makeClassifier();
       const result = classifier.classify({ agent: "devops", mode: "READ", task: "check status" });
@@ -482,17 +487,15 @@ describe("RiskClassifier", () => {
 
     it("CRITICAL recommendations include backup advice", () => {
       const result = classifier.classify({ agent: "devops", mode: "PATCH", task: "delete old records" });
-      if (result.level === "CRITICAL") {
-        const hasBackup = result.recommendations.some((r) => r.toLowerCase().includes("backup"));
-        expect(hasBackup).toBe(true);
-      }
+      expect(result.level).toBe("CRITICAL");
+      const hasBackup = result.recommendations.some((r) => r.toLowerCase().includes("backup"));
+      expect(hasBackup).toBe(true);
     });
 
     it("LOW risk returns empty recommendations", () => {
       const result = classifier.classify({ agent: "researcher", mode: "READ", task: "list files" });
-      if (result.level === "LOW") {
-        expect(result.recommendations.length).toBe(0);
-      }
+      expect(result.level).toBe("LOW");
+      expect(result.recommendations.length).toBe(0);
     });
   });
 
@@ -521,9 +524,8 @@ describe("RiskClassifier", () => {
 
     it("returns false for LOW risk (no confirmation needed)", () => {
       const result = classifier.classify({ agent: "researcher", mode: "READ", task: "read logs" });
-      if (result.level === "LOW") {
-        expect(classifier.needsConfirmation("researcher", "READ", "read logs")).toBe(false);
-      }
+      expect(result.level).toBe("LOW");
+      expect(classifier.needsConfirmation("researcher", "READ", "read logs")).toBe(false);
     });
 
     it("returns true for CRITICAL risk", () => {

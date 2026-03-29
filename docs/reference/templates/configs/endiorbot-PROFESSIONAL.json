@@ -3,7 +3,7 @@
   "meta": {
     "template": "PROFESSIONAL",
     "version": "1.1.0",
-    "description": "SDLC Framework 6.2.0 - PROFESSIONAL tier (11 agents, 5 teams)"
+    "description": "SDLC Framework 6.2.0 - PROFESSIONAL tier (12 agents, 5 teams)"
   },
   "agents": {
     "defaults": {
@@ -78,6 +78,11 @@
         "id": "cto",
         "role": "cto",
         "description": "SE4H - Technical advisor, approves G2 and G3"
+      },
+      {
+        "id": "cso",
+        "role": "cso",
+        "description": "SE4H - Security advisor, approves G2/G3/G4 security checklists (PRO+)"
       }
     ]
   },
@@ -93,7 +98,7 @@
       "design": {
         "archetype": "design",
         "leader": "architect",
-        "members": ["architect", "pm", "coder"]
+        "members": ["architect", "pm", "coder", "cso"]
       },
       "dev": {
         "archetype": "dev",
@@ -103,12 +108,12 @@
       "qa": {
         "archetype": "qa",
         "leader": "tester",
-        "members": ["tester", "reviewer"]
+        "members": ["tester", "reviewer", "cso"]
       },
       "executive": {
         "archetype": "executive",
         "leader": "cto",
-        "members": ["cpo", "cto"]
+        "members": ["cpo", "cto", "cso"]
       }
     },
     "gates": {
@@ -116,8 +121,8 @@
       "approvers": {
         "G0.1": ["cpo"],
         "G1": ["cpo"],
-        "G2": ["cto"],
-        "G3": ["cto"],
+        "G2": ["cto", "cso"],
+        "G3": ["cto", "cso"],
         "G-Sprint": ["pjm"],
         "G-Sprint-Close": ["pjm"]
       }

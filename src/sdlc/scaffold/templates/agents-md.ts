@@ -106,6 +106,14 @@ const ALL_AGENTS: AgentDefinition[] = [
     capabilities: ["Technical strategy", "Architecture review", "Tech debt", "Scalability"],
   },
   {
+    id: "cso",
+    name: "CSO Advisor",
+    description: "Security architecture, threat modeling, and compliance oversight",
+    model: "opus",
+    minTier: "PROFESSIONAL",
+    capabilities: ["Threat modeling (STRIDE/PASTA)", "OWASP ASVS L2 compliance", "AGPL containment", "Supply chain security (SBOM)", "Security gate approvals (G2/G3/G4)"],
+  },
+  {
     id: "fullstack",
     name: "Full-Stack Developer",
     description: "End-to-end feature development",

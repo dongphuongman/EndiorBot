@@ -204,12 +204,21 @@ describe("SoulLoader", () => {
   // --------------------------------------------------------------------------
 
   describe("getValidRoles()", () => {
-    it("returns all 13 valid agent roles", () => {
+    it("returns all 14 valid agent roles", () => {
       const loader = createSoulLoader({ templatesRoot: tempDir });
       const roles = loader.getValidRoles();
 
-      expect(roles).toHaveLength(13);
+      expect(roles).toHaveLength(14);
       expect(roles).toEqual(VALID_AGENT_ROLES);
+    });
+
+    it("cso role loads fallback with security scope keywords", () => {
+      const loader = createSoulLoader({ templatesRoot: tempDir, logWarn: () => {} });
+      const result = loader.load("cso");
+
+      expect(result.agentRole).toBe("cso");
+      expect(result.content).toContain("CSO");
+      expect(result.content).toContain("security");
     });
   });
 

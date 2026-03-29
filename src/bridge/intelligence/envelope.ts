@@ -11,7 +11,7 @@
  * - Post-turn (derived, 0 agent tokens): evaluator score, vibecoding — capture → store (Sprint 88)
  */
 
-/** Valid agent roles — the 13 EndiorBot personas */
+/** Valid agent roles — the 14 EndiorBot personas */
 export type AgentRole =
   | "pm"
   | "architect"
@@ -25,6 +25,7 @@ export type AgentRole =
   | "ceo"
   | "cpo"
   | "cto"
+  | "cso"
   | "assistant";
 
 /** All valid agent roles as array for runtime validation */
@@ -41,6 +42,7 @@ export const VALID_AGENT_ROLES: readonly AgentRole[] = [
   "ceo",
   "cpo",
   "cto",
+  "cso",
   "assistant",
 ] as const;
 

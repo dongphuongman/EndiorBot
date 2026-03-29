@@ -400,6 +400,6 @@ export const TIER_ROOT_FILES: Record<ProjectTier, string[]> = {
 export const TIER_AGENT_COUNT: Record<ProjectTier, number> = {
   LITE: 3,
   STANDARD: 6,
-  PROFESSIONAL: 10,
-  ENTERPRISE: 13,
+  PROFESSIONAL: 11,
+  ENTERPRISE: 14,
 };

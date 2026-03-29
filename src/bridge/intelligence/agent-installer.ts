@@ -116,6 +116,13 @@ const AGENT_METADATA: Record<AgentRole, AgentMetadata> = {
     allowedTools: ["Read", "Grep", "Glob", "WebSearch"],
     maxTurns: 15,
   },
+  cso: {
+    name: "CSO",
+    model: "opus",
+    description: "Security architecture, threat modeling, OWASP compliance, AGPL containment",
+    allowedTools: ["Read", "Grep", "Glob"],
+    maxTurns: 15,
+  },
   assistant: {
     name: "Assistant",
     model: "sonnet",

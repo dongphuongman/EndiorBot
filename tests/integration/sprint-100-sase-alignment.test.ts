@@ -18,8 +18,8 @@ describe("Phase 1: Tier Constants (SASE 6.1.2)", () => {
     const { TIER_AGENT_COUNT } = await import("../../src/sdlc/scaffold/types.js");
     expect(TIER_AGENT_COUNT.LITE).toBe(3);
     expect(TIER_AGENT_COUNT.STANDARD).toBe(6);
-    expect(TIER_AGENT_COUNT.PROFESSIONAL).toBe(10);
-    expect(TIER_AGENT_COUNT.ENTERPRISE).toBe(13);
+    expect(TIER_AGENT_COUNT.PROFESSIONAL).toBe(11);
+    expect(TIER_AGENT_COUNT.ENTERPRISE).toBe(14);
   });
 
   it("TIER_ORDER is unchanged", async () => {
@@ -32,10 +32,10 @@ describe("Phase 1: Tier Constants (SASE 6.1.2)", () => {
 });
 
 describe("Phase 1: Agent Definitions (SASE 6.1.2)", () => {
-  it("has 13 agents total", async () => {
+  it("has 14 agents total", async () => {
     const { getAllAgents } = await import("../../src/sdlc/scaffold/templates/agents-md.js");
     const agents = getAllAgents();
-    expect(agents).toHaveLength(13);
+    expect(agents).toHaveLength(14);
   });
 
   it("LITE tier has assistant, coder, tester", async () => {
@@ -54,12 +54,12 @@ describe("Phase 1: Agent Definitions (SASE 6.1.2)", () => {
     expect(standardIds).toEqual(["architect", "pm", "reviewer"]);
   });
 
-  it("PROFESSIONAL tier adds devops, fullstack, pjm, researcher", async () => {
+  it("PROFESSIONAL tier adds cso, devops, fullstack, pjm, researcher", async () => {
     const { getAllAgents } = await import("../../src/sdlc/scaffold/templates/agents-md.js");
     const agents = getAllAgents();
     const proAgents = agents.filter(a => a.minTier === "PROFESSIONAL");
     const proIds = proAgents.map(a => a.id).sort();
-    expect(proIds).toEqual(["devops", "fullstack", "pjm", "researcher"]);
+    expect(proIds).toEqual(["cso", "devops", "fullstack", "pjm", "researcher"]);
   });
 
   it("ENTERPRISE tier adds ceo, cto, cpo", async () => {
@@ -125,10 +125,10 @@ describe("Phase 3: Tier-Aware AGENT_MODEL_MAP", () => {
     expect(Object.keys(TIER_AGENT_MODEL_MAP.STANDARD!).sort()).toEqual(["architect", "pm", "reviewer"]);
   });
 
-  it("AGENT_MODEL_MAP backward compat — flat map with all 13 agents", async () => {
+  it("AGENT_MODEL_MAP backward compat — flat map with all 14 agents", async () => {
     const { AGENT_MODEL_MAP } = await import("../../src/agents/channel-router.js");
     expect(Object.keys(AGENT_MODEL_MAP).sort()).toEqual([
-      "architect", "assistant", "ceo", "coder", "cpo", "cto",
+      "architect", "assistant", "ceo", "coder", "cpo", "cso", "cto",
       "devops", "fullstack", "pjm", "pm", "researcher", "reviewer", "tester",
     ]);
   });

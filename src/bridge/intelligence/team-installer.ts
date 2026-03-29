@@ -70,6 +70,7 @@ const TEAMMATE_DESCRIPTIONS: Record<string, string> = {
   ceo: "Strategic direction",
   cpo: "Product vision and prioritization",
   cto: "Technical standards and architecture review",
+  cso: "Security architecture, threat modeling, and compliance",
   assistant: "Message routing and delegation",
 };
 

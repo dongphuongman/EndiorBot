@@ -498,9 +498,11 @@ export function createHandoffDetector(config?: Partial<DetectorConfig>): Handoff
  * Quick detect function.
  */
 export function detectHandoff(output: string, sourceAgent?: AgentRole): DetectionResult {
-  const detector = getHandoffDetector();
   if (sourceAgent) {
+    // CTO Sprint 121 fix: use throwaway instance to avoid mutating global singleton
+    const detector = createHandoffDetector();
     detector.setSourceAgent(sourceAgent);
+    return detector.detect(output);
   }
-  return detector.detect(output);
+  return getHandoffDetector().detect(output);
 }

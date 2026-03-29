@@ -197,7 +197,7 @@ describe("Phase 1 — AGENT_MODEL_MAP", () => {
         .filter(([, tier]) => tier === "opus")
         .map(([agent]) => agent);
 
-      const expectedOpusAgents = ["ceo", "cpo", "cto", "architect", "reviewer"];
+      const expectedOpusAgents = ["ceo", "cpo", "cso", "cto", "architect", "reviewer"];
       expect(opusAgents.sort()).toEqual(expectedOpusAgents.sort());
     });
 
@@ -220,8 +220,8 @@ describe("Phase 1 — AGENT_MODEL_MAP", () => {
       const opusCount = tierCounts["opus"] ?? 0;
       const haikuCount = tierCounts["haiku"] ?? 0;
 
-      // sonnet has more entries than either opus or haiku individually
-      expect(sonnetCount).toBeGreaterThan(opusCount);
+      // sonnet has at least as many entries as opus, and more than haiku
+      expect(sonnetCount).toBeGreaterThanOrEqual(opusCount);
       expect(sonnetCount).toBeGreaterThan(haikuCount);
     });
   });
@@ -1038,14 +1038,14 @@ describe("AGENT_MODEL_MAP × VALID_AGENTS cross-reference", () => {
     }
   });
 
-  it("VALID_AGENTS contains exactly 13 agents", () => {
+  it("VALID_AGENTS contains exactly 14 agents", () => {
     // Documented agents: pm, architect, coder, reviewer, tester, researcher,
-    // devops, fullstack, pjm, ceo, cpo, cto, assistant
-    expect(VALID_AGENTS).toHaveLength(13);
+    // devops, fullstack, pjm, ceo, cpo, cto, assistant, cso
+    expect(VALID_AGENTS).toHaveLength(14);
   });
 
-  it("all 13 VALID_AGENTS are present in AGENT_MODEL_MAP", () => {
-    expect(Object.keys(AGENT_MODEL_MAP)).toHaveLength(13);
+  it("all 14 VALID_AGENTS are present in AGENT_MODEL_MAP", () => {
+    expect(Object.keys(AGENT_MODEL_MAP)).toHaveLength(14);
   });
 
   it("model routing follows the documented cost strategy (opus > sonnet > haiku)", () => {

@@ -136,7 +136,7 @@ describe("Phase 2: getAgentModel() wiring verification", () => {
   it("AGENT_MODEL_MAP backward compat unchanged", async () => {
     const { AGENT_MODEL_MAP } = await import("../../src/agents/channel-router.js");
     expect(Object.keys(AGENT_MODEL_MAP).sort()).toEqual([
-      "architect", "assistant", "ceo", "coder", "cpo", "cto",
+      "architect", "assistant", "ceo", "coder", "cpo", "cso", "cto",
       "devops", "fullstack", "pjm", "pm", "researcher", "reviewer", "tester",
     ]);
   });

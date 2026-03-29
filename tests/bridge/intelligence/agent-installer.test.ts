@@ -1,7 +1,7 @@
 /**
  * Tests for AgentInstaller — Sprint 84 (ADR-025)
  *
- * Covers: creates 13 agent files in .claude/agents/, correct frontmatter
+ * Covers: creates 14 agent files in .claude/agents/, correct frontmatter
  * fields per role, skip-existing behaviour, force=true overwrite, and
  * fallback content when SOUL template is absent.
  *
@@ -80,17 +80,17 @@ describe("AgentInstaller — installAgents()", () => {
   });
 
   // --------------------------------------------------------------------------
-  // Creates 13 files
+  // Creates 14 files
   // --------------------------------------------------------------------------
 
   describe("creates agent files", () => {
-    it("creates exactly 13 agent files in .claude/agents/", () => {
+    it("creates exactly 14 agent files in .claude/agents/", () => {
       const result = installAgents(projectDir, { templatesRoot: templatesDir });
 
-      expect(result.created).toBe(13);
+      expect(result.created).toBe(14);
       expect(result.skipped).toBe(0);
       expect(result.failed).toBe(0);
-      expect(result.details).toHaveLength(13);
+      expect(result.details).toHaveLength(14);
     });
 
     it("creates a file for every role in VALID_AGENT_ROLES", () => {
@@ -187,7 +187,7 @@ describe("AgentInstaller — installAgents()", () => {
       const result = installAgents(projectDir, { templatesRoot: templatesDir });
 
       expect(result.skipped).toBe(1);
-      expect(result.created).toBe(12);
+      expect(result.created).toBe(13);
 
       // Custom content must be preserved
       const content = readFileSync(join(agentsDir, "pm.md"), "utf-8");
@@ -221,7 +221,7 @@ describe("AgentInstaller — installAgents()", () => {
         force: true,
       });
 
-      expect(result.created).toBe(13);
+      expect(result.created).toBe(14);
       expect(result.skipped).toBe(0);
 
       // File must now have installer-generated frontmatter

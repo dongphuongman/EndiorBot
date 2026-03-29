@@ -247,11 +247,11 @@ describe("E2E: Sanitizer wrapper stripping — the double-sanitization bug", () 
     expect(goodResult.success).toBe(true);
   });
 
-  it("all 13 agents parse correctly after stripping", () => {
+  it("all 14 agents parse correctly after stripping", () => {
     const agents = [
       "pm", "architect", "coder", "reviewer", "tester",
       "researcher", "devops", "fullstack", "pjm",
-      "ceo", "cpo", "cto", "assistant",
+      "ceo", "cpo", "cso", "cto", "assistant",
     ];
 
     for (const agent of agents) {

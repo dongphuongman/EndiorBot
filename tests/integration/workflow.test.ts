@@ -507,6 +507,13 @@ Here's my analysis:
       // Researcher cannot hand off to coder
       expect(isAllowedTransition("researcher", "coder")).toBe(false);
     });
+
+    it("CSO (SE4H advisory) cannot delegate to any agent", () => {
+      expect(isAllowedTransition("cso", "coder")).toBe(false);
+      expect(isAllowedTransition("cso", "pm")).toBe(false);
+      expect(isAllowedTransition("cso", "architect")).toBe(false);
+      expect(isAllowedTransition("cso", "devops")).toBe(false);
+    });
   });
 
   // ==========================================================================
