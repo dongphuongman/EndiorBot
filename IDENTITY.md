@@ -10,8 +10,11 @@
 
 ## Purpose
 
-EndiorBot automates SDLC workflow for solo developers working on enterprise-scale applications (~1M LOC).
+EndiorBot is a personal AI assistant for builders — self-contained, multi-model, runs on your machine.
+It automates SDLC workflow for solo developers working on enterprise-scale applications (~1M LOC).
 It combines Claude Code capabilities with SDLC Framework automation and multi-model orchestration.
+
+> **Advisory boundary:** EndiorBot output is advisory. In team/enterprise contexts, deliverables should flow through the organization's governance tools where evidence trails and quality gates apply.
 
 ## Key Capabilities
 
