@@ -1,8 +1,8 @@
 # Sprint Index
 
 **Project**: EndiorBot
-**Framework**: SDLC 6.2.0
-**Last Updated**: 2026-03-22 (Sprint 113 COMPLETE — Cross-System Agent Protocol; Sprint 114 IN PROGRESS; Sprint 111a IN PROGRESS)
+**Framework**: SDLC 6.2.1
+**Last Updated**: 2026-04-04 (Sprint 129 COMPLETE — Commit + Push + Stabilize; 7,601 tests)
 
 ---
 
@@ -10,8 +10,7 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 114 | Mar 22-23, 2026 | Context-Aware Token Tracking — token usage in AIResult, workspace context injection, `/cost` command, RL→SOUL enrichment foundation | 🚀 IN PROGRESS | [sprint-114](sprint-114-context-aware-token-tracking.md) |
-| Sprint 111a | Mar 2026 | First TRL Training Run — SFT on Sprint 110+ JSONL, untrained Qwen baseline, GRPO setup (HF TRL, MPS) | 🚀 IN PROGRESS | [sprint-111a](sprint-111a-trl-first-training.md) |
+| Sprint 130 | TBD | Next sprint (PLANNING) | 📋 PLANNING | — |
 
 ## Deferred Sprint
 
@@ -23,10 +22,32 @@
 
 ## Completed Sprints
 
-### Tier 5: Progressive Autonomy + Gap Closure (Sprint 95+) — T2/T3
+### Tier 7: Chat Mode + Agentic OS Alignment (Sprint 127-129)
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 129 | Apr 3-4, 2026 | Commit + Push + Stabilize — test fixes, version cleanup, ADR-044 Agentic OS, security | ✅ COMPLETE | [sprint-129](sprint-129-commit-push-stabilize.md) |
+| Sprint 128 | Apr 3, 2026 | Chat Phase 2 — session resume, context compaction (HistoryCompactor), CLI command routing | ✅ COMPLETE | [sprint-128](sprint-128-chat-phase2-compaction.md) |
+| Sprint 127 | Apr 3, 2026 | Chat Mode Phase 1 — interactive REPL, multi-provider, SystemBlock caching (ADR-043) | ✅ COMPLETE | [sprint-127](sprint-127-chat-mode.md) |
+
+### Tier 6: Autonomous Workflow + Infrastructure (Sprint 121-126)
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 126 | Apr 3, 2026 | Prompt caching (ADR-040) + tool allowlist/blocklist on RiskClassifier | ✅ COMPLETE | [sprint-126](sprint-126-prompt-caching-allowlist.md) |
+| Sprint 125 | Apr 3, 2026 | Permission audit trail (ADR-041) + prompt caching spike | ✅ COMPLETE | [sprint-125](sprint-125-prompt-cache-audit.md) |
+| Sprint 124b | Apr 3, 2026 | Execution engine — executeTaskWork() wired to callCloudFallback() (ADR-042) | ✅ COMPLETE | [sprint-124b](sprint-124b-execution-engine.md) |
+| Sprint 124a | Apr 3, 2026 | Plan command (display-only) + ClawVault memory injection (ADR-038) | ✅ COMPLETE | [sprint-124a](sprint-124a-plan-memory.md) |
+| Sprint 123 | Apr 3, 2026 | Bootstrap command + polyglot ecosystem detection (ADR-037) | ✅ COMPLETE | [sprint-123](sprint-123-bootstrap-polyglot.md) |
+| Sprint 122 | Apr 3, 2026 | gstack best practices — thinking framework, agentGuidance, PREAMBLE (ADR-036) | ✅ COMPLETE | [sprint-122](sprint-122-gstack-adoption.md) |
+| Sprint 121 | Mar 26, 2026 | Agent coverage hardening, router decomposition (908→370L), CSO agent (#14) | ✅ COMPLETE | [sprint-121](sprint-121-agent-coverage-hardening.md) |
+
+### Tier 5+: Security + Beta Stabilization (Sprint 114-120)
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 119 | Mar 26, 2026 | Beta remediation — +392 tests, security module coverage, hasHandoff() stateful regex fix | ✅ COMPLETE | — |
+| Sprint 114-118 | Mar 22-26, 2026 | Security hardening, beta stabilization, token tracking, codebase cleanup | ✅ COMPLETE | — |
 | Sprint 113 | Mar 20-21, 2026 | Cross-System Agent Communication — MTClaw MCP bridge, `@mtclaw.*` namespace, 8 tools + 21 agents accessible (CTO 9.5/10) | ✅ COMPLETE | [sprint-113](sprint-113-cross-system-agent-protocol.md) |
 | Sprint 112 | Mar 18, 2026 | SDLC 6.2.0 Alignment — framework version bump (5 files), `sdlc_framework` frontmatter (13 SOULs), Long-Running Protocol (5 executors) (CTO 9.5/10) | ✅ COMPLETE | [sprint-112](sprint-112-sdlc-620-alignment.md) |
 | Sprint 110.5 | Mar 15-16, 2026 | RL Serve Wiring + ADR-033 Finalization + Validation Set v1 — keyboard live in production (CTO 9.2/10) | ✅ COMPLETE | [sprint-110.5](sprint-110.5-rl-serve-wiring.md) |
@@ -114,6 +135,19 @@
 
 | Sprint | Tests | Cumulative |
 |--------|-------|------------|
+| Sprint 129 | +33 (fixes+cleanup) | 7,601 |
+| Sprint 128 | +5 | 7,587 |
+| Sprint 127 | +14 | 7,582 |
+| Sprint 126 | +12 | 7,530 |
+| Sprint 125 | +9 | 7,515 |
+| Sprint 124b | +36 | 7,568 |
+| Sprint 124a | +17 | 7,505 |
+| Sprint 123 | +14 | 7,501 |
+| Sprint 122 | +4 | 7,487 |
+| Sprint 121 | +315 | 7,453 |
+| Sprint 119 | +392 | 6,988 |
+| Sprint 114-118 | +170 | 6,596 |
+| Sprint 113 | +24 | 6,426 |
 | Sprint 105 | +24 | 6,426 |
 | Sprint 104 | +13 | 6,402 |
 | Sprint 103 | +13 | 6,389 |
@@ -157,6 +191,17 @@
 
 | ADR | Title | Sprints | Status |
 |-----|-------|---------|--------|
+| ADR-044 | Agentic OS Alignment (3-Product Pattern Ownership) | 129 | ✅ ACCEPTED |
+| ADR-043 | Chat Mode Interactive Session | 127-128 | ✅ ACCEPTED |
+| ADR-042 | Autonomous Execution Engine | 124b | ✅ ACCEPTED |
+| ADR-041 | Permission Audit Trail | 125 | ✅ ACCEPTED |
+| ADR-040 | Prompt Caching Architecture | 125-126 | ✅ ACCEPTED |
+| ADR-039 | Claude Code Research Artifacts Governance | 129 | ✅ ACCEPTED |
+| ADR-038 | Autonomous Workflow Integration | 124a | ✅ ACCEPTED |
+| ADR-037 | Polyglot Bootstrap Multi-Ecosystem | 123 | ✅ ACCEPTED |
+| ADR-036 | gstack Best Practices Adoption | 122 | ✅ ACCEPTED |
+| ADR-035 | Web UI Command Support | 121 | ✅ ACCEPTED |
+| ADR-034 | Cross-System Agent Protocol | 113 | ✅ IMPLEMENTED |
 | ADR-031 | Channel × Command Feature Matrix & Gap Closure | 103-105 | ✅ IMPLEMENTED (2026-03-12) |
 | ADR-030 | Unified Command Architecture | 102 | ✅ COMPLETE |
 | ADR-029 | Per-Chat Workspace + Unified Channel | 99 | ✅ COMPLETE |
@@ -176,4 +221,4 @@
 ---
 
 **Maintained by**: @pm (AI)
-**SDLC Framework**: 6.2.0
+**SDLC Framework**: 6.2.1

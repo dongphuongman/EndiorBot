@@ -1,43 +1,39 @@
-# Current Sprint: Sprint 114 — Context-Aware Token Tracking & RL Enrichment
+# Current Sprint: Sprint 129 — COMPLETE (Commit + Push + Stabilize)
 
-**Sprint Duration**: March 22-23, 2026
-**Sprint Goal**: Token usage tracking, dynamic workspace context, `/cost` command, RL→SOUL enrichment foundation
-**Status**: 🚀 IN PROGRESS
-**Priority**: P1
-**Framework**: SDLC 6.2.0
-**Authority**: CTO APPROVED (Sprint 113 review session)
-**Previous Sprint**: Sprint 113 ✅ COMPLETE — Cross-System Agent Communication (CTO 9.5/10)
-**Related ADRs**: ADR-033 (RL Feedback), ADR-034 (Cross-System Protocol)
-
----
-
-## Sprint 114 Deliverables
-
-| # | Deliverable | Priority | Est. | Status |
-|---|------------|----------|------|--------|
-| T1 | Token Usage Tracking in Agent Calls | P1 | 0.5d | ⏳ PENDING |
-| T2 | Dynamic Workspace Context Injection | P1 | 1d | ⏳ PENDING |
-| T3 | `/cost` OTT Command | P2 | 0.5d | ⏳ PENDING |
-| T4 | RL → SOUL Prompt Enrichment Foundation | P2 | 1d | ⏳ PENDING |
-
-**Total**: 3d estimated, 12 files (~565 lines)
-
-See full plan: [sprint-114-context-aware-token-tracking.md](sprint-114-context-aware-token-tracking.md)
+**Sprint Duration**: April 3-4, 2026
+**Sprint Goal**: Stabilize 8 sprints of work (121-128), fix tests, cleanup, commit & push
+**Status**: ✅ COMPLETE
+**Priority**: P0
+**Framework**: SDLC 6.2.1
+**Authority**: CTO APPROVED (9/10), CPO APPROVED
+**Previous Sprint**: Sprint 128 ✅ COMPLETE — Chat Phase 2 + Context Compaction
+**Related ADRs**: ADR-036 through ADR-044
 
 ---
 
-## Parallel: Sprint 111a — First TRL Training Run (IN PROGRESS)
+## Sprint 129 Deliverables
 
-Sprint 111a (RL/TRL track) runs in parallel. Track A COMPLETE, Tracks B/C/D in progress.
+| # | Deliverable | Status |
+|---|------------|--------|
+| 1 | Fix 5 real test failures (Telegram/Zalo init, agent-launcher PREAMBLE) | ✅ DONE |
+| 2 | Version cleanup: 25+ v6.1.1 → v6.2.1 refs | ✅ DONE |
+| 3 | SSOT constants: src/config/providers.ts + models.ts | ✅ DONE |
+| 4 | ADR-044: Agentic OS Alignment (3-product Pattern Ownership Matrix) | ✅ DONE |
+| 5 | Security: .claude/settings.local.json untracked | ✅ DONE |
+| 6 | Commit + push all Sprint 121-129 work | ✅ DONE |
 
-See: [sprint-111a-trl-first-training.md](sprint-111a-trl-first-training.md)
+**Tests**: 7,601 passing, 0 failures
+**Build**: clean
 
 ---
 
-## Deferred: Sprint 108 — Async Notifications (PLANNED)
+## Next Sprint: Sprint 130 (PLANNING)
 
-Sprint 108 is independent. Will schedule after current sprints complete.
+Candidates:
+- Chat Mode Phase 3 (tool-like reads, coordinator mode)
+- Test gap remediation
+- CEO-directed features
 
 ---
 
-**Last Updated**: 2026-03-22
+**Last Updated**: 2026-04-04
