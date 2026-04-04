@@ -561,7 +561,7 @@ export function registerAgentCommand(program: Command): void {
       "LITE"
     )
     .option("--timeout <seconds>", "Set timeout in seconds", "300")
-    .option("--projects <projects>", "Cross-project mode: comma-separated project paths (e.g., bflow,nqh-bot)")
+    .option("--projects <projects>", "Cross-project mode: comma-separated project paths (e.g., project-a,project-b)")
     .option("--output <file>", "Output file for results (cross-project mode)")
     .action(async (inputParts: string[], options: AgentOptions) => {
       // Join input parts back together

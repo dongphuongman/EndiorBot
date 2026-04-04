@@ -2,7 +2,7 @@
  * Gateway Web Server
  *
  * HTTP server with WebSocket upgrade for web-based chat interface.
- * Similar to picoclaw/openclaw web channel.
+ * HTTP + WebSocket web channel for browser-based chat.
  *
  * @module gateway/web-server
  * @version 1.0.0

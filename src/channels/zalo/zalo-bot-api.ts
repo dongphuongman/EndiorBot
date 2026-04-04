@@ -4,7 +4,7 @@
  * API client for Zalo Bot Platform (Zapps.me / bot.zaloplatforms.com).
  * This is for PERSONAL Zalo accounts via bot platform, not Official Accounts.
  *
- * Ported from openclaw/extensions/zalo/src/api.ts
+ * Zalo Bot Platform API client for personal bot accounts.
  *
  * @module channels/zalo/zalo-bot-api
  * @version 1.0.0

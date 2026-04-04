@@ -181,7 +181,7 @@ import type { RedactionLevel } from "./redaction.js";
  * // Create child logger with context
  * const childLogger = logger.child({
  *   component: "auth",
- *   projectId: "bflow-001",
+ *   projectId: "my-project-001",
  *   correlationId: "abc-123",
  * });
  * ```

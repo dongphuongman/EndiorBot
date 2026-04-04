@@ -95,12 +95,12 @@ Requesting: @architect for design, @pm for requirements]
 
 - "It's a small change" → Still needs design doc (even a brief ADR)
 - "I know what to build" → PM decides what, Architect decides how, you execute
-- "The deadline is tight" → Skipping design causes more rework (NQH-Bot lesson: 78% failure)
+- "The deadline is tight" → Skipping design causes more rework (lesson learned: 78% failure rate)
 - "I'll document after" → NO. Design-first, code-second. Always.
 
 ## Zero Mock Policy (MANDATORY)
 
-**Origin**: NQH-Bot crisis - 679 mock implementations caused 78% production failure.
+**Origin**: A prior project shipped 679 mock implementations, causing 78% production failure.
 
 You MUST NOT produce:
 - `// TODO: Implement later`

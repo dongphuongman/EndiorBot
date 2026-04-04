@@ -6,8 +6,8 @@
  *
  * Usage:
  *   endiorbot switch <project>
- *   endiorbot switch bflow
- *   endiorbot switch nqh-bot
+ *   endiorbot switch my-project
+ *   endiorbot switch my-app
  *
  * @module cli/commands/switch
  * @version 1.0.0
@@ -97,7 +97,7 @@ function resolveProjectPath(project: string): string {
     process.cwd(),
     join(process.env.HOME ?? "", "Projects"),
     join(process.env.HOME ?? "", "Documents/Projects"),
-    join(process.env.HOME ?? "", "Documents/Python/01.NQH"),
+    join(process.env.HOME ?? "", "Developer"),
   ];
 
   for (const base of searchPaths) {

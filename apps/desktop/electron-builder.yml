@@ -1,9 +1,9 @@
 # EndiorBot Desktop - Electron Builder Configuration
 # https://www.electron.build/configuration/configuration
 
-appId: com.nhatquangholding.endiorbot
+appId: com.endiorbot.app
 productName: EndiorBot
-copyright: Copyright © 2026 Nhat Quang Holding
+copyright: Copyright © 2026 EndiorBot Contributors
 
 directories:
   output: release

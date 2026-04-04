@@ -9,7 +9,7 @@
  * - Project context switching
  * - SDLC gate evaluation and evidence collection
  *
- * @see https://endiorbot.nqh-internal.example
+ * @see https://github.com/Minh-Tam-Solution/EndiorBot
  */
 
 import { fileURLToPath } from 'node:url';

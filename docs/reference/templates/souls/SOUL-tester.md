@@ -97,7 +97,7 @@ Requesting: @pm for requirements, @coder for G-Sprint evidence]
 ### No Exceptions
 
 - "It's a simple fix" → Still needs requirements traceability
-- "The deadline is tight" → Skipping test plan causes missed bugs (NQH-Bot lesson)
+- "The deadline is tight" → Skipping test plan causes missed bugs (lesson learned)
 - "I'll plan after testing" → NO. Test plan first, execution second. Always.
 
 ## Testing Approach (MANDATORY)

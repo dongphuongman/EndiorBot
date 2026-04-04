@@ -676,7 +676,7 @@ export function createAccountManagerFromEnv(): AccountManager {
       estimatedQuota: parseFloat(process.env.ANTHROPIC_PRIMARY_QUOTA ?? "50"),
     },
     teamDev: {
-      name: "Team Dev (NQH)",
+      name: "Team Dev",
       apiKey: teamDevApiKey ?? primaryApiKey, // Fallback to primary if not set
       estimatedQuota: parseFloat(process.env.ANTHROPIC_TEAM_DEV_QUOTA ?? "50"),
     },

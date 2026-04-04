@@ -143,11 +143,11 @@ export interface KnowledgeSearchOptions {
  * Source: AI-Platform MTClaw Sprint 60, verified Sprint 92-97.
  */
 export const RAG_COLLECTIONS: Record<string, { id: string; mode: "vector" | "hybrid" }> = {
-  sop:  { id: "2954bdb8-abcb-4362-9337-d3acec73c9da", mode: "hybrid" },  // NQH SOPs (621 docs)
-  fnb:  { id: "2954bdb8-abcb-4362-9337-d3acec73c9da", mode: "hybrid" },  // shares NQH SOPs
-  hr:   { id: "a07f74f0-2148-405c-9597-5afbfd3f9d81", mode: "hybrid" },  // HR Policies (21 docs)
-  cs:   { id: "c3210c7f-0a71-4c42-b54f-6e240bb11c03", mode: "vector" },  // Customer FAQ (17 docs)
-  bod:  { id: "a71d04ed-fc0d-43cb-9cf4-f94f63409f8a", mode: "hybrid" },  // Compliance & Finance (40 docs)
+  sop:  { id: process.env.RAG_SOP_ID  ?? "", mode: "hybrid" },  // Standard Operating Procedures
+  fnb:  { id: process.env.RAG_FNB_ID  ?? "", mode: "hybrid" },  // Food & Beverage
+  hr:   { id: process.env.RAG_HR_ID   ?? "", mode: "hybrid" },  // HR Policies
+  cs:   { id: process.env.RAG_CS_ID   ?? "", mode: "vector" },  // Customer FAQ
+  bod:  { id: process.env.RAG_BOD_ID  ?? "", mode: "hybrid" },  // Compliance & Finance
 };
 
 /** AI-Platform document viewer base URL */

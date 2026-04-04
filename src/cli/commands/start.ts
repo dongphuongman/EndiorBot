@@ -6,7 +6,7 @@
  *
  * Usage:
  *   endiorbot start <project>
- *   endiorbot start bflow
+ *   endiorbot start my-project
  *   endiorbot start ~/Projects/my-app
  *
  * @module cli/commands/start
@@ -75,7 +75,7 @@ function resolveProjectPath(project: string): string {
     process.cwd(),
     join(process.env.HOME ?? "", "Projects"),
     join(process.env.HOME ?? "", "Documents/Projects"),
-    join(process.env.HOME ?? "", "Documents/Python/01.NQH"),
+    join(process.env.HOME ?? "", "Developer"),
   ];
 
   for (const base of searchPaths) {

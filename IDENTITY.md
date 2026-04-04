@@ -74,8 +74,7 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 - **Product vision:** [`docs/00-foundation/product-vision.md`](docs/00-foundation/product-vision.md)
 - **Stage & command spine (CPO/CTO):** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md)
-- **Website:** https://endiorbot.nqh-internal.example
-- **Docs:** https://docs.endiorbot.nqh-internal.example
+- **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
 - **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
 
 ---

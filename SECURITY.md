@@ -11,7 +11,7 @@
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: **security@minhtamsolution.com**
+Instead, please report them via email to: **security@endiorbot.dev**
 
 Include:
 - Description of the vulnerability

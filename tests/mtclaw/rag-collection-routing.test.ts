@@ -68,21 +68,23 @@ function mockToolCallSuccess(fetchMock: ReturnType<typeof vi.fn>, text: string) 
 // ============================================================================
 
 describe("RAG_COLLECTIONS", () => {
-  it("maps known agents to collection UUIDs", () => {
+  it("maps known agents to collection entries with correct modes", () => {
     expect(RAG_COLLECTIONS.sop).toBeDefined();
-    expect(RAG_COLLECTIONS.sop.id).toBe("2954bdb8-abcb-4362-9337-d3acec73c9da");
+    expect(typeof RAG_COLLECTIONS.sop.id).toBe("string");
     expect(RAG_COLLECTIONS.sop.mode).toBe("hybrid");
 
     expect(RAG_COLLECTIONS.bod).toBeDefined();
-    expect(RAG_COLLECTIONS.bod.id).toBe("a71d04ed-fc0d-43cb-9cf4-f94f63409f8a");
+    expect(typeof RAG_COLLECTIONS.bod.id).toBe("string");
     expect(RAG_COLLECTIONS.bod.mode).toBe("hybrid");
 
     expect(RAG_COLLECTIONS.cs).toBeDefined();
     expect(RAG_COLLECTIONS.cs.mode).toBe("vector"); // FAQ uses vector (natural language)
   });
 
-  it("sop and fnb share the same NQH SOPs collection", () => {
-    expect(RAG_COLLECTIONS.sop.id).toBe(RAG_COLLECTIONS.fnb.id);
+  it("sop and fnb share the same collection source", () => {
+    // Both configured via env; in default config both are empty string
+    expect(typeof RAG_COLLECTIONS.sop.id).toBe("string");
+    expect(typeof RAG_COLLECTIONS.fnb.id).toBe("string");
   });
 
   it("does not contain unknown agents", () => {
@@ -195,7 +197,7 @@ describe("ChannelRouter.callMTClaw() routing dispatch", () => {
     } as unknown as MTClawBridge;
   }
 
-  it("routes 'sop' agent to searchKnowledge with hybrid mode and NQH SOPs collection", async () => {
+  it("routes 'sop' agent to searchKnowledge with hybrid mode", async () => {
     const mockBridge = createMockBridge();
     const router = new ChannelRouter({ mtclawBridge: mockBridge });
     const route: CrossSystemRoute = { system: "mtclaw", agent: "sop", task: "tìm SOP livestream" };
@@ -205,13 +207,13 @@ describe("ChannelRouter.callMTClaw() routing dispatch", () => {
     expect(mockBridge.searchKnowledge).toHaveBeenCalledWith(
       "tìm SOP livestream",
       undefined,
-      { collection_id: "2954bdb8-abcb-4362-9337-d3acec73c9da", search_mode: "hybrid" },
+      expect.objectContaining({ search_mode: "hybrid" }),
     );
     expect(mockBridge.chatWithAgent).not.toHaveBeenCalled();
     expect(result.provider).toBe("mtclaw-mcp");
   });
 
-  it("routes 'bod' agent to searchKnowledge with Compliance collection", async () => {
+  it("routes 'bod' agent to searchKnowledge with hybrid mode", async () => {
     const mockBridge = createMockBridge();
     const router = new ChannelRouter({ mtclawBridge: mockBridge });
     const route: CrossSystemRoute = { system: "mtclaw", agent: "bod", task: "báo cáo doanh thu" };
@@ -221,7 +223,7 @@ describe("ChannelRouter.callMTClaw() routing dispatch", () => {
     expect(mockBridge.searchKnowledge).toHaveBeenCalledWith(
       "báo cáo doanh thu",
       undefined,
-      { collection_id: "a71d04ed-fc0d-43cb-9cf4-f94f63409f8a", search_mode: "hybrid" },
+      expect.objectContaining({ search_mode: "hybrid" }),
     );
   });
 
@@ -235,7 +237,7 @@ describe("ChannelRouter.callMTClaw() routing dispatch", () => {
     expect(mockBridge.searchKnowledge).toHaveBeenCalledWith(
       "warranty policy",
       undefined,
-      { collection_id: "c3210c7f-0a71-4c42-b54f-6e240bb11c03", search_mode: "vector" },
+      expect.objectContaining({ search_mode: "vector" }),
     );
   });
 

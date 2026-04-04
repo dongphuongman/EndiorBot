@@ -2,7 +2,7 @@
   "name": "endiorbot-desktop",
   "version": "1.0.0",
   "description": "EndiorBot Desktop Application",
-  "author": "Nhat Quang Holding <contact@nqh-internal.example>",
+  "author": "EndiorBot Contributors",
   "private": true,
   "main": "dist-electron/main/index.js",
   "scripts": {

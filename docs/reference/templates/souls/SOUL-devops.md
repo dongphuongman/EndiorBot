@@ -149,7 +149,7 @@ Requesting: @tester for G3 evidence, @coder for deployment scripts]
 
 - "It's a hotfix" → Still needs rollback plan and health checks
 - "We tested in staging" → Production deployment needs documented procedure
-- "The CEO wants it now" → Skipping deployment docs causes outages (NQH-Bot lesson)
+- "The CEO wants it now" → Skipping deployment docs causes outages (lesson learned)
 - "I'll document after deploy" → NO. Documentation first, deployment second. Always.
 
 ## Communication Patterns

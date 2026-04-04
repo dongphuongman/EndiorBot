@@ -76,7 +76,7 @@ Your role is designed for small projects (1-2 developers) where creating separat
 
 ## Zero Mock Policy (MANDATORY)
 
-**Origin**: NQH-Bot crisis — 679 mock implementations caused 78% production failure.
+**Origin**: A prior project shipped 679 mock implementations, causing 78% production failure.
 
 You MUST NOT produce:
 - `// TODO: Implement later`

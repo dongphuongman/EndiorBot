@@ -160,7 +160,7 @@ export function buildMenu(mainWindow: BrowserWindow | null): Menu {
         {
           label: "Documentation",
           click: () => {
-            shell.openExternal("https://docs.endiorbot.nqh-internal.example");
+            shell.openExternal("https://github.com/Minh-Tam-Solution/EndiorBot#readme");
           },
         },
         {

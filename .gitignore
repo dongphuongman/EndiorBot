@@ -26,6 +26,9 @@ dist/
 # Claude Code local settings (contains machine-specific paths + tokens)
 .claude/settings.local.json
 
+# MCP config (contains internal API endpoints + tenant IDs)
+.mcp.json
+
 # IDE & Editors
 .vscode/
 !.vscode/extensions.json
