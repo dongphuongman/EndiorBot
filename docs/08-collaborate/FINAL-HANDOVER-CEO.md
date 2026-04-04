@@ -58,8 +58,8 @@ All planning documents, ADRs, and SDLC stage documents (Foundation → Design �
 
 | Document | Purpose | Status | Location |
 |----------|---------|--------|----------|
-| **Integration Overview** | Sprint-by-sprint integration | COMPLETE | [00-integration-overview.md](../03-integration/autonomy-epic/00-integration-overview.md) |
-| **API Specifications** | All 6 module APIs | COMPLETE | [01-api-specifications.md](../03-integration/autonomy-epic/01-api-specifications.md) |
+| **Integration Overview** | Sprint-by-sprint integration | COMPLETE | [00-integration-overview.md](../03-integrate/autonomy-epic/00-integration-overview.md) |
+| **API Specifications** | All 6 module APIs | COMPLETE | [01-api-specifications.md](../03-integrate/autonomy-epic/01-api-specifications.md) |
 
 ### ✅ Summary Documents (2 files)
 

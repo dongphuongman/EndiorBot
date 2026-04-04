@@ -14,6 +14,12 @@
 import { createHash } from "node:crypto";
 import { loadActiveProject } from "../../config/paths.js";
 import type { ContextEnvelope } from "./envelope.js";
+import { FactStore } from "../../memory/fact-store.js";
+import {
+  isMemoryDisabled,
+  evictExpiredFacts,
+  formatFactsForInjection,
+} from "../../memory/memory-policy.js";
 
 // ============================================================================
 // Constants
@@ -38,7 +44,7 @@ const CONTEXT_FOOTER = "[End Session Context]";
  * Reads from ~/.endiorbot/active-project.json via loadActiveProject().
  * Returns null if no active project or on any error (graceful fallback).
  */
-export function buildContextEnvelope(): ContextEnvelope | null {
+export async function buildContextEnvelope(): Promise<ContextEnvelope | null> {
   try {
     const active = loadActiveProject();
     if (!active) return null;
@@ -47,13 +53,34 @@ export function buildContextEnvelope(): ContextEnvelope | null {
     const tier = active.tier;
     const projectPath = active.path;
 
+    // Load memory facts (ADR-038 T3 — read path)
+    let memoryBlock = "";
+    let injectedFactsCount = 0;
+    const factIdsUsed: string[] = [];
+    if (!isMemoryDisabled()) {
+      try {
+        const store = new FactStore(active.name);
+        await store.load();
+        const allFacts = store.query({});
+        const validFacts = evictExpiredFacts(allFacts)
+          .filter(f => f.confidence >= 0.5)  // minScore: 0.5 (per sprint spec)
+          .slice(0, 5);
+        memoryBlock = formatFactsForInjection(validFacts);
+        injectedFactsCount = validFacts.length;
+        for (const f of validFacts) factIdsUsed.push(f.id);
+      } catch {
+        // Memory unavailable — graceful fallback
+      }
+    }
+
     let content = [
       CONTEXT_HEADER,
       `Sprint: ${sprintName}`,
       `Tier: ${tier}`,
       `Project: ${projectPath}`,
+      memoryBlock ? `\n${memoryBlock}` : "",
       CONTEXT_FOOTER,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 
     // Cap to character limit
     if (content.length > CONTEXT_CHAR_LIMIT) {
@@ -62,13 +89,18 @@ export function buildContextEnvelope(): ContextEnvelope | null {
 
     const contentHash = createHash("sha256").update(content).digest("hex");
 
-    return {
+    const envelope: ContextEnvelope = {
       sprintName,
       tier,
       projectPath,
       content,
       contentHash,
     };
+    if (injectedFactsCount > 0) {
+      envelope.injectedFactsCount = injectedFactsCount;
+      envelope.factIdsUsed = factIdsUsed;
+    }
+    return envelope;
   } catch {
     // Active project unavailable or parse error — graceful fallback
     return null;

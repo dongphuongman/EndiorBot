@@ -15,7 +15,8 @@
  */
 
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 import { Command } from "commander";
 import { registerAllCommands, registerShellCommand } from "./commands/index.js";
@@ -27,13 +28,26 @@ import { resolveStateDir } from "../config/paths.js";
 const VERSION = "0.1.0-beta.1";
 
 export async function run(): Promise<void> {
-  // Load .env and .env.local from cwd (e.g. project root) so API keys are available for gateway/providers
-  const cwd = process.cwd();
-  if (existsSync(join(cwd, ".env"))) {
-    config({ path: join(cwd, ".env") });
+  // Load .env in priority order:
+  // 1. EndiorBot's own .env/.env.local — fills in missing vars (NO override — respects process.env)
+  // 2. Project's .env/.env.local in cwd — project-specific overrides
+  const endiorBotRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  if (existsSync(join(endiorBotRoot, ".env"))) {
+    config({ path: join(endiorBotRoot, ".env") });
   }
-  if (existsSync(join(cwd, ".env.local"))) {
-    config({ path: join(cwd, ".env.local"), override: true });
+  if (existsSync(join(endiorBotRoot, ".env.local"))) {
+    config({ path: join(endiorBotRoot, ".env.local") }); // No override — don't clobber process.env
+  }
+
+  // Then load project-level .env (cwd) — these DO override (project-specific config wins)
+  const cwd = process.cwd();
+  if (cwd !== endiorBotRoot) {
+    if (existsSync(join(cwd, ".env"))) {
+      config({ path: join(cwd, ".env"), override: true });
+    }
+    if (existsSync(join(cwd, ".env.local"))) {
+      config({ path: join(cwd, ".env.local"), override: true });
+    }
   }
 
   // Install global error handlers for uncaught exceptions/rejections

@@ -314,7 +314,7 @@ Use /sessions to list active sessions.`,
   if (shouldRefreshContext(session.id)) {
     try {
       const dummyPersona = { agentRole: "assistant" as const, soulContent: "", soulContentHash: "" };
-      const envelope = buildFullEnvelope(dummyPersona);
+      const envelope = await buildFullEnvelope(dummyPersona);
       const serialized = serializeEnvelopeForInjection(envelope);
       if (serialized) {
         contextPrefix = serialized + "\n" + contextPrefix;
@@ -563,6 +563,7 @@ export function generateHelpMessage(): string {
 
 *AI:*
   /consult <query> — Multi-model consultation
+  /plan <description> — Structured dev plan (saved to drafts/)
   /agents — List all agents
   /teams — List tier teams
 

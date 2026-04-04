@@ -748,7 +748,7 @@ Node.js Process (endiorbot)
 - **Problem Statement**: `00-problem-statement.md`
 - **Business Case**: `01-business-case.md`
 - **Detailed Design**: Sprint-specific design docs (01-06)
-- **Integration Specs**: `docs/03-integration/autonomy-epic/`
+- **Integration Specs**: `docs/03-integrate/autonomy-epic/`
 - **ADRs**: ADR-006 through ADR-011
 
 ---

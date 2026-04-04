@@ -13,11 +13,21 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 
 **Identity**: CEO Power Tool (LOCKED) — not a platform, not an SDLC enforcer.
 
+## Documentation
+
+- **[SDLC stage index (00→09)](docs/README.md)** — per-stage READMEs and extended lifecycle (06–09)
+- **[Product vision](docs/00-foundation/product-vision.md)** — CEO north star and autonomy levels (L1–L4)
+- **[Stage × command spine](docs/00-foundation/stage-command-workflow-spine.md)** — stage alignment, atomic CLI/OTT/Web vs workflows, design→build→test traceability
+
+Application development documentation under `docs/` is written in **English** (MTS SDLC 6.2.1); see the *Documentation language* note in [docs/README.md](docs/README.md).
+
 ## Prerequisites
 
 - Node.js >= 20
 - pnpm (via corepack: `corepack enable`)
-- An AI API key (Anthropic, OpenAI, or Gemini)
+- An AI API key (OpenAI or Gemini recommended; Anthropic optional)
+
+> **Provider default change (Sprint 124a):** `endiorbot consult` now defaults to OpenAI (GPT-5.4) instead of Anthropic. Claude Code is used via OAuth bridge for development tasks, not via API key. Set `OPENAI_API_KEY` and/or `GOOGLE_API_KEY` in your `.env` file.
 
 ## Install
 
@@ -86,7 +96,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 │  └─────────────┘  └───────────┘  └─────────────┘              │
 │                                                                  │
 │  Per-Chat Workspace: /repos + /focus + resolveWorkspace()       │
-│  SOUL Templates: 13 agents × tier-aware model selection          │
+│  SOUL Templates: 14 agents × tier-aware model selection          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -116,7 +126,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 
 ## Agent Orchestration
 
-13 SOUL-based agents with tier-aware model selection:
+14 SOUL-based agents with tier-aware model selection:
 
 | Agent | Category | Mode | Use Case |
 |-------|----------|------|----------|
@@ -132,6 +142,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 | `@ceo` | advisor | READ | Strategic decisions |
 | `@cto` | advisor | READ | Technical review |
 | `@cpo` | advisor | READ | Product review |
+| `@cso` | advisor | READ | Security review |
 | `@assistant` | router | READ | General queries |
 
 ### Multi-Agent Routing

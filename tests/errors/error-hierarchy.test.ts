@@ -26,6 +26,11 @@ import {
   contextTooLongError,
 } from "../../src/errors/provider.js";
 import {
+  AgentError,
+  agentNotFoundError,
+  handoffBlockedError,
+} from "../../src/errors/agent.js";
+import {
   GatewayError,
   isGatewayError,
   methodNotFoundError,
@@ -142,6 +147,59 @@ describe("isEndiorBotError", () => {
     expect(isEndiorBotError("string")).toBe(false);
     expect(isEndiorBotError(null)).toBe(false);
     expect(isEndiorBotError(undefined)).toBe(false);
+  });
+});
+
+// ============================================================================
+// agentGuidance Tests (Sprint 122 — gstack adoption R3)
+// ============================================================================
+
+describe("agentGuidance", () => {
+  it("stores and serializes agentGuidance on base error", () => {
+    const error = new EndiorBotError("Test", {
+      code: "TEST",
+      category: "AGENT",
+      agentGuidance: "Try /help for available commands.",
+    });
+
+    expect(error.agentGuidance).toBe("Try /help for available commands.");
+    expect(error.toJSON().agentGuidance).toBe("Try /help for available commands.");
+  });
+
+  it("factory functions include agentGuidance", () => {
+    const error = agentNotFoundError("xyz", ["pm", "coder"]);
+    expect(error.agentGuidance).toBeDefined();
+    expect(error.agentGuidance).toContain("/help");
+
+    const budget = budgetExceededError(200000, 100000);
+    expect(budget.agentGuidance).toBeDefined();
+    expect(budget.agentGuidance).toContain("sonnet");
+
+    const provider = rateLimitError("anthropic");
+    expect(provider.agentGuidance).toBeDefined();
+    expect(provider.agentGuidance).toContain("retry");
+  });
+
+  it("wrap() preserves agentGuidance", () => {
+    const original = new EndiorBotError("Original", {
+      code: "TEST",
+      category: "AGENT",
+      agentGuidance: "Retry with simpler prompt.",
+    });
+    const wrapped = original.wrap("Context failed");
+
+    expect(wrapped.agentGuidance).toBe("Retry with simpler prompt.");
+  });
+
+  it("wrapError() preserves agentGuidance on passthrough", () => {
+    const original = new EndiorBotError("Original", {
+      code: "TEST",
+      category: "AGENT",
+      agentGuidance: "Check agent availability.",
+    });
+    const wrapped = wrapError(original, { metadata: { extra: true } });
+
+    expect(wrapped.agentGuidance).toBe("Check agent availability.");
   });
 });
 

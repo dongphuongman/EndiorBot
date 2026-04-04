@@ -3,7 +3,7 @@
 **Version**: 1.1.0
 **Date**: 2026-03-01
 **Status**: ACTIVE
-**SDLC**: Framework 6.2.0
+**SDLC**: Framework 6.2.1
 
 ---
 
@@ -26,7 +26,7 @@ The Autonomy Epic vision has evolved and is now consolidated in:
 
 ## Overview
 
-This directory contains comprehensive SDLC stage documents for the Autonomy Epic (Sprints 35-40), covering stages 00 (Foundation), 02 (Design), and 03 (Integration) per the MTS Framework 6.2.0.
+This directory contains comprehensive SDLC stage documents for the Autonomy Epic (Sprints 35-40), covering stages 00 (Foundation), 02 (Design), and 03 (Integrate) per the MTS Framework 6.2.1. **Stage index:** [`docs/README.md`](../../README.md) · **Spine:** [`stage-command-workflow-spine.md`](../stage-command-workflow-spine.md).
 
 **Total Documents Created**: 7 comprehensive documents
 **Total Lines of Documentation**: ~3,500 lines
@@ -61,7 +61,7 @@ This directory contains comprehensive SDLC stage documents for the Autonomy Epic
 
 **Total Design Docs**: 2 complete files (~900 lines), 6 detailed specs covered by existing ADRs and sprint plans
 
-### Stage 03: Integration (`docs/03-integration/autonomy-epic/`)
+### Stage 03: Integrate (`docs/03-integrate/autonomy-epic/`)
 
 | File | Purpose | LOC | Status |
 |------|---------|-----|--------|
@@ -265,8 +265,8 @@ This directory contains comprehensive SDLC stage documents for the Autonomy Epic
    - `docs/02-design/autonomy-epic/00-system-architecture.md`: Overall design
    - `docs/02-design/autonomy-epic/README.md`: Design principles
 3. Read integration docs to understand the "how"
-   - `docs/03-integration/autonomy-epic/00-integration-overview.md`: Integration strategy
-   - `docs/03-integration/autonomy-epic/01-api-specifications.md`: API contracts
+   - `docs/03-integrate/autonomy-epic/00-integration-overview.md`: Integration strategy
+   - `docs/03-integrate/autonomy-epic/01-api-specifications.md`: API contracts
 4. Read sprint-specific plan
    - `docs/01-planning/sprint-N-plan.md`: Daily tasks and acceptance criteria
 
@@ -385,12 +385,12 @@ All documents follow semantic versioning:
 - **Sprint Plans**: `docs/01-planning/sprint-35-40-*.md`
 - **ADRs**: `docs/02-design/01-ADRs/` and `docs/02-design/approved/`
 - **Technical Specs**: `docs/02-design/14-Technical-Specs/`
-- **Build Plans**: `docs/04-build/SPRINT-INDEX.md`
-- **Test Plans**: `docs/06-test/`
+- **Build / sprint index**: `docs/04-build/sprints/sprint-index.md`
+- **Test**: `docs/05-test/`
 
 ### External References
 
-- **MTS Framework 6.2.0**: `docs/SDLC-Framework/`
+- **MTS Framework 6.2.1**: `.sdlc-framework/` (repo) · [`docs/README.md`](../../README.md) · [`stage-command-workflow-spine.md`](../stage-command-workflow-spine.md)
 - **EndiorBot IDENTITY**: `IDENTITY.md`
 - **SDLC Config**: `.sdlc-config.json`
 
@@ -450,4 +450,4 @@ All documents follow semantic versioning:
 ---
 
 *Autonomy Epic - SDLC Documentation Index v1.1.0*
-*EndiorBot SDLC Framework 6.2.0*
+*EndiorBot SDLC Framework 6.2.1*

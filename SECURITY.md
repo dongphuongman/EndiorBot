@@ -39,6 +39,10 @@ EndiorBot implements the following security controls:
 - **CORS** — Configurable origins, no wildcard (Sprint 116)
 - **Output Scrubbing** — Sensitive data redacted from responses
 
+## Third-party “Claude Code” research trees (local workspace)
+
+Some developers keep **unofficial** clones (e.g. source-map recoveries, community ports) for study. Those trees **must not** be linked from production code, published packages, or public repos without separate legal review. Governance: [ADR-039](docs/02-design/01-ADRs/ADR-039-Claude-Code-Research-Artifacts-Governance.md).
+
 ## Scope
 
 This policy applies to the EndiorBot npm package (`endiorbot`) and its official Docker image.

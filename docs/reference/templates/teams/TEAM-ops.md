@@ -99,11 +99,15 @@ After fixing infrastructure issues, @devops checks if documentation needs updati
 5. Post-mortem (root cause analysis)
 ```
 
+## EndiorBot commands (team context)
+
+**`endiorbot ops build` / `ops run`**, **`endiorbot serve`**, **`endiorbot bootstrap`** (onboarding OSS repos), **`endiorbot sprint close`**. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |
 |------|-----------|
 | LITE | No (use @fullstack) |
 | STANDARD | No |
-| PROFESSIONAL | No |
+| PROFESSIONAL | Yes |
 | ENTERPRISE | Yes |

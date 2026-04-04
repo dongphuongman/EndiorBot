@@ -223,6 +223,48 @@ describe("SoulLoader", () => {
   });
 
   // --------------------------------------------------------------------------
+  // Preamble injection (Sprint 122 — gstack adoption T2-B)
+  // --------------------------------------------------------------------------
+
+  describe("preamble injection", () => {
+    it("prepends PREAMBLE.md content to loaded SOUL", () => {
+      // Create a PREAMBLE.md in the temp souls dir
+      const preambleContent = "## Shared Context\n\nTest preamble content.";
+      writeFileSync(join(soulsDir, "PREAMBLE.md"), preambleContent, "utf-8");
+
+      const loader = createSoulLoader({ templatesRoot: tempDir, logWarn: () => {} });
+      const result = loader.load("pm");
+
+      expect(result.content).toContain("Shared Context");
+      expect(result.content).toContain("Test preamble content.");
+      // SOUL body should come after preamble
+      expect(result.content.indexOf("Shared Context")).toBeLessThan(
+        result.content.indexOf("PM SOUL")
+      );
+    });
+
+    it("sets preambleHash on result when PREAMBLE.md exists", () => {
+      writeFileSync(join(soulsDir, "PREAMBLE.md"), "Preamble hash test", "utf-8");
+
+      const loader = createSoulLoader({ templatesRoot: tempDir, logWarn: () => {} });
+      const result = loader.load("pm");
+
+      expect(result.preambleHash).toBeDefined();
+      expect(result.preambleHash).toHaveLength(64); // SHA256 hex
+    });
+
+    it("works without PREAMBLE.md (graceful fallback)", () => {
+      // No PREAMBLE.md in soulsDir — should still load SOUL normally
+      const loader = createSoulLoader({ templatesRoot: tempDir, logWarn: () => {} });
+      const result = loader.load("pm");
+
+      expect(result.loaded).toBe(true);
+      expect(result.content).toContain("PM SOUL");
+      expect(result.preambleHash).toBeUndefined();
+    });
+  });
+
+  // --------------------------------------------------------------------------
   // templatesRoot override
   // --------------------------------------------------------------------------
 

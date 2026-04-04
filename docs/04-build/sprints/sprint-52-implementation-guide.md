@@ -67,7 +67,7 @@ sprint-52-evidence/
 │   ├── post-hook-lint.png
 │   └── hook-execution-logs.txt
 │
-├── 03-integration/
+├── 03-integrate/
 │   ├── at-references-working.png
 │   ├── rewind-menu.png
 │   ├── cost-output.png
@@ -797,7 +797,7 @@ Implement Minimal DevEx Pack for Claude Code integration:
 ## Evidence Summary
 - Commands: [Link to evidence/01-commands/]
 - Hooks: [Link to evidence/02-hooks/]
-- Integration: [Link to evidence/03-integration/]
+- Integration: [Link to evidence/03-integrate/]
 - Quality: [Link to evidence/04-quality/]
 
 ---

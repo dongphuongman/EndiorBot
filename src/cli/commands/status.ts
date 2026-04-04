@@ -162,7 +162,7 @@ function getProjectStatus(projectPath: string): ProjectStatus {
     name: sdlcConfig?.project.name ?? projectPath.split("/").pop() ?? "Unknown",
     path: projectPath,
     tier: sdlcConfig?.tier ?? "STANDARD",
-    sdlcVersion: sdlcConfig?.framework?.version ?? "6.1.1",
+    sdlcVersion: sdlcConfig?.framework?.version ?? "6.2.1",
     hasGit,
     branch: hasGit ? getCurrentBranch(projectPath) : undefined,
     uncommittedFiles: 0, // TODO: Implement git status check

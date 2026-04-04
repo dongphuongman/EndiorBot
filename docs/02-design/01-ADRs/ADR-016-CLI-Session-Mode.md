@@ -12,7 +12,7 @@
 
 EndiorBot CLI currently operates in single-command mode: each invocation loads config, executes one command, and exits. During E2E testing and daily usage, CEO workflows often involve running 5-10 commands in sequence (gate status → confirm → build → run). Each invocation incurs ~60ms startup overhead and loses in-memory state.
 
-**User request:** "@pm chúng ta có nên bổ sung tính năng làm việc cho CLI liên tục không thoát ra?"
+**User request:** *"@pm should we add a persistent CLI mode so we don't exit after each command?"*
 
 **PM Analysis:** Recommended YES as P2 feature. Keep both modes (single-command for scripts/CI, session for interactive use).
 

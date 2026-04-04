@@ -14,7 +14,7 @@ EndiorBot has 13 individual agents (9 SE4A + 3 SE4H + 1 Router) but no concept o
 
 TinySDLC (LITE community version) has a working 4-team system (planning, dev, qa, fullstack). CEO wants EndiorBot to adopt and extend this concept to cover the full SDLC Framework across all tiers.
 
-**User request:** "chúng ta vẫn cần agent đại diện cho 1 team và gọi được các thành viên là các agent riêng lẻ"
+**User request:** *"We still need an agent that represents a team and can invoke individual member agents."*
 
 **CTO Review:** Approved with conditions (B1: config reconciliation, B3: teamId/isTeam redundancy).
 

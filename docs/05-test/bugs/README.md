@@ -52,10 +52,12 @@ Each bug file should include:
 
 ## Related Documentation
 
+- [Stage 05 — Test](../README.md)
+- [Documentation index (00–09)](../../README.md)
 - [Test Reports](../test-reports/)
 - [Manual Test Plan](../manual-test-plan.md)
 - [Technical Specs](../../02-design/14-Technical-Specs/)
 
 ---
 
-**SDLC Framework v6.2.0 | Stage 05-TEST**
+**SDLC Framework v6.2.1 | Stage 05-TEST**

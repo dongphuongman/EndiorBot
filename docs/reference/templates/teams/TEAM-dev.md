@@ -115,6 +115,10 @@ Test coverage: <X>%. Ready for QA verification.
 Key changes: <summary>]
 ```
 
+## EndiorBot commands (team context)
+
+**`endiorbot ops build` / `ops run`** for polyglot rebuilds; **`endiorbot fix`** only with approval (dry-run first). **`endiorbot bridge`** for Claude Code sessions. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

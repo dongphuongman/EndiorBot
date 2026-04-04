@@ -49,9 +49,21 @@ export interface ImageContent {
 
 export type ContentPart = TextContent | ImageContent;
 
+/**
+ * Structured system message block with optional Anthropic prompt caching.
+ * Used for immutable content (SOUL, PREAMBLE, Brain L4) that should be cached.
+ * @see ADR-040 Prompt Caching Architecture
+ */
+export interface SystemBlock {
+  type: "text";
+  text: string;
+  /** Anthropic prompt caching — marks this block as cacheable across turns */
+  cache_control?: { type: "ephemeral" };
+}
+
 export interface Message {
   role: MessageRole;
-  content: string | ContentPart[];
+  content: string | ContentPart[] | SystemBlock[];
 }
 
 // ============================================================================

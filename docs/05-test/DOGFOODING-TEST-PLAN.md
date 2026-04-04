@@ -1,7 +1,7 @@
 # Dogfooding Test Plan - EndiorBot Self-Development
 
-**Strategy:** Dùng EndiorBot để phát triển EndiorBot
-**Approach:** Code đến đâu, test đến đó
+**Strategy:** Use EndiorBot to develop EndiorBot
+**Approach:** Test as you code (incremental coverage)
 **Projects:** 2 repos (EndiorBot existing + Dyad new)
 
 ---
@@ -457,5 +457,5 @@ brew install ripgrep
 
 ---
 
-*Dogfooding Test Plan v1.0 | Code đến đâu, test đến đó*
+*Dogfooding Test Plan v1.0 | Test as you code*
 *SDLC Framework v6.1.1 | Sprint 64*

@@ -171,7 +171,7 @@
 
 **Command:**
 ```bash
-./endiorbot.mjs consult --via-claude-code "Context Drift là gì?"
+./endiorbot.mjs consult --via-claude-code "What is context drift?"
 ```
 
 **Expected:**

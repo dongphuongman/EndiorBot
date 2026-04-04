@@ -87,6 +87,10 @@ Key docs: docs/01-planning/requirements.md
 Ready for architecture design.]
 ```
 
+## EndiorBot commands (team context)
+
+CEO and PM/PJM may use **`endiorbot plan`**, **`/plan`**, **`endiorbot consult`**, **`/consult`**, **`endiorbot gate`**, **`endiorbot compliance`** — thin client via `./endiorbot.mjs`. Full list: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

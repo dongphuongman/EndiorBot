@@ -139,11 +139,24 @@ export class AnthropicProvider extends BaseProvider {
       content: typeof msg.content === "string" ? msg.content : this.formatContent(msg.content),
     }));
 
+    // ADR-040: Build structured system blocks with cache_control for prompt caching
+    let systemParam: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> | undefined;
+    if (systemMessage) {
+      const content = systemMessage.content;
+      if (Array.isArray(content) && content.length > 0 && typeof content[0] === "object" && "type" in content[0] && content[0].type === "text") {
+        // Already structured SystemBlock[] — pass through with cache_control
+        systemParam = (content as Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>);
+      } else {
+        // Flat string — wrap in single block (backward compatible, no caching)
+        systemParam = this.extractTextContent(content);
+      }
+    }
+
     const body = {
       model: request.model,
       max_tokens: request.maxTokens ?? 4096,
       temperature: request.temperature ?? 0.7,
-      system: systemMessage ? this.extractTextContent(systemMessage.content) : undefined,
+      system: systemParam,
       messages: anthropicMessages,
     };
 
@@ -174,11 +187,22 @@ export class AnthropicProvider extends BaseProvider {
       content: typeof msg.content === "string" ? msg.content : this.formatContent(msg.content),
     }));
 
+    // ADR-040: Structured system blocks (same as doChat)
+    let streamSystemParam: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> | undefined;
+    if (systemMessage) {
+      const content = systemMessage.content;
+      if (Array.isArray(content) && content.length > 0 && typeof content[0] === "object" && "type" in content[0] && content[0].type === "text") {
+        streamSystemParam = (content as Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }>);
+      } else {
+        streamSystemParam = this.extractTextContent(content);
+      }
+    }
+
     const body = {
       model: request.model,
       max_tokens: request.maxTokens ?? 4096,
       temperature: request.temperature ?? 0.7,
-      system: systemMessage ? this.extractTextContent(systemMessage.content) : undefined,
+      system: streamSystemParam,
       messages: anthropicMessages,
       stream: true,
     };
@@ -282,14 +306,20 @@ export class AnthropicProvider extends BaseProvider {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+    // ADR-040: Add prompt caching beta header when system has structured blocks
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-api-key": this.apiKey,
+      "anthropic-version": "2023-06-01",
+    };
+    if (Array.isArray(body.system) && (body.system as Array<Record<string, unknown>>).some(b => b.cache_control)) {
+      headers["anthropic-beta"] = "prompt-caching-2024-07-31";
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01",
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });

@@ -61,6 +61,7 @@ export class AgentError extends EndiorBotError {
       agent?: string;
       workflowId?: string;
       metadata?: Record<string, unknown>;
+      agentGuidance?: string;
     }
   ) {
     super(message, {
@@ -69,6 +70,7 @@ export class AgentError extends EndiorBotError {
       severity: options.severity ?? "error",
       ...(options.cause ? { cause: options.cause } : {}),
       retryable: options.retryable ?? false,
+      ...(options.agentGuidance ? { agentGuidance: options.agentGuidance } : {}),
       metadata: {
         ...options.metadata,
         ...(options.agent ? { agent: options.agent } : {}),
@@ -115,6 +117,7 @@ export function agentNotFoundError(
       retryable: false,
       agent: agentName,
       metadata: { validAgents },
+      agentGuidance: "Try /help to see available agents. Check spelling or use @assistant for routing.",
     }
   );
 }
@@ -135,6 +138,7 @@ export function agentInactiveError(
       retryable: false,
       agent: agentName,
       metadata: { requiredTier, currentTier },
+      agentGuidance: `Upgrade project tier to ${requiredTier} or use an agent available at ${currentTier} tier.`,
     }
   );
 }
@@ -155,6 +159,7 @@ export function handoffBlockedError(
       retryable: false,
       agent: fromAgent,
       metadata: { fromAgent, toAgent, reason },
+      agentGuidance: "Check ALLOWED_TRANSITIONS for valid handoff paths. SE4H agents cannot delegate.",
     }
   );
 }
@@ -175,6 +180,7 @@ export function handoffDepthExceededError(
       retryable: false,
       ...(workflowId ? { workflowId } : {}),
       metadata: { currentDepth, maxDepth },
+      agentGuidance: "Simplify the handoff chain or complete the task within the current agent.",
     }
   );
 }
@@ -195,6 +201,7 @@ export function invalidTransitionError(
       retryable: false,
       agent: fromAgent,
       metadata: { fromAgent, toAgent, allowedTargets },
+      agentGuidance: `Hand off to one of the allowed targets: ${allowedTargets.join(", ")}.`,
     }
   );
 }
@@ -213,6 +220,7 @@ export function workflowFailedError(
     retryable: false,
     workflowId,
     ...(cause ? { cause } : {}),
+    agentGuidance: "Check the failure reason. Retry the workflow or escalate to @architect for redesign.",
   });
 }
 
@@ -231,6 +239,7 @@ export function workflowTimeoutError(
       retryable: true,
       workflowId,
       metadata: { timeoutMs },
+      agentGuidance: "Retry the workflow. If it times out again, break the task into smaller steps.",
     }
   );
 }
@@ -249,6 +258,7 @@ export function invocationFailedError(
     retryable: true,
     agent,
     ...(cause ? { cause } : {}),
+    agentGuidance: "Retry the invocation. If it fails again, try a different provider or check /cost for budget.",
   });
 }
 
@@ -267,6 +277,7 @@ export function invocationTimeoutError(
       retryable: true,
       agent,
       metadata: { timeoutMs },
+      agentGuidance: "Retry with a simpler prompt or switch to a faster model (sonnet/haiku).",
     }
   );
 }
@@ -287,6 +298,7 @@ export function contextTooLargeError(
       retryable: false,
       agent,
       metadata: { contextTokens, maxTokens },
+      agentGuidance: "Reduce context by summarizing history or splitting the task into smaller parts.",
     }
   );
 }
@@ -303,6 +315,7 @@ export function responseParseError(
     severity: "warning",
     retryable: false,
     agent,
+    agentGuidance: "Retry the request. If parsing fails again, check the prompt format matches expected schema.",
   });
 }
 
@@ -322,6 +335,7 @@ export function riskThresholdExceededError(
       retryable: false,
       agent,
       metadata: { riskLevel, action },
+      agentGuidance: "Request CEO approval for this action or use a lower-risk alternative.",
     }
   );
 }
@@ -342,6 +356,7 @@ export function modeNotAllowedError(
       retryable: false,
       agent,
       metadata: { requestedMode, allowedModes },
+      agentGuidance: `Switch to one of the allowed modes: ${allowedModes.join(", ")}.`,
     }
   );
 }

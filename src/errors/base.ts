@@ -49,6 +49,8 @@ export interface EndiorBotErrorOptions {
   severity?: ErrorSeverity;
   metadata?: Record<string, unknown>;
   cause?: Error;
+  /** Actionable recovery instruction for AI agents consuming this error */
+  agentGuidance?: string;
 }
 
 /**
@@ -77,6 +79,9 @@ export class EndiorBotError extends Error {
   /** Additional error context */
   public readonly metadata: Record<string, unknown>;
 
+  /** Actionable recovery instruction for AI agents */
+  public readonly agentGuidance?: string;
+
   /** Original error if this wraps another error */
   public readonly cause?: Error;
 
@@ -91,6 +96,9 @@ export class EndiorBotError extends Error {
     this.retryable = options.retryable ?? false;
     this.severity = options.severity ?? "error";
     this.metadata = options.metadata ?? {};
+    if (options.agentGuidance) {
+      this.agentGuidance = options.agentGuidance;
+    }
     if (options.cause) {
       this.cause = options.cause;
     }
@@ -114,6 +122,7 @@ export class EndiorBotError extends Error {
       retryable: this.retryable,
       severity: this.severity,
       metadata: this.metadata,
+      agentGuidance: this.agentGuidance,
       timestamp: this.timestamp,
       stack: this.stack,
       cause: this.cause
@@ -144,14 +153,18 @@ export class EndiorBotError extends Error {
    * Create a wrapped error with additional context.
    */
   wrap(additionalMessage: string): EndiorBotError {
-    return new EndiorBotError(`${additionalMessage}: ${this.message}`, {
+    const opts: EndiorBotErrorOptions = {
       code: this.code,
       category: this.category,
       retryable: this.retryable,
       severity: this.severity,
       metadata: this.metadata,
       cause: this,
-    });
+    };
+    if (this.agentGuidance) {
+      opts.agentGuidance = this.agentGuidance;
+    }
+    return new EndiorBotError(`${additionalMessage}: ${this.message}`, opts);
   }
 }
 
@@ -204,6 +217,9 @@ export function wrapError(
       };
       if (error.cause) {
         newOptions.cause = error.cause;
+      }
+      if (error.agentGuidance) {
+        newOptions.agentGuidance = error.agentGuidance;
       }
       return new EndiorBotError(error.message, newOptions);
     }

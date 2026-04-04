@@ -14,7 +14,7 @@
 
 ## Context
 
-Research report "Nâng cấp EndiorBot thành Autonomous SDLC Agent" identifies **explainability** and **evidence logging** as critical for:
+Research report *Upgrading EndiorBot to an Autonomous SDLC Agent* (original Vietnamese title retained in archive) identifies **explainability** and **evidence logging** as critical for:
 
 1. **Anti-hallucination**: Proof of what context the agent relied on
 2. **AER calculation**: Autonomy Efficiency Ratio metrics (TCR, RR, Cost)
@@ -332,7 +332,7 @@ function applyStageRoleBoost(
 
 ## References
 
-- Research: "Nâng cấp EndiorBot thành Autonomous SDLC Agent" (PDF)
+- Research: *Upgrading EndiorBot to an Autonomous SDLC Agent* (PDF; Vietnamese title in source archive)
 - Master Plan v4.2: Sprint 65 Context Anchoring
 - ADR-014: Code Search Layer
 - TS-007: Code Search Layer Technical Spec

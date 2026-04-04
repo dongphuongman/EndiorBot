@@ -80,6 +80,10 @@ export interface ContextEnvelope {
   content: string;
   /** SHA256 hash of content */
   contentHash: string;
+  /** Number of ClawVault facts injected into context (Sprint 124a) */
+  injectedFactsCount?: number;
+  /** IDs of injected facts for traceability (Sprint 124a) */
+  factIdsUsed?: string[];
 }
 
 /** Signal breakdown for vibecoding index (Sprint 88) */

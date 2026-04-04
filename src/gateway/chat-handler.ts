@@ -19,10 +19,13 @@
  */
 
 import { randomUUID } from "crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createLogger, type Logger } from "../logging/index.js";
-import type { AIProvider, ChatRequest, ChatResponse } from "../providers/types.js";
+import type { AIProvider, ChatRequest, ChatResponse, Message } from "../providers/types.js";
 import { getProviderRegistry } from "../providers/provider-registry.js";
 import { getContextBudget } from "../brain/context-budget.js";
+import { getWorkspaceContext, formatWorkspaceContext } from "../agents/intelligence/workspace-context.js";
 
 // ============================================================================
 // Types
@@ -112,11 +115,11 @@ export interface ChatHandlerResponse {
 // Constants
 // ============================================================================
 
-/** Default models (configurable via CLI or config) */
+/** Default models — latest and most capable (CEO Power Tool demands top-tier) */
 export const DEFAULT_MODELS = {
-  anthropic: "claude-sonnet-4-5-20250929", // Claude 4.5 Sonnet (Max 200 plan)
-  openai: "o3-mini",
-  gemini: "gemini-2.0-flash-thinking",
+  anthropic: "claude-sonnet-4-5-20250929", // Claude via Bridge (OAuth), not API
+  openai: "gpt-5.4",                       // Latest OpenAI for consultation
+  gemini: "gemini-2.5-pro",                // Latest Gemini for consultation
 };
 
 /** Per-model timeout (30s) */
@@ -156,25 +159,32 @@ export function classifyTask(query: string): ChatTaskType {
 /**
  * Route task to appropriate models (per ADR-001).
  */
+/**
+ * Route consultation tasks to expert providers (OpenAI + Gemini).
+ * Claude development is via Claude Code Bridge (OAuth), NOT API.
+ *
+ * For `consult` command: OpenAI = primary expert, Gemini = critic.
+ * For coding/docs/SDLC: handled by Claude Code Bridge, not this router.
+ */
 export function routeTask(taskType: ChatTaskType): ModelSelection {
   switch (taskType) {
     case "coding":
     case "documentation":
     case "sdlc_gate":
-      // Claude only (fast path)
-      return { primary: "claude", critics: [] };
+      // Single expert (fast path — coding/docs normally via Claude Code Bridge)
+      return { primary: "openai", critics: [] };
 
     case "architecture":
     case "research":
-      // All 3 models (full consultation)
-      return { primary: "claude", critics: ["openai", "gemini"] };
+      // Full expert panel
+      return { primary: "openai", critics: ["gemini"] };
 
     case "security":
-      // Claude + OpenAI (security critical)
-      return { primary: "claude", critics: ["openai"] };
+      // Both experts for security critical
+      return { primary: "openai", critics: ["gemini"] };
 
     default:
-      return { primary: "claude", critics: [] };
+      return { primary: "openai", critics: [] };
   }
 }
 
@@ -256,7 +266,7 @@ export class ChatHandler {
 
     const taskType = classifyTask(request.message);
     const routing = request.forceConsultation
-      ? { primary: "claude", critics: ["openai", "gemini"] }
+      ? { primary: "openai", critics: ["gemini"] }
       : routeTask(taskType);
 
     this.log.info("Handling chat request", {
@@ -276,31 +286,33 @@ export class ChatHandler {
       budget.reset(sessionId);
     }
 
+    // Step 2 (ADR-001): Inject project context before querying models
+    const projectContext = buildProjectContext(process.cwd());
+    if (projectContext) {
+      this.log.info("Project context injected", { contextLength: projectContext.length });
+    }
+
     // Query models based on routing
     const responses: ModelResponse[] = [];
 
-    // Query primary provider (default: Claude, can be overridden for Max 200 users)
-    const primaryProvider = request.primaryProvider ?? "claude";
+    // Query primary provider (default: OpenAI — Claude is via Bridge, not API)
+    const primaryProvider = request.primaryProvider ?? "openai";
     let primaryResponse: ModelResponse;
 
-    if (primaryProvider === "openai") {
-      primaryResponse = await this.queryProvider(
-        "openai",
-        request.openaiModel ?? DEFAULT_MODELS.openai,
-        request.message,
-      );
-    } else if (primaryProvider === "gemini") {
+    if (primaryProvider === "gemini") {
       primaryResponse = await this.queryProvider(
         "google",
         request.geminiModel ?? DEFAULT_MODELS.gemini,
         request.message,
+        projectContext,
       );
     } else {
-      // Default: Claude
+      // Default: OpenAI (expert primary)
       primaryResponse = await this.queryProvider(
-        "anthropic",
-        request.claudeModel ?? DEFAULT_MODELS.anthropic,
+        "openai",
+        request.openaiModel ?? DEFAULT_MODELS.openai,
         request.message,
+        projectContext,
       );
     }
     responses.push(primaryResponse);
@@ -315,6 +327,7 @@ export class ChatHandler {
             "openai",
             request.openaiModel ?? DEFAULT_MODELS.openai,
             request.message,
+            projectContext,
           ),
         );
       }
@@ -325,6 +338,7 @@ export class ChatHandler {
             "google",
             request.geminiModel ?? DEFAULT_MODELS.gemini,
             request.message,
+            projectContext,
           ),
         );
       }
@@ -417,6 +431,7 @@ export class ChatHandler {
     providerId: "anthropic" | "openai" | "google",
     model: string,
     message: string,
+    systemContext?: string,
   ): Promise<ModelResponse> {
     const startTime = Date.now();
     const provider = this.providers.get(providerId);
@@ -433,9 +448,27 @@ export class ChatHandler {
     }
 
     try {
+      // Build messages with project context injection (ADR-001 step 2)
+      // ADR-040: Use SystemBlock[] for Anthropic to enable prompt caching
+      const messages: Message[] = [];
+      if (systemContext) {
+        if (providerId === "anthropic") {
+          // Structured blocks — mark project context as cacheable
+          messages.push({
+            role: "system",
+            content: [
+              { type: "text" as const, text: systemContext, cache_control: { type: "ephemeral" as const } },
+            ],
+          });
+        } else {
+          messages.push({ role: "system", content: systemContext });
+        }
+      }
+      messages.push({ role: "user", content: message });
+
       const request: ChatRequest = {
         model,
-        messages: [{ role: "user", content: message }],
+        messages,
         maxTokens: TOKEN_BUDGET_PER_TURN,
         temperature: 0.7,
       };
@@ -683,4 +716,49 @@ export function getChatHandler(): ChatHandler {
  */
 export function resetChatHandler(): void {
   globalChatHandler = undefined;
+}
+
+// ============================================================================
+// Project Context Builder (ADR-001 Step 2)
+// ============================================================================
+
+/**
+ * Build project context from current working directory.
+ * Reads IDENTITY.md, README.md (first 50 lines), workspace git info.
+ * Capped at ~500 tokens to stay within 2K budget.
+ */
+function buildProjectContext(projectPath: string): string | undefined {
+  const parts: string[] = [];
+
+  // 1. IDENTITY.md — project identity (highest priority)
+  const identityPath = join(projectPath, "IDENTITY.md");
+  if (existsSync(identityPath)) {
+    try {
+      const content = readFileSync(identityPath, "utf-8");
+      // Take first 30 lines (overview section)
+      const lines = content.split("\n").slice(0, 30).join("\n").trim();
+      if (lines) parts.push(`[Project Identity]\n${lines}`);
+    } catch { /* ignore */ }
+  }
+
+  // 2. README.md — project description (fallback if no IDENTITY)
+  if (parts.length === 0) {
+    const readmePath = join(projectPath, "README.md");
+    if (existsSync(readmePath)) {
+      try {
+        const content = readFileSync(readmePath, "utf-8");
+        const lines = content.split("\n").slice(0, 30).join("\n").trim();
+        if (lines) parts.push(`[Project README]\n${lines}`);
+      } catch { /* ignore */ }
+    }
+  }
+
+  // 3. Workspace context — git branch, recent commits
+  const wsCtx = getWorkspaceContext(projectPath);
+  const wsFormatted = formatWorkspaceContext(wsCtx);
+  if (wsFormatted) parts.push(wsFormatted);
+
+  if (parts.length === 0) return undefined;
+
+  return `You are consulting on a project. Here is the project context:\n\n${parts.join("\n\n")}`;
 }

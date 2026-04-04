@@ -54,13 +54,13 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 ### Custom Commands Available
 - `/project:gate <gate-id>` - Check SDLC gate status
 - `/project:consult <query>` - Multi-model consultation
-- `/sprint-close` - Automated sprint closure (test, build, commit, docs)
+- `/sprint-close` - Automated sprint closure (test, build, commit, docs); CLI: `./endiorbot.mjs sprint close`
 
 ## Project Context
 
 - **Project:** EndiorBot
 - **Type:** Solo developer tool for enterprise-scale projects
-- **Framework:** MTS SDLC Framework 6.2.0
+- **Framework:** MTS SDLC Framework 6.2.1
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
 ## Quick Start
@@ -88,6 +88,8 @@ pnpm build && pnpm test
 3. **Per-chat workspace resolution** — Each chat maps to a repo via `~/.endiorbot/repos.json` (ADR-029)
 4. **Claude Code Bridge via tmux** — Session management without child processes, survives disconnects (ADR-006)
 5. **SDLC Gate Engine as code** — Gates evaluated programmatically, not manually checked (ADR-004)
+
+**Stage × command spine (CPO/CTO):** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — stages 00→05, design→build→test traceability, atomic CLI/OTT/Web vs workflows. **Vision:** [`docs/00-foundation/product-vision.md`](docs/00-foundation/product-vision.md).
 
 ## Constraints
 
@@ -153,7 +155,7 @@ src/
 │   └── security/      # Audit, redactor, output scrub
 ├── bus/           # MessageBus (EventEmitter, debounce, dedup)
 ├── channels/      # OTT adapters (Telegram, Zalo)
-├── cli/           # CLI commands (init, serve, sprint-close)
+├── cli/           # CLI commands (init, serve, sprint close, …)
 ├── commands/      # Unified command handlers (30 commands)
 ├── config/        # Configuration management
 ├── gateway/       # HTTP/WS server, Ingress
@@ -355,5 +357,5 @@ const mentalModels = await getBrain().getMentalModels();
 
 *Claude Code integration for EndiorBot v0.1.0-beta.1*
 *Identity: CEO Power Tool (LOCKED)*
-*SDLC Framework v6.2.0*
+*SDLC Framework v6.2.1*
 *Sprint 118+ | 6,596+ tests | 30 OTT commands | 14 SOUL agents*

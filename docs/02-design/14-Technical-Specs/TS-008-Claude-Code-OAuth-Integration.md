@@ -136,7 +136,7 @@ claude -p \
 
 ```bash
 # Use Claude Code CLI (Max 200 subscription)
-./endiorbot.mjs consult --via-claude-code "Context Drift là gì?"
+./endiorbot.mjs consult --via-claude-code "What is context drift?"
 ```
 
 ### Expected Behavior

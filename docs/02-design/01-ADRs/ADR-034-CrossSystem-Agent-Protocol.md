@@ -10,13 +10,13 @@
 
 ## Context
 
-CEO yêu cầu: "agent của EndiorBot có thể nói chuyện được với agent của MTClaw".
+CEO requirement: EndiorBot agents must be able to **talk to MTClaw agents**.
 
-**EndiorBot** (TypeScript): 13 AI agents, router dùng local Ollama `qwen3.5:9b`, invocation qua 4 paths (Claude Code Bridge → Cloud API → Remote Ollama → Regex fallback). Không phụ thuộc Claude Code — CC chỉ là lựa chọn ưu tiên.
+**EndiorBot** (TypeScript): 13 AI agents; router uses local Ollama `qwen3.5:9b`; invocation follows four paths (Claude Code Bridge → Cloud API → Remote Ollama → Regex fallback). Not hard-dependent on Claude Code — CC is the preferred path only.
 
-**MTClaw** (Go): 16 AI agents, 70+ built-in tools, MCP server endpoint active tại `/mcp` (Sprint 50-59). Đã expose enterprise MCP tools: `agent_chat`, `agent_list`, `knowledge_search`, `platform_call` (Sprint 57-59).
+**MTClaw** (Go): 16 AI agents, 70+ built-in tools, MCP server endpoint active at `/mcp` (Sprint 50–59). Enterprise MCP tools exposed: `agent_chat`, `agent_list`, `knowledge_search`, `platform_call` (Sprint 57–59).
 
-Hai hệ thống hiện tại **không có protocol chung** để agent nói chuyện với nhau. Claude Code IDE kết nối MTClaw MCP qua `.mcp.json`, nhưng EndiorBot agents spawn process riêng — không inherit MCP config.
+The two systems had **no shared protocol** for agent-to-agent chat. Claude Code IDE connects to MTClaw MCP via `.mcp.json`, but EndiorBot agents spawn separate processes — they do not inherit MCP config.
 
 ---
 
@@ -24,17 +24,17 @@ Hai hệ thống hiện tại **không có protocol chung** để agent nói chu
 
 ### MCP-Only Protocol
 
-Toàn bộ cross-system communication sử dụng **MCP (Model Context Protocol)** duy nhất — không REST client riêng.
+All cross-system communication uses **MCP (Model Context Protocol)** only — no separate REST client.
 
-**Tại sao:**
-- MTClaw Sprint 57 đã expose `agent_chat` MCP tool — gọi bất kỳ agent nào qua MCP
-- `agent_chat` + `knowledge_search` + `platform_call` = đủ cho agent delegation, RAG, và ERP access
-- 1 protocol duy nhất = ít code hơn, dễ maintain hơn
-- Raw `fetch()` JSON-RPC 2.0 — 0 new dependencies, thin-client invariant
+**Rationale:**
+- MTClaw Sprint 57 exposed the `agent_chat` MCP tool — any agent can be called via MCP
+- `agent_chat` + `knowledge_search` + `platform_call` cover delegation, RAG, and ERP access
+- One protocol means less code and simpler maintenance
+- Raw `fetch()` JSON-RPC 2.0 — zero new dependencies, thin-client invariant
 
 ### Routing Architecture (CTO C6)
 
-MTClaw là **routing destination**, không phải fallback provider:
+MTClaw is a **routing destination**, not a fallback provider:
 
 ```
 ChannelRouter.routeMessage(text)
@@ -56,7 +56,7 @@ ChannelRouter.routeMessage(text)
 ### Mention Namespace
 
 `@mtclaw.<agent>` syntax:
-- `@mtclaw.researcher "tìm SOP"` → `agent_chat(researcher, ...)`
+- `@mtclaw.researcher "find SOP"` → `agent_chat(researcher, ...)`
 - `@mtclaw.datasource "SHOW DATABASES"` → `datasource_query(...)`
 - `@mtclaw.knowledge "leave request"` → `knowledge_search(...)`
 - `@coder "implement"` → local agent (unchanged)

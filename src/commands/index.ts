@@ -48,6 +48,9 @@ import {
   getLinkedActorId,
 } from "./handlers.js";
 
+import { handlePlanCommand as handlePlanOttCommand } from "./handlers/plan-handler.js";
+import { handleAuditCommand } from "./handlers/audit-commands.js";
+
 // Import remote command handlers
 import {
   handleReposCommand,
@@ -113,6 +116,10 @@ export function createCommandDispatcher(): CommandDispatcher {
   d.register("fix", async (ctx) => executeFixCommand(ctx.args, ctx.workspace));
 
   d.register("consult", async (ctx) => handleConsultCommand(ctx.args));
+
+  d.register("plan", async (ctx) => handlePlanOttCommand(ctx.args, ctx.workspace));
+
+  d.register("audit", async (ctx) => handleAuditCommand(ctx.args));
 
   d.register("config", async () => handleConfigCommand());
 

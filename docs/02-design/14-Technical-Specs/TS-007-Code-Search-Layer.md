@@ -35,10 +35,10 @@ The Code Search Layer enables EndiorBot to find relevant code in 100K+ LOC repos
 ```
 POST-MVP: EndiorBot CLI works, but CEO identifies TWO critical issues:
 
-1. CONTEXT DRIFT (Trôi ngữ cảnh) - Solved in Sprint 65
+1. CONTEXT DRIFT — Solved in Sprint 65
    - AI forgets Sprint Goals after 50-100K tokens
 
-2. SEMANTIC BLINDNESS (Mù ngữ nghĩa) - Solved in Sprint 63-64 ✓
+2. SEMANTIC BLINDNESS — Solved in Sprint 63-64 ✓
    - No codebase awareness in 100K+ LOC repos
    - AI cannot find relevant code for context
    - Manual file reading is slow and incomplete

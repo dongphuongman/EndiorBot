@@ -84,7 +84,7 @@ function displayConfigSummary(result: LoadConfigResult): void {
   console.log("");
 
   console.log("SDLC:");
-  console.log(`  Framework: v${config.sdlc?.frameworkVersion ?? "6.1.1"}`);
+  console.log(`  Framework: v${config.sdlc?.frameworkVersion ?? "6.2.1"}`);
   console.log(`  Tier: ${config.sdlc?.tier ?? "STANDARD"}`);
   console.log(`  Strict: ${config.sdlc?.strict ?? true}`);
   console.log("");

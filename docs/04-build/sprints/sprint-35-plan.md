@@ -467,7 +467,7 @@ Choose option [1-4]: _
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
 | Create tests/e2e/checkpoint-resume.test.ts | P0 | E2E tests | ~250 |
-| Create docs/06-test/checkpoint-test-scenarios.md | P1 | Test scenarios | ~100 |
+| Create docs/05-test/checkpoint-test-scenarios.md | P1 | Test scenarios | ~100 |
 | Run full test suite | P0 | All tests pass | - |
 | Update CURRENT-SPRINT.md | P0 | Sprint 35 CLOSE | - |
 | G-Sprint-35 checklist | P0 | Sprint approved | - |
@@ -548,7 +548,7 @@ Choose option [1-4]: _
 | `tests/cli/checkpoint-cli.test.ts` | ~100 | CLI tests |
 | `tests/e2e/checkpoint-resume.test.ts` | ~250 | E2E tests |
 | **Documentation** | | |
-| `docs/06-test/checkpoint-test-scenarios.md` | ~100 | Test scenarios |
+| `docs/05-test/checkpoint-test-scenarios.md` | ~100 | Test scenarios |
 | **Total** | **~4,410** | |
 
 ---

@@ -314,7 +314,7 @@ describe("AgentLauncher — SOUL-aware launch (Sprint 84)", () => {
   // --------------------------------------------------------------------------
 
   describe("bare launch — no agentRole provided", () => {
-    it("uses plain command without SOUL flags when agentRole is not given", async () => {
+    it("uses plain command without SOUL --agent flag when agentRole is not given", async () => {
       mockExistsSync.mockReturnValue(true);
 
       const result = await launcher.launch({
@@ -326,8 +326,8 @@ describe("AgentLauncher — SOUL-aware launch (Sprint 84)", () => {
 
       expect(result.success).toBe(true);
       expect(mockTmux.lastCommand).not.toContain("--agent");
-      expect(mockTmux.lastCommand).not.toContain("--append-system-prompt-file");
-      expect(mockWriteFileSync).not.toHaveBeenCalled();
+      // Sprint 87: brain-context is always injected for claude-code launches
+      // so --append-system-prompt-file may be present (brain-context.md)
     });
 
     it("does not set agentRole or soulContentHash on session for bare launch", async () => {
@@ -363,7 +363,7 @@ describe("AgentLauncher — SOUL-aware launch (Sprint 84)", () => {
 
       expect(result.success).toBe(true);
       expect(mockTmux.lastCommand).not.toContain("--agent");
-      expect(mockTmux.lastCommand).not.toContain("--append-system-prompt-file");
+      // Sprint 87: brain-context still injected even for invalid roles
     });
 
     it("does not set agentRole on session for invalid role", async () => {

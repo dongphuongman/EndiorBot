@@ -18,78 +18,26 @@
  * @sdlc SDLC Framework 6.2.0
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import type { Command } from "commander";
 import { loadActiveProject, resolveActiveProjectDir } from "../../config/paths.js";
 import { isGateConfirmed, type GateId } from "../../sdlc/index.js";
+import {
+  detectEcosystem,
+  getEcosystemCommands,
+  checkToolchain,
+  detectPythonVenv,
+  type EcosystemDetectResult,
+} from "./ecosystem-detector.js";
 
 // ============================================================================
-// Types
-// ============================================================================
-
-type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
-
-interface ProjectBuildInfo {
-  packageManager: PackageManager;
-  hasInstalled: boolean;
-  buildScript?: string;
-  startScript?: string;
-  devScript?: string;
-  projectPath: string;
-}
-
-// ============================================================================
-// Detection
-// ============================================================================
-
-/**
- * Detect package manager from lock files.
- */
-function detectPackageManager(projectPath: string): PackageManager {
-  if (existsSync(join(projectPath, "pnpm-lock.yaml"))) return "pnpm";
-  if (existsSync(join(projectPath, "yarn.lock"))) return "yarn";
-  if (existsSync(join(projectPath, "bun.lockb")) || existsSync(join(projectPath, "bun.lock"))) return "bun";
-  return "npm";
-}
-
-/**
- * Detect project build info from package.json.
- */
-function detectBuildInfo(projectPath: string): ProjectBuildInfo {
-  const pm = detectPackageManager(projectPath);
-  const hasNodeModules = existsSync(join(projectPath, "node_modules"));
-
-  const info: ProjectBuildInfo = {
-    packageManager: pm,
-    hasInstalled: hasNodeModules,
-    projectPath,
-  };
-
-  const pkgPath = join(projectPath, "package.json");
-  if (existsSync(pkgPath)) {
-    try {
-      const raw = readFileSync(pkgPath, "utf-8");
-      const pkg = JSON.parse(raw) as { scripts?: Record<string, string> };
-      const scripts = pkg.scripts ?? {};
-      if (scripts.build) info.buildScript = "build";
-      if (scripts.start) info.startScript = "start";
-      if (scripts.dev) info.devScript = "dev";
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  return info;
-}
-
-// ============================================================================
-// Execution
+// Execution (A8: shell safety — spawn with argv, no shell: true)
 // ============================================================================
 
 /**
  * Run a command in the project directory with live output.
+ * Uses spawn with argv array — NO shell: true (security: A8).
  */
 function runCommand(cmd: string, args: string[], cwd: string): Promise<number> {
   return new Promise((resolve) => {
@@ -99,7 +47,6 @@ function runCommand(cmd: string, args: string[], cwd: string): Promise<number> {
     const child = spawn(cmd, args, {
       cwd,
       stdio: "inherit",
-      shell: true,
     });
 
     child.on("close", (code) => {
@@ -116,7 +63,7 @@ function runCommand(cmd: string, args: string[], cwd: string): Promise<number> {
 // Command Actions
 // ============================================================================
 
-async function devopsBuildAction(options: { path?: string; skipGateCheck?: boolean }): Promise<void> {
+async function devopsBuildAction(options: { path?: string; skipGateCheck?: boolean; ecosystem?: string }): Promise<void> {
   const project = loadActiveProject();
   const projectPath = options.path ?? resolveActiveProjectDir();
   const projectId = project?.name ?? "unknown";
@@ -139,51 +86,79 @@ async function devopsBuildAction(options: { path?: string; skipGateCheck?: boole
     }
   }
 
-  const info = detectBuildInfo(projectPath);
-  const pm = info.packageManager;
+  // Ecosystem detection (CTO C1: SSOT)
+  const eco = detectEcosystem(projectPath, options.ecosystem as EcosystemDetectResult["ecosystem"] | undefined);
+
+  if (eco.support === "detect-only") {
+    console.error(`❌ ${eco.language} detected but not yet supported for build/run.`);
+    console.error(`   → ${eco.language} support coming soon. Use native tools: ${eco.packageManager}`);
+    process.exit(1);
+  }
+
+  // Toolchain pre-check (CTO C3)
+  const toolchain = await checkToolchain(eco.ecosystem);
+  if (!toolchain.available) {
+    console.error(`❌ ${toolchain.command} not found.`);
+    console.error(`   → Install from ${toolchain.installUrl}`);
+    process.exit(1);
+  }
+
+  // Python venv warning (CTO C4)
+  if (eco.ecosystem === "python") {
+    const venv = detectPythonVenv(projectPath);
+    if (!venv.hasVenv) {
+      console.log("⚠️  No virtual environment found. Consider: python3 -m venv .venv");
+      console.log("");
+    }
+  }
+
+  const cmds = getEcosystemCommands(eco, projectPath);
+  if (!cmds) {
+    console.error("❌ Could not determine build commands.");
+    process.exit(1);
+  }
 
   console.log("");
   console.log("┌─────────────────────────────────────────────────────────────┐");
   console.log(`│  🔧 DevOps Build                                            │`);
   console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(`│  Project: ${projectPath.slice(-49).padEnd(49)}│`);
-  console.log(`│  Package Manager: ${pm.padEnd(41)}│`);
-  console.log(`│  Build Script: ${(info.buildScript ?? "none").padEnd(44)}│`);
+  console.log(`│  Ecosystem: ${`${eco.language} (${eco.packageManager})`.padEnd(47)}│`);
+  console.log(`│  Toolchain: ${(toolchain.version ?? toolchain.command).slice(0, 47).padEnd(47)}│`);
   console.log("└─────────────────────────────────────────────────────────────┘");
   console.log("");
 
   // Step 1: Install dependencies
-  if (!info.hasInstalled) {
+  if (cmds.install) {
     console.log("📦 Installing dependencies...");
-    const installCode = await runCommand(pm, ["install"], projectPath);
+    const installCode = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
     if (installCode !== 0) {
       console.error("❌ Dependency installation failed.");
+      console.error("   → Check the output above for missing packages or permissions.");
       process.exit(1);
     }
     console.log("✅ Dependencies installed.");
     console.log("");
-  } else {
-    console.log("📦 Dependencies already installed (node_modules exists).");
-    console.log("");
   }
 
   // Step 2: Build
-  if (info.buildScript) {
+  if (cmds.build) {
     console.log("🔨 Building project...");
-    const buildCode = await runCommand(pm, ["run", info.buildScript], projectPath);
+    const buildCode = await runCommand(cmds.build[0]!, cmds.build.slice(1), projectPath);
     if (buildCode !== 0) {
       console.error("❌ Build failed.");
+      console.error("   → Check build output above. Common: missing dependencies or wrong toolchain version.");
       process.exit(1);
     }
     console.log("");
     console.log("✅ Build complete.");
   } else {
-    console.log("ℹ️  No build script found in package.json. Skipping build step.");
+    console.log("ℹ️  No build step for this ecosystem. Skipping.");
   }
   console.log("");
 }
 
-async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean; dev?: boolean }): Promise<void> {
+async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean; dev?: boolean; ecosystem?: string }): Promise<void> {
   const project = loadActiveProject();
   const projectPath = options.path ?? resolveActiveProjectDir();
   const projectId = project?.name ?? "unknown";
@@ -206,32 +181,37 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
     }
   }
 
-  const info = detectBuildInfo(projectPath);
-  const pm = info.packageManager;
+  // Ecosystem detection (CTO C1: SSOT)
+  const eco = detectEcosystem(projectPath, options.ecosystem as EcosystemDetectResult["ecosystem"] | undefined);
 
-  // Determine which script to run
-  const scriptName = options.dev
-    ? (info.devScript ?? info.startScript)
-    : (info.startScript ?? info.devScript);
-
-  if (!scriptName) {
-    console.error("❌ No start or dev script found in package.json.");
+  if (eco.support === "detect-only") {
+    console.error(`❌ ${eco.language} detected but not yet supported for run.`);
+    console.error(`   → Use native tools: ${eco.packageManager}`);
     process.exit(1);
   }
+
+  const cmds = getEcosystemCommands(eco, projectPath);
+  if (!cmds) {
+    console.error("❌ Could not determine run commands.");
+    process.exit(1);
+  }
+
+  const runArgs = options.dev ? cmds.dev : cmds.run;
+  const cmdDisplay = runArgs.join(" ");
 
   console.log("");
   console.log("┌─────────────────────────────────────────────────────────────┐");
   console.log(`│  🚀 DevOps Run                                              │`);
   console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(`│  Project: ${projectPath.slice(-49).padEnd(49)}│`);
-  console.log(`│  Command: ${pm} run ${scriptName}`.padEnd(61) + "│");
+  console.log(`│  Command: ${cmdDisplay.slice(0, 49).padEnd(49)}│`);
   console.log("└─────────────────────────────────────────────────────────────┘");
   console.log("");
 
   // Install if needed
-  if (!info.hasInstalled) {
+  if (cmds.install) {
     console.log("📦 Installing dependencies first...");
-    const installCode = await runCommand(pm, ["install"], projectPath);
+    const installCode = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
     if (installCode !== 0) {
       console.error("❌ Dependency installation failed.");
       process.exit(1);
@@ -240,9 +220,9 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
   }
 
   // Run
-  console.log(`🚀 Running: ${pm} run ${scriptName}`);
+  console.log(`🚀 Running: ${cmdDisplay}`);
   console.log("");
-  const code = await runCommand(pm, ["run", scriptName], projectPath);
+  const code = await runCommand(runArgs[0]!, runArgs.slice(1), projectPath);
   process.exit(code);
 }
 
@@ -265,6 +245,7 @@ export function registerDevopsCommand(program: Command): void {
     .description("Install dependencies and build project")
     .option("--path <path>", "Project directory")
     .option("--skip-gate-check", "Skip G3 gate verification")
+    .option("--ecosystem <name>", "Override ecosystem detection (node, rust, python)")
     .action(devopsBuildAction);
 
   devops
@@ -273,6 +254,7 @@ export function registerDevopsCommand(program: Command): void {
     .option("--path <path>", "Project directory")
     .option("--skip-gate-check", "Skip G3 gate verification")
     .option("--dev", "Use dev script instead of start")
+    .option("--ecosystem <name>", "Override ecosystem detection (node, rust, python)")
     .action(devopsRunAction);
 
   devops
@@ -281,5 +263,6 @@ export function registerDevopsCommand(program: Command): void {
     .option("--path <path>", "Project directory")
     .option("--skip-gate-check", "Skip G3 gate verification")
     .option("--dev", "Use dev script instead of start")
+    .option("--ecosystem <name>", "Override ecosystem detection (node, rust, python)")
     .action(devopsBuildRunAction);
 }

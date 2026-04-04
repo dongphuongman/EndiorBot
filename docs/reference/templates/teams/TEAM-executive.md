@@ -105,6 +105,10 @@ Direct escalation to executives is reserved for:
 - Strategic misalignment
 - Budget/timeline concerns
 
+## EndiorBot commands (executive context)
+
+CEO uses **`endiorbot plan`**, **`endiorbot consult`**, **`endiorbot gate`**, **`endiorbot bootstrap`** — you interpret outputs; logic stays in `./endiorbot.mjs`. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

@@ -464,7 +464,7 @@ export class MRPService {
 
     lines.push("");
     lines.push("---");
-    lines.push("*SDLC Framework v6.1.1*");
+    lines.push("*SDLC Framework v6.2.1*");
 
     return lines.join("\n");
   }

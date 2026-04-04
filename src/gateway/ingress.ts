@@ -24,6 +24,14 @@ import { getConversationStore } from "../channels/conversation/store.js";
 import { resolveWorkspace } from "../bridge/repo/workspace-resolver.js";
 import { sanitize } from "../security/input-sanitizer.js";
 import { createLogger } from "../utils/logger.js";
+import { FactStore } from "../memory/fact-store.js";
+import {
+  isMemoryDisabled,
+  isAllowedFactType,
+  scrubFactValue,
+  evictExpiredFacts,
+  enforceMaxFacts,
+} from "../memory/memory-policy.js";
 
 const log = createLogger("gateway.ingress");
 
@@ -234,6 +242,38 @@ export class GatewayIngress {
     // Store assistant turn
     store.add(chatId, "assistant", responseText);
 
+    // Sprint 124: Capture observation to ClawVault memory (write path)
+    // CTO fix: fire-and-forget (non-blocking) + TTL/max-facts enforcement
+    if (!isMemoryDisabled() && workspace) {
+      const projectId = workspace.split("/").pop() ?? "unknown";
+      const summary = responseText.slice(0, 200);
+      const factType = classifyObservationType(routeResult.task);
+      if (isAllowedFactType(factType)) {
+        void (async () => {
+          try {
+            const factStore = new FactStore(projectId);
+            await factStore.load();
+            // Enforce TTL + max-facts before adding new fact
+            const currentFacts = factStore.query({});
+            const validFacts = enforceMaxFacts(evictExpiredFacts(currentFacts));
+            factStore.replaceAll(validFacts);
+            factStore.addFacts([{
+              id: `obs-${Date.now()}`,
+              entity: projectId,
+              relation: `${agent}_${factType}`,
+              value: scrubFactValue(summary),
+              confidence: 0.7,
+              source: `agent:${agent}`,
+              validFrom: new Date().toISOString(),
+            }]);
+            await factStore.save();
+          } catch (err) {
+            log.warn("Memory write failed", { agent, projectId, error: (err as Error).message });
+          }
+        })();
+      }
+    }
+
     const responseMeta: NonNullable<InboundResponse["metadata"]> = {
       agent,
       model: result.provider,
@@ -241,6 +281,7 @@ export class GatewayIngress {
     };
     // Sprint 114 (CTO C1): Thread tokenUsage for RL pipeline
     if (result.tokenUsage) responseMeta.tokenUsage = result.tokenUsage;
+    // Sprint 124: Memory write is fire-and-forget — factsWrittenCount tracked via logs, not response metadata
 
     return {
       text: responseText,
@@ -248,4 +289,16 @@ export class GatewayIngress {
       metadata: responseMeta,
     };
   }
+}
+
+// ============================================================================
+// Observation Helpers (Sprint 124a)
+// ============================================================================
+
+function classifyObservationType(task: string): string {
+  const lower = task.toLowerCase();
+  if (lower.includes("fix") || lower.includes("bug") || lower.includes("error")) return "bugfix";
+  if (lower.includes("design") || lower.includes("architect") || lower.includes("adr")) return "architecture_choice";
+  if (lower.includes("research") || lower.includes("explore") || lower.includes("investigate")) return "discovery";
+  return "decision";
 }

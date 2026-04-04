@@ -44,9 +44,10 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ## Framework
 
-- **SDLC Version:** MTS SDLC Framework 6.2.0
+- **SDLC Version:** MTS SDLC Framework 6.2.1
 - **Architecture:** 7-Pillar, 10-Stage Lifecycle
 - **Quality:** Vibecoding Index (0-100 score)
+- **Stage × commands:** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — atomic CLI/OTT/Web vs seamless workflows, aligned with CEO vision
 
 ## Personas
 
@@ -68,6 +69,8 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ## Links
 
+- **Product vision:** [`docs/00-foundation/product-vision.md`](docs/00-foundation/product-vision.md)
+- **Stage & command spine (CPO/CTO):** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md)
 - **Website:** https://endiorbot.nqh-internal.example
 - **Docs:** https://docs.endiorbot.nqh-internal.example
 - **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot

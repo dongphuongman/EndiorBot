@@ -15,16 +15,20 @@ that can run 120+ minute sessions without human intervention while maintaining
 full SDLC compliance and self-healing capabilities.
 ```
 
+### Operational spine (stages & commands)
+
+For **stage alignment (00→05)**, **design–build–test traceability**, and the split between **atomic** CLI/OTT/Web commands and **seamless workflows**, see [`stage-command-workflow-spine.md`](./stage-command-workflow-spine.md). **Full stage index (00→09):** [`docs/README.md`](../README.md).
+
 ---
 
 ## CEO Vision
 
 ```
-EndiorBot chạy liên tục 1-2h+ để:
-├── Hoàn thiện từng SDLC stage
-├── Design → Implement liên tục
-├── Test/Fix cho đến hoàn thiện
-└── CHỈ escalate khi critical issues
+EndiorBot runs continuously for 1–2+ hours to:
+├── Complete each SDLC stage
+├── Design → implement in a steady loop
+├── Test / fix until done
+└── Escalate ONLY on critical issues
 ```
 
 ---

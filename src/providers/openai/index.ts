@@ -571,7 +571,12 @@ export class OpenAIProvider extends BaseProvider {
       model,
       messages: request.messages.map((m) => ({
         role: m.role,
-        content: typeof m.content === "string" ? m.content : m.content,
+        // ADR-040: Flatten SystemBlock[] to string for OpenAI (no cache_control support)
+        content: typeof m.content === "string"
+          ? m.content
+          : Array.isArray(m.content) && m.content.length > 0 && typeof m.content[0] === "object" && m.content[0] !== null && "text" in m.content[0]
+            ? (m.content as Array<{ text: string }>).map((b) => b.text).join("\n")
+            : m.content,
       })),
       stream,
     };
@@ -581,7 +586,13 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     if (request.maxTokens !== undefined) {
-      body.max_tokens = request.maxTokens;
+      // GPT-5+ and o-series models require max_completion_tokens instead of max_tokens
+      const model = request.model ?? this.defaultModel;
+      if (model.startsWith("gpt-5") || model.startsWith("o1") || model.startsWith("o3") || model.startsWith("o4")) {
+        body.max_completion_tokens = request.maxTokens;
+      } else {
+        body.max_tokens = request.maxTokens;
+      }
     }
 
     if (request.tools && request.tools.length > 0) {

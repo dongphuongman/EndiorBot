@@ -103,7 +103,7 @@ export type ProjectTier = z.infer<typeof ProjectTierSchema>;
  * SDLC configuration for framework integration.
  */
 export const SDLCConfigSchema = z.object({
-  frameworkVersion: z.string().default("6.2.0"),
+  frameworkVersion: z.string().default("6.2.1"),
   docsRoot: z.string().default("docs"),
   strict: z.boolean().default(true),
   tier: ProjectTierSchema.default("STANDARD"),
@@ -376,7 +376,7 @@ export const DEFAULT_CONFIG: EndiorBotConfig = {
     },
   },
   sdlc: {
-    frameworkVersion: "6.2.0",
+    frameworkVersion: "6.2.1",
     docsRoot: "docs",
     strict: true,
     tier: "STANDARD",

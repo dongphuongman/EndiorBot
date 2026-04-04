@@ -155,6 +155,8 @@ export async function callCloudFallback(
   task: string,
   history?: Array<{ role: string; content: string }>,
   workspace?: string,
+  /** Sprint 124b: Optional model override — autonomous manager passes tier-selected model */
+  modelOverride?: string,
 ): Promise<AIResult | null> {
   const registry = getProviderRegistry();
   const provider = registry.getDefault();
@@ -163,7 +165,7 @@ export async function callCloudFallback(
   const ws = workspace ?? deps.config.projectRoot;
   // CTO F2: Log tier for cloud fallback observability
   const tier = resolveWorkspaceTier(ws);
-  log.info(`Cloud fallback for @${agent} (workspace tier: ${tier}, model: ${provider.models[0]?.id ?? "unknown"})`);
+  log.info(`Cloud fallback for @${agent} (workspace tier: ${tier}, model: ${modelOverride ?? provider.models[0]?.id ?? "unknown"})`);
   // Sprint 115 (T1+T2): Enrich cloud fallback prompt (mirrors callClaudeBridge pattern)
   const cloudParts: string[] = [`[Workspace: ${ws}]`];
   const cloudIntent = classifyPatchIntent(task);
@@ -176,7 +178,7 @@ export async function callCloudFallback(
   if (cloudEnrichment) cloudParts.push(cloudEnrichment);
   const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
     + "\n\n" + cloudParts.join("\n");
-  const modelId = provider.models[0]?.id;
+  const modelId = modelOverride ?? provider.models[0]?.id;
   if (!modelId) return null;
 
   try {

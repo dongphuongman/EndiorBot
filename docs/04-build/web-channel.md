@@ -4,7 +4,7 @@
 
 ## Overview
 
-Web Channel cung cấp browser-based chat interface cho EndiorBot Gateway, tương tự MTS-OpenClaw/picoclaw web channel. Hỗ trợ HTTP + WebSocket hybrid server.
+The Web Channel provides a browser-based chat UI for the EndiorBot Gateway, similar to the MTS-OpenClaw/picoclaw web channel. It uses a hybrid HTTP + WebSocket server.
 
 ## Architecture
 
@@ -60,7 +60,7 @@ class WebGatewayServer {
 
 ### 2. Web UI (`src/gateway/web/index.html`)
 
-Single-page application với các tab:
+Single-page application with tabs:
 - **Chat**: Real-time chat interface
 - **Dashboard**: Gateway status, sessions, uptime
 - **Channels**: OTT channel status (Telegram, Zalo, Web)

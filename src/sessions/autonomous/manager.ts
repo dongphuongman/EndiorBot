@@ -42,6 +42,14 @@ import {
   type AutonomousEventListener,
 } from "./types.js";
 import type { ContextLifecycleManager } from "../../context/transfer/context-lifecycle.js";
+import {
+  taskTypeToAgent,
+  isEfficiencyTask,
+  requiresGateC,
+  buildTaskContext,
+  estimateCostFromTokens,
+} from "./task-agent-mapper.js";
+import { callCloudFallback, type ProviderDeps } from "../../agents/router/providers.js";
 
 // ============================================================================
 // Autonomous Session Manager
@@ -111,12 +119,15 @@ export class AutonomousSessionManager {
   // Sprint 97: Context lifecycle integration (T3)
   private contextLifecycle: ContextLifecycleManager | undefined;
 
+  // Sprint 124b: Provider deps for executeTaskWork (CTO C1+C5)
+  private providerDeps: ProviderDeps | undefined;
+
   // Session state
   private startTime: Date;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
 
-  constructor(config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string }) {
+  constructor(config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string }, providerDeps?: ProviderDeps) {
     this.log = createLogger("AutonomousSessionManager");
     this.config = {
       ...DEFAULT_AUTONOMOUS_CONFIG,
@@ -156,6 +167,11 @@ export class AutonomousSessionManager {
     // Initialize failure/recovery components
     this.failureClassifier = new FailureClassifier({ debug: this.config.debug });
     this.recoveryEngine = new RecoveryEngine({ projectRoot: this.config.projectRoot, debug: this.config.debug });
+
+    // Sprint 124b: Store provider deps for executeTaskWork (CTO C5)
+    if (providerDeps) {
+      this.providerDeps = providerDeps;
+    }
 
     // Subscribe to budget events
     this.budget.addEventListener((event) => {
@@ -502,7 +518,7 @@ export class AutonomousSessionManager {
     while (retryCount <= task.maxRetries && !success) {
       try {
         // Simulate task execution (in real impl, this would call the model)
-        const result = await this.executeTaskWork(task, modelSelection.config.tier);
+        const result = await this.executeTaskWork(task, modelSelection.config.tier, modelSelection.config.model);
         success = true;
         actualCost = result.cost;
         filesModified.push(...(result.filesModified ?? []));
@@ -624,28 +640,68 @@ export class AutonomousSessionManager {
   }
 
   /**
-   * Execute task work.
+   * Execute task work — wired to cloud providers (Sprint 124b, ADR-042).
    *
-   * Sprint 116 T5c: Throws NOT_WIRED in production. Returns deterministic cost
-   * estimate in test mode (no Math.random, no sleep). Zero Mock Policy.
+   * C1: Uses callCloudFallback directly with explicit model tier
+   * C4: Gate B = READ only, PATCH tasks blocked
    */
   private async executeTaskWork(
-    _task: AutonomousTask,
-    tier: ModelTier
-  ): Promise<{ cost: number; filesModified?: string[]; filesCreated?: string[] }> {
-    // Sprint 116 T5c: Guard — real model execution not wired yet
-    if (process.env.NODE_ENV !== "test") {
+    task: AutonomousTask,
+    tier: ModelTier,
+    modelId?: string,
+  ): Promise<{ cost: number; output?: string; filesModified?: string[]; filesCreated?: string[] }> {
+    // C4: Gate B = READ only — block PATCH-requiring tasks
+    if (requiresGateC(task.type)) {
       throw new Error(
-        "Autonomous task execution not wired to model provider. " +
-        "This feature is under development. Use single-agent chat instead."
+        `Task type "${task.type}" requires Gate C (autonomous PATCH). Current session is Gate B (read-only).`
       );
     }
 
-    // Test-only: deterministic cost estimate (no Math.random)
-    const baseCost =
-      tier === ModelTier.ELITE ? 0.15 : tier === ModelTier.STANDARD ? 0.03 : 0.005;
+    // EFFICIENCY tasks — no agent call needed
+    if (isEfficiencyTask(task.type)) {
+      return { cost: 0, output: `EFFICIENCY task "${task.type}" completed (no agent call).` };
+    }
 
-    return { cost: baseCost };
+    // Test-only: deterministic cost (no provider calls in test)
+    if (process.env.NODE_ENV === "test" && !this.providerDeps) {
+      const baseCost =
+        tier === ModelTier.ELITE ? 0.15 : tier === ModelTier.STANDARD ? 0.03 : 0.005;
+      return { cost: baseCost, output: `[test] Task "${task.description}" executed at tier ${tier}` };
+    }
+
+    // C1: Use callCloudFallback directly with explicit tier
+    if (!this.providerDeps) {
+      throw new Error(
+        "Provider deps not injected. Pass ProviderDeps to AutonomousSessionManager constructor."
+      );
+    }
+
+    const agent = taskTypeToAgent(task.type);
+    const context = buildTaskContext(task, {
+      sprintGoal: this.config.sprintGoal,
+      projectRoot: this.config.projectRoot,
+      tier: tier.toString(),
+      completedTasks: this.completedTasks,
+    });
+
+    const result = await callCloudFallback(
+      this.providerDeps,
+      agent,
+      context,
+      [],
+      this.config.projectRoot,
+      modelId, // C1: Forward tier-selected model to provider
+    );
+
+    if (!result) {
+      throw new Error(`No cloud provider available for agent @${agent}`);
+    }
+
+    const cost = result.tokenUsage
+      ? estimateCostFromTokens(result.tokenUsage, tier.toString())
+      : 0;
+
+    return { cost, output: result.content };
   }
 
   /**
@@ -967,9 +1023,10 @@ export function setAutonomousSessionManager(manager: AutonomousSessionManager | 
  * Create a new autonomous session manager.
  */
 export function createAutonomousSessionManager(
-  config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string }
+  config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string },
+  providerDeps?: ProviderDeps,
 ): AutonomousSessionManager {
-  const manager = new AutonomousSessionManager(config);
+  const manager = new AutonomousSessionManager(config, providerDeps);
   globalManager = manager;
   return manager;
 }

@@ -1,7 +1,7 @@
 /**
  * SDLC Module
  *
- * SDLC Framework v6.1.1 compliance automation:
+ * SDLC Framework v6.2.1 compliance automation:
  * - Gate evaluation (G0-G4, G-Sprint)
  * - Vibecoding Index calculation
  * - Change Request Package (CRP) generation

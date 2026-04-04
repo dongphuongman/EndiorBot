@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Date**: 2026-02-22
 **Status**: ACTIVE
-**SDLC**: Framework 6.2.0
+**SDLC**: Framework 6.2.1
 
 ---
 
@@ -34,7 +34,7 @@ This directory contains design documents for the Autonomy Epic (Sprints 35-40). 
 | `05-parallel-execution-design.md` | Track manager, file locks, dependency scheduling | 39 | 📝 REF: Sprint 39 Plan |
 | `06-fix-logging-design.md` | Fix log schema, weekly review CLI, pattern manager | 40 | 📝 REF: Sprint 40 Plan |
 
-### Integration Documents (`docs/03-integration/autonomy-epic/`)
+### Integration documents (`docs/03-integrate/autonomy-epic/`)
 
 | Document | Purpose | Status |
 |----------|---------|--------|
@@ -214,13 +214,13 @@ Located in: `docs/02-design/autonomy-epic/schemas/`
 - **Stage 00 - Foundation**: Problem statement, business case
 - **Stage 01 - Planning**: Sprint plans (35-40)
 - **Stage 02 - Design**: This directory (design specs, ADRs)
-- **Stage 03 - Integration**: Integration specs, API contracts
+- **Stage 03 - Integrate** (`docs/03-integrate/`): Integration specs, API contracts
 - **Stage 04 - Build**: Implementation (code)
-- **Stage 06 - Test**: Test scenarios, E2E tests
+- **Stage 05 - Test** (`docs/05-test/`): Test scenarios, E2E tests
 
 ### External References
 
-- **MTS Framework 6.2.0**: `docs/SDLC-Framework/`
+- **MTS Framework 6.2.1**: `.sdlc-framework/` (repo) · stage index: `docs/README.md` · spine: `docs/00-foundation/stage-command-workflow-spine.md`
 - **ADRs**: `docs/02-design/01-ADRs/` and `docs/02-design/approved/`
 - **Sprint Plans**: `docs/01-planning/sprint-35-plan.md` through `sprint-40-plan.md`
 
@@ -233,4 +233,4 @@ Located in: `docs/02-design/autonomy-epic/schemas/`
 ---
 
 *Autonomy Epic - Design Index v1.0.0*
-*EndiorBot SDLC Framework 6.2.0*
+*EndiorBot SDLC Framework 6.2.1*

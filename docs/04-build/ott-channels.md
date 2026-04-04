@@ -95,33 +95,33 @@ curl -X POST https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage \
 
 ## Zalo Bot Setup (Zapps.me)
 
-Zalo Bot Platform cho phép tạo bot Zalo Personal qua [Zalo Bot Manager](https://bot.zapps.me/).
+The Zalo Bot Platform lets you create a Zalo Personal bot via [Zalo Bot Manager](https://bot.zapps.me/).
 
-> **Note:** Zalo Bot ≠ Zalo OA. Đây là 2 hệ thống khác nhau.
+> **Note:** Zalo Bot ≠ Zalo OA. These are two different systems.
 
 ### 1. Create Zalo Bot
 
-1. Đăng nhập [Zalo Bot Manager](https://bot.zapps.me/)
-2. Quét mã QR bằng app Zalo
-3. Tạo bot mới và lấy **Bot Token** (format: `{bot_id}:{secret_key}`)
+1. Sign in to [Zalo Bot Manager](https://bot.zapps.me/)
+2. Scan the QR code with the Zalo app
+3. Create a new bot and copy the **Bot Token** (format: `{bot_id}:{secret_key}`)
 
 ### 2. Get CEO Chat ID
 
-**Cách 1: Từ MTS-OpenClaw/Picoclaw config**
+**Option 1: From MTS-OpenClaw/Picoclaw config**
 ```bash
-# Nếu đã dùng với openclaw/picoclaw, check config
+# If you already use openclaw/picoclaw, read config
 cat ~/.picoclaw/config.json | jq '.channels.zalo'
 ```
 
-**Cách 2: Từ Zalo Bot Manager Dashboard**
-1. Đăng nhập [bot.zapps.me](https://bot.zapps.me)
-2. Xem conversation history
+**Option 2: From Zalo Bot Manager Dashboard**
+1. Sign in to [bot.zapps.me](https://bot.zapps.me)
+2. Open conversation history
 3. Copy User ID / Chat ID
 
-**Cách 3: Polling (BASIC accounts có thể không hỗ trợ)**
+**Option 3: Polling (may be unsupported on BASIC accounts)**
 ```bash
-# getUpdates thường timeout với BASIC accounts
-# Sử dụng webhook mode hoặc cách 1/2
+# getUpdates often times out on BASIC accounts
+# Prefer webhook mode or options 1/2
 ```
 
 ### 3. Test Connection
@@ -154,10 +154,10 @@ curl -X POST "https://bot-api.zaloplatforms.com/bot$ZALO_BOT_TOKEN/sendMessage" 
 
 ### 5. Important Notes
 
-- **Token expiration**: Token có thể hết hạn, cần refresh từ Bot Manager
-- **BASIC vs PRO**: BASIC accounts có giới hạn getUpdates polling
+- **Token expiration**: Tokens may expire; refresh from Bot Manager
+- **BASIC vs PRO**: BASIC accounts have limited `getUpdates` polling
 - **API Endpoints**:
-  - `https://bot-api.zaloplatforms.com` (chính thức)
+  - `https://bot-api.zaloplatforms.com` (official)
   - `https://bot-api.zapps.me` (alternative)
 - **Chat ID format**: Hex string (e.g., `e0c2caf9ebba02e45bab`)
 

@@ -29,9 +29,9 @@ import type {
  * Brain and context are loaded from their respective stores.
  * Missing layers are silently omitted (no error).
  */
-export function buildFullEnvelope(
+export async function buildFullEnvelope(
   persona: PersonaEnvelope,
-): SessionIntelligenceEnvelope {
+): Promise<SessionIntelligenceEnvelope> {
   const envelope: SessionIntelligenceEnvelope = { persona };
 
   // Load Brain L4 (optional — null if no models or error)
@@ -41,7 +41,7 @@ export function buildFullEnvelope(
   }
 
   // Load Context (optional — null if no active project or error)
-  const context = buildContextEnvelope();
+  const context = await buildContextEnvelope();
   if (context) {
     envelope.context = context;
   }

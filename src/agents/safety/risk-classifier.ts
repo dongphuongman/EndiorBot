@@ -54,6 +54,17 @@ export type ConfirmationType = "none" | "batch" | "explicit" | "explicit_with_au
 /**
  * Risk classification result.
  */
+/**
+ * Why a permission decision was made (Sprint 125 — ADR-041).
+ */
+export interface DecisionReason {
+  type: "rule" | "risk-level" | "hook" | "user" | "auto";
+  detail: string;
+}
+
+/**
+ * Risk classification result.
+ */
 export interface RiskClassification {
   /** Risk level */
   level: RiskLevel;
@@ -71,6 +82,8 @@ export interface RiskClassification {
   allowed: boolean;
   /** Reason if not allowed */
   blockReason?: string;
+  /** Why this decision was made (Sprint 125 — ADR-041 audit trail) */
+  decisionReason?: DecisionReason;
 }
 
 /**
@@ -103,6 +116,10 @@ export interface RiskConfig {
   dangerousCommandPatterns: RegExp[];
   /** Verbose logging */
   verbose: boolean;
+  /** Tools explicitly allowed — if set, only these tools pass (exact match) */
+  toolAllowlist?: readonly string[];
+  /** Tools explicitly blocked — checked before allowlist (exact match) */
+  toolBlocklist?: readonly string[];
 }
 
 /**
@@ -258,6 +275,8 @@ export class RiskClassifier {
     agent: AgentRole;
     mode: InvokeMode;
     task: string;
+    /** Tool name for allowlist/blocklist matching (if different from task) */
+    toolName?: string;
     files?: string[];
     commands?: string[];
   }): RiskClassification {
@@ -369,6 +388,13 @@ export class RiskClassifier {
       blockReason = "CRITICAL actions are blocked by policy";
     }
 
+    // Build decision reason (ADR-041 — audit trail)
+    const decisionReason: DecisionReason = blockReason
+      ? { type: "rule", detail: blockReason }
+      : confirmation === "none"
+        ? { type: "auto", detail: `${level} risk — auto-approved` }
+        : { type: "risk-level", detail: `${level} risk — requires ${confirmation}` };
+
     const result: RiskClassification = {
       level,
       score: Math.round(score),
@@ -377,8 +403,19 @@ export class RiskClassifier {
       factors,
       recommendations,
       allowed,
+      decisionReason,
       ...(blockReason ? { blockReason } : {}),
     };
+
+    // Tool blocklist/allowlist check (Sprint 126 — claw-code A1 reduced)
+    const effectiveToolName = params.toolName ?? task;
+    if (this.config.toolBlocklist && this.config.toolBlocklist.some(t => t.toLowerCase() === effectiveToolName.toLowerCase())) {
+      result.allowed = false;
+      result.decisionReason = { type: "rule", detail: `Blocked by toolBlocklist: ${effectiveToolName}` };
+    } else if (this.config.toolAllowlist && !this.config.toolAllowlist.some(t => t.toLowerCase() === effectiveToolName.toLowerCase())) {
+      result.allowed = false;
+      result.decisionReason = { type: "rule", detail: `Not in toolAllowlist: ${effectiveToolName}` };
+    }
 
     this.log.debug("Risk classified", {
       agent,

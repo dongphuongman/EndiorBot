@@ -199,7 +199,7 @@ async function startAction(
   }
 
   if (info.hasSDLCConfig && info.sdlcConfig) {
-    console.log(`│  SDLC: v${info.sdlcConfig.framework?.version ?? "6.1.1"}`.padEnd(62) + "│");
+    console.log(`│  SDLC: v${info.sdlcConfig.framework?.version ?? "6.2.1"}`.padEnd(62) + "│");
   } else {
     console.log("│  SDLC: Not configured (run: endiorbot init)".padEnd(62) + "│");
   }

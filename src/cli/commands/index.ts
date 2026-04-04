@@ -42,4 +42,7 @@ export { registerBridgeCommand } from "./bridge.js";
 export { registerServeCommand } from "./serve.js";
 export { registerShellCommand } from "./shell.js";
 export { registerSprintCloseCommand } from "./sprint-close.js";
+export { registerBootstrapCommand } from "./bootstrap.js";
+export { registerPlanCommand } from "./plan.js";
+export { registerChatCommand } from "./chat.js";
 export { registerAllCommands } from "./register-all.js";

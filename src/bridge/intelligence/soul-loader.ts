@@ -29,18 +29,22 @@ import { isValidAgentRole, VALID_AGENT_ROLES } from "./envelope.js";
 export interface SoulLoadResult {
   /** true = content loaded from file, false = fallback used */
   loaded: boolean;
-  /** SOUL template content (body, frontmatter stripped) */
+  /** SOUL template content (body, frontmatter stripped), preamble prepended */
   content: string;
   /** true = inline fallback string used */
   fallback: boolean;
   /** Resolved agent role name */
   agentRole: AgentRole;
-  /** SHA256 hash of content */
+  /** SHA256 hash of content (after preamble prepend) */
   contentHash: string;
   /** Where the content was loaded from */
   source: "file" | "fallback-inline";
   /** File path if source === "file" */
   resolvedPath?: string;
+  /** SHA256 hash of preamble content (for version tracking) */
+  preambleHash?: string;
+  /** Whether this content is eligible for Anthropic prompt caching (ADR-040) */
+  cacheEligible: boolean;
 }
 
 // ============================================================================
@@ -89,6 +93,12 @@ export class SoulLoader {
   /** Logger for fallback events (injectable to avoid hard coupling) */
   private readonly logWarn: SoulLogFn;
 
+  /** Cached preamble content (loaded once) */
+  private preambleContent: string | undefined;
+
+  /** SHA256 hash of preamble content */
+  private preambleHash: string | undefined;
+
   constructor(options?: SoulLoaderOptions) {
     this.templatesRoot = options?.templatesRoot;
     this.logWarn = options?.logWarn ?? console.warn;
@@ -130,11 +140,12 @@ export class SoulLoader {
       return this.buildFallbackResult(validRole, true);
     }
 
-    // 4. Read file + strip YAML frontmatter
+    // 4. Read file + strip YAML frontmatter + prepend preamble
     if (existsSync(resolvedSoulPath)) {
       try {
         const rawContent = readFileSync(resolvedSoulPath, "utf-8");
-        const content = this.stripFrontmatter(rawContent);
+        const soulBody = this.stripFrontmatter(rawContent);
+        const content = this.prependPreamble(soulBody);
         const contentHash = this.computeHash(content);
 
         const result: SoulLoadResult = {
@@ -145,7 +156,11 @@ export class SoulLoader {
           contentHash,
           source: "file",
           resolvedPath: resolvedSoulPath,
+          cacheEligible: true, // File-loaded SOULs are cacheable (ADR-040)
         };
+        if (this.preambleHash) {
+          result.preambleHash = this.preambleHash;
+        }
 
         this.cache.set(validRole, result);
         return result;
@@ -167,6 +182,8 @@ export class SoulLoader {
   /** Clear the cache (for testing or manual reload) */
   clearCache(): void {
     this.cache.clear();
+    this.preambleContent = undefined;
+    this.preambleHash = undefined;
   }
 
   // ==========================================================================
@@ -187,13 +204,45 @@ export class SoulLoader {
     return createHash("sha256").update(content).digest("hex");
   }
 
+  /**
+   * Prepend shared preamble to SOUL content.
+   * Loads preamble from PREAMBLE.md on first call, caches for subsequent calls.
+   */
+  private prependPreamble(soulBody: string): string {
+    this.loadPreamble();
+    if (!this.preambleContent) return soulBody;
+    return `${this.preambleContent}\n\n${soulBody}`;
+  }
+
+  /** Load preamble file once and cache */
+  private loadPreamble(): void {
+    if (this.preambleContent !== undefined) return; // already loaded (or failed)
+
+    const soulsDir = join(this.getTemplatesRoot(), "souls");
+    const preamblePath = join(soulsDir, "PREAMBLE.md");
+
+    if (existsSync(preamblePath)) {
+      try {
+        this.preambleContent = readFileSync(preamblePath, "utf-8").trim();
+        this.preambleHash = this.computeHash(this.preambleContent);
+        return;
+      } catch {
+        // File read error → no preamble
+      }
+    }
+
+    // No preamble file → set empty string to avoid retrying
+    this.preambleContent = "";
+  }
+
   /** Build a fallback result from inline AGENT_SOULS */
   private buildFallbackResult(
     agentRole: AgentRole,
     shouldLog: boolean,
   ): SoulLoadResult {
-    const content =
+    const fallbackBody =
       AGENT_SOULS_FALLBACK[agentRole] ?? AGENT_SOULS_FALLBACK.assistant;
+    const content = this.prependPreamble(fallbackBody);
     const contentHash = this.computeHash(content);
 
     const result: SoulLoadResult = {
@@ -203,7 +252,11 @@ export class SoulLoader {
       agentRole,
       contentHash,
       source: "fallback-inline",
+      cacheEligible: false, // Fallback SOULs are not cacheable (ADR-040)
     };
+    if (this.preambleHash) {
+      result.preambleHash = this.preambleHash;
+    }
 
     if (shouldLog) {
       this.logWarn(

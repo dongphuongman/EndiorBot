@@ -109,6 +109,10 @@ When the project outgrows LITE tier:
 
 → Upgrade to STANDARD tier with specialized teams.
 
+## EndiorBot commands (LITE solo loop)
+
+**`endiorbot plan`**, **`endiorbot consult`**, **`endiorbot ops build` / `ops run`**, **`endiorbot bootstrap`**, **`endiorbot gate` / `compliance`**. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

@@ -661,7 +661,7 @@ class NotificationRateLimiter {
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
 | Create tests/e2e/budget-escalation.test.ts | P0 | E2E tests | ~300 |
-| Create docs/06-test/budget-test-scenarios.md | P1 | Test scenarios | ~150 |
+| Create docs/05-test/budget-test-scenarios.md | P1 | Test scenarios | ~150 |
 | Run full test suite | P0 | All tests pass | - |
 | Update CURRENT-SPRINT.md | P0 | Sprint 36 CLOSE | - |
 | G-Sprint-36 checklist | P0 | Sprint approved | - |
@@ -745,7 +745,7 @@ class NotificationRateLimiter {
 | `tests/e2e/budget-escalation.test.ts` | ~300 | E2E tests |
 | **Documentation** | | |
 | `docs/02-design/ADR-007-Autonomous-Execution-Budget.md` | ~400 | Budget model ADR |
-| `docs/06-test/budget-test-scenarios.md` | ~150 | Test scenarios |
+| `docs/05-test/budget-test-scenarios.md` | ~150 | Test scenarios |
 | **Total** | **~5,380** | |
 
 ---

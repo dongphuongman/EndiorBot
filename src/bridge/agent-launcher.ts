@@ -168,7 +168,7 @@ export class AgentLauncher {
     if (agentType === "claude-code") {
       try {
         const dummyPersona = { agentRole: (agentRole ?? "assistant") as import("./intelligence/envelope.js").AgentRole, soulContent: "", soulContentHash: "" };
-        const envelope = buildFullEnvelope(dummyPersona);
+        const envelope = await buildFullEnvelope(dummyPersona);
         const serialized = serializeEnvelopeForInjection(envelope);
 
         if (serialized) {

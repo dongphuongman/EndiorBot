@@ -21,6 +21,12 @@
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
+// Mock loadActiveProject to return undefined (no active project in test env)
+vi.mock('../../../src/config/paths.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../../src/config/paths.js')>();
+  return { ...original, loadActiveProject: () => undefined };
+});
+
 // Telegram commands
 import {
   handleAgentsCommand,

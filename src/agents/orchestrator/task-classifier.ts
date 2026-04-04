@@ -231,32 +231,37 @@ export class TaskClassifier {
   /**
    * Get recommended models for a task type.
    */
+  /**
+   * Recommended models for consultation tasks.
+   * Claude development is via Claude Code Bridge (OAuth) — not included here.
+   * OpenAI = primary expert, Gemini = critic (per ADR-001 amendment).
+   */
   getRecommendedModels(taskType: TaskType): ModelSelection[] {
     switch (taskType) {
       case "architecture":
         return [
-          { provider: "anthropic", model: "claude-opus-4", role: "primary" },
-          { provider: "openai", model: "gpt-4o", role: "expert" },
-          { provider: "google", model: "gemini-2.0-flash", role: "expert" },
+          { provider: "openai", model: "gpt-5.4", role: "primary" },
+          { provider: "google", model: "gemini-2.5-pro", role: "expert" },
         ];
       case "security":
         return [
-          { provider: "anthropic", model: "claude-opus-4", role: "primary" },
-          { provider: "openai", model: "gpt-4o", role: "expert" },
+          { provider: "openai", model: "gpt-5.4", role: "primary" },
+          { provider: "google", model: "gemini-2.5-pro", role: "expert" },
         ];
       case "code_gen":
       case "bug_fix":
+        // Coding normally via Claude Code Bridge; fallback to OpenAI for consultation
         return [
-          { provider: "anthropic", model: "claude-sonnet-4", role: "primary" },
+          { provider: "openai", model: "gpt-5.4", role: "primary" },
         ];
       case "research":
         return [
-          { provider: "google", model: "gemini-2.0-flash", role: "primary" },
-          { provider: "anthropic", model: "claude-opus-4", role: "expert" },
+          { provider: "google", model: "gemini-2.5-pro", role: "primary" },
+          { provider: "openai", model: "gpt-5.4", role: "expert" },
         ];
       default:
         return [
-          { provider: "anthropic", model: "claude-sonnet-4", role: "primary" },
+          { provider: "openai", model: "gpt-5.4", role: "primary" },
         ];
     }
   }

@@ -55,10 +55,10 @@ describe("buildContextEnvelope", () => {
   // Successful building
   // --------------------------------------------------------------------------
 
-  it("returns ContextEnvelope with all fields from active project", () => {
+  it("returns ContextEnvelope with all fields from active project", async () => {
     mockLoadActiveProject.mockReturnValue(createActiveProject());
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result).not.toBeNull();
     expect(result!.sprintName).toBe("EndiorBot Sprint 87");
@@ -66,10 +66,10 @@ describe("buildContextEnvelope", () => {
     expect(result!.projectPath).toBe("/Users/test/project");
   });
 
-  it("formats content with header and footer markers", () => {
+  it("formats content with header and footer markers", async () => {
     mockLoadActiveProject.mockReturnValue(createActiveProject());
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result!.content).toContain("[Session Context]");
     expect(result!.content).toContain("[End Session Context]");
@@ -78,10 +78,10 @@ describe("buildContextEnvelope", () => {
     expect(result!.content).toContain("Project: /Users/test/project");
   });
 
-  it("computes SHA256 hash of content", () => {
+  it("computes SHA256 hash of content", async () => {
     mockLoadActiveProject.mockReturnValue(createActiveProject());
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     const expectedHash = createHash("sha256")
       .update(result!.content)
@@ -90,23 +90,23 @@ describe("buildContextEnvelope", () => {
     expect(result!.contentHash).toHaveLength(64);
   });
 
-  it("maps tier from active project", () => {
+  it("maps tier from active project", async () => {
     mockLoadActiveProject.mockReturnValue(
       createActiveProject({ tier: "ENTERPRISE" }),
     );
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result!.tier).toBe("ENTERPRISE");
     expect(result!.content).toContain("Tier: ENTERPRISE");
   });
 
-  it("maps sprint name from active project name", () => {
+  it("maps sprint name from active project name", async () => {
     mockLoadActiveProject.mockReturnValue(
       createActiveProject({ name: "My Custom Project" }),
     );
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result!.sprintName).toBe("My Custom Project");
     expect(result!.content).toContain("Sprint: My Custom Project");
@@ -116,18 +116,18 @@ describe("buildContextEnvelope", () => {
   // Null returns
   // --------------------------------------------------------------------------
 
-  it("returns null when no active project", () => {
+  it("returns null when no active project", async () => {
     mockLoadActiveProject.mockReturnValue(undefined);
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result).toBeNull();
   });
 
-  it("returns null when loadActiveProject returns null", () => {
+  it("returns null when loadActiveProject returns null", async () => {
     mockLoadActiveProject.mockReturnValue(null);
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result).toBeNull();
   });
@@ -136,7 +136,7 @@ describe("buildContextEnvelope", () => {
   // Token budget
   // --------------------------------------------------------------------------
 
-  it("caps content at CONTEXT_TOKEN_BUDGET * 4 chars", () => {
+  it("caps content at CONTEXT_TOKEN_BUDGET * 4 chars", async () => {
     mockLoadActiveProject.mockReturnValue(
       createActiveProject({
         name: "x".repeat(10000),
@@ -144,7 +144,7 @@ describe("buildContextEnvelope", () => {
       }),
     );
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result).not.toBeNull();
     expect(result!.content.length).toBeLessThanOrEqual(CONTEXT_TOKEN_BUDGET * 4);
@@ -154,12 +154,12 @@ describe("buildContextEnvelope", () => {
   // Error handling
   // --------------------------------------------------------------------------
 
-  it("returns null when loadActiveProject throws", () => {
+  it("returns null when loadActiveProject throws", async () => {
     mockLoadActiveProject.mockImplementation(() => {
       throw new Error("File system error");
     });
 
-    const result = buildContextEnvelope();
+    const result = await buildContextEnvelope();
 
     expect(result).toBeNull();
   });
@@ -168,7 +168,7 @@ describe("buildContextEnvelope", () => {
   // Constants
   // --------------------------------------------------------------------------
 
-  it("exports CONTEXT_TOKEN_BUDGET as 2048", () => {
+  it("exports CONTEXT_TOKEN_BUDGET as 2048", async () => {
     expect(CONTEXT_TOKEN_BUDGET).toBe(2048);
   });
 });

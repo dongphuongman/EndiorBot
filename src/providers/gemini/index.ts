@@ -592,8 +592,17 @@ export class GeminiProvider extends BaseProvider {
     // System instruction (handled separately in Gemini)
     const systemMessage = request.messages.find((m) => m.role === "system");
     if (systemMessage) {
+      // ADR-040: Flatten SystemBlock[] to string for Gemini (no cache_control support)
+      let systemText: string;
+      if (typeof systemMessage.content === "string") {
+        systemText = systemMessage.content;
+      } else if (Array.isArray(systemMessage.content) && systemMessage.content.length > 0 && typeof systemMessage.content[0] === "object" && systemMessage.content[0] !== null && "text" in systemMessage.content[0]) {
+        systemText = (systemMessage.content as Array<{ text: string }>).map((b) => b.text).join("\n");
+      } else {
+        systemText = "";
+      }
       body.systemInstruction = {
-        parts: [{ text: typeof systemMessage.content === "string" ? systemMessage.content : "" }],
+        parts: [{ text: systemText }],
       };
     }
 

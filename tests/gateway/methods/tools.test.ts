@@ -25,7 +25,7 @@ import {
   type ToolsDryRunResult,
 } from '../../../src/gateway/index.js';
 
-const getTestPort = () => 18700 + Math.floor(Math.random() * 100);
+const getTestPort = () => 19100 + Math.floor(Math.random() * 900);
 const validPrincipalId = '550e8400-e29b-41d4-a716-446655440000';
 
 describe('Gateway Tools Methods', () => {

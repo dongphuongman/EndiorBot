@@ -32,7 +32,7 @@ export function generateClaudeMd(project: ProjectConfig, snapshot?: ProjectSnaps
 ${project.description || `${project.name} project managed with EndiorBot SDLC Framework.`}
 
 **Tier:** ${project.tier}
-**Framework:** SDLC 6.2.0
+**Framework:** SDLC ${project.frameworkVersion}
 
 ---
 

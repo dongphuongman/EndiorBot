@@ -232,7 +232,7 @@ From Telegram, send messages to `@Endior_bot`:
 From Zalo, send messages to `Bot Endior`:
 
 ```
-[@pm: lập kế hoạch tích hợp thanh toán]
+[@pm: plan payment integration]
 [@coder: fix bug authentication]
 ```
 

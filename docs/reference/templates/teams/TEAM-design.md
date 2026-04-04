@@ -87,6 +87,10 @@ Key docs:
 Ready for implementation.]
 ```
 
+## EndiorBot commands (team context)
+
+**`endiorbot plan`** drafts tasks from requirements context; **`endiorbot consult`** for design trade-offs when CEO requests. **`endiorbot gate` / `compliance`** for G2 readiness. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

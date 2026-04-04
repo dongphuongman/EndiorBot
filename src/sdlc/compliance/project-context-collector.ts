@@ -25,6 +25,7 @@ import type {
   TechStackInfo,
   TestFileInfo,
 } from "./fix-types.js";
+import { detectEcosystem } from "../../cli/commands/ecosystem-detector.js";
 
 // ============================================================================
 // Public API
@@ -95,37 +96,18 @@ function readPackageJson(projectPath: string): PackageJsonInfo {
 }
 
 function detectTechStack(projectPath: string): TechStackInfo {
+  // Use shared ecosystem detection (CTO C1: SSOT)
+  const eco = detectEcosystem(projectPath);
   const pkg = readPackageJson(projectPath);
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-  // Detect language
   const hasTypeScript = existsSync(join(projectPath, "tsconfig.json"));
-  const language = hasTypeScript ? "TypeScript" : "JavaScript";
-
-  // Detect framework
-  let framework: string | undefined;
-  if (allDeps["next"]) framework = "Next.js";
-  else if (allDeps["express"]) framework = "Express";
-  else if (allDeps["fastify"]) framework = "Fastify";
-  else if (allDeps["react"]) framework = "React";
-  else if (allDeps["vue"]) {
-    const parts = ["Vue"];
-    if (allDeps["vite"] || allDeps["@vitejs/plugin-vue"]) parts.push("Vite");
-    framework = parts.join("/");
-  }
-
-  // Detect package manager
-  let packageManager: string | undefined;
-  if (existsSync(join(projectPath, "pnpm-lock.yaml"))) packageManager = "pnpm";
-  else if (existsSync(join(projectPath, "yarn.lock"))) packageManager = "yarn";
-  else if (existsSync(join(projectPath, "bun.lockb"))
-        || existsSync(join(projectPath, "bun.lock"))) packageManager = "bun";
-  else if (existsSync(join(projectPath, "package-lock.json"))) packageManager = "npm";
 
   // Detect Docker
   const hasDocker = existsSync(join(projectPath, "Dockerfile"))
     || existsSync(join(projectPath, "docker-compose.yml"))
-    || existsSync(join(projectPath, "docker-compose.yaml"));
+    || existsSync(join(projectPath, "docker-compose.yaml"))
+    || existsSync(join(projectPath, "compose.yml"));
 
   // Detect CI
   const hasCI = existsSync(join(projectPath, ".github", "workflows"))
@@ -133,7 +115,7 @@ function detectTechStack(projectPath: string): TechStackInfo {
     || existsSync(join(projectPath, ".circleci"));
 
   const info: TechStackInfo = {
-    language,
+    language: eco.language,
     hasTypeScript,
     hasDocker,
     hasCI,
@@ -142,12 +124,26 @@ function detectTechStack(projectPath: string): TechStackInfo {
     scripts: pkg.scripts,
   };
 
-  if (framework) info.framework = framework;
-  if (packageManager) info.packageManager = packageManager;
+  if (eco.packageManager) info.packageManager = eco.packageManager;
 
-  // Detect desktop runtime (Tauri)
-  if (allDeps["@tauri-apps/api"] || allDeps["@tauri-apps/cli"]) {
-    info.desktop = "Tauri 2";
+  // Node.js framework enrichment (only when ecosystem is node)
+  if (eco.ecosystem === "node") {
+    let framework: string | undefined;
+    if (allDeps["next"]) framework = "Next.js";
+    else if (allDeps["express"]) framework = "Express";
+    else if (allDeps["fastify"]) framework = "Fastify";
+    else if (allDeps["react"]) framework = "React";
+    else if (allDeps["vue"]) {
+      const parts = ["Vue"];
+      if (allDeps["vite"] || allDeps["@vitejs/plugin-vue"]) parts.push("Vite");
+      framework = parts.join("/");
+    }
+    if (framework) info.framework = framework;
+
+    // Detect desktop runtime (Tauri)
+    if (allDeps["@tauri-apps/api"] || allDeps["@tauri-apps/cli"]) {
+      info.desktop = "Tauri 2";
+    }
   }
 
   return info;

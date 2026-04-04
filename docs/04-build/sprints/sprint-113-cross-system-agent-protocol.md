@@ -4,27 +4,27 @@
 **Sprint Goal**: Enable EndiorBot agents to communicate with MTClaw agents via MCP protocol. `@mtclaw.*` mentions route through native MCP client to MTClaw's enterprise gateway.
 **Status**: ✅ COMPLETE
 **Priority**: P0
-**Framework**: SDLC 6.2.0
+**Framework**: SDLC 6.2.1
 **Authority**: CPO APPROVED WITH CONDITIONS + CTO 8.5/10 APPROVED WITH CONDITIONS
-**Previous Sprint**: Sprint 112 ✅ COMPLETE — SDLC 6.2.0 Alignment
+**Previous Sprint**: Sprint 112 ✅ COMPLETE — SDLC 6.2.1 Alignment
 **ADR**: ADR-034-CrossSystem-Agent-Protocol
 
 ---
 
 ## Background
 
-CEO yêu cầu: "agent của EndiorBot có thể nói chuyện được với agent của MTClaw".
+CEO requirement: EndiorBot agents must be able to **talk to MTClaw agents**.
 
-MTClaw (Go) đã production-ready (Sprint 50-59):
-- MCP server `/mcp` active với Bearer token + X-Tenant-ID auth
-- `agent_chat` tool: gọi bất kỳ SOUL agent nào (sync, max 120s)
-- `knowledge_search` tool: RAG search SOPs/docs
-- `platform_call` tool: proxy BFlow ERP (read-only)
+MTClaw (Go) is production-ready (Sprint 50–59):
+- MCP server `/mcp` active with Bearer token + `X-Tenant-ID` auth
+- `agent_chat` tool: call any SOUL agent (sync, max 120s)
+- `knowledge_search` tool: RAG search over SOPs/docs
+- `platform_call` tool: BFlow ERP proxy (read-only)
 - Per-user API keys + scopes (Sprint 57)
 
-EndiorBot agents spawn process riêng (CC, Ollama, Cloud API) — không inherit `.mcp.json`. Cần native MCP client trong agent pipeline.
+EndiorBot agents spawn separate processes (CC, Ollama, Cloud API) — they do not inherit `.mcp.json`. A native MCP client is required in the agent pipeline.
 
-**Decision**: MCP-only protocol — `agent_chat` tool thay thế REST client.
+**Decision**: MCP-only protocol — `agent_chat` replaces a bespoke REST client.
 
 ---
 
@@ -153,7 +153,7 @@ All tests mock HTTP — no real MTClaw dependency.
 - [ ] `pnpm test tests/mtclaw/` — all pass (mock HTTP)
 - [ ] `pnpm test` — no regressions
 - [ ] Manual: `@mtclaw.datasource "SHOW DATABASES"` → database list via web
-- [ ] Manual: `@mtclaw.researcher "tìm SOP"` → MTClaw researcher responds
+- [ ] Manual: `@mtclaw.researcher "find SOP"` → MTClaw researcher responds
 - [ ] Degradation: MTClaw down → local agents unaffected
 
 ---

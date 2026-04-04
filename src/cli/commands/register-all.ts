@@ -46,6 +46,9 @@ import {
   registerBridgeCommand,
   registerServeCommand,
   registerSprintCloseCommand,
+  registerBootstrapCommand,
+  registerPlanCommand,
+  registerChatCommand,
 } from "./index.js";
 
 /**
@@ -84,4 +87,7 @@ export function registerAllCommands(program: Command): void {
   registerBridgeCommand(program);
   registerServeCommand(program);
   registerSprintCloseCommand(program);
+  registerBootstrapCommand(program);
+  registerPlanCommand(program);
+  registerChatCommand(program);
 }

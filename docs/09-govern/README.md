@@ -1,15 +1,40 @@
-# Stage 09: Continuous Improvement
+# 09-govern — Govern & improve
 
-**SDLC Stage**: 09-IMPROVE (GOVERN)
-**Purpose**: RFCs, retrospectives, process improvements, lessons learned
+## Purpose
 
-## Contents
+**Key question:** **IMPROVE** the system and the process — RFCs, retrospectives, lessons learned, and framework updates without losing CEO vision or gate discipline?
 
-*Content pending. This stage will include:*
-- RFCs (Request for Comments)
-- Sprint retrospectives
-- Process improvements
-- Lessons learned
+Governance **informs the next cycle** starting at [`../00-foundation/`](../00-foundation/) (vision/problem) and [`../01-planning/`](../01-planning/) (backlog).
 
 ---
-*SDLC Framework 6.2.0*
+
+## Alignment
+
+- **Upstream:** Outcomes from [`../04-build/`](../04-build/) (sprints), [`../05-test/`](../05-test/), [`../07-operate/`](../07-operate/) (incidents), [`../08-collaborate/`](../08-collaborate/) (handover)  
+- **Downstream:** [`../01-planning/`](../01-planning/) (prioritized change), [`../02-design/01-ADRs/`](../02-design/01-ADRs/) (decision records)  
+- **Spine:** [`../00-foundation/stage-command-workflow-spine.md`](../00-foundation/stage-command-workflow-spine.md)  
+- **Stage index:** [`../README.md`](../README.md)
+
+---
+
+## EndiorBot command hints (this stage)
+
+| Type | Examples |
+|------|----------|
+| **Atomic** | `compliance check` — posture drift; `gate status` — framework alignment; `analytics` — trend input for retros. |
+| **Workflow** | Sprint retro → RFC draft → ADR when behavior changes; keep `product-vision.md` and spine updated in the same PR when strategy shifts. |
+
+Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.md).
+
+---
+
+## Stage artifacts (living)
+
+| Artifact | Location | Owner |
+|----------|----------|-------|
+| RFCs / retros | Populate under `docs/09-govern/` | @cpo + @ceo |
+| Process improvements | Link to ADRs in `docs/02-design/01-ADRs/` | @cto |
+
+---
+
+*EndiorBot | SDLC Framework **6.2.1** — Stage 09: Govern & improve*

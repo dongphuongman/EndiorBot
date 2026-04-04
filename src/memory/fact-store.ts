@@ -99,6 +99,19 @@ export class FactStore {
   }
 
   /**
+   * Replace all facts (used after TTL eviction + max-facts enforcement).
+   * Rebuilds indices from scratch.
+   */
+  replaceAll(facts: StructuredFact[]): void {
+    this.facts = [];
+    this.byEntity = new Map();
+    this.byRelation = new Map();
+    for (const fact of facts) {
+      this.indexFact(fact);
+    }
+  }
+
+  /**
    * Query facts by filter.
    * Returns current facts only (validUntil not set) by default.
    */

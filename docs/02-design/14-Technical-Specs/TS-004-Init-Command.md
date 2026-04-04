@@ -32,8 +32,8 @@ The `endiorbot init` command initializes a project with SDLC Framework structure
 ### 1.2 Identity
 
 ```
-EndiorBot là công cụ để CEO dùng SDLC Framework quản trị được các AI codex
-(tập trung Claude Code) cho các dự án mà chính CEO chịu trách nhiệm.
+EndiorBot is the CEO's tool to govern AI coding assistants (especially Claude Code)
+under the SDLC Framework for projects the CEO owns.
 
 NOT: Platform, SDLC enforcer, blocker
 IS: CEO Power Tool, fast (<30s), auto-healing

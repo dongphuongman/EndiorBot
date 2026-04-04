@@ -60,6 +60,7 @@ export class BudgetError extends EndiorBotError {
       sessionId?: string;
       cause?: Error;
       metadata?: Record<string, unknown>;
+      agentGuidance?: string;
     }
   ) {
     const percentUsed =
@@ -88,6 +89,7 @@ export class BudgetError extends EndiorBotError {
       severity: getSeverity(options.code),
       metadata,
       ...(options.cause ? { cause: options.cause } : {}),
+      ...(options.agentGuidance ? { agentGuidance: options.agentGuidance } : {}),
     });
 
     this.name = "BudgetError";
@@ -167,7 +169,7 @@ export function budgetExceededError(
   }
   return new BudgetError(
     `Token budget exceeded: ${currentTokens.toLocaleString()} / ${limit.toLocaleString()} tokens`,
-    options
+    { ...options, agentGuidance: "Switch to sonnet model or use /cost to check budget. Request CEO approval to extend." }
   );
 }
 
@@ -187,6 +189,7 @@ export function budgetThresholdWarning(
       currentTokens,
       limit,
       metadata: { thresholdPercent },
+      agentGuidance: "Budget is running low. Prefer sonnet over opus and keep responses concise.",
     }
   );
 }
@@ -214,7 +217,7 @@ export function approvalRequiredError(
   }
   return new BudgetError(
     "Token budget would be exceeded. Approval required to continue.",
-    options
+    { ...options, agentGuidance: "Pause and request CEO approval to extend budget before continuing." }
   );
 }
 
@@ -231,7 +234,7 @@ export function approvalDeniedError(sessionId?: string): BudgetError {
   if (sessionId !== undefined) {
     options.sessionId = sessionId;
   }
-  return new BudgetError("Budget extension was denied", options);
+  return new BudgetError("Budget extension was denied", { ...options, agentGuidance: "Budget denied. Complete current task with remaining tokens or close the session." });
 }
 
 // ============================================================================

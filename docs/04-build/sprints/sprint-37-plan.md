@@ -640,7 +640,7 @@ View escalation: endiorbot queue
 | Task | Priority | Deliverable | Est. LOC |
 |------|----------|-------------|----------|
 | Create tests/e2e/self-correction.test.ts | P0 | E2E tests | ~400 |
-| Create docs/06-test/self-correction-scenarios.md | P1 | Test scenarios | ~200 |
+| Create docs/05-test/self-correction-scenarios.md | P1 | Test scenarios | ~200 |
 | Run full test suite | P0 | All tests pass | - |
 | Update CURRENT-SPRINT.md | P0 | Sprint 37 CLOSE | - |
 | G-Sprint-37 checklist | P0 | Sprint approved | - |
@@ -723,7 +723,7 @@ View escalation: endiorbot queue
 | `tests/e2e/self-correction.test.ts` | ~400 | E2E tests |
 | **Documentation** | | |
 | `docs/02-design/ADR-008-Self-Correction-Architecture.md` | ~400 | Self-correction ADR |
-| `docs/06-test/self-correction-scenarios.md` | ~200 | Test scenarios |
+| `docs/05-test/self-correction-scenarios.md` | ~200 | Test scenarios |
 | **Total** | **~5,950** | |
 
 ---

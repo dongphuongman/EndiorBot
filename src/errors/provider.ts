@@ -62,6 +62,7 @@ export class ProviderError extends EndiorBotError {
       model?: string;
       cause?: Error;
       metadata?: Record<string, unknown>;
+      agentGuidance?: string;
     }
   ) {
     const retryable = options.retryable ?? getDefaultRetryable(options.code);
@@ -85,6 +86,7 @@ export class ProviderError extends EndiorBotError {
       severity,
       metadata,
       ...(options.cause ? { cause: options.cause } : {}),
+      ...(options.agentGuidance ? { agentGuidance: options.agentGuidance } : {}),
     });
 
     this.name = "ProviderError";
@@ -211,7 +213,7 @@ export function rateLimitError(
   }
   return new ProviderError(
     `Rate limited by ${providerId}${options?.retryAfter ? ` (retry after ${options.retryAfter}s)` : ""}`,
-    errOptions
+    { ...errOptions, agentGuidance: "Wait and retry automatically. Fallback providers are auto-selected." }
   );
 }
 
@@ -228,6 +230,7 @@ export function authError(
       providerId,
       code: "PROVIDER_AUTH_FAILED",
       retryable: false,
+      agentGuidance: "Check API key configuration in .env. Verify the key is valid and not expired.",
     }
   );
 }
@@ -257,7 +260,7 @@ export function timeoutError(
   }
   return new ProviderError(
     `Request to ${providerId} timed out after ${timeoutMs}ms`,
-    options
+    { ...options, agentGuidance: "Retry with a shorter prompt or switch to a faster model." }
   );
 }
 
@@ -287,7 +290,7 @@ export function contextTooLongError(
   }
   return new ProviderError(
     `Context too long for ${providerId}: ${tokenCount} tokens exceeds limit of ${maxTokens}`,
-    options
+    { ...options, agentGuidance: "Reduce context by summarizing conversation history or splitting the task." }
   );
 }
 

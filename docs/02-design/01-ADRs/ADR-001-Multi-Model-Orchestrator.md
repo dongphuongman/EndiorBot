@@ -68,13 +68,38 @@ CEO spends 30-60 min per decision copying/pasting between AI apps. EndiorBot red
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Provider Roles (3 Models)
+### Provider Roles (2 Loops)
+
+**Development Loop** (execution — Claude Code Bridge, OAuth, NO API key):
+
+| Provider | Access | Role | Use Case |
+|----------|--------|------|----------|
+| **Claude** | Claude Code Bridge (OAuth) | Executor | Coding, documentation, SDLC gates |
+
+**Consultation Loop** (expert panel — API keys required):
 
 | Provider | Default Model | Role | Use Case |
 |----------|---------------|------|----------|
-| **Anthropic** | Claude (via Claude Code) | Primary | Coding, documentation, SDLC |
-| **OpenAI** | o3-mini (configurable) | Critique | Deep reasoning, design critique |
-| **Google** | gemini-2.0-flash-thinking (configurable) | Critique | Reasoning, latest trends |
+| **OpenAI** | gpt-4o (configurable) | Expert / Primary | Deep reasoning, design critique, SE4H advisory |
+| **Google** | gemini-2.0-flash-thinking (configurable) | Expert / Critic | Reasoning, latest trends, research |
+
+**Provider Priority Chain** (CEO directive — check key availability before calling):
+
+```
+1. Claude Code Bridge (OAuth subscription) — development, always available
+2. OpenAI API (OPENAI_API_KEY in .env) — consultation primary expert
+3. Gemini API (GOOGLE_API_KEY in .env) — consultation critic / research
+4. Anthropic API (ANTHROPIC_API_KEY in .env) — optional backup, future use
+5. AI-Platform (ENDIORBOT_AI_PLATFORM_URL in .env) — last fallback (company internal)
+```
+
+**Key principles:**
+- Claude Code uses OAuth (subscription) — NO API key needed
+- `consult` uses OpenAI + Gemini (API keys) for expert opinions
+- Anthropic API key is optional backup, not primary
+- AI-Platform is last fallback (company internal, always available)
+- All fallback endpoints configurable via `.env` — community users set their own
+- System MUST check key existence before attempting provider call
 
 **Model Selection**: CEO can select latest models via config or CLI flag:
 ```bash
@@ -94,37 +119,32 @@ endiorbot consult --openai-model o3 --gemini-model gemini-2.5-pro "design questi
 - **o3-mini/o3/o1**: OpenAI's reasoning models - excel at multi-step analysis, finding edge cases, and challenging assumptions
 - **gemini-2.0-flash-thinking/gemini-2.5-pro**: Google's reasoning models - combine speed with deep thinking for architecture critique
 
-### Task Routing
+### Task Routing (`consult` command — uses API providers only)
 
 | Task Type | Primary | Critics | Rationale |
 |-----------|---------|---------|-----------|
-| **Coding** | Claude | - | Claude Code is primary dev tool |
-| **Documentation** | Claude | - | Consistent with coding |
-| **Architecture** | Claude | OpenAI + Gemini | Need diverse perspectives |
-| **Research** | Gemini | OpenAI + Claude | Gemini has latest data |
-| **Security Review** | Claude | OpenAI | Cross-validation critical |
-| **SDLC Gate** | Claude | - | Framework knowledge |
+| **Architecture** | OpenAI | Gemini | Need diverse perspectives for design |
+| **Research** | Gemini | OpenAI | Gemini has latest data |
+| **Security Review** | OpenAI | Gemini | Cross-validation critical |
+| **General consultation** | OpenAI | Gemini | Default expert panel |
+
+**Note:** Coding, documentation, SDLC gates are handled by Claude Code Bridge (development loop), NOT by the `consult` command.
 
 ### Core Interfaces (MVP)
 
 ```typescript
-// 3-Model Config (MVP)
-interface ThreeModelConfig {
+// Consultation Config (2-Model Expert Panel)
+interface ConsultationConfig {
   primary: {
-    provider: 'anthropic';
-    model: string;  // claude-sonnet-4 or claude-opus-4 for architecture
-    role: 'coding_and_docs';
+    provider: 'openai';
+    model: string;  // CEO selects: gpt-4o, o3, o3-mini, o1
+    role: 'expert_primary';
   };
   critics: [
     {
-      provider: 'openai';
-      model: string;  // CEO选latest: o3-mini, o3, o1, gpt-4o
-      role: 'research_critique';
-    },
-    {
       provider: 'google';
-      model: string;  // CEO选latest: gemini-2.0-flash-thinking, gemini-2.5-pro
-      role: 'research_critique';
+      model: string;  // CEO selects: gemini-2.0-flash-thinking, gemini-2.5-pro
+      role: 'expert_critic';
     }
   ];
 

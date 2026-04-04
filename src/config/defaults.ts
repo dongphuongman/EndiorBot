@@ -159,7 +159,7 @@ export function getTierDefaults(tier: ProjectTier): TierDefaults {
           expertModelWeight: 1.0,
         },
         sdlc: {
-          frameworkVersion: "6.2.0",
+          frameworkVersion: "6.2.1",
           docsRoot: "docs",
           tier: "LITE",
           strict: false,
@@ -173,7 +173,7 @@ export function getTierDefaults(tier: ProjectTier): TierDefaults {
     case "STANDARD":
       return {
         sdlc: {
-          frameworkVersion: "6.2.0",
+          frameworkVersion: "6.2.1",
           docsRoot: "docs",
           tier: "STANDARD",
           strict: true,
@@ -206,7 +206,7 @@ export function getTierDefaults(tier: ProjectTier): TierDefaults {
           expertModelWeight: 1.0,
         },
         sdlc: {
-          frameworkVersion: "6.2.0",
+          frameworkVersion: "6.2.1",
           docsRoot: "docs",
           tier: "PROFESSIONAL",
           strict: true,
@@ -239,7 +239,7 @@ export function getTierDefaults(tier: ProjectTier): TierDefaults {
           expertModelWeight: 1.0,
         },
         sdlc: {
-          frameworkVersion: "6.2.0",
+          frameworkVersion: "6.2.1",
           docsRoot: "docs",
           tier: "ENTERPRISE",
           strict: true,

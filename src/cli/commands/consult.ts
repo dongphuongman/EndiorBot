@@ -10,8 +10,8 @@
  *   endiorbot consult --full "should we use Redis or PostgreSQL?"
  *
  * Model Selection (same as chatgpt.com/gemini.com):
- *   --openai <model>  - OpenAI model: o3, o3-mini, o1, o1-mini, gpt-4o
- *   --gemini <model>  - Gemini model: gemini-2.5-pro, gemini-2.0-flash-thinking
+ *   --openai <model>  - OpenAI model: gpt-5.4, o3, o3-mini, o1, gpt-4o
+ *   --gemini <model>  - Gemini model: gemini-2.5-pro, gemini-2.5-flash
  *
  * @module cli/commands/consult
  * @version 2.0.0
@@ -23,6 +23,7 @@
  * @sdlc SDLC Framework 6.2.0
  */
 
+import { createInterface } from "node:readline";
 import type { Command } from "commander";
 import {
   getOrchestrator,
@@ -42,21 +43,21 @@ import { getClaudeCodeBridge } from "../../agents/invoke/claude-code-bridge.js";
 
 /**
  * Available models for CEO selection.
- * Same experience as chatgpt.com/gemini.com.
+ * Always use the latest and most capable models — CEO Power Tool demands top-tier.
  */
 export const AVAILABLE_MODELS = {
-  openai: ["o3", "o3-mini", "o1", "o1-mini", "gpt-4o", "gpt-4o-mini"],
-  gemini: ["gemini-2.5-pro", "gemini-2.0-flash-thinking", "gemini-1.5-pro", "gemini-2.0-flash"],
+  openai: ["gpt-5.4", "o3", "o3-mini", "o1", "gpt-4o", "gpt-4o-mini"],
+  gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash-thinking", "gemini-2.0-flash"],
   anthropic: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4"],
 } as const;
 
 /**
- * Default models (per ADR-001).
- * Note: o3-mini requires special API access, using gpt-4o as default.
+ * Default models — latest and most capable from each provider.
+ * CEO consultation demands top-tier reasoning, not budget models.
  */
 const DEFAULT_MODELS = {
-  openai: "gpt-4o",
-  gemini: "gemini-2.0-flash-thinking",
+  openai: "gpt-5.4",
+  gemini: "gemini-2.5-pro",
 } as const;
 
 // ============================================================================
@@ -328,17 +329,15 @@ async function consultAction(
     }
   }
 
-  // Show selected models
-  const claudeModel = options.claude ?? "claude-sonnet-4";
+  // Show selected models (OpenAI + Gemini expert panel)
   const openaiModel = options.openai ?? DEFAULT_MODELS.openai;
   const geminiModel = options.gemini ?? DEFAULT_MODELS.gemini;
-  const primaryProvider = options.primary ?? "claude";
+  const primaryProvider = options.primary ?? "openai";
 
-  // Display with correct primary indicator
-  const claudeLabel = primaryProvider === "claude" ? `${claudeModel} (Primary)` : claudeModel;
+  // Display with correct primary indicator (OpenAI default, Gemini critic)
   const openaiLabel = primaryProvider === "openai" ? `${openaiModel} (Primary)` : openaiModel;
   const geminiLabel = primaryProvider === "gemini" ? `${geminiModel} (Primary)` : geminiModel;
-  console.log(`   ${claudeLabel} + ${openaiLabel} + ${geminiLabel}`);
+  console.log(`   ${openaiLabel} + ${geminiLabel}`);
   console.log("");
 
   try {
@@ -375,11 +374,15 @@ async function consultAction(
     // Display using new format for ChatHandler response
     displayChatResponse(response, options.verbose ?? false);
 
-    // Show next actions
-    console.log("📋 Actions:");
-    console.log("   [A] Approve recommendation");
-    console.log("   [D] Discuss further");
-    console.log("   [R] Re-consult with different query");
+    // Interactive action prompt
+    const action = await promptAction();
+    if (action === "d") {
+      console.log("\nℹ️  Use: endiorbot consult --full \"<follow-up question>\" to discuss further.");
+    } else if (action === "r") {
+      console.log("\nℹ️  Use: endiorbot consult \"<new question>\" to re-consult.");
+    } else {
+      console.log("\n✅ Recommendation noted.");
+    }
     console.log("");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -400,60 +403,64 @@ async function consultAction(
 }
 
 /**
+ * Prompt user for action after consultation.
+ */
+function promptAction(): Promise<string> {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    rl.question("📋 Action — [A]pprove / [D]iscuss / [R]e-consult (default: A): ", (answer) => {
+      rl.close();
+      resolve((answer || "a").trim().toLowerCase());
+    });
+  });
+}
+
+/**
  * Display ChatHandler response in CLI format.
+ * Full response printed outside box (not truncated).
  */
 function displayChatResponse(
   response: Awaited<ReturnType<ReturnType<typeof getChatHandler>["consult"]>>,
-  verbose: boolean,
+  _verbose: boolean,
 ): void {
+  const agreementEmoji: Record<string, string> = {
+    full: "✅",
+    partial: "⚠️",
+    divergent: "🔀",
+  };
+
+  // Compact header box (metadata only)
   console.log("");
   console.log("┌─────────────────────────────────────────────────────────────┐");
-  console.log(`│  🤖 3-Model Consultation (Sprint 54 MVP)                    │`);
+  console.log("│  🤖 Expert Consultation                                     │");
   console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(`│  Primary: ${response.model.padEnd(49)}│`);
   console.log(`│  Provider: ${response.provider.padEnd(48)}│`);
-
   if (response.agreement) {
-    const agreementEmoji: Record<string, string> = {
-      full: "✅",
-      partial: "⚠️",
-      divergent: "🔀",
-    };
     console.log(
-      `│  Agreement: ${agreementEmoji[response.agreement]} ${response.agreement.padEnd(45)}│`,
+      `│  Agreement: ${agreementEmoji[response.agreement] ?? ""} ${response.agreement.padEnd(45)}│`,
     );
   }
-
-  console.log("├─────────────────────────────────────────────────────────────┤");
-
-  // Show primary response
-  console.log("│  📝 Response:".padEnd(62) + "│");
-  const lines = response.text.split("\n").slice(0, verbose ? 20 : 5);
-  for (const line of lines) {
-    const truncated = line.slice(0, 55);
-    console.log(`│     ${truncated.padEnd(55)}│`);
-  }
-  if (lines.length < response.text.split("\n").length) {
-    console.log(`│     ...`.padEnd(62) + "│");
-  }
-
-  // Show notes/critiques if available
-  if (response.notes) {
-    console.log("├─────────────────────────────────────────────────────────────┤");
-    console.log("│  📋 Alternative Views:".padEnd(62) + "│");
-    const noteLines = response.notes.split("\n").slice(0, 5);
-    for (const line of noteLines) {
-      const truncated = line.slice(0, 55);
-      console.log(`│     ${truncated.padEnd(55)}│`);
-    }
-  }
-
-  // Show token usage
-  console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(
-    `│  📊 Tokens: ${response.tokenUsage.input} in / ${response.tokenUsage.output} out (budget: ${response.tokenUsage.budget})`.padEnd(62) + "│",
+    `│  Tokens: ${response.tokenUsage.input} in / ${response.tokenUsage.output} out (budget: ${response.tokenUsage.budget})`.padEnd(62) + "│",
   );
   console.log("└─────────────────────────────────────────────────────────────┘");
+
+  // Full response — NOT truncated
+  console.log("");
+  console.log("📝 Response:");
+  console.log("─".repeat(60));
+  console.log(response.text);
+  console.log("─".repeat(60));
+
+  // Alternative views — full content
+  if (response.notes) {
+    console.log("");
+    console.log("📋 Alternative Views:");
+    console.log("─".repeat(60));
+    console.log(response.notes);
+    console.log("─".repeat(60));
+  }
   console.log("");
 }
 
@@ -497,20 +504,19 @@ function displayClaudeCodeResponse(
 /**
  * Register consult command.
  *
- * Per ADR-001 3-Model Consultation:
- * - Claude (Primary) for coding/docs
- * - OpenAI (Critique) - CEO can select: o3, o3-mini, o1, gpt-4o
- * - Gemini (Critique) - CEO can select: gemini-2.5-pro, gemini-2.0-flash-thinking
+ * Per ADR-001 Consultation (amended):
+ * - OpenAI (Primary expert) - CEO can select: o3, o3-mini, o1, gpt-4o
+ * - Gemini (Critic) - CEO can select: gemini-2.5-pro, gemini-2.0-flash-thinking
+ * - Claude development is via Claude Code Bridge (OAuth), NOT API
  */
 export function registerConsultCommand(program: Command): void {
   program
     .command("consult <query>")
-    .description("Query 3 AI models for expert consultation (Claude + OpenAI + Gemini)")
-    .option("--claude <model>", `Claude model (${AVAILABLE_MODELS.anthropic.join(", ")})`, "claude-sonnet-4")
+    .description("Query expert panel for consultation (OpenAI + Gemini)")
     .option("--openai <model>", `OpenAI model (${AVAILABLE_MODELS.openai.join(", ")})`, DEFAULT_MODELS.openai)
     .option("--gemini <model>", `Gemini model (${AVAILABLE_MODELS.gemini.join(", ")})`, DEFAULT_MODELS.gemini)
-    .option("--primary <provider>", "Primary provider: claude, openai, or gemini (default: claude)")
-    .option("--via-claude-code", "Use Claude Code CLI (Max 200 subscription) instead of API")
+    .option("--primary <provider>", "Primary provider: openai or gemini (default: openai)")
+    .option("--via-claude-code", "Use Claude Code CLI for single-model query")
     .option("--full", "Force full 3-model consultation regardless of task type")
     .option("-v, --verbose", "Show detailed responses from each model")
     .option("-m, --models <models>", "Legacy: Specific models to query (comma-separated)")
@@ -525,22 +531,20 @@ export function registerConsultCommand(program: Command): void {
       console.log("┌─────────────────────────────────────────────────────────────┐");
       console.log("│  🤖 Available Models for Consultation                       │");
       console.log("├─────────────────────────────────────────────────────────────┤");
-      console.log("│  OpenAI:".padEnd(62) + "│");
+      console.log("│  OpenAI (Primary Expert):".padEnd(62) + "│");
       for (const model of AVAILABLE_MODELS.openai) {
         const isDefault = model === DEFAULT_MODELS.openai ? " (default)" : "";
         console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
       }
       console.log("│".padEnd(62) + "│");
-      console.log("│  Gemini:".padEnd(62) + "│");
+      console.log("│  Gemini (Critic):".padEnd(62) + "│");
       for (const model of AVAILABLE_MODELS.gemini) {
         const isDefault = model === DEFAULT_MODELS.gemini ? " (default)" : "";
         console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
       }
       console.log("│".padEnd(62) + "│");
-      console.log("│  Claude (Primary):".padEnd(62) + "│");
-      for (const model of AVAILABLE_MODELS.anthropic) {
-        console.log(`│     • ${model}`.padEnd(62) + "│");
-      }
+      console.log("│  Claude (via Claude Code Bridge — development only):".padEnd(62) + "│");
+      console.log("│     • Use --via-claude-code for single-model query".padEnd(62) + "│");
       console.log("└─────────────────────────────────────────────────────────────┘");
       console.log("");
       console.log("Usage:");

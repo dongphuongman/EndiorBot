@@ -142,6 +142,7 @@ export function generateAgentsMd(project: ProjectConfig): string {
   const agents = getAgentsForTier(project.tier);
   const agentTable = generateAgentTable(agents);
   const agentDetails = generateAgentDetails(agents);
+  const thinkingSection = generateThinkingFrameworkSection();
   const usageSection = generateUsageSection();
   const saseSection = generateSaseSection();
 
@@ -163,6 +164,10 @@ ${agentTable}
 ---
 
 ${agentDetails}
+
+---
+
+${thinkingSection}
 
 ---
 
@@ -238,6 +243,49 @@ ${capabilities}`;
   return `## Agent Details
 
 ${details.join("\n\n---\n\n")}`;
+}
+
+/**
+ * Generate thinking framework section (SDLC 6.2.0 Pillar 0).
+ * Aligns all agents on shared decision-making heuristics.
+ */
+function generateThinkingFrameworkSection(): string {
+  return `## Thinking Framework (SDLC Pillar 0)
+
+### System Thinking — Iceberg Model
+
+Analyze problems at 4 layers, not just the visible event:
+
+| Layer | Question | Intervention |
+|-------|----------|-------------|
+| **Events** | What happened? | Reactive — fix symptom |
+| **Patterns** | What keeps happening? | Adaptive — add monitoring |
+| **Structures** | What system causes this? | Creative — redesign |
+| **Mental Models** | What beliefs allow this? | Transformative — change culture |
+
+### Design Thinking — 5 Phases
+
+Before building, follow: **Empathize → Define → Ideate → Prototype → Test**
+
+- Problem space (diverge then converge) before solution space
+- >70% success → iterate, 30-70% → dig deeper, <30% → pivot
+
+### Crisis-to-Pattern — 5-Step Pipeline
+
+When things break: **Diagnose → Create Policy → Automate → Enforce → Document**
+
+Every crisis becomes a reusable pattern. Use Iceberg Model at step 1.
+
+### Effort Compression (AI-Assisted)
+
+| Task Type | Human | AI+EndiorBot | Compression |
+|-----------|-------|-------------|-------------|
+| Boilerplate | 2 days | 15 min | 100x |
+| Tests | 1 day | 15 min | 50x |
+| Feature | 1 week | 30 min | 30x |
+| Bug fix | 4 hours | 15 min | 20x |
+
+When completeness costs minutes more than the shortcut — always choose complete.`;
 }
 
 /**

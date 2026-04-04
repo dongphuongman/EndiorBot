@@ -13,7 +13,14 @@
  * @sprint 97 (hotfix)
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Mock loadActiveProject to return undefined (no active project in test env)
+vi.mock("../../src/config/paths.js", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../src/config/paths.js")>();
+  return { ...original, loadActiveProject: () => undefined };
+});
+
 import { GatewayIngress, type InboundMessage } from "../../src/gateway/ingress.js";
 import { CommandDispatcher } from "../../src/commands/command-dispatcher.js";
 import { ChannelRouter, type RouteResult, type AIResult } from "../../src/agents/channel-router.js";

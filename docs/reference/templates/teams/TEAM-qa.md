@@ -126,6 +126,10 @@ Coverage: <X>%. All acceptance criteria met.
 Ready for deployment.]
 ```
 
+## EndiorBot commands (team context)
+
+**`endiorbot compliance`**, **`endiorbot gate`**, **`pnpm test`** / CI integration — automated checks via thin client. Catalog: `docs/reference/templates/COMMANDS.md`.
+
 ## Tier Availability
 
 | Tier | Available |

@@ -2,7 +2,7 @@
  * Gate Checklist
  *
  * Tier-specific checklists for SDLC gate evaluation.
- * Based on SDLC Framework v6.1.1 stage-gate definitions.
+ * Based on SDLC Framework v6.2.1 stage-gate definitions.
  *
  * Gates:
  *   - G0: Idea Validation

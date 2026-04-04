@@ -78,11 +78,11 @@ describe("buildFullEnvelope", () => {
     vi.clearAllMocks();
   });
 
-  it("assembles all 3 layers when brain and context are available", () => {
+  it("assembles all 3 layers when brain and context are available", async () => {
     mockLoadBrainL4.mockReturnValue(createBrainEnvelope());
-    mockBuildContextEnvelope.mockReturnValue(createContextEnvelope());
+    mockBuildContextEnvelope.mockResolvedValue(createContextEnvelope());
 
-    const result = buildFullEnvelope(createPersona());
+    const result = await buildFullEnvelope(createPersona());
 
     expect(result.persona.agentRole).toBe("coder");
     expect(result.brain).toBeDefined();
@@ -91,45 +91,45 @@ describe("buildFullEnvelope", () => {
     expect(result.context!.sprintName).toBe("Sprint 87");
   });
 
-  it("returns envelope without brain when loadBrainL4 returns null", () => {
+  it("returns envelope without brain when loadBrainL4 returns null", async () => {
     mockLoadBrainL4.mockReturnValue(null);
-    mockBuildContextEnvelope.mockReturnValue(createContextEnvelope());
+    mockBuildContextEnvelope.mockResolvedValue(createContextEnvelope());
 
-    const result = buildFullEnvelope(createPersona());
+    const result = await buildFullEnvelope(createPersona());
 
     expect(result.persona.agentRole).toBe("coder");
     expect(result.brain).toBeUndefined();
     expect(result.context).toBeDefined();
   });
 
-  it("returns envelope without context when buildContextEnvelope returns null", () => {
+  it("returns envelope without context when buildContextEnvelope returns null", async () => {
     mockLoadBrainL4.mockReturnValue(createBrainEnvelope());
-    mockBuildContextEnvelope.mockReturnValue(null);
+    mockBuildContextEnvelope.mockResolvedValue(null);
 
-    const result = buildFullEnvelope(createPersona());
+    const result = await buildFullEnvelope(createPersona());
 
     expect(result.persona.agentRole).toBe("coder");
     expect(result.brain).toBeDefined();
     expect(result.context).toBeUndefined();
   });
 
-  it("returns persona-only envelope when both brain and context are null", () => {
+  it("returns persona-only envelope when both brain and context are null", async () => {
     mockLoadBrainL4.mockReturnValue(null);
-    mockBuildContextEnvelope.mockReturnValue(null);
+    mockBuildContextEnvelope.mockResolvedValue(null);
 
-    const result = buildFullEnvelope(createPersona());
+    const result = await buildFullEnvelope(createPersona());
 
     expect(result.persona.agentRole).toBe("coder");
     expect(result.brain).toBeUndefined();
     expect(result.context).toBeUndefined();
   });
 
-  it("preserves persona content unchanged", () => {
+  it("preserves persona content unchanged", async () => {
     mockLoadBrainL4.mockReturnValue(createBrainEnvelope());
-    mockBuildContextEnvelope.mockReturnValue(createContextEnvelope());
+    mockBuildContextEnvelope.mockResolvedValue(createContextEnvelope());
     const persona = createPersona();
 
-    const result = buildFullEnvelope(persona);
+    const result = await buildFullEnvelope(persona);
 
     expect(result.persona).toEqual(persona);
   });
@@ -140,7 +140,7 @@ describe("buildFullEnvelope", () => {
 // ============================================================================
 
 describe("serializeEnvelopeForInjection", () => {
-  it("produces brain + context sections separated by double newline", () => {
+  it("produces brain + context sections separated by double newline", async () => {
     const envelope: SessionIntelligenceEnvelope = {
       persona: createPersona(),
       brain: createBrainEnvelope(),
@@ -157,7 +157,7 @@ describe("serializeEnvelopeForInjection", () => {
     expect(result).toContain("[End Brain L4]\n\n[Session Context]");
   });
 
-  it("produces only brain section when context is missing", () => {
+  it("produces only brain section when context is missing", async () => {
     const envelope: SessionIntelligenceEnvelope = {
       persona: createPersona(),
       brain: createBrainEnvelope(),
@@ -169,7 +169,7 @@ describe("serializeEnvelopeForInjection", () => {
     expect(result).not.toContain("[Session Context]");
   });
 
-  it("produces only context section when brain is missing", () => {
+  it("produces only context section when brain is missing", async () => {
     const envelope: SessionIntelligenceEnvelope = {
       persona: createPersona(),
       context: createContextEnvelope(),
@@ -181,7 +181,7 @@ describe("serializeEnvelopeForInjection", () => {
     expect(result).toContain("[Session Context]");
   });
 
-  it("returns empty string when neither brain nor context exists", () => {
+  it("returns empty string when neither brain nor context exists", async () => {
     const envelope: SessionIntelligenceEnvelope = {
       persona: createPersona(),
     };
@@ -191,7 +191,7 @@ describe("serializeEnvelopeForInjection", () => {
     expect(result).toBe("");
   });
 
-  it("does not include persona content (handled by Strategy A/B)", () => {
+  it("does not include persona content (handled by Strategy A/B)", async () => {
     const envelope: SessionIntelligenceEnvelope = {
       persona: createPersona(),
       brain: createBrainEnvelope(),
