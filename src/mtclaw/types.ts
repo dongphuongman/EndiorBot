@@ -151,7 +151,7 @@ export const RAG_COLLECTIONS: Record<string, { id: string; mode: "vector" | "hyb
 };
 
 /** AI-Platform document viewer base URL */
-export const AI_PLATFORM_DOCS_URL = "https://ai.nqh-internal.example/docs";
+export const AI_PLATFORM_DOCS_URL = process.env.AI_PLATFORM_DOCS_URL || "";
 
 // ============================================================================
 // Bridge Result Types

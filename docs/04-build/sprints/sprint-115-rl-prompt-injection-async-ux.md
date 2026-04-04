@@ -243,7 +243,7 @@ Expires in 5 min.
 - `search_mode: "hybrid"` for SOP/policy collections (BM25+vector fusion, better for Vietnamese SOP codes)
 - `search_mode: "vector"` for Customer FAQ (natural language queries)
 - Unknown agents still route through `chatWithAgent()` (no regression)
-- Document viewer URL: `https://ai.nqh-internal.example/docs/{doc_id}` — extracted from response if present
+- Document viewer URL: `https://ai.example.com/docs/{doc_id}` — extracted from response if present
 - No new dependencies (fetch-based, same MCP protocol)
 
 **AC:**

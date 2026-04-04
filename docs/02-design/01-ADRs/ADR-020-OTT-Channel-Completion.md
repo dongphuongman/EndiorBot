@@ -168,8 +168,8 @@ Last:     🏢 AI-Platform (qwen3-coder:30b)  — NQH remote
 
 **Env vars added to `.env.local`:**
 ```
-OLLAMA_REMOTE_URL=https://api.nqh-internal.example
-OLLAMA_REMOTE_API_KEY=nqh-ollama-dev-...
+OLLAMA_REMOTE_URL=https://ollama.example.com
+OLLAMA_REMOTE_API_KEY=<your-ollama-api-key>
 OLLAMA_REMOTE_MODEL=qwen3-coder:30b
 ```
 

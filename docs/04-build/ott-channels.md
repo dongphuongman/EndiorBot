@@ -54,12 +54,12 @@ EndiorBot supports bidirectional messaging channels for CEO escalation and comma
 # .env.local configuration
 
 # Telegram Bot
-TELEGRAM_BOT_TOKEN=***REMOVED-TELEGRAM-BOT-TOKEN***
-TELEGRAM_CHAT_ID=1754248572
+TELEGRAM_BOT_TOKEN=<your-telegram-bot-token>
+TELEGRAM_CHAT_ID=<your-telegram-chat-id>
 
 # Zalo Bot (from Zalo Bot Manager - zapps.me)
-ZALO_BOT_TOKEN=104903295***REMOVED-TELEGRAM-BOT-TOKEN***rGYJBCYCpMDnCWIuBcpWndgaqhQFw
-ZALO_BOT_CHAT_ID=e0c2caf9ebba02e45bab
+ZALO_BOT_TOKEN=<your-zalo-bot-token>
+ZALO_BOT_CHAT_ID=<your-zalo-chat-id>
 ```
 
 ---
@@ -107,10 +107,10 @@ The Zalo Bot Platform lets you create a Zalo Personal bot via [Zalo Bot Manager]
 
 ### 2. Get CEO Chat ID
 
-**Option 1: From MTS-OpenClaw/Picoclaw config**
+**Option 1: From existing EndiorBot config**
 ```bash
-# If you already use openclaw/picoclaw, read config
-cat ~/.picoclaw/config.json | jq '.channels.zalo'
+# If you already have a config, read channel settings
+cat ~/.endiorbot/config.json | jq '.channels.zalo'
 ```
 
 **Option 2: From Zalo Bot Manager Dashboard**
@@ -128,8 +128,8 @@ cat ~/.picoclaw/config.json | jq '.channels.zalo'
 
 ```bash
 # Set variables
-export ZALO_BOT_TOKEN="104903295***REMOVED-TELEGRAM-BOT-TOKEN***rGYJBCYCpMDnCWIuBcpWndgaqhQFw"
-export ZALO_BOT_CHAT_ID="e0c2caf9ebba02e45bab"
+export ZALO_BOT_TOKEN="<your-zalo-bot-token>"
+export ZALO_BOT_CHAT_ID="<your-zalo-chat-id>"
 
 # Verify bot
 curl -X POST "https://bot-api.zaloplatforms.com/bot$ZALO_BOT_TOKEN/getMe" \

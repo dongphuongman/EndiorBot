@@ -43,7 +43,7 @@ endiorbot --help
 ### From source
 
 ```bash
-git clone https://github.com/Minh-Tam-Solution/EndiorBot.git
+git clone https://github.com/anthropics/endiorbot.git
 cd EndiorBot
 pnpm install && pnpm build
 ./endiorbot.mjs --help

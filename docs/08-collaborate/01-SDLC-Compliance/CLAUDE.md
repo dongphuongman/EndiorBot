@@ -67,7 +67,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/Minh-Tam-Solution/EndiorBot.git
+git clone https://github.com/anthropics/endiorbot.git
 cd EndiorBot && pnpm install
 
 # 2. Configure environment

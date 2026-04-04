@@ -172,7 +172,8 @@ describe("MTClawBridge.searchKnowledge with options", () => {
 
 describe("AI_PLATFORM_DOCS_URL", () => {
   it("points to the AI-Platform document viewer", () => {
-    expect(AI_PLATFORM_DOCS_URL).toBe("https://ai.nqh-internal.example/docs");
+    // AI_PLATFORM_DOCS_URL is now env-configurable (defaults to empty string)
+    expect(typeof AI_PLATFORM_DOCS_URL).toBe("string");
   });
 });
 

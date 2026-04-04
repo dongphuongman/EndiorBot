@@ -83,7 +83,7 @@ export const DEFAULT_ROUTER_CONFIG: ChannelRouterConfig = {
   ollamaLocalUrl: process.env.OLLAMA_LOCAL_URL || "http://localhost:11434",
   ollamaRouterModel: "qwen3.5:9b",
   ollamaRouterTimeout: 30000,
-  ollamaRemoteUrl: process.env.OLLAMA_REMOTE_URL || "https://ai.nqh-internal.example",
+  ollamaRemoteUrl: process.env.OLLAMA_REMOTE_URL || "",
   ollamaRemoteApiKey: process.env.OLLAMA_REMOTE_API_KEY || "",
   ollamaRemoteModel: process.env.OLLAMA_REMOTE_MODEL || "qwen3-coder:30b",
   ollamaRemoteTimeout: 120000,

@@ -97,7 +97,7 @@ const DEFAULT_PRICING: Record<string, ModelPricing> = {
     updatedAt: new Date(),
   },
   "nqh/qwen3-coder": {
-    provider: "nqh", // ai.nqh-internal.example
+    provider: "nqh", // remote Ollama server
     model: "qwen3-coder",
     input_per_1k: 0, // Free via company infrastructure
     output_per_1k: 0,
