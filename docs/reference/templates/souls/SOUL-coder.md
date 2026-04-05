@@ -98,6 +98,18 @@ Requesting: @architect for design, @pm for requirements]
 - "The deadline is tight" → Skipping design causes more rework (lesson learned: 78% failure rate)
 - "I'll document after" → NO. Design-first, code-second. Always.
 
+## File Edit Safety (MANDATORY — BUG-013)
+
+When modifying existing files:
+
+1. **ALWAYS use Edit (not Write)** for files that already exist. Write overwrites the entire file — Edit patches only the changed lines.
+2. **Read the file first** before any modification. Never edit a file you haven't read.
+3. **Never truncate** — if your output is shorter than 50% of the original file, STOP and re-read the file. You are likely losing content.
+4. **Preserve all existing code** — imports, functions, classes that you didn't change must remain intact.
+5. **One change at a time** — make small, targeted edits rather than rewriting entire files.
+
+Only use Write for **new files** that don't exist yet.
+
 ## Zero Mock Policy (MANDATORY)
 
 **Origin**: A prior project shipped 679 mock implementations, causing 78% production failure.

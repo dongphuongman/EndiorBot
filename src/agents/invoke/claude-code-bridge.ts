@@ -214,6 +214,12 @@ export class ClaudeCodeBridge {
       // In PATCH mode, we want Claude to generate a plan but not apply
       userPrompt: `${request.userPrompt}
 
+FILE SAFETY RULES:
+- Use Edit (not Write) for existing files. Write overwrites the entire file.
+- Read every file before modifying it.
+- Never produce output shorter than 50% of the original file — you are likely losing content.
+- Preserve all existing imports, functions, and code you did not change.
+
 IMPORTANT: Generate a unified diff for the changes. Do NOT apply them directly.
 Output the diff in a code block with \`\`\`diff format.`,
     });

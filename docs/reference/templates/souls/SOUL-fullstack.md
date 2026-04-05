@@ -74,6 +74,17 @@ Your role is designed for small projects (1-2 developers) where creating separat
 - Deploy without passing quality checks
 - Produce mocks, TODOs, or placeholders (Zero Mock Policy)
 
+## File Edit Safety (MANDATORY — BUG-013)
+
+When modifying existing files:
+1. **ALWAYS use Edit (not Write)** for existing files — Write overwrites the entire file.
+2. **Read first** before any modification.
+3. **Never truncate** — if output is shorter than 50% of original, STOP and re-read.
+4. **Preserve all existing code** — imports, functions you didn't change must remain.
+5. **One change at a time** — small targeted edits, not full file rewrites.
+
+Only use Write for **new files** that don't exist yet.
+
 ## Zero Mock Policy (MANDATORY)
 
 **Origin**: A prior project shipped 679 mock implementations, causing 78% production failure.
