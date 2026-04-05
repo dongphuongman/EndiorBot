@@ -180,7 +180,7 @@ function savePlanToDrafts(
 **Generated:** ${new Date().toISOString()}
 **Strategy:** ${decomposition.strategy}
 **Tasks:** ${tasks.length}
-**Status:** DRAFT (display-only — execution in Sprint 124b)
+**Status:** DRAFT — execute via: endiorbot agent @<agent> --patch "<task>"
 
 ---
 

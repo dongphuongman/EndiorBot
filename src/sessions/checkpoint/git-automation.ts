@@ -14,7 +14,7 @@
  * @authority ADR-006 Checkpoint State Model
  * @pillar 3 - Software Engineering 3.0
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { execSync, execFileSync } from "node:child_process";

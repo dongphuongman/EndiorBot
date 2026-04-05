@@ -14,7 +14,7 @@
  * @authority ADR-005 Python-to-TypeScript Porting
  * @pillar 7 - Quality Assurance System
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { existsSync, mkdirSync, appendFileSync, readdirSync, unlinkSync } from 'fs';

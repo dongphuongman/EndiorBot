@@ -14,7 +14,7 @@
  * @authority ADR-002 Project Context Switching
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";

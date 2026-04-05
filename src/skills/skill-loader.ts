@@ -26,7 +26,7 @@
  * @authority ADR-005 Skills Architecture
  * @pillar 3 - Agent Personas
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";

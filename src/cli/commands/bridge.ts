@@ -13,7 +13,7 @@
  * @status ACTIVE - Sprint 84 (CTO MF-1)
  * @authority ADR-025 Session Intelligence Envelope
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { resolve, join, dirname } from "node:path";
@@ -483,7 +483,7 @@ export function registerBridgeCommand(program: Command): void {
 
   bridge
     .command("install-agents <path>")
-    .description("Install .claude/agents/*.md files for all 13 agent roles")
+    .description("Install .claude/agents/*.md files for all 14 agent roles")
     .option("--force", "Overwrite existing agent files")
     .action(installAgentsAction);
 

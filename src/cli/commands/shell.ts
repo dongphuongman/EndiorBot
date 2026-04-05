@@ -15,7 +15,7 @@
  * @status ACTIVE - Sprint 73
  * @authority TS-011 CLI Session Mode, ADR-016
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";

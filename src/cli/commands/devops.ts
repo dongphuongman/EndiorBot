@@ -15,7 +15,7 @@
  * @status ACTIVE
  * @authority SOUL-devops (SE4A Executor, Stage 06-07, Gate G4)
  * @stage 06 - DEPLOY
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { existsSync } from "node:fs";

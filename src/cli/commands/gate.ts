@@ -20,7 +20,7 @@
  * @authority ADR-004 SDLC Gate Engine + Master Plan v3.1
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.0
+ * @sdlc SDLC Framework 6.2.1
  */
 
 import { existsSync } from "node:fs";

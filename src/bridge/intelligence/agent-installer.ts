@@ -2,7 +2,7 @@
  * Agent Installer — Generate .claude/agents/*.md files for a project.
  *
  * Sprint 84 (CTO MF-1): Enables Strategy A (`claude --agent pm`) by creating
- * all 13 agent files from EndiorBot's SOUL templates + agent metadata.
+ * all 14 agent files from EndiorBot's SOUL templates + agent metadata.
  *
  * Uses existing .claude/agents/architect.md as the canonical schema reference.
  *

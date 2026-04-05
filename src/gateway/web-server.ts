@@ -460,9 +460,9 @@ export class WebGatewayServer {
     this.registerMethod("chat", async (params, client) => {
       const { message } = params as { message: string };
 
-      // For now, echo back. In future, this would route to AI providers
+      // Echo back for WebSocket plain text messages (JSON-RPC commands use /ws endpoint)
       return {
-        text: `Received: "${message}"\n\nThis is EndiorBot Gateway. AI chat integration coming soon!`,
+        text: `Received: "${message}"\n\nUse @agent or /command for AI interaction. Example: @pm plan the next sprint`,
         clientId: client.id,
       };
     });
