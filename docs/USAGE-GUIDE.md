@@ -433,6 +433,124 @@ Launch a team of agents for complex tasks:
 
 ---
 
+## Workflow 8: Interactive Chat Mode (Sprint 127)
+
+Start a continuous AI conversation with project context, multi-provider switching, and session persistence.
+
+### Start a Chat
+
+```bash
+endiorbot chat                    # Default: OpenAI GPT-5.4
+endiorbot chat --model gemini     # Use Gemini
+endiorbot chat --model ollama     # Use local Ollama (free, private)
+```
+
+### Chat Commands
+
+| Command | Description |
+|---------|-------------|
+| `/model <provider>` | Switch provider mid-session (openai, gemini, ollama) |
+| `/clear` | Clear conversation history |
+| `/status` | Show session info (turns, tokens, cost) |
+| `/resume` | List saved sessions |
+| `/exit` | Save session and quit |
+
+### Session Features
+
+- **40-turn history cap** — auto-compaction summarizes old turns instead of dropping
+- **Auto-save** — session saved every 5 turns to `~/.endiorbot/sessions/`
+- **Resume** — continue previous conversations: `endiorbot chat --resume chat-abc123`
+- **SDLC commands in chat** — `/gate`, `/plan`, `/audit`, `/compliance` work inside chat
+- **Cost tracking** — per-session cost shown via `/status` (Ollama = free)
+
+### Example Session
+
+```
+You: What's the current sprint status?
+🤖 Based on the project context, Sprint 129 is focused on...
+
+You: /model gemini
+Switched to gemini (gemini-2.5-pro)
+
+You: Compare this approach with a microservice architecture
+🤖 Here's the comparison...
+
+You: /status
+Session: chat-a1b2c3d4
+Provider: gemini (gemini-2.5-pro)
+Turns: 3/40
+Cost: $0.0045
+```
+
+---
+
+## Workflow 9: Bootstrap a Project (Sprint 123)
+
+Clone, detect, init, build, and run any GitHub repo in one command.
+
+```bash
+# Clone + auto-detect ecosystem + init SDLC
+endiorbot bootstrap https://github.com/user/repo.git
+
+# Clone + build + run
+endiorbot bootstrap https://github.com/user/repo.git --build --run
+
+# Force re-clone (overwrite existing)
+endiorbot bootstrap https://github.com/user/repo.git --force
+
+# Specify tier
+endiorbot bootstrap https://github.com/user/repo.git --tier PROFESSIONAL
+```
+
+### Supported Ecosystems
+
+| Ecosystem | Detected By | Install | Build | Run |
+|-----------|-------------|---------|-------|-----|
+| Docker | `docker-compose.yml` | — | `docker compose build` | `docker compose up` |
+| Node.js | lock files / `package.json` | `pnpm/npm install` | `pnpm run build` | `pnpm run start` |
+| Rust | `Cargo.toml` | — | `cargo build --release` | `cargo run` |
+| Python | `pyproject.toml` / `requirements.txt` | `pip install -r ...` | — | `python main.py` |
+| Go | `go.mod` | detect-only | — | — |
+| Java | `pom.xml` / `build.gradle` | detect-only | — | — |
+
+### Monorepo Support
+
+When `docker-compose.yml` is present with multiple ecosystem markers in subdirs, EndiorBot detects it as a Docker monorepo and reports sub-ecosystems.
+
+---
+
+## Workflow 10: Plan Command (Sprint 124)
+
+Generate structured development plans with agent task decomposition.
+
+```bash
+# Generate a plan
+endiorbot plan "add payment gateway with Stripe integration"
+
+# Save plan as JSON
+endiorbot plan "refactor auth module" --json
+
+# Specify tier
+endiorbot plan "add user dashboard" --tier PROFESSIONAL
+```
+
+**Output:** Structured task list with agent assignments, saved to `docs/04-build/sprints/drafts/`.
+
+```
+📋 Development Plan
+Goal: Add payment gateway with Stripe integration
+Tasks: 4 | Agents: @architect @coder @tester @reviewer
+
+1. [@architect] Design payment API + write ADR
+2. [@coder] Implement Stripe SDK integration
+3. [@tester] Write payment flow tests
+4. [@reviewer] Security review (PCI compliance)
+```
+
+> **Note:** Plan is display-only (advisory). Execution engine is available for future sprints.
+
+---
+
 ## Command Reference
 
 ### Information Commands (no auth required)
@@ -599,4 +717,4 @@ AI Routing Fallback:
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.2.0*
+*EndiorBot v0.1.0-beta.1 | Personal AI Assistant for Builders | SDLC Framework v6.2.1*
