@@ -19,6 +19,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { spawn } from "node:child_process";
 import type { Command } from "commander";
 import { loadActiveProject, resolveActiveProjectDir } from "../../config/paths.js";
@@ -35,28 +36,75 @@ import {
 // Execution (A8: shell safety — spawn with argv, no shell: true)
 // ============================================================================
 
+interface RunResult {
+  code: number;
+  stderr: string;
+}
+
 /**
  * Run a command in the project directory with live output.
  * Uses spawn with argv array — NO shell: true (security: A8).
+ * Captures stderr for error diagnosis (BUG-001).
  */
-function runCommand(cmd: string, args: string[], cwd: string): Promise<number> {
+function runCommand(cmd: string, args: string[], cwd: string): Promise<RunResult> {
   return new Promise((resolve) => {
     console.log(`  $ ${cmd} ${args.join(" ")}`);
     console.log("");
 
+    const stderrChunks: string[] = [];
     const child = spawn(cmd, args, {
       cwd,
-      stdio: "inherit",
+      stdio: ["inherit", "inherit", "pipe"],
+    });
+
+    child.stderr?.on("data", (data: Buffer) => {
+      const text = data.toString();
+      process.stderr.write(text);
+      stderrChunks.push(text);
     });
 
     child.on("close", (code) => {
-      resolve(code ?? 1);
+      resolve({ code: code ?? 1, stderr: stderrChunks.join("") });
     });
 
     child.on("error", () => {
-      resolve(1);
+      resolve({ code: 1, stderr: "" });
     });
   });
+}
+
+/**
+ * Diagnose Python errors and provide actionable guidance (BUG-001).
+ */
+function diagnosePythonError(stderr: string, projectPath: string): string | null {
+  // ModuleNotFoundError: No module named 'xxx'
+  const moduleMatch = stderr.match(/ModuleNotFoundError: No module named '([^']+)'/);
+  if (moduleMatch) {
+    const mod = moduleMatch[1]!;
+    const hasInstallPy = existsSync(join(projectPath, "install.py"));
+    const hasSetupPy = existsSync(join(projectPath, "setup.py"));
+
+    const lines = [
+      `❌ Missing Python module: ${mod}`,
+      "",
+    ];
+
+    if (hasInstallPy) {
+      lines.push(`   This project has an install.py script that installs additional dependencies.`);
+      lines.push(`   → Run: python install.py`);
+      lines.push(`   → Then retry: endiorbot ops run --skip-gate-check`);
+    } else if (hasSetupPy) {
+      lines.push(`   → Run: pip install -e .`);
+      lines.push(`   → Then retry: endiorbot ops run --skip-gate-check`);
+    } else {
+      lines.push(`   → Run: pip install ${mod}`);
+      lines.push(`   → Then retry: endiorbot ops run --skip-gate-check`);
+    }
+
+    return lines.join("\n");
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -131,8 +179,8 @@ async function devopsBuildAction(options: { path?: string; skipGateCheck?: boole
   // Step 1: Install dependencies
   if (cmds.install) {
     console.log("📦 Installing dependencies...");
-    const installCode = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
-    if (installCode !== 0) {
+    const installResult = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
+    if (installResult.code !== 0) {
       console.error("❌ Dependency installation failed.");
       console.error("   → Check the output above for missing packages or permissions.");
       process.exit(1);
@@ -141,11 +189,41 @@ async function devopsBuildAction(options: { path?: string; skipGateCheck?: boole
     console.log("");
   }
 
+  // Step 1b: Python custom install scripts (BUG-001)
+  if (eco.ecosystem === "python") {
+    const installPy = join(projectPath, "install.py");
+    const setupPy = join(projectPath, "setup.py");
+    const venv = detectPythonVenv(projectPath);
+    const pythonBin = venv.pythonBin ?? "python3";
+
+    if (existsSync(installPy)) {
+      console.log("📦 Running install.py (project-specific setup)...");
+      const result = await runCommand(pythonBin, ["install.py"], projectPath);
+      if (result.code !== 0) {
+        console.log("⚠️  install.py exited with errors (some may be non-fatal).");
+        console.log("   → Review the output above. GPU/CUDA errors are expected on machines without NVIDIA GPU.");
+        console.log("");
+      } else {
+        console.log("✅ install.py complete.");
+        console.log("");
+      }
+    } else if (existsSync(setupPy) && cmds.install) {
+      // Only run setup.py if we also had requirements.txt (avoid double-install)
+      console.log("📦 Running pip install -e . (editable mode)...");
+      const pipBin = venv.pipBin ?? "pip3";
+      const result = await runCommand(pipBin, ["install", "-e", "."], projectPath);
+      if (result.code !== 0) {
+        console.log("⚠️  setup.py install failed. See output above.");
+        console.log("");
+      }
+    }
+  }
+
   // Step 2: Build
   if (cmds.build) {
     console.log("🔨 Building project...");
-    const buildCode = await runCommand(cmds.build[0]!, cmds.build.slice(1), projectPath);
-    if (buildCode !== 0) {
+    const buildResult = await runCommand(cmds.build[0]!, cmds.build.slice(1), projectPath);
+    if (buildResult.code !== 0) {
       console.error("❌ Build failed.");
       console.error("   → Check build output above. Common: missing dependencies or wrong toolchain version.");
       process.exit(1);
@@ -211,8 +289,8 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
   // Install if needed
   if (cmds.install) {
     console.log("📦 Installing dependencies first...");
-    const installCode = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
-    if (installCode !== 0) {
+    const installResult = await runCommand(cmds.install[0]!, cmds.install.slice(1), projectPath);
+    if (installResult.code !== 0) {
       console.error("❌ Dependency installation failed.");
       process.exit(1);
     }
@@ -222,8 +300,20 @@ async function devopsRunAction(options: { path?: string; skipGateCheck?: boolean
   // Run
   console.log(`🚀 Running: ${cmdDisplay}`);
   console.log("");
-  const code = await runCommand(runArgs[0]!, runArgs.slice(1), projectPath);
-  process.exit(code);
+  const result = await runCommand(runArgs[0]!, runArgs.slice(1), projectPath);
+
+  // BUG-001: Diagnose Python errors with actionable guidance
+  if (result.code !== 0 && eco.ecosystem === "python") {
+    const diagnosis = diagnosePythonError(result.stderr, projectPath);
+    if (diagnosis) {
+      console.log("");
+      console.log(diagnosis);
+      console.log("");
+      process.exit(result.code);
+    }
+  }
+
+  process.exit(result.code);
 }
 
 async function devopsBuildRunAction(options: { path?: string; skipGateCheck?: boolean; dev?: boolean }): Promise<void> {
