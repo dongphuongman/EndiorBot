@@ -56,7 +56,7 @@ async function planAction(
     console.log(`💾 Saved to: ${result.savedPath}`);
   }
   console.log("");
-  console.log("ℹ️  This is a display-only plan. Execution coming in Sprint 124b.");
+  console.log("💡 To execute tasks: endiorbot agent @<agent> --patch \"<task description>\"");
   console.log("");
 }
 
