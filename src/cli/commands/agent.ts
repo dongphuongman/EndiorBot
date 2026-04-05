@@ -361,7 +361,7 @@ async function agentAction(
         agent: decision.agent,
       });
       console.log("\n✅ Interactive session complete");
-      return;
+      process.exit(0);
     }
 
     if (mode === "PATCH") {
@@ -442,7 +442,7 @@ async function agentAction(
         displayHandoffs(parsed.handoffs);
       }
 
-      return;
+      process.exit(0);
     }
 
     // READ mode (default)
@@ -512,6 +512,7 @@ async function agentAction(
     if (response.tokenUsage) {
       console.log(`   Tokens: ${response.tokenUsage.input} in / ${response.tokenUsage.output} out`);
     }
+    process.exit(0);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
