@@ -403,11 +403,15 @@ function getPythonCommands(pm: string, projectPath: string): EcosystemCommands {
 function detectPythonEntry(projectPath: string): string {
   // 1. manage.py (Django)
   if (existsSync(join(projectPath, "manage.py"))) return "manage.py";
-  // 2. app.py
+  // 2. app.py (Flask, FastAPI)
   if (existsSync(join(projectPath, "app.py"))) return "app.py";
   // 3. main.py
   if (existsSync(join(projectPath, "main.py"))) return "main.py";
-  // 4. src/__main__.py
+  // 4. launch.py (Streamlit apps, custom launchers)
+  if (existsSync(join(projectPath, "launch.py"))) return "launch.py";
+  // 5. run.py
+  if (existsSync(join(projectPath, "run.py"))) return "run.py";
+  // 6. src/__main__.py
   if (existsSync(join(projectPath, "src", "__main__.py"))) return "-m src";
   // Fallback
   return "main.py";
