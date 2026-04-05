@@ -69,15 +69,32 @@ export function generatePlan(opts: PlanOptions): PlanResult {
   const decomposer = new GoalDecomposer();
   const decomposition = decomposer.decompose(goal);
 
-  // Convert subtasks to PlanTask format
-  const tasks: PlanTask[] = decomposition.subtasks.map((st, i) => ({
-    index: i + 1,
-    agent: st.agent,
-    description: st.description,
-    dependsOn: st.dependencies
-      .map(depId => decomposition.subtasks.findIndex(s => s.id === depId) + 1)
-      .filter(idx => idx > 0),
-  }));
+  // If decomposer returns single @assistant task, use default development pipeline
+  // (plan command always implies multi-agent work: design → code → test → review)
+  let tasks: PlanTask[];
+  if (decomposition.subtasks.length <= 1 && decomposition.subtasks[0]?.agent === "assistant") {
+    tasks = buildDefaultPipeline(goal);
+    decomposition.strategy = "sequential";
+    const ts = Date.now();
+    decomposition.subtasks = tasks.map((t, i) => ({
+      id: `plan-${ts}-${i + 1}`,
+      agent: t.agent,
+      description: t.description,
+      dependencies: t.dependsOn.map(d => `plan-${ts}-${d}`),
+      priority: i,
+      estimatedDurationMs: 15000,
+      status: "pending" as const,
+    }));
+  } else {
+    tasks = decomposition.subtasks.map((st, i) => ({
+      index: i + 1,
+      agent: st.agent,
+      description: st.description,
+      dependsOn: st.dependencies
+        .map(depId => decomposition.subtasks.findIndex(s => s.id === depId) + 1)
+        .filter(idx => idx > 0),
+    }));
+  }
 
   // Save to drafts if path provided
   const result: PlanResult = {
@@ -149,7 +166,7 @@ function savePlanToDrafts(
   }
 
   const date = new Date().toISOString().split("T")[0];
-  const slug = goal.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+  const slug = goal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
   const filename = `plan-${date}-${slug}.md`;
   const filePath = join(draftsDir, filename);
 
@@ -180,6 +197,20 @@ ${taskTable}
 
   writeFileSync(filePath, content, "utf-8");
   return filePath;
+}
+
+/**
+ * Build a default 4-agent development pipeline when GoalDecomposer
+ * can't decompose (e.g., non-English goals, generic descriptions).
+ * Covers the standard SDLC workflow: design → implement → test → review.
+ */
+function buildDefaultPipeline(goal: string): PlanTask[] {
+  return [
+    { index: 1, agent: "architect", description: `Design approach and write ADR for: ${goal}`, dependsOn: [] },
+    { index: 2, agent: "coder", description: `Implement: ${goal}`, dependsOn: [1] },
+    { index: 3, agent: "tester", description: `Write tests for: ${goal}`, dependsOn: [2] },
+    { index: 4, agent: "reviewer", description: `Code review and quality check: ${goal}`, dependsOn: [2, 3] },
+  ];
 }
 
 function emptyDecomposition(goal: string): GoalDecomposition {
