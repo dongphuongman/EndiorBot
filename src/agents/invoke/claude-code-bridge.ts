@@ -135,6 +135,15 @@ const READ_MODE_DISALLOWED_TOOLS = [
   "Bash",  // Could be allowed with restrictions
 ];
 
+/**
+ * Tools restricted in PATCH mode (BUG-013: prevent file overwrites).
+ * Write tool overwrites entire files — only Edit is allowed for modifications.
+ */
+const PATCH_MODE_DISALLOWED_TOOLS = [
+  "Write",       // BLOCKED: overwrites entire file, destroys existing code
+  "NotebookEdit",
+];
+
 // ============================================================================
 // ClaudeCodeBridge Class
 // ============================================================================
@@ -211,6 +220,10 @@ export class ClaudeCodeBridge {
     const response = await this.invoke({
       ...request,
       mode: "PATCH",
+      disallowedTools: [
+        ...PATCH_MODE_DISALLOWED_TOOLS,
+        ...(request.disallowedTools ?? []),
+      ],
       // In PATCH mode, we want Claude to generate a plan but not apply
       userPrompt: `${request.userPrompt}
 
