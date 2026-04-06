@@ -115,10 +115,24 @@ export async function processChatTurn(
   userInput: string,
 ): Promise<ChatTurnResult> {
   const registry = getProviderRegistry();
-  const provider = registry.get(session.provider === "ollama" ? "ollama" : session.provider);
+  let provider = registry.get(session.provider);
 
+  // CTO C4: Auto-fallback if primary provider unavailable
   if (!provider) {
-    throw new Error(`Provider "${session.provider}" not available. Use /model to switch.`);
+    const fallbackOrder = ["gemini", "ollama", "openai", "anthropic"];
+    for (const fb of fallbackOrder) {
+      const fallback = registry.get(fb);
+      if (fallback) {
+        session.provider = fb;
+        session.model = PROVIDER_MODELS[fb] ?? "unknown";
+        provider = fallback;
+        console.log(`⚠️  claude-code unavailable → switched to ${fb} (${session.model})`);
+        break;
+      }
+    }
+    if (!provider) {
+      throw new Error(`No AI provider available. Set OPENAI_API_KEY or GOOGLE_API_KEY, or run: claude login`);
+    }
   }
 
   // Build messages: system context + history + new user message
