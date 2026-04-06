@@ -135,6 +135,18 @@ async function chatAction(options: { model?: string; resume?: string }): Promise
       return;
     }
 
+    // Hint: @agent mentions → suggest /command instead
+    if (input.startsWith("@")) {
+      const agent = input.split(/\s+/)[0];
+      console.log(`\n💡 Chat mode doesn't route to agents. Try instead:`);
+      console.log(`   /compliance check    — SDLC compliance`);
+      console.log(`   /gate status         — gate status`);
+      console.log(`   Or exit chat and run: endiorbot agent ${agent} "${input.replace(agent!, '').trim()}"`);
+      console.log("");
+      rl.prompt();
+      return;
+    }
+
     // AI conversation turn (busy-guarded)
     isBusy = true;
     try {
@@ -161,7 +173,15 @@ async function chatAction(options: { model?: string; resume?: string }): Promise
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`\n❌ ${msg}`);
-      console.error("   → Try /model <provider> to switch, or check API keys.\n");
+      if (msg.includes("not available") || msg.includes("API")) {
+        console.error(`   Current provider: ${session.provider} (${session.model})`);
+        console.error("   → /model ollama     — free, local (no API key needed)");
+        console.error("   → /model gemini     — needs GOOGLE_API_KEY in .env");
+        console.error("   → /model openai     — needs OPENAI_API_KEY in .env");
+      } else {
+        console.error("   → Try /model <provider> to switch, or check API keys.");
+      }
+      console.error("");
     } finally {
       isBusy = false;
     }
