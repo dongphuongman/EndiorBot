@@ -15,6 +15,7 @@ import { AnthropicProvider } from "./anthropic/index.js";
 import { createOpenAIProviderFromEnv } from "./openai/index.js";
 import { createGeminiProviderFromEnv } from "./gemini/index.js";
 import { createOllamaProviderFromEnv } from "./ollama/index.js";
+import { ClaudeCodeProvider } from "./claude-code/index.js";
 
 /**
  * Initialize providers from environment variables.
@@ -32,7 +33,20 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   registry.clear();
   let count = 0;
 
-  // Anthropic (Claude)
+  // Claude Code CLI (OAuth — ADR-043-A1: primary for chat)
+  try {
+    const cc = new ClaudeCodeProvider();
+    const health = await cc.healthCheck();
+    if (health.status === "healthy") {
+      await cc.initialize({});
+      registry.register(cc);
+      count++;
+    }
+  } catch {
+    // Claude Code not available — fall through to API providers
+  }
+
+  // Anthropic (Claude API key)
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const anthropic = new AnthropicProvider();
@@ -89,20 +103,17 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   // Set default provider: Cloud APIs first (Anthropic, OpenAI, Gemini), Ollama only as fallback
   const defaultProvider = registry.getDefault();
 
-  // Priority: Gemini > OpenAI > Anthropic > Ollama (fallback only; uses qwen3:14b when used)
-  if (registry.has('gemini')) {
+  // Priority (ADR-043-A1): Claude Code > Gemini > Ollama > OpenAI
+  if (registry.has('claude-code')) {
+    registry.setDefault('claude-code');
+  } else if (registry.has('gemini')) {
     registry.setDefault('gemini');
-    console.log(`✓ Default provider: gemini (Gemini 2.5 Flash, premium)`);
-  } else if (registry.has('openai')) {
-    registry.setDefault('openai');
-    console.log(`✓ Default provider: openai (GPT-4o, premium)`);
-  } else if (registry.has('anthropic')) {
-    registry.setDefault('anthropic');
-    console.log(`✓ Default provider: anthropic (Claude, premium)`);
   } else if (registry.has('ollama')) {
     registry.setDefault('ollama');
-    console.log(`✓ Default provider: ollama (qwen3:14b, fallback only)`);
-    console.warn("  ⚠ No Cloud API keys set. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY for primary use.");
+  } else if (registry.has('openai')) {
+    registry.setDefault('openai');
+  } else if (registry.has('anthropic')) {
+    registry.setDefault('anthropic');
   } else if (defaultProvider) {
     console.log(`✓ Default provider: ${defaultProvider.id}`);
   } else {

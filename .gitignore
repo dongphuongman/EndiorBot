@@ -6,9 +6,9 @@ node_modules/
 tests/claude-mem/
 
 # Research artifacts — NOT part of EndiorBot (ADR-039). Keep local only; never publish.
-claude-code/
-claude-code-source/
-claude-code-sourcemap/
+/claude-code/
+/claude-code-source/
+/claude-code-sourcemap/
 claw-code/
 leaked-claude-code/
 gstack/

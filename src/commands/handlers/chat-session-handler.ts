@@ -71,6 +71,7 @@ const WARN_TURN_THRESHOLD = 35;
 
 /** Default provider models */
 const PROVIDER_MODELS: Record<string, string> = {
+  "claude-code": "sonnet",
   openai: "gpt-5.4",
   gemini: "gemini-2.5-pro",
   ollama: "qwen3.5:9b",

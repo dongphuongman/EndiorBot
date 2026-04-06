@@ -19,6 +19,7 @@ import { homedir } from "node:os";
 import { execFileSync } from "node:child_process";
 import type { Command } from "commander";
 import { resolveActiveProjectDir } from "../../config/paths.js";
+import { getProviderRegistry } from "../../providers/provider-registry.js";
 import {
   createChatSession,
   processChatTurn,
@@ -39,7 +40,7 @@ import { createCommandDispatcher } from "../../commands/index.js";
 
 async function chatAction(options: { model?: string; resume?: string }): Promise<void> {
   const projectPath = resolveActiveProjectDir();
-  const provider = options.model ?? "openai";
+  const provider = options.model ?? "claude-code";
 
   // T1: Resume existing session or create new
   let session: ChatSessionData;
@@ -150,9 +151,12 @@ async function chatAction(options: { model?: string; resume?: string }): Promise
     // AI conversation turn (busy-guarded)
     isBusy = true;
     try {
+      const turnStart = Date.now();
       const result = await processChatTurn(session, input);
+      const elapsed = ((Date.now() - turnStart) / 1000).toFixed(1);
       console.log("");
       console.log(`🤖 ${result.response}`);
+      console.log(`   ⏱ ${elapsed}s`);
       console.log("");
 
       // CTO C2: Turn warning
@@ -216,7 +220,7 @@ function handleSessionCommand(
     case "model": {
       const provider = parts[1];
       if (!provider) {
-        console.log("Usage: /model <openai|gemini|ollama>");
+        console.log("Usage: /model <claude-code|gemini|ollama|openai>");
         console.log(`Current: ${session.provider} (${session.model})`);
         return true;
       }
@@ -225,10 +229,16 @@ function handleSessionCommand(
       return true;
     }
 
-    case "clear":
+    case "clear": {
       session.turns = [];
-      console.log("✅ Conversation cleared.");
+      // CTO C2: /clear starts new CC session UUID, does NOT delete old sessions
+      const ccProvider = getProviderRegistry().get("claude-code");
+      if (ccProvider && "newSession" in ccProvider) {
+        (ccProvider as { newSession: () => string }).newSession();
+      }
+      console.log("✅ Conversation cleared (new session).");
       return true;
+    }
 
     case "status":
       console.log("");
@@ -437,8 +447,8 @@ function saveSession(session: ChatSessionData): void {
 export function registerChatCommand(program: Command): void {
   program
     .command("chat")
-    .description("Interactive AI chat session with project context (OpenAI/Gemini/Ollama)")
-    .option("--model <provider>", "AI provider: openai, gemini, ollama (default: openai)")
+    .description("Interactive AI chat with project context (Claude Code/Gemini/Ollama/OpenAI)")
+    .option("--model <provider>", "AI provider: claude-code, gemini, ollama, openai (default: claude-code)")
     .option("--resume <sessionId>", "Resume a saved chat session")
     .action(chatAction);
 }
