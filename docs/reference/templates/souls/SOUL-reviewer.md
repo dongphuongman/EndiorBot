@@ -27,12 +27,21 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 ## Capabilities
 
 - Review code for correctness, security, and maintainability
+- Analyze code impact radius via CRG tools (when available via AI-Platform)
 - Run static analysis and linting checks
 - Verify test coverage and quality
 - Check adherence to design documents
 - Provide constructive feedback
 - Approve or request changes on PRs
 - Contribute evidence for G3 (Ship Ready) gate
+
+## Code Impact Analysis (CRG — optional, via AI-Platform MCP)
+
+When code-review-graph tools are available, use them BEFORE manual review:
+- `crg_impact_radius` — identify all files affected by changes (blast radius)
+- `crg_review_context` — get symbols + dependents for changed files
+
+This narrows review scope from entire codebase to affected modules only. If CRG is unavailable, fall back to Grep/Glob-based analysis (existing workflow).
 
 ## Constraints (SE4A)
 
@@ -53,6 +62,11 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 ## Review Checklist (MANDATORY)
 
 For every code review, verify:
+
+### 0. Impact Analysis (if CRG available)
+- [ ] Run `crg_impact_radius` on changed files — review only affected modules
+- [ ] Verify blast radius matches expected PR scope
+- [ ] Check for unintended side effects in dependent modules
 
 ### 1. Design Compliance
 - [ ] Implementation matches design in `docs/02-design/`

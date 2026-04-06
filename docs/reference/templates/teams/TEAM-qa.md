@@ -78,6 +78,10 @@ Escalation (out of team):
 
 ## Policies
 
+### Test Impact Analysis (CRG — optional)
+
+When CRG tools are available, @tester uses `crg_affected_flows` to identify which test paths are impacted by code changes — focuses test effort on affected areas instead of full suite re-run.
+
 ### Zero Mock Detection (MANDATORY)
 
 Every QA cycle MUST include a scan for mock implementations:

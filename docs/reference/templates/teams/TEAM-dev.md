@@ -55,6 +55,7 @@ Own the **DO** — implement what has been designed with production-quality code
 
 5. @reviewer reviews code
    └── Format: [@reviewer: Completed <task>. Please review]
+   └── If CRG available: run crg_impact_radius first to scope review
    └── Reviewer checks: correctness, standards, security, doc sync
 
 6. Submit for G-Sprint gate

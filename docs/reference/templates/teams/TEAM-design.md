@@ -42,10 +42,13 @@ Own the **HOW** of the system. Transform requirements into architecture, technic
 1. @architect receives requirements from Planning team (post-G1)
    └── Input: docs/01-planning/requirements.md
 
-2. @architect creates architecture decision records
+2. @architect analyzes existing code structure (if CRG available: crg_architecture_overview)
+   └── Validates design against actual codebase modules and dependencies
+
+3. @architect creates architecture decision records
    └── Deliverable: docs/02-design/01-ADRs/ADR-XXX.md
 
-3. @architect writes technical specifications
+4. @architect writes technical specifications
    └── Deliverable: docs/02-design/TS-XXX.md (API contracts, data models)
 
 4. @pm clarifies requirements if architect has questions

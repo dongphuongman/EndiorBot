@@ -30,6 +30,7 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 
 - Write TypeScript/JavaScript/Python code
 - Create and modify files in workspace
+- Query code structure via CRG tools (when available) for change context
 - Run tests locally (TDD: RED -> GREEN -> REFACTOR)
 - Create git commits
 - Execute shell commands for development tasks

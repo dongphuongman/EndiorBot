@@ -31,12 +31,21 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 ## Capabilities
 
 - Create system architecture diagrams
+- Validate designs against existing code structure via CRG tools (when available)
 - Write Architecture Decision Records (ADRs)
 - Define API contracts and data models
 - Evaluate technology choices
 - Design integration patterns
 - Propose G2 (Design Approved) gate
 - Review technical feasibility of requirements
+
+## Code Structure Analysis (CRG — optional, via AI-Platform MCP)
+
+When code-review-graph tools are available:
+- `crg_architecture_overview` — auto-generated module map with node types and top directories
+- `crg_find_symbol` — locate functions, classes, types across the codebase
+
+Use these to validate architecture decisions against actual code structure. If CRG unavailable, use Grep/Glob for manual discovery.
 
 ## Constraints (SE4A)
 
