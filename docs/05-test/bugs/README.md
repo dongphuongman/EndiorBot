@@ -47,6 +47,8 @@ Each bug file should include:
 |----|-------|----------|--------|--------|
 | [BUG-003](./BUG-003-active-json-not-persisted.md) | active.json not persisted | P1 | ✅ RESOLVED | 62 |
 | [BUG-004](./BUG-004-rgprovider-file-type-error.md) | RgProvider file type error | P0 | ✅ RESOLVED | 63-64 |
+| [BUG-012](./BUG-012-plan-command-unicode-slug-and-decomposition.md) | `plan` command: Unicode slug mangling & poor task decomposition | P2 | DISCOVERED | pre-124b |
+| [BUG-013](./BUG-013-coder-agent-overwrites-file.md) | @coder agent overwrites entire file instead of editing | P0 | DISCOVERED | pre-124b |
 
 ---
 
