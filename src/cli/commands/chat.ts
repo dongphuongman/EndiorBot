@@ -13,9 +13,10 @@
  */
 
 import { createInterface } from "node:readline";
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, resolve as resolvePath } from "node:path";
 import { homedir } from "node:os";
+import { execFileSync } from "node:child_process";
 import type { Command } from "commander";
 import { resolveActiveProjectDir } from "../../config/paths.js";
 import {
@@ -230,6 +231,38 @@ function handleSessionCommand(
       return true;
     }
 
+    case "read": {
+      const filePath = parts.slice(1).join(" ");
+      if (!filePath) {
+        console.log("Usage: /read <file-path>");
+        return true;
+      }
+      return handleToolRead("read", filePath, session);
+    }
+
+    case "grep": {
+      const query = parts.slice(1).join(" ");
+      if (!query) {
+        console.log("Usage: /grep <pattern> [path]");
+        return true;
+      }
+      return handleToolRead("grep", query, session);
+    }
+
+    case "glob": {
+      const pattern = parts.slice(1).join(" ");
+      if (!pattern) {
+        console.log("Usage: /glob <pattern>");
+        return true;
+      }
+      return handleToolRead("glob", pattern, session);
+    }
+
+    case "ls": {
+      const dir = parts[1] ?? ".";
+      return handleToolRead("ls", dir, session);
+    }
+
     case "help":
       console.log("");
       console.log("Chat commands:");
@@ -240,6 +273,12 @@ function handleSessionCommand(
       console.log("  /exit          — Save session and quit");
       console.log("  /help          — Show this help");
       console.log("");
+      console.log("Tool commands (read-only):");
+      console.log("  /read <file>   — Read file and add to context");
+      console.log("  /grep <pattern>— Search code (ripgrep)");
+      console.log("  /glob <pattern>— Find files by pattern");
+      console.log("  /ls [dir]      — List directory");
+      console.log("");
       console.log("SDLC commands: /gate, /plan, /audit, /compliance, /agents, /teams");
       console.log("Or just type to chat with AI.");
       console.log("");
@@ -247,6 +286,110 @@ function handleSessionCommand(
 
     default:
       return false; // Not a session command
+  }
+}
+
+// ============================================================================
+// Tool Reads — Phase 3 (Sprint 130): read-only file/code access in chat
+// ============================================================================
+
+const TOOL_READ_MAX_CHARS = 2000; // Cap output to ~500 tokens
+
+function handleToolRead(tool: string, arg: string, session: ChatSessionData): boolean {
+  const projectPath = session.projectPath;
+
+  try {
+    let output = "";
+    let label = "";
+
+    switch (tool) {
+      case "read": {
+        const fullPath = resolvePath(projectPath, arg);
+        if (!fullPath.startsWith(resolvePath(projectPath))) {
+          console.log("⚠️  Path traversal blocked.");
+          return true;
+        }
+        if (!existsSync(fullPath)) {
+          console.log(`❌ File not found: ${arg}`);
+          return true;
+        }
+        const content = readFileSync(fullPath, "utf-8");
+        const lines = content.split("\n");
+        output = lines.length > 60
+          ? lines.slice(0, 60).join("\n") + `\n... (${lines.length - 60} more lines)`
+          : content;
+        label = `/read ${arg} (${lines.length} lines)`;
+        break;
+      }
+
+      case "grep": {
+        const parts = arg.split(/\s+/);
+        const pattern = parts[0] ?? "";
+        const searchPath = parts[1] ?? ".";
+        const result = execFileSync("rg", [
+          "--no-heading", "--line-number", "--max-count", "20",
+          "--max-columns", "200", pattern, searchPath,
+        ], { cwd: projectPath, timeout: 10000, encoding: "utf-8", maxBuffer: 1024 * 1024 });
+        output = result.trim() || "(no matches)";
+        label = `/grep ${pattern} (${output.split("\n").length} matches)`;
+        break;
+      }
+
+      case "glob": {
+        const result = execFileSync("find", [
+          ".", "-path", `./${arg}`, "-type", "f",
+        ], { cwd: projectPath, timeout: 5000, encoding: "utf-8" });
+        const files = result.trim().split("\n").filter(Boolean);
+        output = files.length > 0 ? files.slice(0, 30).join("\n") : "(no files matched)";
+        if (files.length > 30) output += `\n... (${files.length - 30} more)`;
+        label = `/glob ${arg} (${files.length} files)`;
+        break;
+      }
+
+      case "ls": {
+        const fullPath = resolvePath(projectPath, arg);
+        if (!fullPath.startsWith(resolvePath(projectPath))) {
+          console.log("⚠️  Path traversal blocked.");
+          return true;
+        }
+        const entries = readdirSync(fullPath, { withFileTypes: true });
+        output = entries
+          .map(e => `${e.isDirectory() ? "📁" : "📄"} ${e.name}`)
+          .slice(0, 50)
+          .join("\n");
+        label = `/ls ${arg} (${entries.length} entries)`;
+        break;
+      }
+    }
+
+    // Truncate to token cap
+    if (output.length > TOOL_READ_MAX_CHARS) {
+      output = output.slice(0, TOOL_READ_MAX_CHARS) + "\n... (truncated)";
+    }
+
+    // Display to user
+    console.log(`\n${output}\n`);
+
+    // Add to history so AI can reference
+    session.turns.push({
+      role: "assistant",
+      content: `[Tool: ${label}]\n${output}`,
+      provider: "system",
+      tokenUsage: { input: 0, output: 0 },
+      timestamp: new Date().toISOString(),
+    });
+
+    return true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("ENOENT") && msg.includes("rg")) {
+      console.log("❌ ripgrep (rg) not found. Install: brew install ripgrep");
+    } else if (msg.includes("timed out")) {
+      console.log("⚠️  Search timed out. Try a more specific pattern.");
+    } else {
+      console.log(`❌ ${msg.split("\n")[0]}`);
+    }
+    return true;
   }
 }
 
