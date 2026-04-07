@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-03 (updated)
 **Status:** ROADMAP (updated with actuals)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM — based on ADR-039 research findings
 **Source:** Architecture patterns observed from public specs + clean-room implementations (NOT leaked code)
 

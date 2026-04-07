@@ -18,7 +18,7 @@
  * @authority ADR-004 SDLC Gate Engine
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.1
+ * @sdlc SDLC Framework 6.3.0
  */
 
 import { createHash } from "crypto";

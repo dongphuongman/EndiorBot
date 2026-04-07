@@ -77,4 +77,4 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ---
 
-*CEO Power Tool | SDLC Framework **6.2.1** — Stage 03: Integration*
+*CEO Power Tool | SDLC Framework **6.3.0** — Stage 03: Integration*

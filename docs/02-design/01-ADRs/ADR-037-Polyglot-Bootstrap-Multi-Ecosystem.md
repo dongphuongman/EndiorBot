@@ -4,7 +4,7 @@
 **Date:** 2026-03-29
 **Sprint:** 123
 **Authority:** PM — CTO 7/10 APPROVED, CPO 7.5/10 APPROVED
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 
 ---
 

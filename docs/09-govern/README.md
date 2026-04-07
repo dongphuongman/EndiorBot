@@ -37,4 +37,4 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-*EndiorBot | SDLC Framework **6.2.1** — Stage 09: Govern & improve*
+*EndiorBot | SDLC Framework **6.3.0** — Stage 09: Govern & improve*

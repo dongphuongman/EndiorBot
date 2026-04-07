@@ -11,7 +11,7 @@
  * @authority ADR-001 Multi-Model Orchestrator
  * @pillar 4 - Quality Assurance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.1
+ * @sdlc SDLC Framework 6.3.0
  */
 
 import type { TaskType } from "../types.js";

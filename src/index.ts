@@ -211,4 +211,4 @@ export type {
 } from './agents/fix-logging/types.js';
 
 export const VERSION = '0.1.0-beta.1';
-export const FRAMEWORK_VERSION = '6.2.1';
+export const FRAMEWORK_VERSION = '6.3.0';

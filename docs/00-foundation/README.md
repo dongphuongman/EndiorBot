@@ -46,4 +46,4 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ---
 
-*EndiorBot | SDLC Framework **6.2.1** — Stage 00: Foundation*
+*EndiorBot | SDLC Framework **6.3.0** — Stage 00: Foundation*

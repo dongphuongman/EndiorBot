@@ -3,7 +3,7 @@
 **Date:** 2026-04-03
 **Status:** PLANNED
 **Prerequisite:** Sprint 127 COMPLETE (chat mode Phase 1)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 7.5/10 APPROVED (T4 deferred, T2 reduced)
 **ADRs:** ADR-043 (Chat Mode Phase 2), ADR-040 (Prompt Caching)
 

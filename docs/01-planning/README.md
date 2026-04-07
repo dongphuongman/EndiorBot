@@ -43,4 +43,4 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ---
 
-*EndiorBot | SDLC Framework **6.2.1** — Stage 01: Planning*
+*EndiorBot | SDLC Framework **6.3.0** — Stage 01: Planning*

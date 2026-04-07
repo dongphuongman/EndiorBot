@@ -4,7 +4,7 @@
 **Date:** 2026-04-03
 **Sprint:** 129
 **Authority:** PM + CTO (8/10 APPROVED) + CPO (APPROVED with conditions)
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 **Traces:** ADR-036 (gstack), ADR-039 (Research Governance), ADR-042 (Execution Engine)
 **Source:** Lâm Nguyễn — "Giải Phẫu Một Agentic Operating System" (18 Patterns)
 

@@ -4,7 +4,7 @@
 **Date:** 2026-04-03
 **Sprint:** 127 (planned)
 **Authority:** PM + Architect — CTO assessed 16-20h (2 sprints)
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 **Traces:** ADR-042 (Execution Engine), ADR-001 (Multi-Model Consultation), Sprint 124b
 
 ---

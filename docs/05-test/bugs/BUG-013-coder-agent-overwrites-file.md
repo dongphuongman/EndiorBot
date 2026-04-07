@@ -199,4 +199,4 @@ If it fails → auto-rollback and report error to user.
 
 ---
 
-**SDLC Framework v6.2.1 | Stage 05-TEST | EndiorBot**
+**SDLC Framework v6.3.0 | Stage 05-TEST | EndiorBot**

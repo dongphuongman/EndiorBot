@@ -9,7 +9,7 @@
  * @date 2026-04-01
  * @status ACTIVE — Sprint 125
  * @authority ADR-041 Permission Audit Trail
- * @sdlc SDLC Framework 6.2.1
+ * @sdlc SDLC Framework 6.3.0
  */
 
 import { queryRecentDecisions, formatAuditEntries } from "../../security/permission-audit.js";

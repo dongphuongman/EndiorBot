@@ -3,7 +3,7 @@
 **Status:** ACCEPTED  
 **Date:** 2026-04-01  
 **Approved:** CEO (2026-04-01) · **Reviewed:** CPO, CTO  
-**SDLC:** 6.2.1  
+**SDLC:** 6.3.0  
 **Related:** ADR-006 (Bridge), `CLAUDE.md` thin-client pattern, `docs/README.md` (English documentation policy)
 
 ---
@@ -108,4 +108,4 @@ Onboarding: *Research clones live only on approved workstations; not part of the
 
 ---
 
-*ADR-039 — EndiorBot | CPO/CTO governance for Claude Code research trees | SDLC 6.2.1*
+*ADR-039 — EndiorBot | CPO/CTO governance for Claude Code research trees | SDLC 6.3.0*

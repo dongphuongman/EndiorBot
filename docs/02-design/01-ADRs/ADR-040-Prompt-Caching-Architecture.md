@@ -4,7 +4,7 @@
 **Date:** 2026-04-01
 **Sprint:** 126 (spike in Sprint 125)
 **Authority:** PM + Architect
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 **Traces:** ADR-039 (research findings), ADR-025 (SessionIntelligenceEnvelope)
 
 ---

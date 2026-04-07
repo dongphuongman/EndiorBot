@@ -4,7 +4,7 @@
 **Date:** 2026-03-31
 **Sprint:** 124a (plan + memory), 124b (execution engine)
 **Authority:** PM + Architect — CTO split directive, CPO approved
-**SDLC Framework:** 6.2.1 (CEO confirmed bump from 6.2.0 — all source/SOULs/config updated in Sprint 123 session)
+**SDLC Framework:** 6.3.0 (CEO confirmed bump from 6.2.0 — all source/SOULs/config updated in Sprint 123 session)
 
 ---
 

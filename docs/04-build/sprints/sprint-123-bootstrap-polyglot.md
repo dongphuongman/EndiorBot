@@ -3,7 +3,7 @@
 **Date:** 2026-03-29
 **Status:** COMPLETE
 **Prerequisite:** Sprint 122 COMPLETE (7,453 tests, CSO audit done)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM — pending CTO/CPO review
 
 ---

@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Date**: 2026-02-22
 **Status**: ACTIVE
-**SDLC**: Framework 6.2.1
+**SDLC**: Framework 6.3.0
 
 ---
 
@@ -220,7 +220,7 @@ Located in: `docs/02-design/autonomy-epic/schemas/`
 
 ### External References
 
-- **MTS Framework 6.2.1**: `.sdlc-framework/` (repo) · stage index: `docs/README.md` · spine: `docs/00-foundation/stage-command-workflow-spine.md`
+- **MTS Framework 6.3.0**: `.sdlc-framework/` (repo) · stage index: `docs/README.md` · spine: `docs/00-foundation/stage-command-workflow-spine.md`
 - **ADRs**: `docs/02-design/01-ADRs/` and `docs/02-design/approved/`
 - **Sprint Plans**: `docs/01-planning/sprint-35-plan.md` through `sprint-40-plan.md`
 
@@ -233,4 +233,4 @@ Located in: `docs/02-design/autonomy-epic/schemas/`
 ---
 
 *Autonomy Epic - Design Index v1.0.0*
-*EndiorBot SDLC Framework 6.2.1*
+*EndiorBot SDLC Framework 6.3.0*

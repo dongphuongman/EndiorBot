@@ -4,7 +4,7 @@
 **Date:** 2026-04-06
 **Sprint:** 130
 **Authority:** CTO 8.5/10 APPROVED + CPO APPROVED
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 **Traces:** ADR-044 (Agentic OS Alignment), ADR-083 (BFlow — Shared Graph Service), TS-007 (Code Search Layer)
 
 ---
@@ -120,4 +120,4 @@ CTO + CPO joint sign-off required.
 
 ---
 
-*EndiorBot | SDLC Framework 6.2.1 — ADR-045*
+*EndiorBot | SDLC Framework 6.3.0 — ADR-045*

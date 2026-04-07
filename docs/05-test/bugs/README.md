@@ -62,4 +62,4 @@ Each bug file should include:
 
 ---
 
-**SDLC Framework v6.2.1 | Stage 05-TEST**
+**SDLC Framework v6.3.0 | Stage 05-TEST**

@@ -4,7 +4,7 @@
 **Date:** 2026-04-03
 **Sprint:** 124b
 **Authority:** PM + Architect — CTO 8/10 APPROVED
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 **Traces:** ADR-038 (Autonomous Workflow), Sprint 72 (AutonomousSessionManager), Sprint 124a (plan command)
 
 ---

@@ -24,7 +24,7 @@ After PM + Architect research, CTO + CPO reviewed the 5-recommendation plan. Thr
 
 ## CTO Conditions (binding)
 
-1. **C1 — No SDLC 6.2.1 references** unless version bump ADR written. Current is 6.2.0
+1. **C1 — No SDLC 6.3.0 references** unless version bump ADR written. Current is 6.2.0
 2. **C2 — R1+R2 must ship together** (thinking framework dead without preamble injection)
 3. **C3 — Preamble capped at 150 tokens** — add lint check to enforce
 4. **C4 — /careful REJECTED** — redundant with existing RiskClassifier.dangerousCommandPatterns
@@ -35,7 +35,7 @@ After PM + Architect research, CTO + CPO reviewed the 5-recommendation plan. Thr
 ## CPO Conditions (binding)
 
 1. **C1-CPO — SE4H doc editing** — Preamble should allow SE4H agents to edit docs/ADR/evidence, only forbid production code
-2. **C4-CPO — SDLC version consistency** — Reference 6.2.0, not 6.2.1
+2. **C4-CPO — SDLC version consistency** — Reference 6.2.0, not 6.3.0
 
 ---
 

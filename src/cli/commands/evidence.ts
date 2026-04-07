@@ -10,7 +10,7 @@
  * @status ACTIVE - Sprint 56 Implementation
  * @authority Master Plan v3.1
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.2.1
+ * @sdlc SDLC Framework 6.3.0
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";

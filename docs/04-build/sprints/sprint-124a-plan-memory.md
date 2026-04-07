@@ -3,7 +3,7 @@
 **Date:** 2026-03-31
 **Status:** COMPLETE
 **Prerequisite:** Sprint 123 COMPLETE (7,501 tests, bootstrap + polyglot + Docker)
-**Framework:** SDLC 6.2.1 (bumped in Sprint 123 session, confirmed by CEO)
+**Framework:** SDLC 6.3.0 (bumped in Sprint 123 session, confirmed by CEO)
 **Authority:** PM + Architect
 **Reviews:** CTO 5/10 (split directive) + CPO (6 conditions)
 
@@ -31,7 +31,7 @@ Original Sprint 124 proposed 3 tracks. CTO verified code and found:
 
 ## CPO Conditions (binding)
 
-1. **C-CPO-1 — SDLC version 6.2.0.** No 6.2.1 without version bump ADR.
+1. **C-CPO-1 — SDLC version 6.2.0.** No 6.3.0 without version bump ADR.
 2. **C-CPO-2 — Memory safety policy.** Allowlist types, scrubber before persist/inject, TTL/eviction, opt-out flag.
 3. **C-CPO-3 — Testable ACs.** Use deterministic metadata (`injectedFactsCount`, `factsWrittenCount`), not subjective output.
 4. **C-CPO-4 — Scope clarity.** No checkpoint resume in 124a — retry+escalate only.
@@ -57,7 +57,7 @@ Original Sprint 124 proposed 3 tracks. CTO verified code and found:
 | [E]xecute option in plan command | CTO C4: display-only until T2 complete |
 | Resume from checkpoint | CPO C-CPO-4: Sprint 125+ |
 | Bootstrap auto-comply | Depends on execution engine |
-| SDLC 6.2.1 version bump | CPO C-CPO-1: needs version bump ADR |
+| SDLC 6.3.0 version bump | CPO C-CPO-1: needs version bump ADR |
 
 ---
 

@@ -60,7 +60,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 
 - **Project:** EndiorBot
 - **Type:** Solo developer tool for enterprise-scale projects
-- **Framework:** MTS SDLC Framework 6.2.1
+- **Framework:** MTS SDLC Framework 6.3.0
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
 ## Quick Start
@@ -357,5 +357,5 @@ const mentalModels = await getBrain().getMentalModels();
 
 *Claude Code integration for EndiorBot v0.1.0-beta.1*
 *Identity: CEO Power Tool (LOCKED)*
-*SDLC Framework v6.2.1*
+*SDLC Framework v6.3.0*
 *Sprint 118+ | 6,596+ tests | 30 OTT commands | 14 SOUL agents*

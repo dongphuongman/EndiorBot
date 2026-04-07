@@ -4,7 +4,7 @@
 **Date:** 2026-04-06
 **Sprint:** 130
 **Amends:** ADR-043 (Chat Mode — Interactive Agent Session)
-**SDLC Framework:** 6.2.1
+**SDLC Framework:** 6.3.0
 
 ---
 
@@ -68,4 +68,4 @@ Parse `--output-format json` response for `cost_usd` field. Accumulate per sessi
 
 ---
 
-*EndiorBot | SDLC Framework 6.2.1 — ADR-043-A1*
+*EndiorBot | SDLC Framework 6.3.0 — ADR-043-A1*

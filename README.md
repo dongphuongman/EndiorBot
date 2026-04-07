@@ -19,7 +19,7 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 - **[Product vision](docs/00-foundation/product-vision.md)** — CEO north star and autonomy levels (L1–L4)
 - **[Stage × command spine](docs/00-foundation/stage-command-workflow-spine.md)** — stage alignment, atomic CLI/OTT/Web vs workflows, design→build→test traceability
 
-Application development documentation under `docs/` is written in **English** (MTS SDLC 6.2.1); see the *Documentation language* note in [docs/README.md](docs/README.md).
+Application development documentation under `docs/` is written in **English** (MTS SDLC 6.3.0); see the *Documentation language* note in [docs/README.md](docs/README.md).
 
 ## Prerequisites
 

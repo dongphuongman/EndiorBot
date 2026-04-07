@@ -3,7 +3,7 @@
 **Date:** 2026-04-02
 **Status:** PLANNED
 **Prerequisite:** Sprint 125 COMPLETE (7,515 tests, permission audit + spike)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 7/10 APPROVED (rescoped), CPO APPROVED
 **ADRs:** ADR-040 (Prompt Caching), ADR-041 (Permission Audit — shipped Sprint 125)
 

@@ -717,4 +717,4 @@ AI Routing Fallback:
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | Personal AI Assistant for Builders | SDLC Framework v6.2.1*
+*EndiorBot v0.1.0-beta.1 | Personal AI Assistant for Builders | SDLC Framework v6.3.0*

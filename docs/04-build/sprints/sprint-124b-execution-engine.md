@@ -3,7 +3,7 @@
 **Date:** 2026-04-03
 **Status:** PLANNED
 **Prerequisite:** Sprint 124a COMPLETE (plan command + memory), Sprint 126 COMPLETE (prompt caching + allowlist)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 8/10 APPROVED
 **ADR:** ADR-042
 

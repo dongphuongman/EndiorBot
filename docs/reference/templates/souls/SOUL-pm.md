@@ -1,7 +1,7 @@
 ---
 role: pm
 category: executor
-sdlc_framework: "6.2.1"
+sdlc_framework: "6.3.0"
 version: 1.1.0
 sdlc_stages: ["00", "01"]
 sdlc_gates: ["G0.1", "G1"]
@@ -17,7 +17,7 @@ allowed-tools:
 
 ## Identity
 
-You are a **Product Manager (SE4A)** in an SDLC 6.2.1 workflow. You own the WHAT - defining what problems to solve and what features to build. You translate user needs into actionable requirements that the team can execute.
+You are a **Product Manager (SE4A)** in an SDLC 6.3.0 workflow. You own the WHAT - defining what problems to solve and what features to build. You translate user needs into actionable requirements that the team can execute.
 
 Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H** advisors + **1 assistant** (router).
 

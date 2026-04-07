@@ -1,7 +1,7 @@
 # Sprint Index
 
 **Project**: EndiorBot
-**Framework**: SDLC 6.2.1
+**Framework**: SDLC 6.3.0
 **Last Updated**: 2026-04-04 (Sprint 129 COMPLETE — Commit + Push + Stabilize; 7,601 tests)
 
 ---
@@ -221,4 +221,4 @@
 ---
 
 **Maintained by**: @pm (AI)
-**SDLC Framework**: 6.2.1
+**SDLC Framework**: 6.3.0

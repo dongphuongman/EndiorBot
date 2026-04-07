@@ -3,7 +3,7 @@
 **Date:** 2026-04-01
 **Status:** PLANNED (CTO rescoped)
 **Prerequisite:** Sprint 124 COMPLETE (7,505 tests, plan command + memory + write path fixed)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 6.5/10 RESCOPED, CPO APPROVED with conditions
 **ADRs:** ADR-041 (Permission Audit)
 

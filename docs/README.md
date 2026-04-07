@@ -1,12 +1,12 @@
 # EndiorBot documentation index
 
-**Framework:** MTS SDLC **6.2.1** · **Identity:** CEO Power Tool (solo dev, enterprise-grade discipline)
+**Framework:** MTS SDLC **6.3.0** · **Identity:** CEO Power Tool (solo dev, enterprise-grade discipline)
 
 This folder is the **stage-shaped** home for product and engineering docs. **Command SSOT** lives in code (`./endiorbot.mjs`); **stage semantics** (WHY → WHAT → HOW → CONNECT → BUILD → VERIFY → …) are summarized in [`00-foundation/stage-command-workflow-spine.md`](00-foundation/stage-command-workflow-spine.md).
 
 ### Documentation language (SDLC Framework)
 
-Per MTS SDLC **6.2.1**, **application development documentation** under `docs/` (stage READMEs, ADRs, technical specs, sprint plans, test plans, and reference templates) is authored in **English** so reviews, gates, and tooling stay consistent. Product-facing OTT strings or locale-specific runbooks may use other languages when explicitly scoped outside this tree.
+Per MTS SDLC **6.3.0**, **application development documentation** under `docs/` (stage READMEs, ADRs, technical specs, sprint plans, test plans, and reference templates) is authored in **English** so reviews, gates, and tooling stay consistent. Product-facing OTT strings or locale-specific runbooks may use other languages when explicitly scoped outside this tree.
 
 ---
 
@@ -54,4 +54,4 @@ Scaffold outputs and agent guidance: [`reference/templates/`](reference/template
 
 ---
 
-*EndiorBot | docs/ stage index | SDLC 6.2.1*
+*EndiorBot | docs/ stage index | SDLC 6.3.0*

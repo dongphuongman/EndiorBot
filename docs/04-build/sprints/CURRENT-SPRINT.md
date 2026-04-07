@@ -4,7 +4,7 @@
 **Sprint Goal**: Stabilize 8 sprints of work (121-128), fix tests, cleanup, commit & push
 **Status**: ✅ COMPLETE
 **Priority**: P0
-**Framework**: SDLC 6.2.1
+**Framework**: SDLC 6.3.0
 **Authority**: CTO APPROVED (9/10), CPO APPROVED
 **Previous Sprint**: Sprint 128 ✅ COMPLETE — Chat Phase 2 + Context Compaction
 **Related ADRs**: ADR-036 through ADR-044
@@ -16,7 +16,7 @@
 | # | Deliverable | Status |
 |---|------------|--------|
 | 1 | Fix 5 real test failures (Telegram/Zalo init, agent-launcher PREAMBLE) | ✅ DONE |
-| 2 | Version cleanup: 25+ v6.1.1 → v6.2.1 refs | ✅ DONE |
+| 2 | Version cleanup: 25+ v6.1.1 → v6.3.0 refs | ✅ DONE |
 | 3 | SSOT constants: src/config/providers.ts + models.ts | ✅ DONE |
 | 4 | ADR-044: Agentic OS Alignment (3-product Pattern Ownership Matrix) | ✅ DONE |
 | 5 | Security: .claude/settings.local.json untracked | ✅ DONE |

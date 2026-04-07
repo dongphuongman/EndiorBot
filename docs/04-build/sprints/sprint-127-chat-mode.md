@@ -3,7 +3,7 @@
 **Date:** 2026-04-03
 **Status:** PLANNED
 **Prerequisite:** Sprint 126 COMPLETE (prompt caching), Sprint 124b COMPLETE (execution engine)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 8/10 APPROVED with 3 conditions
 **ADR:** ADR-043
 

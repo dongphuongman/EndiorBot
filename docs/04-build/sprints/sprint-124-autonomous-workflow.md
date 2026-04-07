@@ -3,7 +3,7 @@
 **Date:** 2026-03-31
 **Status:** PROPOSED (Sprint 124a — CTO split directive)
 **Prerequisite:** Sprint 123 COMPLETE (7,501 tests, bootstrap + polyglot + Docker)
-**Framework:** SDLC 6.2.1
+**Framework:** SDLC 6.3.0
 **Authority:** PM + Architect — CTO 5/10 NEEDS REVISION, split into 124a + 124b
 
 ---

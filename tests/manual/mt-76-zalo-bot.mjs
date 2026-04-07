@@ -246,7 +246,7 @@ try {
     pass("T6.2", "isAvailable() returns true");
     const botInfo = channel.getBotInfo();
     if (botInfo) {
-      pass("T6.2.1", "getBotInfo() returns bot info", `Name: ${botInfo.name}`);
+      pass("T6.3.0", "getBotInfo() returns bot info", `Name: ${botInfo.name}`);
     }
   } else {
     fail("T6.2", "isAvailable() returns false — bot token may be invalid");

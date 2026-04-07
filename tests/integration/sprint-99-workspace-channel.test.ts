@@ -422,17 +422,17 @@ describe("Phase 5: SOUL version bump 6.1.1 → 6.1.2", () => {
     }
   });
 
-  it("updated SOUL files contain 6.2.1 references", () => {
+  it("updated SOUL files contain 6.3.0 references", () => {
     const filesWithVersion: string[] = [];
     for (const file of soulFiles) {
       const filePath = join(soulsDir, file);
       if (!existsSync(filePath)) continue;
       const content = readFileSync(filePath, "utf-8");
-      if (content.includes("6.2.1")) {
+      if (content.includes("6.3.0")) {
         filesWithVersion.push(file);
       }
     }
-    // All 14 SOUL files should have 6.2.1 (Sprint 123 session bump)
+    // All 14 SOUL files should have 6.3.0 (Sprint 123 session bump)
     expect(filesWithVersion.length).toBeGreaterThanOrEqual(7);
   });
 

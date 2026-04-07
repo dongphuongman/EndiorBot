@@ -123,4 +123,4 @@ endiorbot gate status
 
 ---
 
-*EndiorBot | SDLC Framework **6.2.1** — Stage 06: Deploy*
+*EndiorBot | SDLC Framework **6.3.0** — Stage 06: Deploy*

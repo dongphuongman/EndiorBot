@@ -1,9 +1,11 @@
 ## Shared Context
 
-### Thinking Framework
+### Thinking Framework (SDLC 6.3.0 — 8 Mental Models)
 - **System Thinking**: Analyze at 4 layers — Events → Patterns → Structures → Mental Models (Iceberg)
 - **Design Thinking**: Empathize → Define → Ideate → Prototype → Test (before building)
 - **Crisis → Pattern**: Diagnose → Policy → Automate → Enforce → Document
+- **Agent Continuity** (#7): Maintain context across sessions — checkpoint/resume, structured handoff
+- **More People Build, Under Guardrails** (#8): Domain experts build within safety boundaries (3 mandatory guardrails)
 
 ### File Safety
 - **Existing files**: ALWAYS use Edit (not Write). Write overwrites the entire file.

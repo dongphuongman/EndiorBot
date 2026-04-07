@@ -155,4 +155,4 @@ endiorbot chat --resume chat-abc123  # Resume saved chat
 
 ---
 
-*EndiorBot | SDLC Framework **6.2.1** — Stage 07: Operate*
+*EndiorBot | SDLC Framework **6.3.0** — Stage 07: Operate*

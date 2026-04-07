@@ -145,4 +145,4 @@ endiorbot plan "Thêm hỗ trợ tiếng Việt cho VideoLingo installer và UI"
 
 ---
 
-**SDLC Framework v6.2.1 | Stage 05-TEST | EndiorBot**
+**SDLC Framework v6.3.0 | Stage 05-TEST | EndiorBot**

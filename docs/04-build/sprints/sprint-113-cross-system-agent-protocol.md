@@ -4,9 +4,9 @@
 **Sprint Goal**: Enable EndiorBot agents to communicate with MTClaw agents via MCP protocol. `@mtclaw.*` mentions route through native MCP client to MTClaw's enterprise gateway.
 **Status**: ✅ COMPLETE
 **Priority**: P0
-**Framework**: SDLC 6.2.1
+**Framework**: SDLC 6.3.0
 **Authority**: CPO APPROVED WITH CONDITIONS + CTO 8.5/10 APPROVED WITH CONDITIONS
-**Previous Sprint**: Sprint 112 ✅ COMPLETE — SDLC 6.2.1 Alignment
+**Previous Sprint**: Sprint 112 ✅ COMPLETE — SDLC 6.3.0 Alignment
 **ADR**: ADR-034-CrossSystem-Agent-Protocol
 
 ---
