@@ -84,6 +84,8 @@ export interface ContextEnvelope {
   injectedFactsCount?: number;
   /** IDs of injected facts for traceability (Sprint 124a) */
   factIdsUsed?: string[];
+  /** CRG graph context — blast radius / architecture (Sprint 131, ADR-045) */
+  graphContext?: string;
 }
 
 /** Signal breakdown for vibecoding index (Sprint 88) */

@@ -106,3 +106,41 @@ export async function buildContextEnvelope(): Promise<ContextEnvelope | null> {
     return null;
   }
 }
+
+// ============================================================================
+// CRG Context Enrichment (ADR-045 — Sprint 131)
+// ============================================================================
+
+/** Agents that benefit from CRG graph context */
+const GRAPH_AWARE_AGENTS = new Set(["reviewer", "architect", "coder", "tester"]);
+
+/** Max chars for graph context (~500 tokens) */
+const GRAPH_CONTEXT_CAP = 2000;
+
+/**
+ * Enrich a context envelope with CRG blast radius for graph-aware agents.
+ * Fail-soft: if CRG unavailable or errors, envelope is returned unchanged.
+ */
+export async function enrichWithCRG(
+  envelope: ContextEnvelope,
+  agentRole: string,
+  repoId: string,
+  changedFiles?: string[],
+): Promise<ContextEnvelope> {
+  if (!GRAPH_AWARE_AGENTS.has(agentRole)) return envelope;
+  if (!changedFiles || changedFiles.length === 0) return envelope;
+
+  try {
+    const { getCRGClient, formatImpactForContext } = await import("../../graph/client.js");
+    const client = getCRGClient();
+    if (!client.isAvailable()) return envelope;
+
+    const impact = await client.impactRadius(repoId, changedFiles);
+    const graphContext = formatImpactForContext(impact).slice(0, GRAPH_CONTEXT_CAP);
+
+    return { ...envelope, graphContext };
+  } catch {
+    // CRG unavailable — graceful fallback, no change
+    return envelope;
+  }
+}

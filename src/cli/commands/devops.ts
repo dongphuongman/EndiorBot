@@ -322,6 +322,120 @@ async function devopsBuildRunAction(options: { path?: string; skipGateCheck?: bo
 }
 
 // ============================================================================
+// Graph Commands — CRG tools for target repos (ADR-045)
+// ============================================================================
+
+async function graphStatusAction(options: { repo: string }): Promise<void> {
+  const { getCRGClient } = await import("../../graph/client.js");
+  const client = getCRGClient();
+
+  if (!client.isAvailable()) {
+    console.error("❌ CRG not configured. Set AI_PLATFORM_API_KEY or MTCLAW_API_KEY in .env");
+    process.exit(1);
+  }
+
+  try {
+    const status = await client.graphStatus(options.repo);
+    console.log("");
+    console.log(`📊 Graph Status: ${options.repo}`);
+    console.log(`   Status: ${status.status ?? "unknown"}`);
+    if (status.node_count) console.log(`   Nodes: ${status.node_count.toLocaleString()}`);
+    if (status.edge_count) console.log(`   Edges: ${status.edge_count.toLocaleString()}`);
+    if (status.last_updated) console.log(`   Updated: ${status.last_updated}`);
+    console.log("");
+  } catch (err) {
+    console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
+
+async function graphImpactAction(files: string[], options: { repo: string }): Promise<void> {
+  const { getCRGClient } = await import("../../graph/client.js");
+  const client = getCRGClient();
+
+  if (!client.isAvailable()) {
+    console.error("❌ CRG not configured. Set AI_PLATFORM_API_KEY or MTCLAW_API_KEY in .env");
+    process.exit(1);
+  }
+
+  try {
+    const impact = await client.impactRadius(options.repo, files);
+    console.log("");
+    console.log(`💥 Blast Radius: ${impact.blast_radius} affected files`);
+    console.log("");
+    console.log("Changed:");
+    for (const f of impact.changed_files) console.log(`  📝 ${f}`);
+    console.log("");
+    console.log("Affected:");
+    for (const f of impact.affected_files) console.log(`  📎 ${f}`);
+    console.log("");
+  } catch (err) {
+    console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
+
+async function graphFindAction(query: string, options: { repo: string }): Promise<void> {
+  const { getCRGClient } = await import("../../graph/client.js");
+  const client = getCRGClient();
+
+  if (!client.isAvailable()) {
+    console.error("❌ CRG not configured. Set AI_PLATFORM_API_KEY or MTCLAW_API_KEY in .env");
+    process.exit(1);
+  }
+
+  try {
+    const result = await client.findSymbol(options.repo, query);
+    console.log("");
+    if (result.matches.length === 0) {
+      console.log(`🔍 No matches for "${query}" in ${options.repo}`);
+    } else {
+      console.log(`🔍 Found ${result.matches.length} match(es) for "${query}":`);
+      for (const m of result.matches) {
+        console.log(`  ${m.kind.padEnd(10)} ${m.name} → ${m.file_path}:${m.line_start}`);
+      }
+    }
+    console.log("");
+  } catch (err) {
+    console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
+
+async function graphOverviewAction(options: { repo: string }): Promise<void> {
+  const { getCRGClient } = await import("../../graph/client.js");
+  const client = getCRGClient();
+
+  if (!client.isAvailable()) {
+    console.error("❌ CRG not configured. Set AI_PLATFORM_API_KEY or MTCLAW_API_KEY in .env");
+    process.exit(1);
+  }
+
+  try {
+    const arch = await client.architectureOverview(options.repo);
+    console.log("");
+    console.log(`🏗️  Architecture: ${options.repo}`);
+    console.log(`   Nodes: ${arch.node_count.toLocaleString()} | Edges: ${arch.edge_count.toLocaleString()}`);
+    console.log("");
+    console.log("   Node kinds:");
+    for (const [kind, count] of Object.entries(arch.node_kinds)) {
+      console.log(`     ${kind.padEnd(12)} ${count.toLocaleString()}`);
+    }
+    if (arch.top_directories.length > 0) {
+      console.log("");
+      console.log("   Top directories:");
+      for (const dir of arch.top_directories.slice(0, 10)) {
+        console.log(`     📁 ${dir}`);
+      }
+    }
+    console.log("");
+  } catch (err) {
+    console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
+
+// ============================================================================
 // Command Registration
 // ============================================================================
 
@@ -355,4 +469,33 @@ export function registerDevopsCommand(program: Command): void {
     .option("--dev", "Use dev script instead of start")
     .option("--ecosystem <name>", "Override ecosystem detection (node, rust, python)")
     .action(devopsBuildRunAction);
+
+  // Graph subcommands (CRG tools for target repos — ADR-045)
+  const graph = devops
+    .command("graph")
+    .description("Code knowledge graph tools (CRG) for target repos");
+
+  graph
+    .command("status")
+    .description("Show graph build status for a repo")
+    .requiredOption("--repo <id>", "Repo ID (e.g., bflow-platform, mtclaw, endiorbot)")
+    .action(graphStatusAction);
+
+  graph
+    .command("impact <files...>")
+    .description("Show blast radius for changed files")
+    .requiredOption("--repo <id>", "Repo ID")
+    .action(graphImpactAction);
+
+  graph
+    .command("find <query>")
+    .description("Find a symbol (class, function, type) by name")
+    .requiredOption("--repo <id>", "Repo ID")
+    .action(graphFindAction);
+
+  graph
+    .command("overview")
+    .description("Show architecture overview (node types, top directories)")
+    .requiredOption("--repo <id>", "Repo ID")
+    .action(graphOverviewAction);
 }
