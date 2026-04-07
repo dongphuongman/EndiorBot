@@ -341,7 +341,7 @@ async function graphStatusAction(options: { repo: string }): Promise<void> {
     console.log(`   Status: ${status.status ?? "unknown"}`);
     if (status.node_count) console.log(`   Nodes: ${status.node_count.toLocaleString()}`);
     if (status.edge_count) console.log(`   Edges: ${status.edge_count.toLocaleString()}`);
-    if (status.last_updated) console.log(`   Updated: ${status.last_updated}`);
+    if (status.last_build_at) console.log(`   Last build: ${status.last_build_at}`);
     console.log("");
   } catch (err) {
     console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
@@ -387,12 +387,16 @@ async function graphFindAction(query: string, options: { repo: string }): Promis
   try {
     const result = await client.findSymbol(options.repo, query);
     console.log("");
-    if (result.matches.length === 0) {
+    if (!result.results || result.results.length === 0) {
       console.log(`🔍 No matches for "${query}" in ${options.repo}`);
     } else {
-      console.log(`🔍 Found ${result.matches.length} match(es) for "${query}":`);
-      for (const m of result.matches) {
-        console.log(`  ${m.kind.padEnd(10)} ${m.name} → ${m.file_path}:${m.line_start}`);
+      console.log(`🔍 Found ${result.results.length} match(es) for "${query}":`);
+      for (const m of result.results.slice(0, 20)) {
+        const loc = m.line_start ? `:${m.line_start}` : "";
+        console.log(`  ${m.kind.padEnd(10)} ${m.name} → ${m.file_path}${loc}`);
+      }
+      if (result.results.length > 20) {
+        console.log(`  ... and ${result.results.length - 20} more`);
       }
     }
     console.log("");
@@ -415,10 +419,10 @@ async function graphOverviewAction(options: { repo: string }): Promise<void> {
     const arch = await client.architectureOverview(options.repo);
     console.log("");
     console.log(`🏗️  Architecture: ${options.repo}`);
-    console.log(`   Nodes: ${arch.node_count.toLocaleString()} | Edges: ${arch.edge_count.toLocaleString()}`);
+    console.log(`   Nodes: ${arch.total_nodes.toLocaleString()} | Edges: ${arch.total_edges.toLocaleString()}`);
     console.log("");
-    console.log("   Node kinds:");
-    for (const [kind, count] of Object.entries(arch.node_kinds)) {
+    console.log("   Node types:");
+    for (const [kind, count] of Object.entries(arch.node_types)) {
       console.log(`     ${kind.padEnd(12)} ${count.toLocaleString()}`);
     }
     if (arch.top_directories.length > 0) {

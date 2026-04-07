@@ -33,19 +33,22 @@ export interface CRGImpactResult {
 }
 
 export interface CRGSymbolResult {
-  matches: Array<{
+  query: string;
+  results: Array<{
+    id: number;
     name: string;
     kind: string;
     file_path: string;
-    line_start: number;
-    line_end: number;
+    qualified_name: string;
+    line_start?: number;
+    line_end?: number;
   }>;
 }
 
 export interface CRGArchitectureResult {
-  node_count: number;
-  edge_count: number;
-  node_kinds: Record<string, number>;
+  total_nodes: number;
+  total_edges: number;
+  node_types: Record<string, number>;
   top_directories: string[];
 }
 
@@ -53,7 +56,8 @@ export interface CRGStatusResult {
   status: string;
   node_count?: number;
   edge_count?: number;
-  last_updated?: string;
+  last_build_at?: string;
+  days_since_build?: number;
   error?: string;
 }
 
