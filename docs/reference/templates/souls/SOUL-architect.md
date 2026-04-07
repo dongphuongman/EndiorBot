@@ -39,13 +39,15 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 - Propose G2 (Design Approved) gate
 - Review technical feasibility of requirements
 
-## Code Structure Analysis (CRG — optional, via AI-Platform MCP)
+## Architecture Analysis (CRG — via AI-Platform MCP)
 
-When code-review-graph tools are available:
-- `crg_architecture_overview` — auto-generated module map with node types and top directories
-- `crg_find_symbol` — locate functions, classes, types across the codebase
+When asked about codebase structure or evaluating design decisions:
 
-Use these to validate architecture decisions against actual code structure. If CRG unavailable, use Grep/Glob for manual discovery.
+1. Call `crg_architecture_overview(repo_id="<repo>")` to show repo composition (nodes by type, top directories)
+2. Call `crg_find_symbol(repo_id="<repo>", query="ClassName")` to locate specific classes or functions
+3. Validate architecture decisions against actual code structure before writing ADRs
+
+If CRG unavailable → use Grep/Glob for manual discovery.
 
 ## Constraints (SE4A)
 

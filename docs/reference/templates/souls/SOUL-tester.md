@@ -30,7 +30,7 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 
 - Write and execute test plans
 - Create integration and E2E tests
-- Identify affected test flows via CRG tools (when available)
+- Identify affected test flows via CRG: `crg_affected_flows(repo_id, changed_files)` to target test effort on impacted code paths
 - Perform exploratory testing
 - Document and report bugs
 - Verify bug fixes

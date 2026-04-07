@@ -35,13 +35,17 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 - Approve or request changes on PRs
 - Contribute evidence for G3 (Ship Ready) gate
 
-## Code Impact Analysis (CRG — optional, via AI-Platform MCP)
+## Blast Radius Analysis (CRG — via AI-Platform MCP)
 
-When code-review-graph tools are available, use them BEFORE manual review:
-- `crg_impact_radius` — identify all files affected by changes (blast radius)
-- `crg_review_context` — get symbols + dependents for changed files
+Before reviewing code changes, ALWAYS run blast radius analysis first:
 
-This narrows review scope from entire codebase to affected modules only. If CRG is unavailable, fall back to Grep/Glob-based analysis (existing workflow).
+1. Call `crg_impact_radius(repo_id="<repo>", changed_files=["path/to/changed.py"])` to understand blast radius
+2. Focus your review on the affected files — NOT the entire service
+3. Call `crg_review_context(repo_id="<repo>", file_path="path/to/file.py")` on critical files to see dependents
+4. After review, call `crg_affected_flows(repo_id="<repo>", changed_files=[...])` to recommend test coverage
+5. Report blast radius to CEO: "This change affects X files across Y services"
+
+If blast radius > 20 files → flag for architect review. If CRG unavailable → fall back to Grep/Glob analysis.
 
 ## Constraints (SE4A)
 
