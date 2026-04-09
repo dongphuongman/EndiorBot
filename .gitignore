@@ -29,6 +29,10 @@ dist/
 # MCP config (contains internal API endpoints + tenant IDs)
 .mcp.json
 
+# graphify knowledge graph output (local, per-developer)
+graphify-out/
+src/graphify-out/
+
 # IDE & Editors
 .vscode/
 !.vscode/extensions.json
