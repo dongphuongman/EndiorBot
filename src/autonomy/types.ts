@@ -29,8 +29,28 @@ export type DecompositionStrategy = "sequential" | "parallel" | "mixed";
 // Subtask
 // ============================================================================
 
-/** Status of a subtask in the execution pipeline */
-export type SubtaskStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+/**
+ * Status of a subtask in the execution pipeline.
+ *
+ * Sprint 131 (Multica ADOPT 2, CTO C3): Extended lifecycle for CEO visibility.
+ * Read-only — states update from existing execution flow, no auto-progression.
+ *
+ * Lifecycle:
+ *   pending → queued → dispatched → running → verifying → completed
+ *                                                       ↘ failed
+ *   (any) → cancelled
+ *   (pending) → skipped (if dependency failed)
+ */
+export type SubtaskStatus =
+  | "pending"      // Initial state, waiting for dependencies
+  | "queued"       // Dependencies satisfied, ready to dispatch
+  | "dispatched"   // Picked up by scheduler, about to run
+  | "running"      // Agent invocation in progress
+  | "verifying"    // Agent returned, recording budget + emitting events
+  | "completed"    // Successfully finished
+  | "failed"       // Execution error
+  | "cancelled"    // Session stopped or task aborted
+  | "skipped";     // Dependency failed or task bypassed
 
 /**
  * A single subtask in a goal decomposition.

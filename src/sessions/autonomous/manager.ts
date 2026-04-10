@@ -42,6 +42,7 @@ import {
   type AutonomousEventListener,
 } from "./types.js";
 import type { ContextLifecycleManager } from "../../context/transfer/context-lifecycle.js";
+import type { SubtaskStatus } from "../../autonomy/types.js";
 import {
   taskTypeToAgent,
   isEfficiencyTask,
@@ -105,6 +106,11 @@ export class AutonomousSessionManager {
   private completedTasks: Map<string, TaskExecutionResult> = new Map();
   private currentTask: AutonomousTask | null = null;
   private taskIdCounter: number = 0;
+
+  // Sprint 131 (Multica ADOPT 2): Per-task state machine for CEO visibility.
+  // CTO C3: Read-only — states update from existing execution flow,
+  // no separate scheduler, no auto-progression.
+  private taskStates: Map<string, SubtaskStatus> = new Map();
 
   // Escalation management
   private escalations: EscalationRequest[] = [];
@@ -292,6 +298,9 @@ export class AutonomousSessionManager {
     this.taskQueue.push(fullTask);
     this.sortTaskQueue();
 
+    // Sprint 131: track lifecycle
+    this.transitionTaskState(taskId, fullTask.dependencies.length > 0 ? "pending" : "queued");
+
     this.log.debug("Task added", {
       taskId,
       type: task.type,
@@ -449,6 +458,10 @@ export class AutonomousSessionManager {
 
     // Remove from queue
     this.taskQueue = this.taskQueue.filter((t) => t.id !== task.id);
+
+    // Sprint 131 (Multica ADOPT 2): state transitions for visibility
+    this.transitionTaskState(task.id, "dispatched");
+    this.transitionTaskState(task.id, "running");
 
     this.emitEvent("task_started", {
       taskId: task.id,
@@ -609,12 +622,16 @@ export class AutonomousSessionManager {
       };
     }
 
+    // Sprint 131 (Multica ADOPT 2): state → verifying (briefly, while recording result)
+    this.transitionTaskState(task.id, "verifying");
+
     // Store result
     this.completedTasks.set(task.id, result);
     this.currentTask = null;
 
-    // Emit event
+    // Emit event + final state transition
     if (success) {
+      this.transitionTaskState(task.id, "completed");
       this.emitEvent("task_completed", {
         taskId: task.id,
         durationMs,
@@ -623,6 +640,7 @@ export class AutonomousSessionManager {
         filesCreated: filesCreated.length,
       });
     } else {
+      this.transitionTaskState(task.id, "failed");
       this.emitEvent("task_failed", {
         taskId: task.id,
         durationMs,
@@ -926,6 +944,37 @@ export class AutonomousSessionManager {
    */
   setContextLifecycle(lifecycle: ContextLifecycleManager): void {
     this.contextLifecycle = lifecycle;
+  }
+
+  /**
+   * Sprint 131 (Multica ADOPT 2): Transition a task to a new state and emit event.
+   *
+   * CTO C3: Read-only visibility — this updates from existing execution flow only,
+   * never auto-progresses tasks. The state map is a projection, not a scheduler.
+   */
+  private transitionTaskState(taskId: string, to: SubtaskStatus): void {
+    const from = this.taskStates.get(taskId) ?? "pending";
+    if (from === to) return;
+    this.taskStates.set(taskId, to);
+    this.emitEvent("task_state_changed", {
+      taskId,
+      from,
+      to,
+    });
+  }
+
+  /**
+   * Sprint 131: Get current state of a task (for /status display).
+   */
+  getTaskState(taskId: string): SubtaskStatus | undefined {
+    return this.taskStates.get(taskId);
+  }
+
+  /**
+   * Sprint 131: Get all task states (snapshot for UI).
+   */
+  getAllTaskStates(): ReadonlyMap<string, SubtaskStatus> {
+    return new Map(this.taskStates);
   }
 
   /**

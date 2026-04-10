@@ -37,6 +37,49 @@ import { getWorkflowEngine } from "../../agents/orchestrator/workflow-engine.js"
 import { getRiskClassifier } from "../../agents/safety/risk-classifier.js";
 import { auditLog } from "../../agents/safety/audit-logger.js";
 import { getCrossProjectManager, type CrossProjectContext } from "../../agents/context/cross-project.js";
+import { getCRGClient, formatImpactForContext } from "../../graph/client.js";
+import { execFileSync } from "node:child_process";
+
+/** Sprint 131: Agents that benefit from CRG blast radius context */
+const GRAPH_AWARE_AGENTS = new Set<AgentRole>(["reviewer", "architect", "coder", "tester"]);
+
+/**
+ * Sprint 131 (ADR-045): Build CRG context for graph-aware agents.
+ * Returns a formatted context string or null if unavailable/not applicable.
+ * Fail-soft: errors return null, never throw.
+ */
+async function buildCRGContext(agent: AgentRole, workspace: string): Promise<string | null> {
+  if (!GRAPH_AWARE_AGENTS.has(agent)) return null;
+
+  const client = getCRGClient();
+  if (!client.isAvailable()) return null;
+
+  // Detect changed files via git (fail-soft)
+  let changedFiles: string[] = [];
+  try {
+    const output = execFileSync("git", ["-C", workspace, "diff", "--name-only", "HEAD"], {
+      encoding: "utf-8",
+      timeout: 3000,
+    });
+    changedFiles = output.trim().split("\n").filter(f => f.length > 0);
+  } catch {
+    return null; // not a git repo or git error
+  }
+
+  if (changedFiles.length === 0) return null;
+
+  // Derive repo_id from workspace basename
+  const parts = workspace.split("/").filter(Boolean);
+  const basename = parts[parts.length - 1] ?? "unknown";
+  const repoId = basename.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+
+  try {
+    const impact = await client.impactRadius(repoId, changedFiles);
+    return `## Code Graph Context (CRG)\n\n${formatImpactForContext(impact)}`;
+  } catch {
+    return null; // CRG unavailable or repo not indexed
+  }
+}
 
 // ============================================================================
 // Types
@@ -270,6 +313,17 @@ async function agentAction(
     additionalContext = contextLines.join("\n");
   }
 
+  // Sprint 131 (ADR-045): CRG enrichment for graph-aware agents
+  const crgContext = await buildCRGContext(decision.agent, workspace);
+  if (crgContext) {
+    additionalContext = additionalContext
+      ? `${additionalContext}\n\n${crgContext}`
+      : crgContext;
+    if (options.verbose) {
+      console.log("   CRG: blast radius context injected");
+    }
+  }
+
   const injection = await injector.inject({
     agent: decision.agent,
     task: decision.message,
@@ -469,6 +523,10 @@ async function agentAction(
     displayHandoffs(parsed.handoffs);
 
     // Prompt for handoff continuation
+    // Sprint 131 (ADR-046-STUB): CEO approval is the default. Opt-in auto mode
+    // via ENDIORBOT_AUTO_HANDOFF=true skips the prompt for power users who trust
+    // specific workflows. Destructive actions (PATCH mode) still pass through
+    // existing gates regardless — see agent command PATCH flow.
     if (parsed.hasHandoff && parsed.handoffs.length > 0) {
       const firstHandoff = parsed.handoffs[0];
       if (firstHandoff) {
@@ -476,9 +534,17 @@ async function agentAction(
 
         if (validation.allowed) {
           console.log("");
-          const continueHandoff = await promptConfirmation(
-            `Continue to ${formatAgent(firstHandoff.to)}?`
-          );
+          const autoMode = process.env.ENDIORBOT_AUTO_HANDOFF === "true";
+          let continueHandoff: boolean;
+
+          if (autoMode) {
+            console.log(`⚡ Auto-handoff enabled → dispatching to ${formatAgent(firstHandoff.to)}`);
+            continueHandoff = true;
+          } else {
+            continueHandoff = await promptConfirmation(
+              `📋 Handoff proposed: ${formatAgent(decision.agent)} → ${formatAgent(firstHandoff.to)}\n   Task: "${firstHandoff.intent}"\n   Approve?`
+            );
+          }
 
           if (continueHandoff) {
             // Recursive call to handle next agent

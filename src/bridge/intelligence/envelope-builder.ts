@@ -12,11 +12,20 @@
  */
 
 import { loadBrainL4 } from "./brain-loader.js";
-import { buildContextEnvelope } from "./context-builder.js";
+import { buildContextEnvelope, enrichWithCRG } from "./context-builder.js";
 import type {
   PersonaEnvelope,
   SessionIntelligenceEnvelope,
 } from "./envelope.js";
+
+/**
+ * Optional CRG enrichment parameters (Sprint 131, ADR-045).
+ * When provided, blast radius is queried for graph-aware agents.
+ */
+export interface CRGEnrichmentOptions {
+  repoId: string;
+  changedFiles: string[];
+}
 
 // ============================================================================
 // Builder
@@ -28,9 +37,16 @@ import type {
  * Assembles persona (required) + brain (optional) + context (optional).
  * Brain and context are loaded from their respective stores.
  * Missing layers are silently omitted (no error).
+ *
+ * Sprint 131 (ADR-045): Optional CRG enrichment for graph-aware agents.
+ * When `crgOptions` is provided and the persona's agentRole is in the
+ * graph-aware set (reviewer, architect, coder, tester), the context
+ * envelope is enriched with blast radius from AI-Platform CRG service.
+ * Fail-soft: errors are swallowed, envelope returned unchanged.
  */
 export async function buildFullEnvelope(
   persona: PersonaEnvelope,
+  crgOptions?: CRGEnrichmentOptions,
 ): Promise<SessionIntelligenceEnvelope> {
   const envelope: SessionIntelligenceEnvelope = { persona };
 
@@ -41,7 +57,18 @@ export async function buildFullEnvelope(
   }
 
   // Load Context (optional — null if no active project or error)
-  const context = await buildContextEnvelope();
+  let context = await buildContextEnvelope();
+
+  // Sprint 131: CRG enrichment for graph-aware agents
+  if (context && crgOptions && crgOptions.changedFiles.length > 0) {
+    context = await enrichWithCRG(
+      context,
+      persona.agentRole,
+      crgOptions.repoId,
+      crgOptions.changedFiles,
+    );
+  }
+
   if (context) {
     envelope.context = context;
   }
@@ -69,6 +96,13 @@ export function serializeEnvelopeForInjection(
 
   if (envelope.context) {
     sections.push(envelope.context.content);
+
+    // Sprint 131 (ADR-045): CRG graph context appended after project context
+    if (envelope.context.graphContext) {
+      sections.push(
+        `[Code Graph Context — CRG]\n${envelope.context.graphContext}\n[End Code Graph Context]`,
+      );
+    }
   }
 
   if (sections.length === 0) return "";

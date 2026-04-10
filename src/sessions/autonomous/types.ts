@@ -334,6 +334,7 @@ export type AutonomousEventType =
   | "session_paused"
   | "session_resumed"
   | "session_completed"
+  | "task_state_changed" // Sprint 131: per-task state transitions (visibility)
   | "task_started"
   | "task_completed"
   | "task_failed"

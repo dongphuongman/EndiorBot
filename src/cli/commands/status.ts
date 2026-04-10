@@ -21,6 +21,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Command } from "commander";
 import { loadActiveProject } from "../../config/paths.js";
+import { computeDecisionVelocity } from "../../metrics/decision-velocity.js";
 
 // ============================================================================
 // Types
@@ -233,6 +234,16 @@ async function statusAction(options: { verbose?: boolean }): Promise<void> {
   console.log("├─────────────────────────────────────────────────────────────┤");
   console.log(`│  Source files: ${String(status.srcFiles).padEnd(44)}│`);
   console.log(`│  Test files: ${String(status.testFiles).padEnd(46)}│`);
+
+  // Sprint 131 (Sau Sheong cherry-pick): Decision velocity metric
+  // Median time from `plan` creation to first matching `agent` execution
+  // over the last 7 days. Fail-soft: omit line if unavailable.
+  const velocity = computeDecisionVelocity(currentProject.path, 7);
+  if (velocity && velocity.matchedPlans > 0) {
+    const line = `│  Decision velocity: ${velocity.medianMinutes} min (median plan → first execution, last 7 days, n=${velocity.matchedPlans})`;
+    console.log(line.slice(0, 62).padEnd(62) + "│");
+  }
+
   console.log("└─────────────────────────────────────────────────────────────┘");
   console.log("");
 

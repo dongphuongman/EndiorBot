@@ -159,6 +159,16 @@ async function chatAction(options: { model?: string; resume?: string }): Promise
       console.log(`   ⏱ ${elapsed}s`);
       console.log("");
 
+      // Sprint 131 (Sau Sheong insight): Knowledge erosion safeguard.
+      // Show awareness check after substantive responses (>500 chars).
+      // CTO C6: Opt-out via ENDIORBOT_SKIP_REVIEW_PROMPT=true.
+      // Prototype only — non-blocking, no persistence.
+      const skipReviewPrompt = process.env.ENDIORBOT_SKIP_REVIEW_PROMPT === "true";
+      if (!skipReviewPrompt && result.response.length > 500) {
+        console.log("💡 Knowledge check: read through the response? (active understanding > passive watching)");
+        console.log("");
+      }
+
       // CTO C2: Turn warning
       const warning = getTurnWarning(session);
       if (warning) console.log(warning);
@@ -327,6 +337,15 @@ const TOOL_READ_MAX_CHARS = 2000; // Cap output to ~500 tokens
 
 function handleToolRead(tool: string, arg: string, session: ChatSessionData): boolean {
   const projectPath = session.projectPath;
+
+  // Sprint 131 (CTO C7): Increment tool usage counter (integers only, no content).
+  // Backward compat: initialize if missing (old sessions loaded from disk).
+  if (!session.toolUsage) {
+    session.toolUsage = { read: 0, grep: 0, glob: 0, ls: 0 };
+  }
+  if (tool === "read" || tool === "grep" || tool === "glob" || tool === "ls") {
+    session.toolUsage[tool]++;
+  }
 
   try {
     let output = "";

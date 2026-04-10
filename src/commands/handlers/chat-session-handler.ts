@@ -38,6 +38,17 @@ export interface ChatTurn {
   timestamp: string;
 }
 
+/**
+ * Sprint 131: Chat tool usage counters (integers only — no content logged).
+ * CTO C7: Reuses existing session JSON path, no new storage.
+ */
+export interface ChatToolUsage {
+  read: number;
+  grep: number;
+  glob: number;
+  ls: number;
+}
+
 export interface ChatSessionData {
   sessionId: string;
   provider: string;
@@ -49,6 +60,8 @@ export interface ChatSessionData {
   totalCostUsd: number;
   startedAt: string;
   lastActiveAt: string;
+  /** Sprint 131: Tool read counters (optional for backward compat with old sessions) */
+  toolUsage?: ChatToolUsage;
 }
 
 export interface ChatTurnResult {
@@ -104,6 +117,7 @@ export function createChatSession(options: {
     totalCostUsd: 0,
     startedAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
+    toolUsage: { read: 0, grep: 0, glob: 0, ls: 0 },
   };
 }
 

@@ -168,7 +168,17 @@ export class AgentLauncher {
     if (agentType === "claude-code") {
       try {
         const dummyPersona = { agentRole: (agentRole ?? "assistant") as import("./intelligence/envelope.js").AgentRole, soulContent: "", soulContentHash: "" };
-        const envelope = await buildFullEnvelope(dummyPersona);
+
+        // Sprint 131 (ADR-045): CRG enrichment for graph-aware agents.
+        // Detect changed files via git; derive repo_id from project dir basename.
+        // Fail-soft: if git fails or no changes, buildFullEnvelope skips CRG lookup.
+        const changedFiles = await this.getChangedFiles(projectPath);
+        const repoId = this.deriveRepoId(projectPath);
+        const crgOptions = changedFiles.length > 0
+          ? { repoId, changedFiles }
+          : undefined;
+
+        const envelope = await buildFullEnvelope(dummyPersona, crgOptions);
         const serialized = serializeEnvelopeForInjection(envelope);
 
         if (serialized) {
@@ -359,6 +369,32 @@ export class AgentLauncher {
     } catch {
       return "";
     }
+  }
+
+  /**
+   * Get list of changed files from git (unstaged + staged, relative to HEAD).
+   * Sprint 131 (ADR-045): Used for CRG blast radius enrichment.
+   * Returns empty array if not a git repo or on any error (fail-soft).
+   */
+  private async getChangedFiles(path: string): Promise<string[]> {
+    try {
+      const { stdout } = await execFileAsync("git", ["-C", path, "diff", "--name-only", "HEAD"], {
+        timeout: 3000,
+      });
+      return stdout.trim().split("\n").filter(f => f.length > 0);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Derive repo_id for CRG queries from project path.
+   * Uses directory basename (matches how AI-Platform registers repos).
+   */
+  private deriveRepoId(projectPath: string): string {
+    const parts = projectPath.split("/").filter(Boolean);
+    const basename = parts[parts.length - 1] ?? "unknown";
+    return basename.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   }
 
   /**

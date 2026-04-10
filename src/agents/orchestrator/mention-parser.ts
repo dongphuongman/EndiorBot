@@ -420,3 +420,4 @@ export function getExecutorAgents(result: ParseResult): AgentRole[] {
 export function formatMention(agent: AgentRole, message: string): string {
   return `[@${agent}: ${message}]`;
 }
+
