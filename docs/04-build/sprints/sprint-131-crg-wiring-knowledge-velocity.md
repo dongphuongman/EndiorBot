@@ -1,12 +1,14 @@
 ---
 sprint: 131
-status: ACTIVE
+status: COMPLETE — CPO accepted post-merge
 start_date: 2026-04-10
+complete_date: 2026-04-10
 framework: "6.3.0"
-authority: "CTO 8/10 APPROVED + CPO APPROVED with conditions"
+authority: "CTO 8/10 APPROVED + CPO APPROVED with conditions + CPO post-merge accept"
 adrs: ["ADR-045 (CRG Client)", "ADR-044 (Federated OS)", "ADR-046-STUB (Autonomous Execution Policy)"]
 strategic_memo: "docs/02-design/strategic/2026-04-endiorbot-strategic-positioning.md"
 multica_research: "docs/02-design/research/2026-04-multica-orchestration-patterns.md"
+commit: "ce8af90"
 ---
 
 # Sprint 131 — CRG Wiring + Auto-Handoff (CEO Approved) + Small UX Wins
@@ -142,10 +144,17 @@ Understood? [y] yes  [d] show diff  [e] explain more
 
 ### P2.1 — Decision Velocity Metric (0.5 day)
 
-**Definition (exact):** For each `endiorbot plan` invocation in last 7 days, measure time until first `endiorbot agent` command references any task from that plan (match by slug). Report median. Skip plans with no matching execution.
+**Definition (exact, implementation-traceable):**
+- **Input 1 — plans:** Files matching `docs/04-build/sprints/drafts/plan-YYYY-MM-DD-{slug}.md` whose filesystem `mtimeMs` falls within the lookback window (default 7 days). The slug is the filename portion after the date prefix.
+- **Input 2 — audit log:** Entries from `~/.endiorbot/logs/audit.jsonl` whose `ts` falls within the same window, sorted ascending by `ts`.
+- **Match rule:** For each plan, find the first audit entry where `task` (case-insensitive) contains at least `min(3, slugWordCount)` words of the plan slug (words of length ≥ 3 only). The audit entry's `ts` must be ≥ plan `mtimeMs`.
+- **Metric:** `median(ts_audit - mtime_plan)` in minutes across all matched plans. Plans with no matching execution are dropped, but the total is still reported as context (`n=matched`).
+- **Fail-soft:** Any IO error returns `null` and the metric line is omitted from `/status` output.
+
+Implementation lives in [`src/metrics/decision-velocity.ts`](../../../src/metrics/decision-velocity.ts) (`computeDecisionVelocity(projectPath, windowDays)`). Reuses existing drafts/ directory (created by `plan-handler.ts`) and existing audit log (written by `audit-logger.ts`). No new storage paths.
 
 **Work:**
-1. `src/metrics/aer-calculator.ts` — add `computeDecisionVelocity(windowDays: number): number | null` method. Reuses existing audit log.
+1. `src/metrics/decision-velocity.ts` — NEW module with `computeDecisionVelocity()` function matching the definition above.
 2. `src/cli/commands/status.ts` — add one line:
    ```
    Decision velocity: 12 min (median plan → first execution, last 7 days)
@@ -188,7 +197,7 @@ Understood? [y] yes  [d] show diff  [e] explain more
 | `src/commands/handlers/chat-session-handler.ts` | MODIFY | P0.2 handoff event listener + P2.2 toolUsage field |
 | `src/autonomy/types.ts` | MODIFY | P1.1 TaskState enum |
 | `src/cli/commands/status.ts` | MODIFY | P1.1 task states + P2.1 velocity metric |
-| `src/metrics/aer-calculator.ts` | MODIFY | P2.1 computeDecisionVelocity |
+| `src/metrics/decision-velocity.ts` | CREATE | P2.1 computeDecisionVelocity (new module, reuses existing audit log) |
 | `.env.example` | MODIFY | Document ENDIORBOT_AUTO_HANDOFF + ENDIORBOT_SKIP_REVIEW_PROMPT |
 
 ---
