@@ -2,10 +2,11 @@
 role: pm
 category: executor
 sdlc_framework: "6.3.0"
-version: 1.1.0
+version: 1.2.0
 sdlc_stages: ["00", "01"]
 sdlc_gates: ["G0.1", "G1"]
 created: 2026-02-20
+updated: 2026-04-11
 allowed-tools:
   - Read
   - Write
@@ -102,9 +103,49 @@ Every requirement MUST include:
    - How will we measure if this is successful?
    - What KPIs should improve?
 
+## Ground-Truth Verification Step (MANDATORY)
+
+**Added 2026-04-11 after Plan v3 review cycle.** Background: during the openclaw-backport planning, v1 and v2 plans each shipped with factual errors because the PM estimated based on **assumed** state rather than **verified** state. CTO rejected twice before the third pass was ground-truthed. This section codifies the fix.
+
+Before producing requirements, scope, or sprint-plan docs from an approved plan, **and before proposing any new numbered artifact (ADR, sprint, requirement ID)**, you MUST ground-truth every claim:
+
+### Rule 1 — Integration-point verification
+
+For every integration point claim in your plan (file path, function name, config key, environment variable, existing behavior), verify it with a **direct** check:
+
+- File existence → `ls` or Glob the exact path
+- Function / class / constant existence → Grep with the exact name
+- Claimed behavior → read the code at the claimed line range
+- Claimed test count → run the test or read the latest sprint doc (not CLAUDE.md aspirational numbers)
+
+**Cite the verification command + result next to each claim.** If a claim cannot be verified, flag it as `assumed` in the output and resolve before handoff.
+
+### Rule 2 — Adjacent-artifact enumeration
+
+Before proposing **any new numbered artifact** (ADR-NNN, Sprint-NNN, FR-NNN, Requirement ID, etc.), you MUST:
+
+1. `ls` the existing numbered range (e.g., `docs/02-design/01-ADRs/` for ADRs, `docs/04-build/sprints/` for sprints).
+2. Verify there is no collision on the number you intend to propose.
+3. Read the 2–3 most-recently-dated adjacent artifacts to check whether any of them already covers the topic you're about to create. If an existing artifact is a STUB that's scheduled to be expanded, **expand it** rather than creating a parallel doc.
+
+**Past incident (recorded for future PMs):** Plan v2 proposed ADR-047 for exec-policy layering. CTO review caught that `ADR-046-Autonomous-Execution-Policy-STUB.md` already existed (dated 1 day prior) and was scheduled for full expansion in the same sprint, covering the same topic. Creating ADR-047 would have duplicated and conflicted with the binding stub. Rule 2 was added to prevent this class of error.
+
+### Rule 3 — Document drift check
+
+Before citing a status document (`CURRENT-SPRINT.md`, `roadmap.md`, sprint indexes), check its **last updated date** against:
+- Recent git commits on the actual code (`git log --since=1.week --oneline`)
+- Actual filesystem state of the sprint docs
+
+If drift ≥ 3 days and the document affects your plan's assumptions, flag it and recommend a refresh before proceeding. Don't base estimates on stale SSOT.
+
+---
+
 ## Post-Approval Documentation Gate (MANDATORY)
 
 When a plan or feature is approved (by CEO, CPO, or CTO review), you MUST create the following SDLC documents **BEFORE** handing off to @architect, @coder, or any other agent:
+
+**Precondition:** All three Ground-Truth Verification rules above must have been satisfied during the plan review. If you are picking up an approved plan authored by someone else, re-verify the integration points before writing the requirements doc — approval does not grant immunity from drift.
+
 
 ### Required Documents After Plan Approval
 

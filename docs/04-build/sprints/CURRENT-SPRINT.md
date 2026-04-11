@@ -1,39 +1,23 @@
-# Current Sprint: Sprint 129 — COMPLETE (Commit + Push + Stabilize)
+# Current Sprint — Pointer
 
-**Sprint Duration**: April 3-4, 2026
-**Sprint Goal**: Stabilize 8 sprints of work (121-128), fix tests, cleanup, commit & push
-**Status**: ✅ COMPLETE
-**Priority**: P0
-**Framework**: SDLC 6.3.0
-**Authority**: CTO APPROVED (9/10), CPO APPROVED
-**Previous Sprint**: Sprint 128 ✅ COMPLETE — Chat Phase 2 + Context Compaction
-**Related ADRs**: ADR-036 through ADR-044
+> SSOT pointer. Top-level mirror: [../CURRENT-SPRINT.md](../CURRENT-SPRINT.md)
 
----
+## Active / Most Recent
 
-## Sprint 129 Deliverables
+- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **PLANNED, awaiting CEO kickoff**
+  - [sprint-132-openclaw-backport.md](./sprint-132-openclaw-backport.md)
+  - Authority: CTO G2 APPROVED (Plan v3) + CPO Approved + CEO Decisions Locked 2026-04-11
 
-| # | Deliverable | Status |
-|---|------------|--------|
-| 1 | Fix 5 real test failures (Telegram/Zalo init, agent-launcher PREAMBLE) | ✅ DONE |
-| 2 | Version cleanup: 25+ v6.1.1 → v6.3.0 refs | ✅ DONE |
-| 3 | SSOT constants: src/config/providers.ts + models.ts | ✅ DONE |
-| 4 | ADR-044: Agentic OS Alignment (3-product Pattern Ownership Matrix) | ✅ DONE |
-| 5 | Security: .claude/settings.local.json untracked | ✅ DONE |
-| 6 | Commit + push all Sprint 121-129 work | ✅ DONE |
+- **Sprint 131** — CRG Wiring + Auto-Handoff + UX Wins — **✅ COMPLETE** (2026-04-10, CPO accepted post-merge)
+  - [sprint-131-crg-wiring-knowledge-velocity.md](./sprint-131-crg-wiring-knowledge-velocity.md)
+  - Delivered: CRG wiring, auto-handoff (CEO-approved default), state machine, knowledge erosion prompt, decision velocity, chat tool tracking, ADR-046 STUB
 
-**Tests**: 7,601 passing, 0 failures
-**Build**: clean
+- **Sprint 130** — Security + ADR + Chat — see [sprint-130-security-adr-chat.md](./sprint-130-security-adr-chat.md)
+
+- **Sprint 129** — Commit + Push + Stabilize (Sprint 121–128 consolidation) — ✅ COMPLETE 2026-04-04
+
+Older sprints: [sprint-index.md](./sprint-index.md)
 
 ---
 
-## Next Sprint: Sprint 130 (PLANNING)
-
-Candidates:
-- Chat Mode Phase 3 (tool-like reads, coordinator mode)
-- Test gap remediation
-- CEO-directed features
-
----
-
-**Last Updated**: 2026-04-04
+*Updated 2026-04-11 — resolved 7-day drift flagged by CTO in Plan v3 G2 review.*

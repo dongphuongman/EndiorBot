@@ -170,6 +170,12 @@ endiorbot switch <project>      # Minimal context
 - [Master Plan v2.0](../00-foundation/master-plan.md)
 - [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md)
 
+## Feature PRDs
+
+Feature-scoped PRDs that extend this MVP requirements spec:
+
+- **[openclaw Backport (Sprint 132+)](./openclaw-backport/PRD.md)** — M0 `commands.list` RPC, M1 `exec-policy` cluster, S1 Active Memory, S2 SSRF audit. Plan v3 CTO G2 APPROVED 2026-04-11. See also [scope.md](./openclaw-backport/scope.md) and [Sprint 132 plan](../04-build/sprints/sprint-132-openclaw-backport.md).
+
 ---
 
 *CEO Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
