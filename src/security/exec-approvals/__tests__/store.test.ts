@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
+import { existsSync, mkdirSync, statSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -73,6 +73,15 @@ describe("store", () => {
       const storePath = join(tmpStateDir, "exec-policy", "approvals.json");
       expect(existsSync(storePath)).toBe(true);
       expect(existsSync(`${storePath}.tmp`)).toBe(false);
+    });
+  });
+
+  describe("file permissions", () => {
+    it("persisted approvals.json has mode 0o600 (behavior-based)", () => {
+      writeStore(defaultStore());
+      const storePath = join(tmpStateDir, "exec-policy", "approvals.json");
+      const stat = statSync(storePath);
+      expect(stat.mode & 0o777).toBe(0o600);
     });
   });
 

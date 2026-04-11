@@ -133,6 +133,28 @@ describe("checkCommand", () => {
     });
   });
 
+  describe("shell metachar rejection (early deny)", () => {
+    it("denies pnpm test ; rm -rf ~ on open preset (not allow)", () => {
+      writeStore({ preset: "open", extraAllowlist: [], extraHardDeny: [], updatedAt: "2026-04-11T00:00:00.000Z" });
+      const result = checkCommand("pnpm test ; rm -rf ~", makeCtx());
+      expect(result.decision).toBe("deny");
+      expect(result.reason).toBe("shell-metachar-rejected");
+    });
+
+    it("denies git status | head on balanced preset (not prompt)", () => {
+      writeStore({ preset: "balanced", extraAllowlist: [], extraHardDeny: [], updatedAt: "2026-04-11T00:00:00.000Z" });
+      const result = checkCommand("git status | head", makeCtx());
+      expect(result.decision).toBe("deny");
+      expect(result.reason).toBe("shell-metachar-rejected");
+    });
+
+    it("clean pnpm test on balanced still follows normal flow (allow)", () => {
+      writeStore({ preset: "balanced", extraAllowlist: [], extraHardDeny: [], updatedAt: "2026-04-11T00:00:00.000Z" });
+      const result = checkCommand("pnpm test", makeCtx());
+      expect(result.decision).toBe("allow");
+    });
+  });
+
   describe("audit side-effect", () => {
     it("writes audit record for allow decision", async () => {
       const { readAuditTail } = await import("../audit.js");

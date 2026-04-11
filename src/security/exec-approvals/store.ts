@@ -100,7 +100,7 @@ export function writeStore(store: ExecPolicyStore): void {
     mkdirSync(dir, { recursive: true });
   }
   const tmpPath = `${storePath}.tmp`;
-  writeFileSync(tmpPath, JSON.stringify(store, null, 2), "utf-8");
+  writeFileSync(tmpPath, JSON.stringify(store, null, 2), { encoding: "utf-8", mode: 0o600 });
   renameSync(tmpPath, storePath);
 }
 

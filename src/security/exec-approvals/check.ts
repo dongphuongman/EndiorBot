@@ -24,7 +24,7 @@
 
 import type { ExecPolicyDecision, PolicyContext } from "./types.js";
 import { getEffectivePolicy } from "./effective-policy.js";
-import { findMatchingPattern } from "./allowlist-pattern.js";
+import { findMatchingPattern, containsShellMetachars } from "./allowlist-pattern.js";
 import { writeAuditRecord } from "./audit.js";
 
 // ============================================================================
@@ -51,6 +51,18 @@ export function checkCommand(command: string, ctx: PolicyContext): ExecPolicyDec
     const decision: ExecPolicyDecision = {
       decision: "deny",
       reason: `OTT prompt routing deferred — awaiting adapter wiring (originChannel: ${ctx.originChannel})`,
+    };
+    _writeAudit(command, "deny", decision.reason, undefined, ctx, policy.preset);
+    return decision;
+  }
+
+  // --- Shell metacharacter rejection (early, before allowlist pattern matching) ---
+  // Prevents injection bypass via chaining operators even when the command prefix
+  // matches an allowlist pattern.
+  if (containsShellMetachars(command)) {
+    const decision: ExecPolicyDecision = {
+      decision: "deny",
+      reason: "shell-metachar-rejected",
     };
     _writeAudit(command, "deny", decision.reason, undefined, ctx, policy.preset);
     return decision;

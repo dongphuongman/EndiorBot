@@ -91,6 +91,44 @@ export function matchesPattern(pattern: string, command: string): boolean {
 }
 
 /**
+ * Detect shell metacharacters that could enable injection or chaining.
+ *
+ * Pure detection helper — no decision logic. Decision is made by check.ts.
+ *
+ * Detected patterns:
+ *   - `;`   — command separator
+ *   - `|`   — pipe (also covers `||`)
+ *   - `&&`  — AND chain
+ *   - `||`  — OR chain (covered by `|` check)
+ *   - `` ` `` — backtick substitution
+ *   - `$(` — command substitution opener
+ *   - `>(` / `<(` — process substitution
+ *
+ * @param command - Raw command string to inspect
+ * @returns true if any shell metacharacter sequence is found
+ */
+export function containsShellMetachars(command: string): boolean {
+  // Order: longer patterns first to avoid partial-match shadowing
+  const METACHAR_PATTERNS = [
+    "&&",
+    "||",
+    "$(",
+    ">(",
+    "<(",
+    ";",
+    "|",
+    "`",
+  ] as const;
+
+  for (const pattern of METACHAR_PATTERNS) {
+    if (command.includes(pattern)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Find the first pattern in a list that matches the command.
  *
  * @returns The matched pattern string, or null if none match.
