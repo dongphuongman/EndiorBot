@@ -20,6 +20,7 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { writeFile, unlink, mkdir } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { createLogger, type Logger } from "../../logging/index.js";
@@ -387,6 +388,29 @@ Output the diff in a code block with \`\`\`diff format.`,
       cwd: request.workspace,
     });
 
+    // Sprint 131 hang debugging: dump full argv + env stripping to /tmp so we
+    // can diff against a known-working direct shell invocation. Only active
+    // when ENDIORBOT_DEBUG_BRIDGE_DUMP=true to avoid writing on every call.
+    if (process.env.ENDIORBOT_DEBUG_BRIDGE_DUMP === "true") {
+      try {
+        const dumpPath = join(tmpdir(), `endiorbot-bridge-${Date.now()}.log`);
+        const dump = [
+          `# Claude Code bridge invocation dump`,
+          `cwd: ${request.workspace}`,
+          `cmd: ${this.config.claudePath}`,
+          `env.CLAUDECODE: ${process.env.CLAUDECODE ?? "<unset in parent>"} → undefined (stripped)`,
+          `env.ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? "<set in parent>" : "<unset in parent>"} → undefined (stripped)`,
+          `argv count: ${args.length}`,
+          `argv:`,
+          ...args.map((a, i) => `  [${i}] (${a.length} chars) ${JSON.stringify(a).slice(0, 500)}${a.length > 500 ? "..." : ""}`),
+        ].join("\n");
+        writeFileSync(dumpPath, dump, "utf-8");
+        this.log.info("Bridge debug dump written", { path: dumpPath });
+      } catch {
+        // best-effort debug, never block real invocation
+      }
+    }
+
     return new Promise((resolve) => {
       let output = "";
       let error = "";
@@ -399,7 +423,9 @@ Output the diff in a code block with \`\`\`diff format.`,
           ...process.env,
           // Unset CLAUDECODE to allow invocation from within Claude Code session
           CLAUDECODE: undefined,
-          // Unset ANTHROPIC_API_KEY to force OAuth (Max 200 subscription) usage
+          // Force OAuth (Max $200 subscription) by stripping API key.
+          // Claude CLI will use the existing OAuth session (claude.ai auth).
+          // If OAuth is not logged in, run `claude login` first.
           ANTHROPIC_API_KEY: undefined,
         },
       });

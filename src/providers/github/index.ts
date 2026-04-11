@@ -33,6 +33,7 @@ import type {
 } from "../types.js";
 import { ProviderError } from "../types.js";
 import { RateLimiter } from "../../security/rate-limiter.js";
+import { safeFetch } from "../../security/safe-fetch.js";
 
 import {
   GITHUB_MODELS,
@@ -241,12 +242,12 @@ export class GitHubModelsProvider extends BaseProvider {
 
     const body = this.buildRequestBody(request, apiModel, true);
 
-    const response = await fetch(`${GITHUB_MODELS_BASE_URL}/chat/completions`, {
+    const response = await safeFetch(`${GITHUB_MODELS_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: this.buildHeaders(),
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    }, { provider: this.id });
 
     if (!response.ok) {
       const errorData = await this.parseErrorResponse(response);
@@ -313,10 +314,10 @@ export class GitHubModelsProvider extends BaseProvider {
 
     try {
       // Use models endpoint for health check
-      const response = await fetch(`${GITHUB_MODELS_BASE_URL}/models`, {
+      const response = await safeFetch(`${GITHUB_MODELS_BASE_URL}/models`, {
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(5000),
-      });
+      }, { provider: this.id });
 
       const latencyMs = Date.now() - startTime;
 
@@ -630,10 +631,10 @@ export class GitHubModelsProvider extends BaseProvider {
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(url, {
+        const response = await safeFetch(url, {
           ...options,
           signal: AbortSignal.timeout(this.timeoutMs),
-        });
+        }, { provider: this.id });
 
         if (!response.ok) {
           const errorData = await this.parseErrorResponse(response);

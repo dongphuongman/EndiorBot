@@ -2,7 +2,9 @@
 
 > **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
 
-EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
+EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code (and Codex) as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
+
+**Last Updated:** Sprint 133 (2026-04-11) · SDLC 6.3.0
 
 ---
 
@@ -18,8 +20,14 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 8. [Workflow 5: Multi-Model Consultation](#workflow-5-multi-model-consultation)
 9. [Workflow 6: Per-Chat Workspace](#workflow-6-per-chat-workspace)
 10. [Workflow 7: Team Agents](#workflow-7-team-agents)
-11. [Command Reference](#command-reference)
-12. [Troubleshooting](#troubleshooting)
+11. [Workflow 8: Interactive Chat Mode](#workflow-8-interactive-chat-mode-sprint-127)
+12. [Workflow 9: Bootstrap a Project](#workflow-9-bootstrap-a-project-sprint-123)
+13. [Workflow 10: Plan Command](#workflow-10-plan-command-sprint-124)
+14. [Workflow 11: Autonomous Development](#workflow-11-autonomous-development-sprint-131-133)
+15. [Workflow 12: Command Discovery](#workflow-12-command-discovery-sprint-132)
+16. [Workflow 13: Security & Governance](#workflow-13-security--governance-sprint-132-133)
+17. [Command Reference](#command-reference)
+18. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -551,6 +559,128 @@ Tasks: 4 | Agents: @architect @coder @tester @reviewer
 
 ---
 
+## Workflow 11: Autonomous Development (Sprint 131-133)
+
+Enable agents to chain automatically — PM → Architect → Coder → Reviewer → Tester — with you approving only at key boundaries.
+
+### Enable Auto-Handoff
+
+```bash
+# Agents auto-route @mention handoffs (default: false)
+export ENDIORBOT_AUTO_HANDOFF=true
+
+# Safety cap: MAX_HANDOFF_DEPTH=3 (hardcoded, not configurable)
+# Destructive actions (merge, deploy, PATCH) still require CEO approval
+```
+
+### Configure Exec-Policy
+
+Control what commands autonomous agents can execute:
+
+```bash
+endiorbot exec-policy preset balanced   # Recommended for daily dev
+endiorbot exec-policy preset strict     # Max safety — prompts every command
+endiorbot exec-policy preset open       # Prototype/hackathon mode
+
+endiorbot exec-policy show              # View current state
+endiorbot exec-policy allow "pnpm *"    # Custom allowlist
+endiorbot exec-policy deny "rm -rf *"   # Custom hard-deny
+endiorbot exec-policy audit             # View recent decisions
+```
+
+**Presets:**
+
+| Preset | Behavior | Khi nao dung |
+|--------|----------|-------------|
+| `strict` | Every command prompts CEO | Production data, security-critical |
+| `balanced` | Safe commands silent, risky prompts | **Daily development** |
+| `open` | Most allowed, hard-deny still blocks | Prototype, trusted workflows |
+
+**Hard-deny list** (always blocked): `rm -rf /`, `git push --force` on protected branches, fork bombs, `mkfs.*`, shell metacharacters (`;`, `|`, `&&`, backticks, `$()`).
+
+### Full Autonomous Workflow
+
+```bash
+# 1. Configure
+export ENDIORBOT_AUTO_HANDOFF=true
+endiorbot exec-policy preset balanced
+
+# 2. Start a task — agents chain automatically
+endiorbot @pm "plan and implement OAuth2 login"
+# PM creates plan → hands to Architect → hands to Coder → hands to Reviewer → Tester
+# You approve only at key gates
+
+# 3. Monitor from Telegram (while away from desk)
+# Telegram: /gate status → approve pending gates
+# Telegram: @coder status → check what coder is doing
+
+# 4. Review what happened
+endiorbot exec-policy audit   # Full command audit trail
+```
+
+### Exec-Policy + Auto-Handoff Composition Matrix
+
+Per [ADR-046](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md):
+
+| | `AUTO_HANDOFF=false` | `AUTO_HANDOFF=true` |
+|---|---|---|
+| **strict** | 2 prompts (handoff + command) | Silent route, per-command prompts |
+| **balanced** | Handoff prompt + selective | **Recommended `serve` sweet spot** |
+| **open** | 1 prompt then silent | Near L3 autonomy (Gate B/C bounded) |
+
+---
+
+## Workflow 12: Command Discovery (Sprint 132)
+
+Find all available commands across all 4 channels:
+
+```bash
+# CLI
+endiorbot commands                    # Human-readable table
+endiorbot commands --json             # JSON envelope
+endiorbot commands --category sdlc    # Filter by category
+
+# Telegram / Zalo
+/commands                             # Same list, automatically routed
+```
+
+**Five-equal-numbers invariant:** CLI, Web RPC (`cmd.list`), Telegram, Zalo, and dispatcher registry always return the same count.
+
+---
+
+## Workflow 13: Security & Governance (Sprint 132-133)
+
+### Audit Logs
+
+```bash
+# Exec-policy decisions (who ran what, allowed/denied/prompted)
+endiorbot exec-policy audit
+tail -20 ~/.endiorbot/audit-logs/exec-policy.log | jq .
+
+# SSRF blocks (outbound fetch to private IPs blocked)
+tail -20 ~/.endiorbot/audit-logs/ssrf-blocks.log | jq .
+```
+
+### Active Memory (Sprint 133)
+
+Per-query context refresh — AI remembers recent context automatically.
+
+```bash
+# Kill switch (CEO only — if latency regresses)
+export ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false  # Immediate effect
+
+# Hard bounds:
+# ≤500 tokens injected, ≤50ms cache-hit, ≤300ms cache-miss
+# Circuit breaker: fail-open after 3 failures (30s cooldown)
+# Cache TTL: 15s default (configurable 1-120s)
+```
+
+### SSRF Protection (Sprint 133)
+
+All outbound HTTP calls go through `safeFetch` — blocks private IPs, cloud metadata endpoints, `file://` protocol. Legitimate API calls (GitHub, OpenAI, Anthropic, Gemini) are allowed.
+
+---
+
 ## Command Reference
 
 ### Information Commands (no auth required)
@@ -681,16 +811,18 @@ endiorbot serve
 
 ## Environment Variables
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `ANTHROPIC_API_KEY` | Recommended | — | Claude AI (primary) |
-| `GOOGLE_API_KEY` | Recommended | — | Gemini AI (fallback) |
-| `OPENAI_API_KEY` | Optional | — | OpenAI (fallback) |
-| `TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot |
-| `ZALO_APP_ID` | For Zalo | — | Zalo mini app |
-| `ZALO_APP_SECRET` | For Zalo | — | Zalo authentication |
-| `ENDIORBOT_STATE_DIR` | No | `~/.endiorbot/` | State directory |
-| `ENDIORBOT_DEBUG` | No | `false` | Debug mode |
+| Variable | Required | Default | Purpose | Since |
+|----------|----------|---------|---------|-------|
+| `ANTHROPIC_API_KEY` | Recommended | — | Claude AI (primary) | — |
+| `GOOGLE_API_KEY` | Recommended | — | Gemini AI (fallback) | — |
+| `OPENAI_API_KEY` | Optional | — | OpenAI (fallback) | — |
+| `TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot | — |
+| `ZALO_APP_ID` | For Zalo | — | Zalo mini app | — |
+| `ZALO_APP_SECRET` | For Zalo | — | Zalo authentication | — |
+| `ENDIORBOT_STATE_DIR` | No | `~/.endiorbot/` | State directory | — |
+| `ENDIORBOT_DEBUG` | No | `false` | Debug mode (allows localhost fetch) | — |
+| `ENDIORBOT_AUTO_HANDOFF` | No | `false` | Auto-route @mention handoffs | Sprint 131 |
+| `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | No | `false` | Per-query context refresh kill switch | Sprint 133 |
 
 ---
 
@@ -711,10 +843,23 @@ AI Routing Fallback:
 ~/.endiorbot/
   ├── repos.json          # Registered repositories
   ├── chat-focus.json     # Per-chat workspace focus
-  ├── audit-logs/         # Bridge audit logs
+  ├── exec-policy/        # Exec-policy preset + custom rules (Sprint 132)
+  ├── audit-logs/
+  │   ├── exec-policy.log # Command allow/deny/prompt decisions (JSONL, 10MB rotation)
+  │   └── ssrf-blocks.log # Outbound fetch blocks (Sprint 133)
+  ├── sessions/           # Chat session persistence
   └── config.json         # User preferences
 ```
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | Personal AI Assistant for Builders | SDLC Framework v6.3.0*
+## Related Documentation
+
+- [AI Development Workflows](workflows-ai-development.md) — Use cases mapped to Sau Sheong's "From vibe coding to agentic engineering" + SDLC 6.3.0
+- [CLI Reference](../04-build/cli-reference.md) — Full command reference
+- [Deploy Guide](../06-deploy/README.md) — Deployment options + exec-policy config
+- [ADR-046](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md) — Binding policy for exec-policy + auto-handoff
+
+---
+
+*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.0 | Updated Sprint 133*

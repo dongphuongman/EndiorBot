@@ -53,6 +53,23 @@ export {
 // Exec-Approvals cluster (Sprint 132 M1: exec-policy command allowlist)
 export * as execApprovals from "./exec-approvals/index.js";
 
+// HTTP Validator (SSRF defense — Sprint 133 S2)
+export {
+  SSRFBlockedError,
+  validateFetchUrl,
+  validateRedirectTarget,
+  scrubUrl,
+} from "./http-validator.js";
+
+// Safe Fetch (SSRF-protected fetch wrapper — Sprint 133 S2)
+export {
+  safeFetch,
+  writeSSRFAuditRecord,
+  getSSRFAuditLogPath,
+  type SSRFAuditRecord,
+  type SafeFetchContext,
+} from "./safe-fetch.js";
+
 // OTT Audit Logger
 export {
   OTTAuditLogger,

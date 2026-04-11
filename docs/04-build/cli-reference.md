@@ -1,7 +1,7 @@
 # EndiorBot CLI Reference
 
-**Sprint 58 - Production Hardening**
-**Date**: 2026-03-01
+**Last Updated**: Sprint 133 (2026-04-11)
+**Framework**: SDLC 6.3.0
 
 ## Quick Reference
 
@@ -215,7 +215,93 @@ endiorbot setup zalo
 
 ---
 
-## OTT Channel Integration (Sprint 57)
+## Command Discovery (Sprint 132 M0)
+
+```bash
+# Unified command listing — same result across all 4 channels
+endiorbot commands                    # Human-readable table
+endiorbot commands --json             # JSON envelope { commands, meta }
+endiorbot commands --surface cli      # Filter by surface
+endiorbot commands --category sdlc    # Filter by category
+```
+
+From OTT (Telegram / Zalo): `/commands` — returns the same list automatically via `GatewayIngress`.
+
+**Five-equal-numbers invariant:** CLI, Web RPC (`cmd.list`), Telegram `/commands`, Zalo `/commands`, and dispatcher registry all return the same count.
+
+---
+
+## Exec-Policy Management (Sprint 132 M1)
+
+Control which commands autonomous agents can execute. Fires BEFORE Autonomy Gates A/B/C.
+
+```bash
+# View current state
+endiorbot exec-policy show            # Preset, effective allowlist, last mutation
+endiorbot exec-policy list            # Full policy detail
+
+# Set preset (open / balanced / strict)
+endiorbot exec-policy preset balanced # Recommended for production serve
+endiorbot exec-policy preset strict   # Max safety — prompts on every command
+endiorbot exec-policy preset open     # Permissive — hard-deny list still applies
+
+# Custom rules
+endiorbot exec-policy allow "pnpm *"  # Add to allowlist
+endiorbot exec-policy deny "rm -rf *" # Add to hard-deny
+
+# Audit trail
+endiorbot exec-policy audit           # Recent decisions (allow/deny/prompt)
+```
+
+**Presets:**
+- **strict** — deny-by-default, every command prompts CEO. Max friction, max safety.
+- **balanced** — common safe commands allowed silently, mutating commands prompt, hard-deny list always blocks. **Recommended for `serve`.**
+- **open** — most dev tooling allowed, hard-deny list still applies. Bounded by Gate B PATCH and Gate C cost cap.
+
+**Hard-deny base list** (always blocked regardless of preset): `rm -rf /`, `git push --force` on protected branches, fork bombs, `mkfs.*`, `dd of=/dev/sd*`, etc. Additions require CEO approval.
+
+**Shell metacharacter protection** (Sprint 133): commands containing `;`, `|`, `&&`, `||`, backticks, `$()` are automatically denied before pattern matching (`shell-metachar-rejected`).
+
+**Audit log:** `~/.endiorbot/audit-logs/exec-policy.log` (JSONL, 10MB rotation, `0o600` permissions).
+
+**Composition with auto-handoff:** See [ADR-046 6-cell matrix](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md).
+
+---
+
+## Auto-Handoff (Sprint 131)
+
+```bash
+# Enable power mode (routes @mentions without CEO prompt)
+export ENDIORBOT_AUTO_HANDOFF=true
+
+# Default: false (every handoff prompts CEO for approval)
+# Safety cap: MAX_HANDOFF_DEPTH=3 (hardcoded)
+```
+
+When `true`: agents auto-route handoff proposals (e.g., `@pm` → `@architect` → `@coder`) without prompting. Destructive/merge/deploy actions remain gated by CEO approval regardless of this flag ([ADR-046 Binding Sentence](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)).
+
+---
+
+## Active Memory (Sprint 133 S1 — in progress)
+
+Per-query context refresh with cache-first pattern. Augments Brain L4 (session-start only) with per-query context injection.
+
+```bash
+# Kill switch (CEO only)
+export ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false   # Disable immediately
+export ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=true    # Enable
+
+# Hard bounds:
+# - ≤500 tokens injected per query
+# - ≤50ms cache-hit latency
+# - ≤300ms cache-miss latency
+# - Circuit breaker: fail-open after 3 consecutive failures (30s cooldown)
+# - Cache TTL: 15s default (configurable 1–120s)
+```
+
+---
+
+## OTT Channel Integration (Sprint 57+)
 
 ### Telegram Bot
 
@@ -303,15 +389,18 @@ endiorbot gateway status
 
 ## Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `ENDIORBOT_STATE_DIR` | State directory | `~/.endiorbot/` |
-| `ENDIORBOT_CONFIG_PATH` | Config file path | `.sdlc-config.json` |
-| `ENDIORBOT_DEBUG` | Debug mode | `false` |
-| `ANTHROPIC_API_KEY` | Anthropic API key | (required) |
-| `OPENAI_API_KEY` | OpenAI API key | (optional) |
-| `GEMINI_API_KEY` | Google Gemini API key | (optional) |
+| Variable | Purpose | Default | Since |
+|----------|---------|---------|-------|
+| `ANTHROPIC_API_KEY` | Anthropic API key | (required) | — |
+| `OPENAI_API_KEY` | OpenAI API key | (optional) | — |
+| `GOOGLE_API_KEY` | Google Gemini API key | (optional) | — |
+| `ENDIORBOT_STATE_DIR` | State directory | `~/.endiorbot/` | — |
+| `ENDIORBOT_CONFIG_PATH` | Config file path | `.sdlc-config.json` | — |
+| `ENDIORBOT_DEBUG` | Debug mode (allows `localhost` fetch) | `false` | — |
+| `ENDIORBOT_GATEWAY_PORT` | Gateway port | `18790` | — |
+| `ENDIORBOT_AUTO_HANDOFF` | Auto-route @mention handoffs without CEO prompt | `false` | Sprint 131 |
+| `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | Per-query context refresh kill switch | `false` | Sprint 133 |
 
 ---
 
-*EndiorBot CLI Reference v1.0 | Sprint 58 | SDLC Framework 6.2.0*
+*EndiorBot CLI Reference v2.0 | Sprint 133 | SDLC Framework 6.3.0*

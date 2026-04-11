@@ -32,6 +32,7 @@ import type {
 } from "../types.js";
 import { ProviderError } from "../types.js";
 import { RateLimiter } from "../../security/rate-limiter.js";
+import { safeFetch } from "../../security/safe-fetch.js";
 
 // ============================================================================
 // Types
@@ -346,14 +347,15 @@ export class GeminiProvider extends BaseProvider {
 
     const body = this.buildRequestBody(request);
 
-    const response = await fetch(
+    const response = await safeFetch(
       `${this.baseUrl}/models/${model}:streamGenerateContent?key=${this.apiKey}&alt=sse`,
       {
         method: "POST",
         headers: this.buildHeaders(),
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(this.timeoutMs),
-      }
+      },
+      { provider: this.id }
     );
 
     if (!response.ok) {
@@ -425,12 +427,13 @@ export class GeminiProvider extends BaseProvider {
 
     try {
       // Use models list endpoint for health check
-      const response = await fetch(
+      const response = await safeFetch(
         `${this.baseUrl}/models?key=${this.apiKey}`,
         {
           headers: this.buildHeaders(),
           signal: AbortSignal.timeout(5000),
-        }
+        },
+        { provider: this.id }
       );
 
       const latencyMs = Date.now() - startTime;
@@ -471,12 +474,13 @@ export class GeminiProvider extends BaseProvider {
    */
   async getModels(): Promise<string[]> {
     try {
-      const response = await fetch(
+      const response = await safeFetch(
         `${this.baseUrl}/models?key=${this.apiKey}`,
         {
           headers: this.buildHeaders(),
           signal: AbortSignal.timeout(5000),
-        }
+        },
+        { provider: this.id }
       );
 
       if (!response.ok) {
@@ -816,10 +820,10 @@ export class GeminiProvider extends BaseProvider {
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(url, {
+        const response = await safeFetch(url, {
           ...options,
           signal: AbortSignal.timeout(this.timeoutMs),
-        });
+        }, { provider: this.id });
 
         if (!response.ok) {
           const errorData = await this.parseErrorResponse(response);

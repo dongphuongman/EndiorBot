@@ -26,3 +26,24 @@ export {
   PATCH_CONFIRMATION_TTL_MS,
   PATCH_SCOPE_SYSTEM_PROMPT,
 } from "./patch-budget.js";
+
+export {
+  applyActiveMemoryHook,
+  fetchActiveMemoryContext,
+  fetchWithCircuitBreaker,
+  getFromCache,
+  setCache,
+  clearCache,
+  estimateTokens,
+  getBreakerState,
+  resetBreaker,
+  buildActiveMemoryConfig,
+  DEFAULT_CACHE_TTL_MS,
+  DEFAULT_TIMEOUT_MS,
+  DEFAULT_MAX_INJECT_TOKENS,
+  DEFAULT_QUERY_MODE,
+  type ActiveMemoryConfig,
+  type SessionLike,
+  type ConversationTurn,
+  type CircuitBreakerState,
+} from "./active-memory.js";

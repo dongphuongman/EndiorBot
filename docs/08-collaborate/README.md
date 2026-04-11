@@ -51,7 +51,7 @@ git checkout -b feat/my-feature
 # ... code ...
 
 # 5. Verify
-pnpm build && pnpm test    # 7,601+ tests must pass
+pnpm build && pnpm test    # 7,797+ tests must pass
 
 # 6. Submit PR
 git push origin feat/my-feature
@@ -69,6 +69,52 @@ git push origin feat/my-feature
 | `LICENSE-AUDIT.md` | Third-party license audit (0 GPL/AGPL) |
 | `FINAL-HANDOVER-CEO.md` | Sprint handover artifact |
 
+---
+
+## ADR-046 — Autonomous Execution Policy (Sprint 131–132)
+
+The binding governance document for exec-policy, auto-handoff, and the 6-cell preset × `ENDIORBOT_AUTO_HANDOFF` matrix. Located at [`docs/02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md`](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md).
+
+**History:**
+- Sprint 131: STUB created (binding sentence only, CPO C4)
+- Sprint 132: Expanded STUB → FULL (@cto drafted, @cpo signed, @cto countersigned)
+- Sprint 132: Amendment 1 — Finding #2 scope honesty (zero production construction sites for `AutonomousSessionManager`)
+
+Signed by @cpo + @cto on 2026-04-11. Amendment 1 re-acknowledged by @cpo same day.
+
+## SOUL-pm.md v1.2.0 — Ground-Truth Verification (Sprint 132)
+
+Three new rules added to `docs/reference/templates/souls/SOUL-pm.md` to prevent assumed-state planning:
+
+1. **Rule 1 — Integration-point verification:** Before citing a file path, function name, or behavior in a plan, verify it with a direct check (ls, grep, read). Cite the command + result.
+2. **Rule 2 — Adjacent-artifact enumeration:** Before proposing a new numbered artifact (ADR-NNN, Sprint-NNN), ls the existing numbered range and check for collisions or adjacent docs covering the same topic.
+3. **Rule 3 — Document drift check:** Before citing a status document, check its last-updated date against recent git activity. Flag if drift ≥ 3 days.
+
+**Impact (Sprint 132):** Rule 1 was applied 5 times by 4 different agents (@cpo, @architect, @cto, @cpo again) and caught 3 load-bearing false claims before any reached production. This is the **correction-trail discipline** — when a claim is found false, it's corrected with a visible amendment trail (not silently rewritten), and the catching agent is credited.
+
+Examples:
+- @cpo caught `ChannelRouter.originChannel` false claim during ADR-046 sign → Finding #1 fix with credit
+- @architect caught zero production construction sites during M1 design → Amendment 1 with credit
+
+## Openclaw-Backport Pattern (Reusable Process)
+
+Sprint 132 established a repeatable process for backporting from upstream repositories:
+
+```
+1. Survey upstream    → Explore agents map recent changes with commit-date evidence
+2. Filter by identity → CEO Power Tool filter (not platform, not SDLC enforcer)
+3. MoSCoW prioritize  → MUST/SHOULD/COULD/WON'T with effort + risk estimates
+4. Ground-truth verify → SOUL-pm.md Rule 1 on every integration point
+5. Port the pattern   → Adapt the design, don't copy the code
+6. ADR governance     → Expand existing ADRs rather than creating parallel docs
+```
+
+Artifacts produced: PRD ([`docs/01-planning/openclaw-backport/PRD.md`](../01-planning/openclaw-backport/PRD.md)), scope ([`docs/01-planning/openclaw-backport/scope.md`](../01-planning/openclaw-backport/scope.md)), sprint plans, design notes.
+
+## Sprint 132 Gate Status
+
+**G3 APPROVED** — CTO code review 9.5/10, zero conditions. Three rounds of plan review (CTO + CPO), all 8 conditions from v2 folded into v3. CEO decisions locked (6 items) on 2026-04-11.
+
 ## License
 
 EndiorBot is [MIT licensed](../../LICENSE). All dependencies are MIT/ISC/Apache/BSD compatible (verified in [LICENSE-AUDIT.md](LICENSE-AUDIT.md)).
@@ -79,6 +125,9 @@ EndiorBot is [MIT licensed](../../LICENSE). All dependencies are MIT/ISC/Apache/
 
 - **Feeds:** All stages, especially [00-foundation](../00-foundation/) (vision), [02-design](../02-design/) (ADRs)
 - **Consumes:** Gate evidence and sprint outcomes from [04-build](../04-build/)
+- **Key ADRs:** [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
+- **Backport PRD:** [openclaw-backport PRD](../01-planning/openclaw-backport/PRD.md) + [scope](../01-planning/openclaw-backport/scope.md)
+- **Sprints:** [132](../04-build/sprints/sprint-132-openclaw-backport.md), [133](../04-build/sprints/sprint-133-active-memory-ssrf.md)
 - **Spine:** [stage-command-workflow-spine.md](../00-foundation/stage-command-workflow-spine.md)
 
 ---

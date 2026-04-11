@@ -135,6 +135,74 @@ endiorbot chat --resume chat-abc123  # Resume saved chat
 /sessions                            # List active tmux sessions
 ```
 
+## Autonomous Execution Monitoring (Sprint 132+)
+
+### Exec-Policy Audit Logs
+
+```bash
+# Tail recent decisions
+endiorbot exec-policy audit
+
+# Or read JSONL directly
+tail -20 ~/.endiorbot/audit-logs/exec-policy.log | jq .
+
+# Change preset in production
+endiorbot exec-policy preset balanced
+endiorbot exec-policy show            # Verify
+```
+
+Each JSONL record: `timestamp`, `session_id`, `preset`, `command` (scrubbed), `decision` (`allow`/`deny`/`prompt`), `reason`, `origin_channel`, `auto_handoff`. 10 MB rotation, `0o600` permissions.
+
+### SSRF Block Logs (Sprint 133 S2)
+
+```bash
+tail -20 ~/.endiorbot/audit-logs/ssrf-blocks.log | jq .
+```
+
+Records: `timestamp`, `url` (scrubbed), `reason`, `provider`, `session_id`.
+
+### Active Memory Operations (Sprint 133 S1)
+
+**Kill switch (CEO only):**
+```bash
+# Disable immediately if latency regresses
+export ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false
+# Or in .env: ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false
+```
+
+**Circuit breaker states:**
+```
+CLOSED (normal) → 3 consecutive failures → OPEN (skip sub-agent, fail-open)
+                                              → 30s cooldown → HALF_OPEN (allow 1 attempt)
+                                                                 → success → CLOSED
+```
+
+When breaker is OPEN: main reply still delivered (fail-open, no context injected). CEO perceives "no context enrichment" but never "no response". Logs breaker events to console.error.
+
+**Hard bounds:** ≤500 tokens injected, ≤50ms cache-hit, ≤300ms cache-miss, 15s default TTL.
+
+### Auto-Handoff Safety (Sprint 131)
+
+```bash
+# Enable power mode (routes @mentions without CEO prompt)
+export ENDIORBOT_AUTO_HANDOFF=true
+
+# Safety cap: MAX_HANDOFF_DEPTH=3 (hardcoded, not configurable)
+# Chains deeper than 3 are blocked even with AUTO_HANDOFF=true
+```
+
+Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-046 6-cell matrix](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md).
+
+## Monitoring Surface Summary
+
+| Log / Metric | Path | What it tells you |
+|---|---|---|
+| Gateway health | `GET /health` on port 18790 | Service is up |
+| Exec-policy audit | `~/.endiorbot/audit-logs/exec-policy.log` | What commands were allowed/denied/prompted |
+| SSRF blocks | `~/.endiorbot/audit-logs/ssrf-blocks.log` | Outbound fetch attempts to private IPs |
+| Token cost | `/cost` (OTT) or `/status` (chat) | Budget consumption |
+| Active Memory | Feature flag + circuit breaker state | Context enrichment health |
+
 ## Troubleshooting
 
 | Problem | Solution |
@@ -144,6 +212,10 @@ endiorbot chat --resume chat-abc123  # Resume saved chat
 | Agent says "no Bash tool" | Agent is in READ mode; use `--risk patch` |
 | Chat: "Provider not available" | Check API key for selected provider |
 | Bootstrap: "Toolchain not found" | Install ecosystem toolchain first |
+| Exec-policy blocking agent commands | `endiorbot exec-policy preset open` (temporary); review audit log for false positives |
+| Active Memory latency spike | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false` (immediate kill switch) |
+| SSRF blocking legitimate API call | Check `~/.endiorbot/audit-logs/ssrf-blocks.log` for the blocked URL; if false positive, file a bug against `src/security/http-validator.ts` |
+| Auto-handoff chain stuck | Check if depth ≥ 3 (MAX_HANDOFF_DEPTH cap); reduce @mention chain depth |
 
 ---
 
@@ -151,6 +223,8 @@ endiorbot chat --resume chat-abc123  # Resume saved chat
 
 - **Upstream:** [06-deploy](../06-deploy/) (what was shipped), [03-integrate](../03-integrate/) (live integrations)
 - **Downstream:** [09-govern](../09-govern/) (retros, RFCs), [04-build](../04-build/) (fixes)
+- **ADRs:** [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
+- **Sprints:** [Sprint 132](../04-build/sprints/sprint-132-openclaw-backport.md), [Sprint 133](../04-build/sprints/sprint-133-active-memory-ssrf.md)
 - **Spine:** [stage-command-workflow-spine.md](../00-foundation/stage-command-workflow-spine.md)
 
 ---

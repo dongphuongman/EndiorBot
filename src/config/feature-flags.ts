@@ -112,6 +112,23 @@ export const FEATURE_FLAGS = {
    * @sprint 89
    */
   AGENT_TEAMS: false,
+
+  // =========================================================================
+  // Active Memory (Sprint 133 S1)
+  // =========================================================================
+
+  /**
+   * Enable Active Memory per-query context injection.
+   * When enabled, recent session context is fetched and injected before
+   * the main agent reply (cache-first, circuit-breaker-wrapped fetcher).
+   *
+   * Kill-switch ownership: CEO only. No automatic policy.
+   * Env override: ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=true|false
+   *
+   * @sprint 133
+   * @default false
+   */
+  ACTIVE_MEMORY_ENABLED: false,
 } as const;
 
 // ============================================================================
@@ -248,6 +265,7 @@ export const FEATURE_FLAG_SPRINTS: Record<string, FeatureFlagKey[]> = {
   "68": ["STAGE_CONTRACTS", "PATCH_MANAGER"],
   "72": ["AUTONOMY_MODE"],
   "89": ["AGENT_TEAMS"],
+  "133": ["ACTIVE_MEMORY_ENABLED"],
 };
 
 /**

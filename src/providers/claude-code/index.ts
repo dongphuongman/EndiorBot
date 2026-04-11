@@ -49,7 +49,7 @@ export class ClaudeCodeProvider implements AIProvider {
   private sessionId: string | null = null;
   private turnCount = 0;
   private claudePath = CLAUDE_CLI;
-  private timeout = 120000; // 2 min default
+  private timeout = 300000; // 5 min default (Claude Code needs time for complex queries)
 
   async initialize(config: ProviderConfig): Promise<void> {
     if (config.timeout) this.timeout = config.timeout;
@@ -92,11 +92,11 @@ export class ClaudeCodeProvider implements AIProvider {
     // Model selection
     args.push("--model", request.model || "sonnet");
 
-    // Session management (CTO key insight)
-    if (this.turnCount === 0) {
-      args.push("--session-id", this.sessionId!);
-    } else {
-      args.push("--resume", this.sessionId!);
+    // Session management
+    // Note: --session-id with custom IDs causes empty stdout in Claude CLI 2.1.x
+    // Let Claude create its own session on first turn, then --resume with that ID
+    if (this.turnCount > 0 && this.sessionId) {
+      args.push("--resume", this.sessionId);
     }
 
     // System prompt only on first turn
@@ -114,6 +114,11 @@ export class ClaudeCodeProvider implements AIProvider {
 
     // Parse JSON response
     const parsed = this.parseResponse(result.stdout);
+
+    // Capture session_id from Claude's response for --resume on subsequent turns
+    if (this.turnCount === 1 && parsed.sessionId) {
+      this.sessionId = parsed.sessionId;
+    }
 
     return {
       id: `cc-${this.sessionId}-${this.turnCount}`,
@@ -196,17 +201,27 @@ export class ClaudeCodeProvider implements AIProvider {
     outputTokens: number;
     costUsd: number;
     finishReason: "stop" | "length" | "error";
+    sessionId?: string;
   } {
     // Try JSON parse first (--output-format json)
     try {
       const data = JSON.parse(stdout);
-      return {
+      const result: {
+        content: string;
+        inputTokens: number;
+        outputTokens: number;
+        costUsd: number;
+        finishReason: "stop" | "length" | "error";
+        sessionId?: string;
+      } = {
         content: data.result ?? data.content ?? data.text ?? stdout,
         inputTokens: data.usage?.input_tokens ?? data.input_tokens ?? 0,
         outputTokens: data.usage?.output_tokens ?? data.output_tokens ?? 0,
         costUsd: data.cost_usd ?? data.usage?.cost_usd ?? 0,
         finishReason: data.stop_reason === "max_tokens" ? "length" : "stop",
       };
+      if (data.session_id) result.sessionId = data.session_id;
+      return result;
     } catch {
       // Fallback: plain text response
       return {

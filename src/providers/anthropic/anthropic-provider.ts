@@ -16,6 +16,7 @@ import type {
 } from "../types.js";
 import { ProviderError, type ProviderErrorCode } from "../types.js";
 import { RateLimiter } from "../../security/rate-limiter.js";
+import { safeFetch } from "../../security/safe-fetch.js";
 
 // Anthropic API response types
 interface AnthropicResponse {
@@ -207,7 +208,7 @@ export class AnthropicProvider extends BaseProvider {
       stream: true,
     };
 
-    const response = await fetch(`${this.baseUrl}/v1/messages`, {
+    const response = await safeFetch(`${this.baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -215,7 +216,7 @@ export class AnthropicProvider extends BaseProvider {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify(body),
-    });
+    }, { provider: this.id });
 
     if (!response.ok || !response.body) {
       throw await this.handleErrorResponse(response);
@@ -267,7 +268,7 @@ export class AnthropicProvider extends BaseProvider {
 
     try {
       // Simple API check - we just verify auth works
-      const response = await fetch(`${this.baseUrl}/v1/messages`, {
+      const response = await safeFetch(`${this.baseUrl}/v1/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -280,7 +281,7 @@ export class AnthropicProvider extends BaseProvider {
           messages: [{ role: "user", content: "hi" }],
         }),
         signal: AbortSignal.timeout(5000),
-      });
+      }, { provider: this.id });
 
       const latencyMs = Date.now() - start;
 
@@ -317,12 +318,12 @@ export class AnthropicProvider extends BaseProvider {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const response = await safeFetch(`${this.baseUrl}${endpoint}`, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
         signal: controller.signal,
-      });
+      }, { provider: this.id });
 
       if (!response.ok) {
         throw await this.handleErrorResponse(response);

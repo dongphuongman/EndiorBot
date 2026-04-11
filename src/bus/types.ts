@@ -51,6 +51,30 @@ export type ChannelSendFn = (
 // Bus Messages
 // ============================================================================
 
+// ============================================================================
+// Active Memory types (Sprint 133 S1 — CTO C-SOFT-1)
+// ============================================================================
+
+/**
+ * Active Memory context payload injected onto BusInboundMessage.metadata.
+ *
+ * Sprint 133 S1: Pre-dispatch hook fetches recent context and injects it here
+ * so that GatewayIngress.handleInbound() can prepend it to the agent prompt.
+ *
+ * source:
+ *   "cache"      — served from in-memory cache (≤50ms)
+ *   "sub-agent"  — fetched fresh from session history / Brain L4 (≤300ms)
+ *   "none"       — circuit breaker open or feature disabled (fail-open)
+ */
+export interface ActiveMemoryPayload {
+  /** Injected context text (empty string when source is "none") */
+  content: string;
+  /** Estimated token count via Math.ceil(content.length / 4) */
+  tokenCount: number;
+  /** Fetch source — tells downstream how the context was obtained */
+  source: "cache" | "sub-agent" | "none";
+}
+
 /**
  * Inbound bus message — wraps channel input with bus routing metadata.
  * Equivalent to MTClaw InboundMessage struct.

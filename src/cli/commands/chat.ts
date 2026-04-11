@@ -39,7 +39,15 @@ import { createCommandDispatcher } from "../../commands/index.js";
 // ============================================================================
 
 async function chatAction(options: { model?: string; resume?: string }): Promise<void> {
-  const projectPath = resolveActiveProjectDir();
+  // Initialize AI providers from env before chat (must run before registry.get())
+  const { initializeProvidersFromEnv } = await import("../../providers/init.js");
+  await initializeProvidersFromEnv();
+
+  // CLI chat: prefer cwd if it's a git repo (user explicitly cd'd here)
+  // Only fall back to active-project.json if cwd is not a repo
+  const cwd = process.cwd();
+  const cwdIsRepo = existsSync(join(cwd, ".git"));
+  const projectPath = cwdIsRepo ? cwd : resolveActiveProjectDir();
   const provider = options.model ?? "claude-code";
 
   // T1: Resume existing session or create new
@@ -189,6 +197,9 @@ async function chatAction(options: { model?: string; resume?: string }): Promise
       console.error(`\n❌ ${msg}`);
       if (msg.includes("not available") || msg.includes("API")) {
         console.error(`   Current provider: ${session.provider} (${session.model})`);
+        if (session.provider === "claude-code") {
+          console.error("   → Run: claude login  — authenticate Claude Code via OAuth");
+        }
         console.error("   → /model ollama     — free, local (no API key needed)");
         console.error("   → /model gemini     — needs GOOGLE_API_KEY in .env");
         console.error("   → /model openai     — needs OPENAI_API_KEY in .env");

@@ -30,6 +30,7 @@ import type {
 } from "../types.js";
 import { ProviderError } from "../types.js";
 import { RateLimiter } from "../../security/rate-limiter.js";
+import { safeFetch } from "../../security/safe-fetch.js";
 
 // ============================================================================
 // Types
@@ -397,12 +398,12 @@ export class OllamaProvider extends BaseProvider {
       },
     };
 
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
+    const response = await safeFetch(`${this.baseUrl}/api/chat`, {
       method: "POST",
       headers: this.buildHeaders(),
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    }, { provider: this.id });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -455,10 +456,10 @@ export class OllamaProvider extends BaseProvider {
     const startTime = Date.now();
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
+      const response = await safeFetch(`${this.baseUrl}/api/tags`, {
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(5000),
-      });
+      }, { provider: this.id });
 
       const latencyMs = Date.now() - startTime;
 
@@ -492,10 +493,10 @@ export class OllamaProvider extends BaseProvider {
    */
   async getModels(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
+      const response = await safeFetch(`${this.baseUrl}/api/tags`, {
         headers: this.buildHeaders(),
         signal: AbortSignal.timeout(5000),
-      });
+      }, { provider: this.id });
 
       if (!response.ok) {
         this.log.warn("Failed to fetch Ollama models", {
@@ -628,7 +629,7 @@ export class OllamaProvider extends BaseProvider {
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await fetch(url, {
+        const response = await safeFetch(url, {
           ...options,
           signal: AbortSignal.timeout(this.timeoutMs),
         });

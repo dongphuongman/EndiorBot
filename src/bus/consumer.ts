@@ -26,6 +26,8 @@
 import type { IMessageBus, BusInboundMessage, BusOutboundMessage } from "./types.js";
 import type { GatewayIngress, InboundMessage } from "../gateway/ingress.js";
 import type { BusDedup } from "./dedup.js";
+import { applyActiveMemoryHook } from "../agents/intelligence/active-memory.js";
+import type { SessionLike, ActiveMemoryConfig } from "../agents/intelligence/active-memory.js";
 
 // ============================================================================
 // BusConsumer
@@ -50,10 +52,21 @@ export class BusConsumer {
   private _started: boolean;
   private readonly _handler: (msg: BusInboundMessage) => void;
 
+  /**
+   * @param bus               Message bus
+   * @param ingress           Gateway ingress for message dispatch
+   * @param dedup             Optional dedup guard (Sprint 107)
+   * @param sessionResolver   Optional: resolves a SessionLike from a BusInboundMessage
+   *                          for Active Memory pre-dispatch hook (Sprint 133 S1).
+   *                          If not provided, Active Memory hook is a no-op even when enabled.
+   * @param activeMemoryConfig Optional Active Memory config overrides
+   */
   constructor(
     private readonly bus: IMessageBus,
     private readonly ingress: GatewayIngress,
     private readonly dedup?: BusDedup,
+    private readonly sessionResolver?: (msg: BusInboundMessage) => SessionLike | undefined,
+    private readonly activeMemoryConfig?: Partial<ActiveMemoryConfig>,
   ) {
     this._started = false;
     // Bind in constructor so offInbound() can remove the exact same reference
@@ -114,6 +127,17 @@ export class BusConsumer {
       if (dedupKey !== undefined) {
         if (this.dedup.isDuplicate(dedupKey)) return; // silent skip
         this.dedup.markSeen(dedupKey);
+      }
+    }
+
+    // Sprint 133 S1: Active Memory pre-dispatch hook
+    // Fetches recent context (cache-first, circuit-breaker-wrapped) and
+    // injects ActiveMemoryPayload into msg.metadata.activeMemoryContext
+    // BEFORE ingress.handleInbound(). No-op when feature flag is disabled.
+    if (this.sessionResolver) {
+      const session = this.sessionResolver(msg);
+      if (session) {
+        await applyActiveMemoryHook(msg, session, this.activeMemoryConfig);
       }
     }
 
