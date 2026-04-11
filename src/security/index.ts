@@ -50,6 +50,9 @@ export {
   type ShellGuardConfig,
 } from "./shell-guard.js";
 
+// Exec-Approvals cluster (Sprint 132 M1: exec-policy command allowlist)
+export * as execApprovals from "./exec-approvals/index.js";
+
 // OTT Audit Logger
 export {
   OTTAuditLogger,

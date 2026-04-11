@@ -51,6 +51,8 @@ import {
   estimateCostFromTokens,
 } from "./task-agent-mapper.js";
 import { callCloudFallback, type ProviderDeps } from "../../agents/router/providers.js";
+import { checkCommand } from "../../security/exec-approvals/check.js";
+import { selectPromptFn } from "../../security/exec-approvals/prompt.js";
 
 // ============================================================================
 // Autonomous Session Manager
@@ -668,6 +670,47 @@ export class AutonomousSessionManager {
     tier: ModelTier,
     modelId?: string,
   ): Promise<{ cost: number; output?: string; filesModified?: string[]; filesCreated?: string[] }> {
+    // -------------------------------------------------------------------------
+    // Sprint 132 M1 — Exec-Policy Hook (fires BEFORE Gate A/B/C)
+    //
+    // ADR-046 composition rule: exec-policy → Gate A/B/C → PATCH/risk gate → execute
+    //
+    // COARSE HOOK (CEO decision #2, 2026-04-11):
+    //   task.type + task.description is used as the candidate-command proxy because
+    //   executeTaskWork() does not emit Bash today — it calls callCloudFallback.
+    //   When a fine-grained tool-use dispatcher lands, it must call checkCommand()
+    //   directly per-invocation (not via this coarse hook).
+    //   See: docs/02-design/14-Technical-Specs/M1-exec-policy-design.md §9.1
+    // -------------------------------------------------------------------------
+    const candidateCommand = `${task.type} ${task.description}`;
+    const originChannel = this.config.originChannel ?? "cli";
+    const execCtx = {
+      sessionId: this.config.sessionId,
+      taskId: task.id,
+      agent: taskTypeToAgent(task.type),
+      gate: this.config.gate,
+      autoHandoff: process.env["ENDIORBOT_AUTO_HANDOFF"] === "true",
+      originChannel,
+    };
+    const policyResult = checkCommand(candidateCommand, execCtx);
+
+    if (policyResult.decision === "deny") {
+      throw new Error(`exec-policy denied command: ${policyResult.reason}`);
+    }
+
+    if (policyResult.decision === "prompt") {
+      // Resolve the prompt function: CLI → interactive, non-CLI → fail-closed (ADR-046 Amendment 1)
+      const promptFn = this.config.promptFn ?? selectPromptFn(originChannel);
+      const approved = await promptFn(
+        `exec-policy requires CEO approval (preset: ${policyResult.reason})`,
+        candidateCommand,
+      );
+      if (!approved) {
+        throw new Error(`exec-policy denied command: CEO declined prompt for "${candidateCommand}"`);
+      }
+    }
+    // policyResult.decision === "allow" → fall through to Gate A/B/C checks below
+
     // C4: Gate B = READ only — block PATCH-requiring tasks
     if (requiresGateC(task.type)) {
       throw new Error(

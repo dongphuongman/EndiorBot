@@ -46,4 +46,5 @@ export { registerSprintCloseCommand } from "./sprint-close.js";
 export { registerBootstrapCommand } from "./bootstrap.js";
 export { registerPlanCommand } from "./plan.js";
 export { registerChatCommand } from "./chat.js";
+export { registerExecPolicyCommand } from "./exec-policy.js";
 export { registerAllCommands } from "./register-all.js";

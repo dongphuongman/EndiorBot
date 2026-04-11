@@ -14,6 +14,10 @@
 import type { ResilienceState } from "../state-machine.js";
 import type { ModelTier, TaskType, ModelSelectionResult } from "../../models/types.js";
 import type { FailureType } from "../failure/index.js";
+import type { PromptFn } from "../../security/exec-approvals/types.js";
+
+// Re-export for consumers that import from this module
+export type { PromptFn };
 
 // ============================================================================
 // Autonomy Levels
@@ -229,6 +233,12 @@ export interface EscalationResponse {
 // ============================================================================
 
 /**
+ * Origin channel type for autonomous sessions.
+ * Added Sprint 132 M1 per ADR-046 Amendment 1.
+ */
+export type OriginChannel = "web" | "telegram" | "zalo" | "cli";
+
+/**
  * Autonomous session configuration.
  */
 export interface AutonomousSessionConfig {
@@ -258,6 +268,18 @@ export interface AutonomousSessionConfig {
   autoCheckpoint: boolean;
   /** Enable debug logging */
   debug: boolean;
+  /**
+   * Channel that initiated this autonomous session.
+   * Default "cli". Non-CLI origins fail closed at exec-policy layer in M1
+   * until OTT adapter wiring lands (ADR-046 Amendment 1).
+   */
+  originChannel?: OriginChannel;
+  /**
+   * Injectable prompt function for exec-policy decisions.
+   * Default: CLI terminal prompt (selectPromptFn("cli")).
+   * Future OTT adapters inject a channel-aware prompter here.
+   */
+  promptFn?: PromptFn;
 }
 
 /**
@@ -276,6 +298,10 @@ export const DEFAULT_AUTONOMOUS_CONFIG: Omit<
   nonBlockingEscalation: true,
   autoCheckpoint: true,
   debug: false,
+  // Sprint 132 M1: originChannel defaults to "cli".
+  // Non-CLI origins fail closed at exec-policy until OTT adapters wire through
+  // (ADR-046 Amendment 1 — no production construction sites exist for OTT yet).
+  originChannel: "cli" as const,
 };
 
 // ============================================================================

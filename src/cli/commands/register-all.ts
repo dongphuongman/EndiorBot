@@ -50,6 +50,7 @@ import {
   registerBootstrapCommand,
   registerPlanCommand,
   registerChatCommand,
+  registerExecPolicyCommand,
 } from "./index.js";
 
 /**
@@ -92,4 +93,5 @@ export function registerAllCommands(program: Command): void {
   registerBootstrapCommand(program);
   registerPlanCommand(program);
   registerChatCommand(program);
+  registerExecPolicyCommand(program);
 }
