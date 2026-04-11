@@ -66,7 +66,10 @@ describe("registerBridgeCommandMethods", () => {
     expect(server.hasMethod("cmd.agents")).toBe(true);
     expect(server.hasMethod("cmd.launch")).toBe(true);
     expect(server.hasMethod("cmd.help")).toBe(true);
-    expect(server.getMethodCount()).toBe(3);
+    // M0 (Sprint 132): cmd.list is registered separately BEFORE the loop.
+    // Total = 3 dispatcher commands + 1 for cmd.list.
+    expect(server.hasMethod("cmd.list")).toBe(true);
+    expect(server.getMethodCount()).toBe(4);
   });
 
   it("cmd.agents callable without userId (non-sensitive)", async () => {

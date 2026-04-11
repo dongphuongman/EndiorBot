@@ -22,6 +22,7 @@ import {
   registerStatusCommand,
   registerGateCommand,
   registerConsultCommand,
+  registerCommandsListCommand,
   registerConfigCommand,
   registerCheckpointCommand,
   registerResumeCommand,
@@ -63,6 +64,7 @@ export function registerAllCommands(program: Command): void {
   registerStatusCommand(program);
   registerGateCommand(program);
   registerConsultCommand(program);
+  registerCommandsListCommand(program);
   registerConfigCommand(program);
   registerCheckpointCommand(program);
   registerResumeCommand(program);

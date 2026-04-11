@@ -12,6 +12,7 @@
 
 import type { GatewayServer } from "../server.js";
 import type { CommandDispatcher, CommandContext } from "../../commands/command-dispatcher.js";
+import { buildCmdListResult, type CmdListParams } from "../../commands/command-catalog.js";
 
 // ============================================================================
 // Registration
@@ -27,6 +28,14 @@ export function registerBridgeCommandMethods(
   server: GatewayServer,
   dispatcher: CommandDispatcher,
 ): void {
+  // ── M0 (Sprint 132): cmd.list — unified command discovery ──
+  // Registered BEFORE the loop so it is not itself iterated as a regular command.
+  // Non-sensitive: no auth required (listing metadata leaks no secrets).
+  server.registerMethod("cmd.list", async (params: unknown) => {
+    const p = (params ?? {}) as CmdListParams;
+    return buildCmdListResult(dispatcher, p);
+  });
+
   for (const cmdName of dispatcher.getRegisteredCommands()) {
     const methodName = `cmd.${cmdName}`;
 

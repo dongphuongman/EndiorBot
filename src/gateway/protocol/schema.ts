@@ -229,6 +229,67 @@ export interface UnsubscribeParams {
 }
 
 /**
+ * Parameters for cmd.list method (M0, Sprint 132).
+ *
+ * cmd.list is the canonical discovery method for all EndiorBot surfaces.
+ * It is NON-SENSITIVE — no auth (userId) required.
+ * A bare {"method":"cmd.list"} call returns the full catalog for all surfaces.
+ */
+export interface CmdListParams {
+  /** Optional surface filter. */
+  surface?: "web" | "telegram" | "zalo" | "cli";
+  /** Include per-command parameter schema in each entry. Default: true. */
+  includeArgs?: boolean;
+  /** Include sensitivity flag. Default: true. */
+  includeSensitivity?: boolean;
+}
+
+/**
+ * Single command entry in a cmd.list response.
+ */
+export interface CmdEntry {
+  name: string;
+  description: string;
+  category: string;
+  surfaceAvailability: "all" | Array<"web" | "telegram" | "zalo" | "cli">;
+  parameters: CmdParamSpec[];
+  sensitive: boolean;
+  requiresLink: boolean;
+  sdlcStage?: string;
+}
+
+/**
+ * Parameter spec for a single command argument.
+ */
+export interface CmdParamSpec {
+  name: string;
+  description: string;
+  type: "string" | "number" | "enum" | "flag";
+  required: boolean;
+  choices?: string[];
+}
+
+/**
+ * Envelope result for cmd.list (M0, Sprint 132).
+ * Wrapped from day one to avoid the openclaw bare-array mistake.
+ */
+export interface CmdListResult {
+  commands: CmdEntry[];
+  meta: {
+    /** Total BEFORE surface filter — drives five-equal-numbers PoL. */
+    total: number;
+    /** Count AFTER filter — equals commands.length. */
+    filteredCount: number;
+    /** Requested surface (null when no filter). */
+    surface: string | null;
+    /** SHA-1 of sorted command names for cache invalidation. */
+    dispatcherVersion: string;
+    /** ISO-8601 generation timestamp. */
+    generatedAt: string;
+  };
+}
+
+/**
  * Parameters for budget.history method.
  */
 export interface BudgetHistoryParams {

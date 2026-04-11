@@ -50,6 +50,7 @@ import {
 
 import { handlePlanCommand as handlePlanOttCommand } from "./handlers/plan-handler.js";
 import { handleAuditCommand } from "./handlers/audit-commands.js";
+import { buildCmdListResult, renderCmdListForChannel } from "./command-catalog.js";
 
 // Import remote command handlers
 import {
@@ -271,6 +272,24 @@ export function createCommandDispatcher(): CommandDispatcher {
   // ── Sprint 114: Cost command (no auth needed — info only) ──
 
   d.register("cost", async (ctx) => handleCostCommand(ctx.args));
+
+  // ── Unified command discovery (M0, Sprint 132) ──
+  // Registering here gives Telegram + Zalo /commands for free via GatewayIngress.
+  // CLI uses buildCmdListResult() directly (no HTTP round-trip).
+  d.register("commands", async (ctx) => {
+    const validSurfaces = ["web", "telegram", "zalo", "cli"] as const;
+    type ValidSurface = (typeof validSurfaces)[number];
+    const params: { surface?: ValidSurface } = {};
+    if (validSurfaces.includes(ctx.channel as ValidSurface)) {
+      params.surface = ctx.channel as ValidSurface;
+    }
+    const result = buildCmdListResult(d, params);
+    return {
+      success: true,
+      response: renderCmdListForChannel(result, ctx.channel),
+      format: "markdown" as const,
+    };
+  });
 
   // ── Help command (F3: reuse generateHelpMessage from handlers) ──
 

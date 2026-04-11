@@ -18,6 +18,7 @@ export { registerSwitchCommand } from "./switch.js";
 export { registerStatusCommand } from "./status.js";
 export { registerGateCommand } from "./gate.js";
 export { registerConsultCommand } from "./consult.js";
+export { registerCommandsListCommand } from "./commands-list.js";
 export { registerConfigCommand } from "./config.js";
 export { registerCheckpointCommand, registerResumeCommand } from "./checkpoint.js";
 export { registerQueueCommand } from "./queue.js";
