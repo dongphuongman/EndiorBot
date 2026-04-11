@@ -34,6 +34,7 @@ import type {
 import { ProviderError } from "../types.js";
 import { RateLimiter } from "../../security/rate-limiter.js";
 import { safeFetch } from "../../security/safe-fetch.js";
+import { TIMEOUTS } from "../../config/timeouts.js";
 
 // ============================================================================
 // Types
@@ -136,7 +137,7 @@ interface OpenAIStreamChunk {
 export const DEFAULT_OPENAI_URL = "https://api.openai.com/v1";
 
 /** Default request timeout (30s) */
-export const DEFAULT_OPENAI_TIMEOUT_MS = 30000;
+export const DEFAULT_OPENAI_TIMEOUT_MS = TIMEOUTS.openai;
 
 /** Default model */
 export const DEFAULT_OPENAI_MODEL = "gpt-4o";
@@ -805,9 +806,6 @@ export function createOpenAIProviderFromEnv(): OpenAIProvider {
     baseUrl: process.env.OPENAI_BASE_URL ?? DEFAULT_OPENAI_URL,
     defaultModel: process.env.OPENAI_DEFAULT_MODEL ?? DEFAULT_OPENAI_MODEL,
     organizationId: process.env.OPENAI_ORGANIZATION_ID,
-    timeoutMs: parseInt(
-      process.env.OPENAI_TIMEOUT_MS ?? String(DEFAULT_OPENAI_TIMEOUT_MS),
-      10
-    ),
+    timeoutMs: TIMEOUTS.openai,
   });
 }

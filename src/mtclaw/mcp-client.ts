@@ -31,6 +31,7 @@ import type {
   JsonRpcResponse,
   ToolResult,
 } from "./types.js";
+import { TIMEOUTS } from "../config/timeouts.js";
 
 // ============================================================================
 // Constants
@@ -48,7 +49,7 @@ const TOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 const MCP_PROTOCOL_VERSION = "2025-03-26";
 
 /** agent_chat timeout override (120s for long-running agent calls) */
-export const AGENT_CHAT_TIMEOUT_MS = 130_000;
+export const AGENT_CHAT_TIMEOUT_MS = TIMEOUTS.mtclawAgent;
 
 // ============================================================================
 // Response Parsing (CPO C6)

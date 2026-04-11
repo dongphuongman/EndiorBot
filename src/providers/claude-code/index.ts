@@ -24,6 +24,7 @@ import type {
   ProviderHealth,
   Message,
 } from "../types.js";
+import { TIMEOUTS } from "../../config/timeouts.js";
 
 // ============================================================================
 // Constants
@@ -49,7 +50,7 @@ export class ClaudeCodeProvider implements AIProvider {
   private sessionId: string | null = null;
   private turnCount = 0;
   private claudePath = CLAUDE_CLI;
-  private timeout = 300000; // 5 min default (Claude Code needs time for complex queries)
+  private timeout = TIMEOUTS.claudeCode; // 5 min default — see TIMEOUTS.claudeCode
 
   async initialize(config: ProviderConfig): Promise<void> {
     if (config.timeout) this.timeout = config.timeout;

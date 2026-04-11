@@ -12,6 +12,16 @@ backlog_source: "CEO-directed hardcoded params audit + Plan v3 C2 webhooks + Spr
 
 # Sprint 134 — Configuration Externalization + Webhooks Ingress + Streaming UX
 
+## CPO Review & Adjustments (2026-04-11)
+
+This sprint plan is approved with the following execution adjustments to keep delivery focused and measurable:
+
+1. **Scope hygiene:** remove all "Sprint 133 remaining commit" work from Sprint 134 execution. Sprint 134 only delivers T1-T5 outcomes.
+2. **P0 gate enforcement:** Task 4 (C2 Webhooks Ingress) cannot start until Task 1 (HIGH params) is fully verified in runtime.
+3. **Reliability-first sequencing:** finish T2 and T3 before production webhook flows, so timeout/polling/body-size behavior is stable before external ingress.
+4. **Demo checkpoints:** require one acceptance demo after each gate (A/B/C/D) instead of only end-of-sprint validation.
+5. **No scope expansion:** keep C2 locked to Zapier + Email forward only. Any Slack or extra provider work is explicitly deferred.
+
 ## Context
 
 Sprint 133 shipped S1 (Active Memory), S2 (SSRF defense), và 8 bug fixes. Trong quá trình live testing với CEO phát hiện nhiều hardcoded params cần externalize, plus C2 (Webhooks ingress) đã được CEO approve scope từ Plan v3.
@@ -70,7 +80,7 @@ Sprint 133 shipped S1 (Active Memory), S2 (SSRF defense), và 8 bug fixes. Trong
 | 2 | **Task 2: Timeout centralization (MEDIUM timeouts)** — M1-M4, M9 | 1d | P1 |
 | 3 | **Task 3: Channel polling config (MEDIUM)** — M5-M8 | 0.5d | P1 |
 | 4 | **Task 4: C2 Webhooks Ingress** (Zapier + Email forward) | 2d | P1 |
-| 5 | **Task 5: Streaming UX refinement** + Sprint 133 bug fix commit | 0.5d | P2 |
+| 5 | **Task 5: Streaming UX refinement** + `.env.example` final sync | 0.5d | P2 |
 
 **Total:** 4.5 days. Fits 4–5 day sprint.
 
@@ -179,11 +189,10 @@ Then the same trigger flow fires
 
 **Read first:** `openclaw/extensions/webhooks/` for pattern reference.
 
-### Task 5 — Streaming UX refinement + commit (0.5d, P2)
+### Task 5 — Streaming UX refinement + env sync (0.5d, P2)
 
 - Polish the idle hint messages (currently basic `⏳` dot)
 - Add elapsed time display for chat mode: `⏳ (15s...)` → `⏳ (30s...)` → `⏳ (45s...)`
-- Commit all Sprint 133 remaining changes (streaming, design doc, Ollama SSRF env-based fix)
 - Update `.env.example` with all new env vars from Task 1-3
 
 ---
@@ -198,6 +207,7 @@ Then the same trigger flow fires
 - [ ] `.env.example` updated with all new env vars
 - [ ] All tests green (7909+ baseline)
 - [ ] No new TypeScript errors under `exactOptionalPropertyTypes`
+- [ ] Gate A/B/C/D demo evidence captured in sprint notes (what changed, what passed, what risk remains)
 
 ---
 

@@ -19,13 +19,14 @@ import { existsSync, mkdirSync, appendFileSync, statSync, renameSync, readFileSy
 import { homedir } from "os";
 import { join, dirname } from "path";
 import { scrub } from "../output-scrubber.js";
+import { envInt } from "../../config/timeouts.js";
 import type { ExecPolicyAuditRecord } from "./types.js";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const MAX_LOG_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_LOG_SIZE_BYTES = envInt("ENDIORBOT_AUDIT_MAX_LOG_SIZE", 10 * 1024 * 1024); // 10 MB
 const MAX_ROTATIONS = 5;
 
 // ============================================================================

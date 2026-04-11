@@ -80,12 +80,16 @@ export interface RouterStatus {
 // Default Config
 
 export const DEFAULT_ROUTER_CONFIG: ChannelRouterConfig = {
-  ollamaLocalUrl: process.env.OLLAMA_LOCAL_URL || "http://localhost:11434",
+  ollamaLocalUrl:
+    process.env["OLLAMA_URL"] ??
+    process.env["OLLAMA_HOST"] ??
+    process.env["OLLAMA_BASE_URL"] ??
+    "http://localhost:11434",
   ollamaRouterModel: "qwen3.5:9b",
   ollamaRouterTimeout: 30000,
-  ollamaRemoteUrl: process.env.OLLAMA_REMOTE_URL || "",
-  ollamaRemoteApiKey: process.env.OLLAMA_REMOTE_API_KEY || "",
-  ollamaRemoteModel: process.env.OLLAMA_REMOTE_MODEL || "qwen3-coder:30b",
+  ollamaRemoteUrl: process.env["OLLAMA_REMOTE_URL"] ?? "",
+  ollamaRemoteApiKey: process.env["OLLAMA_REMOTE_API_KEY"] ?? "",
+  ollamaRemoteModel: process.env["OLLAMA_REMOTE_MODEL"] ?? "qwen3-coder:30b",
   ollamaRemoteTimeout: 120000,
   projectRoot: process.cwd(),
   claudeTimeout: 300,

@@ -45,7 +45,7 @@ export interface GatewayConfig {
  */
 export const DEFAULT_GATEWAY_CONFIG: GatewayConfig = {
   port: 18790,
-  host: "127.0.0.1",
+  host: process.env["ENDIORBOT_GATEWAY_HOST"] ?? "127.0.0.1",
   authEnabled: false,
   pingInterval: 30000,
   pingTimeout: 10000,

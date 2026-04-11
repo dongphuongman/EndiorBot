@@ -19,6 +19,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { envInt } from "../../config/timeouts.js";
 
 // ============================================================================
 // Types
@@ -65,7 +66,7 @@ export const DEFAULT_TELEGRAM_CONFIG: Omit<TelegramChannelConfig, "botToken" | "
   parseMode: "Markdown",
   disableNotification: false,
   enablePolling: true,
-  pollingInterval: 3000,
+  pollingInterval: envInt("ENDIORBOT_TELEGRAM_POLLING_MS", 3000),
 };
 
 // ============================================================================

@@ -519,10 +519,10 @@ async function agentAction(
     });
 
     // Display result
+    // Note: bridge already streams output to stderr in real-time (Sprint 133 UX fix).
+    // Only print the separator + error here. Don't duplicate the output.
     console.log("\n" + "─".repeat(60));
-    if (response.success) {
-      console.log(response.output);
-    } else {
+    if (!response.success) {
       console.error(`❌ Error: ${response.error}`);
       process.exit(1);
     }

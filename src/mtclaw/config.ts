@@ -15,9 +15,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { MTClawConfig } from "./types.js";
+import { TIMEOUTS } from "../config/timeouts.js";
 
-/** Default timeout for standard MCP tool calls (30s) */
-const DEFAULT_TIMEOUT_MS = 30_000;
+/** Default timeout for standard MCP tool calls — see TIMEOUTS.mtclawTool */
+const DEFAULT_TIMEOUT_MS = TIMEOUTS.mtclawTool;
 
 /**
  * Load MTClaw configuration from `.mcp.json` + environment.

@@ -105,7 +105,8 @@ export class AuthManager {
   private pendingOAuthStates: Map<string, PendingOAuthState> = new Map();
   private principalMappings: Map<string, PrincipalMapping> = new Map();
 
-  static readonly DEFAULT_CALLBACK_URL = 'http://localhost:18790/oauth/callback';
+  static readonly DEFAULT_CALLBACK_URL =
+    process.env["ENDIORBOT_OAUTH_CALLBACK_URL"] ?? 'http://localhost:18790/oauth/callback';
   static readonly DEFAULT_TIMEOUT_SEC = 300; // 5 minutes
 
   constructor(composioClient: ComposioClient, config: AuthManagerConfig = {}) {

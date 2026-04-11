@@ -20,6 +20,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { envInt } from "../../config/timeouts.js";
 
 // ============================================================================
 // Types
@@ -72,7 +73,7 @@ export const DEFAULT_CONFIG_PATH = join(homedir(), ".endiorbot", "config.json");
 /** Default configuration values */
 export const DEFAULT_ZALO_CONFIG: Omit<ZaloChannelConfig, "accessToken" | "userId" | "oaId"> = {
   enableWebhook: false,
-  pollingInterval: 5000,
+  pollingInterval: envInt("ENDIORBOT_ZALO_POLLING_MS", 5000),
   timeoutMs: 10_000,
 };
 

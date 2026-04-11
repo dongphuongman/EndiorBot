@@ -169,7 +169,7 @@ describe("OpenAIProvider", () => {
       const originalEnv = { ...process.env };
       process.env.OPENAI_API_KEY = "env-api-key";
       process.env.OPENAI_DEFAULT_MODEL = "gpt-4o-mini";
-      process.env.OPENAI_TIMEOUT_MS = "45000";
+      process.env.ENDIORBOT_OPENAI_TIMEOUT_MS = "45000";
 
       const provider = createOpenAIProviderFromEnv();
       expect(provider).toBeInstanceOf(OpenAIProvider);

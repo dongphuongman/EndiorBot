@@ -22,6 +22,7 @@ import { randomUUID } from "crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createLogger, type Logger } from "../logging/index.js";
+import { TIMEOUTS } from "../config/timeouts.js";
 import type { AIProvider, ChatRequest, ChatResponse, Message } from "../providers/types.js";
 import { getProviderRegistry } from "../providers/provider-registry.js";
 import { getContextBudget } from "../brain/context-budget.js";
@@ -123,10 +124,10 @@ export const DEFAULT_MODELS = {
 };
 
 /** Per-model timeout (30s) */
-const PER_MODEL_TIMEOUT_MS = 30000;
+const PER_MODEL_TIMEOUT_MS = TIMEOUTS.modelCall;
 
 /** Total timeout (60s) */
-const TOTAL_TIMEOUT_MS = 60000;
+const TOTAL_TIMEOUT_MS = TIMEOUTS.chatTotal;
 
 /** Context budget (2K tokens/turn) */
 const TOKEN_BUDGET_PER_TURN = 2000;

@@ -22,6 +22,7 @@
 import type { IncomingMessage, ServerResponse } from "http";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createLogger } from "../../logging/index.js";
+import { envInt } from "../../config/timeouts.js";
 
 // ============================================================================
 // Types
@@ -104,10 +105,10 @@ export interface WebhookHandlerConfig {
 // Constants
 // ============================================================================
 
-const DEFAULT_MAX_BODY_SIZE = 1024 * 1024; // 1MB
+const DEFAULT_MAX_BODY_SIZE = envInt("ENDIORBOT_WEBHOOK_MAX_BODY_SIZE", 1024 * 1024); // 1MB
 const DEFAULT_RATE_LIMIT = 100;
 const DEFAULT_ZALO_TIMESTAMP_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const RATE_LIMIT_CLEANUP_INTERVAL_MS = 60_000; // 1 minute
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = envInt("ENDIORBOT_RATE_LIMIT_CLEANUP_MS", 60_000); // 1 minute
 
 /**
  * Timing-safe string comparison (CTO B1 fix).
