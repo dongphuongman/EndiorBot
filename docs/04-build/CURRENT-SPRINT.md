@@ -4,7 +4,7 @@
 
 ## Active / Most Recent
 
-- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **PLANNED, awaiting CEO kickoff**
+- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **✅ COMPLETE** (2026-04-11, CTO 9.5/10 G3 APPROVED)
   - Plan: [sprint-132-openclaw-backport.md](sprints/sprint-132-openclaw-backport.md)
   - PRD: [openclaw-backport PRD](../01-planning/openclaw-backport/PRD.md)
   - Scope: [openclaw-backport scope](../01-planning/openclaw-backport/scope.md)

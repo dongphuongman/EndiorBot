@@ -1,11 +1,15 @@
 ---
 sprint: 132
-status: PLANNED — Awaiting CEO kickoff
-start_date: TBD
+status: ✅ COMPLETE — CTO 9.5/10, G3 APPROVED, zero conditions
+start_date: 2026-04-11
+complete_date: 2026-04-11
 planned_duration: 4–5 days
+actual_duration: 1 day (single session)
 framework: "6.3.0"
-authority: "CTO G2 APPROVED (Plan v3) + CPO Approved (light conditions) + CEO Decisions Locked 2026-04-11"
-adrs: ["ADR-046 (Autonomous Execution Policy) — STUB → full expansion in this sprint"]
+authority: "CTO G2 APPROVED (Plan v3) + CPO Approved + CEO Decisions Locked 2026-04-11 + CTO Code Review 9.5/10 G3 APPROVED"
+adrs: ["ADR-046 (Autonomous Execution Policy) — STUB → FULL + Amendment 1 (Finding #2 scope honesty)"]
+commits: ["01c4ee1 (M0)", "4a07fed (governance docs)", "88588da (M1)"]
+tests: "7786 passing (148 new from M1, 37 new from M0), 10 skipped, 0 failures"
 feature_prd: "docs/01-planning/openclaw-backport/PRD.md"
 scope_doc: "docs/01-planning/openclaw-backport/scope.md"
 source_plan: "/Users/dttai/.claude/plans/glistening-nibbling-mist.md"
@@ -152,15 +156,16 @@ endiorbot exec-policy preset open
 
 ---
 
-## Success Criteria (Sprint-level)
+## Success Criteria (Sprint-level) — ALL MET ✅
 
-- [ ] ADR-046 expanded from STUB → full, signed by CTO + CPO, all 6 matrix cells defined, M1 in-scope/out-of-scope explicit
-- [ ] M0 shipped, PoL probe passes (five equal numbers)
-- [ ] M1 shipped, PoL probe passes (strict blocks, open allows, all 6 cells tested)
-- [ ] `CURRENT-SPRINT.md` no longer stale
-- [ ] Zero regressions on existing autonomy gates (Sprint 72) and auto-handoff (Sprint 131)
-- [ ] All tests green (`pnpm test`, `pnpm test:security`)
-- [ ] No new TypeScript errors under `exactOptionalPropertyTypes`
+- [x] ADR-046 expanded from STUB → full, signed by CTO + CPO, all 6 matrix cells defined, M1 in-scope/out-of-scope explicit. Plus Amendment 1 (Finding #2 scope honesty) authored + re-acknowledged.
+- [x] M0 shipped (commit `01c4ee1`), PoL probe passes (five equal numbers) — `tests/commands/five-equal-numbers.test.ts`
+- [x] M1 shipped (commit `88588da`), PoL probes pass — strict blocks < 100ms, open allows, open + `rm -rf /` hard-denies. 6-cell matrix test covers all cells.
+- [x] `CURRENT-SPRINT.md` no longer stale (both top-level and sprints/ versions updated)
+- [x] Zero regressions — 7638 prior tests green, 148 new M1 + 37 new M0 tests
+- [x] All tests green: 7786/7786 passing, 10 skipped, 0 failures
+- [x] No new TypeScript errors under `exactOptionalPropertyTypes` (0 errors on `pnpm tsc --noEmit`)
+- [x] CTO code review: 9.5/10, G3 APPROVED, zero conditions
 
 ---
 

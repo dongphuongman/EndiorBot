@@ -4,9 +4,10 @@
 
 ## Active / Most Recent
 
-- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **PLANNED, awaiting CEO kickoff**
+- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **✅ COMPLETE** (2026-04-11, CTO 9.5/10 G3 APPROVED)
   - [sprint-132-openclaw-backport.md](./sprint-132-openclaw-backport.md)
-  - Authority: CTO G2 APPROVED (Plan v3) + CPO Approved + CEO Decisions Locked 2026-04-11
+  - Commits: `01c4ee1` (M0) · `4a07fed` (governance) · `88588da` (M1)
+  - 7786 tests passing, 0 failures, 0 type errors
 
 - **Sprint 131** — CRG Wiring + Auto-Handoff + UX Wins — **✅ COMPLETE** (2026-04-10, CPO accepted post-merge)
   - [sprint-131-crg-wiring-knowledge-velocity.md](./sprint-131-crg-wiring-knowledge-velocity.md)

@@ -2,7 +2,7 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.3.0
-**Last Updated**: 2026-04-04 (Sprint 129 COMPLETE — Commit + Push + Stabilize; 7,601 tests)
+**Last Updated**: 2026-04-11 (Sprint 132 COMPLETE — openclaw Backport M0 + M1; 7,786 tests)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 130 | TBD | Next sprint (PLANNING) | 📋 PLANNING | — |
+| Sprint 133 | TBD | S1 Active Memory + S2 SSRF Audit (PLANNING) | 📋 PLANNING | — |
 
 ## Deferred Sprint
 
@@ -21,6 +21,14 @@
 ---
 
 ## Completed Sprints
+
+### Tier 8: openclaw Backport + Autonomous Execution Policy (Sprint 130-132)
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 132 | Apr 11, 2026 | openclaw Backport M0 (cmd.list RPC) + M1 (exec-policy cluster) + ADR-046 full expansion + Amendment 1 | ✅ COMPLETE (CTO 9.5/10) | [sprint-132](sprint-132-openclaw-backport.md) |
+| Sprint 131 | Apr 10, 2026 | CRG wiring + auto-handoff + per-task state machine + UX wins + ADR-046 STUB | ✅ COMPLETE (CPO accepted post-merge) | [sprint-131](sprint-131-crg-wiring-knowledge-velocity.md) |
+| Sprint 130 | Apr 2026 | Security + ADR + Chat | ✅ COMPLETE | [sprint-130](sprint-130-security-adr-chat.md) |
 
 ### Tier 7: Chat Mode + Agentic OS Alignment (Sprint 127-129)
 
