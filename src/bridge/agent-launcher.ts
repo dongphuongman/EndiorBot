@@ -169,14 +169,18 @@ export class AgentLauncher {
       try {
         const dummyPersona = { agentRole: (agentRole ?? "assistant") as import("./intelligence/envelope.js").AgentRole, soulContent: "", soulContentHash: "" };
 
-        // Sprint 131 (ADR-045): CRG enrichment for graph-aware agents.
-        // Detect changed files via git; derive repo_id from project dir basename.
-        // Fail-soft: if git fails or no changes, buildFullEnvelope skips CRG lookup.
-        const changedFiles = await this.getChangedFiles(projectPath);
-        const repoId = this.deriveRepoId(projectPath);
-        const crgOptions = changedFiles.length > 0
-          ? { repoId, changedFiles }
-          : undefined;
+        // Sprint 131 Fix A (CTO follow-up): Only enrich with CRG when agentRole
+        // is explicitly set. Bare launches fall back to "assistant" which is not
+        // in GRAPH_AWARE_AGENTS — skip git diff work entirely for bare launches.
+        // enrichWithCRG() still validates GRAPH_AWARE_AGENTS internally as a
+        // second guard for non-graph-aware real agents.
+        let crgOptions: { repoId: string; changedFiles: string[] } | undefined;
+        if (agentRole) {
+          const changedFiles = await this.getChangedFiles(projectPath);
+          if (changedFiles.length > 0) {
+            crgOptions = { repoId: this.deriveRepoId(projectPath), changedFiles };
+          }
+        }
 
         const envelope = await buildFullEnvelope(dummyPersona, crgOptions);
         const serialized = serializeEnvelopeForInjection(envelope);

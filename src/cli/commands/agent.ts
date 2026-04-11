@@ -99,7 +99,17 @@ interface AgentOptions {
   projects?: string;
   /** Output file for cross-project results */
   output?: string;
+  /**
+   * Internal: handoff recursion depth. Not exposed as CLI flag.
+   * Sprint 131 follow-up (reviewer MAJOR): caps A→B→C→A cycles that
+   * ALLOWED_TRANSITIONS alone cannot block. Matches HandoffGuards.maxDepth=3.
+   */
+  _handoffDepth?: number;
 }
+
+// Max handoff chain depth — matches DEFAULT_HANDOFF_GUARDS.maxDepth in
+// src/agents/types/handoff.ts. Allows PM → Architect → Coder (3 levels).
+const MAX_HANDOFF_DEPTH = 3;
 
 // ============================================================================
 // Helpers
@@ -533,23 +543,33 @@ async function agentAction(
         const validation = router.validateTransition(decision.agent, firstHandoff.to);
 
         if (validation.allowed) {
-          console.log("");
-          const autoMode = process.env.ENDIORBOT_AUTO_HANDOFF === "true";
-          let continueHandoff: boolean;
-
-          if (autoMode) {
-            console.log(`⚡ Auto-handoff enabled → dispatching to ${formatAgent(firstHandoff.to)}`);
-            continueHandoff = true;
+          // Sprint 131 follow-up (reviewer MAJOR): cap recursion depth.
+          // ALLOWED_TRANSITIONS blocks direct circular pairs, but A→B→C→A
+          // cycles slip through. Match HandoffGuards.maxDepth=3 invariant.
+          const currentDepth = options._handoffDepth ?? 0;
+          if (currentDepth >= MAX_HANDOFF_DEPTH) {
+            console.log(`\n⚠️  Handoff chain depth limit reached (${MAX_HANDOFF_DEPTH}) — stopping chain.`);
+            console.log(`   Proposed next: ${formatAgent(decision.agent)} → ${formatAgent(firstHandoff.to)}`);
+            console.log(`   Run manually if this chain is intentional.`);
           } else {
-            continueHandoff = await promptConfirmation(
-              `📋 Handoff proposed: ${formatAgent(decision.agent)} → ${formatAgent(firstHandoff.to)}\n   Task: "${firstHandoff.intent}"\n   Approve?`
-            );
-          }
+            console.log("");
+            const autoMode = process.env.ENDIORBOT_AUTO_HANDOFF === "true";
+            let continueHandoff: boolean;
 
-          if (continueHandoff) {
-            // Recursive call to handle next agent
-            const nextInput = `@${firstHandoff.to} "${firstHandoff.intent}"`;
-            await agentAction(nextInput, options);
+            if (autoMode) {
+              console.log(`⚡ Auto-handoff enabled → dispatching to ${formatAgent(firstHandoff.to)} (depth ${currentDepth + 1}/${MAX_HANDOFF_DEPTH})`);
+              continueHandoff = true;
+            } else {
+              continueHandoff = await promptConfirmation(
+                `📋 Handoff proposed: ${formatAgent(decision.agent)} → ${formatAgent(firstHandoff.to)}\n   Task: "${firstHandoff.intent}"\n   Depth: ${currentDepth + 1}/${MAX_HANDOFF_DEPTH}\n   Approve?`
+              );
+            }
+
+            if (continueHandoff) {
+              // Recursive call to handle next agent — increment depth counter
+              const nextInput = `@${firstHandoff.to} "${firstHandoff.intent}"`;
+              await agentAction(nextInput, { ...options, _handoffDepth: currentDepth + 1 });
+            }
           }
         } else {
           console.log(`\n⚠️  Handoff blocked: ${validation.reason}`);
