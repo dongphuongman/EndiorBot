@@ -253,16 +253,36 @@ export class ClaudeCodeProvider implements AIProvider {
         },
       });
 
+      const effectiveTimeout = timeoutMs ?? this.timeout;
+      let lastActivityTime = Date.now();
+      let idleHinted = false;
+
       const timer = setTimeout(() => {
         child.kill("SIGTERM");
-        reject(new Error(`Claude Code timed out after ${(timeoutMs ?? this.timeout) / 1000}s`));
-      }, timeoutMs ?? this.timeout);
+        reject(new Error(`Claude Code timed out after ${effectiveTimeout / 1000}s`));
+      }, effectiveTimeout);
 
-      child.stdout?.on("data", (data: Buffer) => stdoutChunks.push(data.toString()));
-      child.stderr?.on("data", (data: Buffer) => stderrChunks.push(data.toString()));
+      // Idle hint: if no output for 20s in chat mode, show a dot
+      const idleHintId = setInterval(() => {
+        if (Date.now() - lastActivityTime >= 20_000 && !idleHinted) {
+          idleHinted = true;
+          process.stderr.write("⏳ ");
+        }
+      }, 10_000);
+
+      child.stdout?.on("data", (data: Buffer) => {
+        stdoutChunks.push(data.toString());
+        lastActivityTime = Date.now();
+        idleHinted = false;
+      });
+      child.stderr?.on("data", (data: Buffer) => {
+        stderrChunks.push(data.toString());
+        lastActivityTime = Date.now();
+      });
 
       child.on("close", (code) => {
         clearTimeout(timer);
+        clearInterval(idleHintId);
         resolve({
           stdout: stdoutChunks.join(""),
           stderr: stderrChunks.join(""),

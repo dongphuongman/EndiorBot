@@ -430,30 +430,49 @@ Output the diff in a code block with \`\`\`diff format.`,
         },
       });
 
-      // Set timeout
+      // Idle timeout: if no output for 30s, show progress hint
+      // Total timeout: hard cap at `timeout` ms
+      let lastOutputTime = Date.now();
+      let idleWarned = false;
+      const IDLE_THRESHOLD_MS = 30_000;
+
       const timeoutId = setTimeout(() => {
         timedOut = true;
         claude.kill("SIGTERM");
         this.log.warn("Claude Code timed out", { timeout: timeout / 1000 });
       }, timeout);
 
-      // Collect stdout
+      const idleCheckId = setInterval(() => {
+        const idleMs = Date.now() - lastOutputTime;
+        if (idleMs >= IDLE_THRESHOLD_MS && !idleWarned) {
+          idleWarned = true;
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          process.stderr.write(`\n⏳ Claude Code working (${elapsed}s elapsed, no output yet)...\n`);
+          process.stderr.write(`   Tip: complex tasks take time. Use --timeout <s> to adjust.\n`);
+        }
+      }, 10_000);
+
+      // Stream stdout — always show output in real-time for responsive UX
       claude.stdout?.on("data", (data: Buffer) => {
         const chunk = data.toString();
         output += chunk;
-        if (this.config.verbose) {
-          process.stdout.write(chunk);
-        }
+        lastOutputTime = Date.now();
+        idleWarned = false; // reset idle warning on new output
+        // Always stream to stderr (stdout reserved for structured output)
+        process.stderr.write(chunk);
       });
 
       // Collect stderr
       claude.stderr?.on("data", (data: Buffer) => {
-        error += data.toString();
+        const chunk = data.toString();
+        error += chunk;
+        lastOutputTime = Date.now();
       });
 
       // Handle close
       claude.on("close", (code) => {
         clearTimeout(timeoutId);
+        clearInterval(idleCheckId);
         const durationMs = Date.now() - startTime;
 
         const response: ClaudeResponse = {

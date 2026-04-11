@@ -59,18 +59,38 @@ const BLOCKED_EXACT_HOSTNAMES = new Set([
 const BLOCKED_HOST_SUFFIXES = [".local", ".internal", ".localhost"];
 
 /**
- * Check if a URL targets Ollama's default local port (11434).
- * Ollama is a known local service that legitimately runs on localhost:11434.
- * This prevents SSRF false positives on the Ollama provider health check.
- *
- * Note: OLLAMA_URL env var may point to a remote URL (e.g. ai.nqh-internal.example),
- * so we can't rely on it to determine the local address. Instead, check the
- * well-known default Ollama port (11434) on localhost specifically.
+ * Collect all configured Ollama URLs from env vars.
+ * Users may configure local (localhost:11434) or remote (ai.nqh-internal.example) Ollama.
+ * All configured URLs are trusted — they are explicit CEO/DevOps configuration, not user input.
  */
-function isLocalOllamaPort(url: string): boolean {
+function getConfiguredOllamaOrigins(): Set<string> {
+  const origins = new Set<string>();
+  const envKeys = ["OLLAMA_URL", "OLLAMA_HOST", "OLLAMA_BASE_URL", "OLLAMA_REMOTE_URL"];
+  for (const key of envKeys) {
+    const val = process.env[key];
+    if (val) {
+      try {
+        const parsed = new URL(val);
+        origins.add(`${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`);
+      } catch { /* skip invalid URLs */ }
+    }
+  }
+  // Always include Ollama default (localhost:11434) — standard convention
+  origins.add("localhost:11434");
+  return origins;
+}
+
+/**
+ * Check if a URL targets a configured Ollama endpoint.
+ * Returns true if the URL's host:port matches any configured Ollama URL from env,
+ * or the default localhost:11434.
+ */
+function isConfiguredOllamaEndpoint(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.hostname === "localhost" && parsed.port === "11434";
+    const port = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
+    const hostPort = `${parsed.hostname}:${port}`;
+    return getConfiguredOllamaOrigins().has(hostPort);
   } catch {
     return false;
   }
@@ -206,8 +226,8 @@ export function validateFetchUrl(rawUrl: string): void {
     }
     // Special case: localhost allowed for configured Ollama provider
     // Ollama always runs on localhost — blocking it is a false positive, not SSRF defense
-    if (hostname === "localhost" && isLocalOllamaPort(rawUrl)) {
-      return; // allowed — known internal service
+    if (isConfiguredOllamaEndpoint(rawUrl)) {
+      return; // allowed — CEO/DevOps configured Ollama endpoint
     }
     throw new SSRFBlockedError(scrubUrl(parsed), `blocked-hostname:${hostname}`);
   }
