@@ -129,14 +129,14 @@ export function createCommandDispatcher(): CommandDispatcher {
   // CPO fix: pass isLinked so mutations can enforce /link requirement
   d.register("exec-policy", async (ctx) => {
     const actorId = getLinkedActorId(ctx.userId);
-    const isLinked = actorId !== undefined;
+    const isLinked = actorId != null;
     return handleExecPolicyOttCommand(ctx.args, ctx.chatId ?? ctx.userId, isLinked);
   });
 
   // Sprint 135: /config OTT with mutations (active-memory, auto-handoff) + persistence
   d.register("config", async (ctx) => {
     const actorId = getLinkedActorId(ctx.userId);
-    const isLinked = actorId !== undefined;
+    const isLinked = actorId != null;
     return handleConfigOttCommand(ctx.args, ctx.chatId ?? ctx.userId, isLinked);
   });
 
