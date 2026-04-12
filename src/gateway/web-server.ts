@@ -18,6 +18,8 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { GatewayConfig, ClientInfo, GatewayEvent } from "./types.js";
 import { resolveGatewayConfig } from "./config.js";
+import { TriggerRegistry, handleWebhookRequest } from "./webhooks/index.js";
+import { envInt } from "../config/timeouts.js";
 import {
   type JsonRpcRequest,
   type JsonRpcResponse,
@@ -80,6 +82,8 @@ export class WebGatewayServer {
   private log = createLogger("web-gateway");
   private htmlContent: string = "";
   private webhookHandler: WebhookHandler | null = null;
+  /** C2 programmable webhook trigger registry (Sprint 134) */
+  private triggerRegistry = new TriggerRegistry();
   private _healthCollector: (() => Promise<unknown>) | null = null;
 
   constructor(config?: Partial<GatewayConfig>) {
@@ -229,6 +233,11 @@ export class WebGatewayServer {
     this.log.info("Webhook handler attached");
   }
 
+  /** Get the C2 trigger registry for programmatic webhook registration (Sprint 134). */
+  getTriggerRegistry(): TriggerRegistry {
+    return this.triggerRegistry;
+  }
+
   private handleHttpRequest(req: IncomingMessage, res: ServerResponse): void {
     const url = req.url ?? "/";
 
@@ -258,6 +267,58 @@ export class WebGatewayServer {
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
+      return;
+    }
+
+    // C2 Webhook Ingress — POST /api/webhooks/:triggerId (Sprint 134)
+    const webhookMatch = url.match(/^\/api\/webhooks\/([a-zA-Z0-9_-]+)$/);
+    if (webhookMatch && req.method === "POST") {
+      const triggerId = webhookMatch[1]!;
+      const bodyChunks: Buffer[] = [];
+      let bodySize = 0;
+      const maxBody = envInt("ENDIORBOT_WEBHOOK_MAX_BODY_SIZE", 1024 * 1024);
+
+      req.on("data", (chunk: Buffer) => {
+        bodySize += chunk.length;
+        if (bodySize <= maxBody) bodyChunks.push(chunk);
+      });
+
+      req.on("end", () => {
+        if (bodySize > maxBody) {
+          res.writeHead(413, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Payload too large" }));
+          return;
+        }
+        let body: unknown;
+        try {
+          body = JSON.parse(Buffer.concat(bodyChunks).toString("utf-8"));
+        } catch {
+          body = Buffer.concat(bodyChunks).toString("utf-8");
+        }
+        const headers: Record<string, string | string[] | undefined> = {};
+        for (const [k, v] of Object.entries(req.headers)) {
+          headers[k] = v;
+        }
+        const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
+          ?? req.socket.remoteAddress ?? "unknown";
+
+        handleWebhookRequest(
+          { registry: this.triggerRegistry },
+          triggerId,
+          body,
+          headers,
+          clientIp,
+        ).then(result => {
+          res.writeHead(result.status, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(result.body));
+        }).catch(err => {
+          this.log.error("C2 webhook error", { error: (err as Error).message });
+          if (!res.headersSent) {
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Internal Server Error" }));
+          }
+        });
+      });
       return;
     }
 
