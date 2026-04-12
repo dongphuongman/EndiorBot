@@ -636,17 +636,27 @@ Output the diff in a code block with \`\`\`diff format.`,
     }
 
     // Strategy 2: Manual file operations
+    // CRITICAL FIX (Sprint 135 T7): For modify operations, the old code replaced
+    // the entire file with just the diff hunk content (+ and context lines),
+    // discarding all original content outside the hunks. This caused file corruption.
+    // Fix: only create NEW files via parseDiffToFileOperations. For modify/delete,
+    // skip — those require git apply which already failed. Log a warning instead.
     const fileOps = this.parseDiffToFileOperations(diff);
     for (const op of fileOps) {
       const fullPath = join(workspace, op.filePath);
-      await mkdir(dirname(fullPath), { recursive: true });
 
       if (op.type === "create") {
+        await mkdir(dirname(fullPath), { recursive: true });
         await writeFile(fullPath, op.newContent, "utf-8");
         this.log.info("Created file", { file: op.filePath });
       } else if (op.type === "modify") {
-        await writeFile(fullPath, op.newContent, "utf-8");
-        this.log.info("Modified file", { file: op.filePath });
+        // DON'T overwrite existing files with partial diff content — that corrupts them.
+        // The diff hunks only contain added lines + context, not the full file.
+        this.log.warn("Skipped modify (git apply failed) — apply manually", {
+          file: op.filePath,
+          reason: "Manual fallback only supports new file creation safely. " +
+            "Modifying existing files from diff hunks risks data loss.",
+        });
       } else if (op.type === "delete") {
         await unlink(fullPath).catch(() => {});
         this.log.info("Deleted file", { file: op.filePath });
