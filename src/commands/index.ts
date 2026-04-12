@@ -52,6 +52,7 @@ import { handlePlanCommand as handlePlanOttCommand } from "./handlers/plan-handl
 import { handleAuditCommand } from "./handlers/audit-commands.js";
 import { handleExecPolicyOttCommand } from "./handlers/exec-policy-commands.js";
 import { handleConfigOttCommand } from "./handlers/config-commands-ott.js";
+import { handleWebhookOttCommand } from "./handlers/webhook-commands.js";
 import { buildCmdListResult, renderCmdListForChannel } from "./command-catalog.js";
 
 // Import remote command handlers
@@ -149,6 +150,9 @@ export function createCommandDispatcher(): CommandDispatcher {
     // Webhook state is per-adapter; default to false when called from Gateway
     return handleWebhookCommand(ctx.args, false);
   });
+
+  // Sprint 135: C2 webhook management commands
+  d.register("webhooks", async (ctx) => handleWebhookOttCommand(ctx.args));
 
   // ── Identity linking ──
 

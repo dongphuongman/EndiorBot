@@ -14,12 +14,16 @@ import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { randomUUID } from "crypto";
 import { readFileSync, existsSync } from "fs";
+import { homedir } from "os";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { GatewayConfig, ClientInfo, GatewayEvent } from "./types.js";
 import { resolveGatewayConfig } from "./config.js";
 import { TriggerRegistry, handleWebhookRequest } from "./webhooks/index.js";
-import { envInt } from "../config/timeouts.js";
+import { envInt, TIMEOUTS } from "../config/timeouts.js";
+import { getPreset, setPreset, getEffectivePolicy, readAuditTail } from "../security/exec-approvals/index.js";
+import { isFeatureEnabled } from "../config/feature-flags.js";
+import type { Preset } from "../security/exec-approvals/types.js";
 import {
   type JsonRpcRequest,
   type JsonRpcResponse,
@@ -322,6 +326,123 @@ export class WebGatewayServer {
       return;
     }
 
+    // ── Sprint 135 T4: Web API endpoints ──
+
+    // GET /api/config — system configuration summary
+    // Security: localhost-only by default (C-SOFT-1). If 0.0.0.0 → user accepts risk.
+    if (url === "/api/config" && req.method === "GET") {
+      const config = {
+        execPolicy: { preset: getPreset(), policy: getEffectivePolicy() },
+        activeMemory: { enabled: isFeatureEnabled("ACTIVE_MEMORY_ENABLED") },
+        autoHandoff: { enabled: process.env["ENDIORBOT_AUTO_HANDOFF"] === "true" },
+        timeouts: TIMEOUTS,
+        webhooks: { triggers: this.triggerRegistry.list() },
+      };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(config, null, 2));
+      return;
+    }
+
+    // GET /api/audit/:type?limit=N — audit log viewer
+    const auditMatch = url.match(/^\/api\/audit\/([a-z-]+)/);
+    if (auditMatch && req.method === "GET") {
+      const type = auditMatch[1]!;
+      const limitParam = new URL(url, `http://${req.headers.host ?? "localhost"}`).searchParams.get("limit");
+      const limit = Math.min(parseInt(limitParam ?? "10", 10) || 10, 100);
+
+      if (type === "exec-policy") {
+        const entries = readAuditTail(limit);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ type, entries, count: entries.length }));
+        return;
+      }
+
+      // ssrf + webhooks: read JSONL files
+      const logFiles: Record<string, string> = {
+        ssrf: "ssrf-blocks.log",
+        webhooks: "webhooks.log",
+      };
+      const logFile = logFiles[type];
+      if (logFile) {
+        const logPath = join(homedir(), ".endiorbot", "audit-logs", logFile);
+        let entries: unknown[] = [];
+        if (existsSync(logPath)) {
+          const lines = readFileSync(logPath, "utf-8").trim().split("\n").filter(l => l.length > 0);
+          entries = lines.slice(-limit).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).reverse();
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ type, entries, count: entries.length }));
+        return;
+      }
+
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: `Unknown audit type: ${type}. Valid: exec-policy, ssrf, webhooks` }));
+      return;
+    }
+
+    // POST /api/config/exec-policy/preset — change preset (auth required)
+    if (url === "/api/config/exec-policy/preset" && req.method === "POST") {
+      // Auth: require GATEWAY_TOKEN
+      const token = this._config.authToken ?? process.env["ENDIORBOT_GATEWAY_TOKEN"];
+      const provided = (req.headers.authorization ?? "").replace("Bearer ", "");
+      if (!token || provided !== token) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized — set ENDIORBOT_GATEWAY_TOKEN" }));
+        return;
+      }
+      const bodyChunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => bodyChunks.push(c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(bodyChunks).toString("utf-8")) as { preset?: string };
+          const validPresets = new Set(["open", "balanced", "strict"]);
+          if (!body.preset || !validPresets.has(body.preset)) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: `Invalid preset. Valid: open, balanced, strict` }));
+            return;
+          }
+          const old = getPreset();
+          setPreset(body.preset as Preset);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, old, new: body.preset }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON body" }));
+        }
+      });
+      return;
+    }
+
+    // POST /api/config/active-memory — toggle (auth required)
+    if (url === "/api/config/active-memory" && req.method === "POST") {
+      const token = this._config.authToken ?? process.env["ENDIORBOT_GATEWAY_TOKEN"];
+      const provided = (req.headers.authorization ?? "").replace("Bearer ", "");
+      if (!token || provided !== token) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized" }));
+        return;
+      }
+      const bodyChunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => bodyChunks.push(c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(bodyChunks).toString("utf-8")) as { enabled?: boolean };
+          if (typeof body.enabled !== "boolean") {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: `Body must have { "enabled": true|false }` }));
+            return;
+          }
+          process.env["ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED"] = body.enabled ? "true" : "false";
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, activeMemory: body.enabled }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON body" }));
+        }
+      });
+      return;
+    }
+
     // Route handling
     if (url === "/" || url === "/index.html") {
       this.serveHtml(res);
@@ -352,6 +473,11 @@ export class WebGatewayServer {
       uptimeSec: this._startedAt ? Math.floor((Date.now() - this._startedAt.getTime()) / 1000) : 0,
       authEnabled: this._config.authEnabled,
       serverVersion: VERSION,
+      // Sprint 135 T8: Active Memory + exec-policy in status
+      execPolicy: { preset: getPreset() },
+      activeMemory: { enabled: isFeatureEnabled("ACTIVE_MEMORY_ENABLED") },
+      autoHandoff: { enabled: process.env["ENDIORBOT_AUTO_HANDOFF"] === "true" },
+      webhookTriggers: this.triggerRegistry.size,
     };
 
     res.writeHead(200, { "Content-Type": "application/json" });
