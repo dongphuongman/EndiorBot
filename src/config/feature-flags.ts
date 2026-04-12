@@ -163,6 +163,12 @@ export type FeatureFlagValue = (typeof FEATURE_FLAGS)[FeatureFlagKey];
  * ```
  */
 export function isFeatureEnabled(flag: FeatureFlagKey): boolean {
+  // CPO fix: check env override first (e.g. ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED)
+  const envKey = `ENDIORBOT_FF_${flag}`;
+  const envVal = process.env[envKey];
+  if (envVal === "true") return true;
+  if (envVal === "false") return false;
+  // Fallback to static default
   return FEATURE_FLAGS[flag] === true;
 }
 

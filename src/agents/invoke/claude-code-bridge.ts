@@ -642,6 +642,9 @@ Output the diff in a code block with \`\`\`diff format.`,
     // Fix: only create NEW files via parseDiffToFileOperations. For modify/delete,
     // skip — those require git apply which already failed. Log a warning instead.
     const fileOps = this.parseDiffToFileOperations(diff);
+    let appliedCount = 0;
+    const skippedFiles: string[] = [];
+
     for (const op of fileOps) {
       const fullPath = join(workspace, op.filePath);
 
@@ -649,18 +652,32 @@ Output the diff in a code block with \`\`\`diff format.`,
         await mkdir(dirname(fullPath), { recursive: true });
         await writeFile(fullPath, op.newContent, "utf-8");
         this.log.info("Created file", { file: op.filePath });
+        appliedCount++;
       } else if (op.type === "modify") {
         // DON'T overwrite existing files with partial diff content — that corrupts them.
-        // The diff hunks only contain added lines + context, not the full file.
         this.log.warn("Skipped modify (git apply failed) — apply manually", {
           file: op.filePath,
-          reason: "Manual fallback only supports new file creation safely. " +
-            "Modifying existing files from diff hunks risks data loss.",
         });
+        skippedFiles.push(op.filePath);
       } else if (op.type === "delete") {
         await unlink(fullPath).catch(() => {});
         this.log.info("Deleted file", { file: op.filePath });
+        appliedCount++;
       }
+    }
+
+    // CPO fix: if no ops were applied but some were skipped, throw so applied=false
+    if (appliedCount === 0 && skippedFiles.length > 0) {
+      throw new Error(
+        `Patch partially failed: ${skippedFiles.length} file(s) need manual apply: ${skippedFiles.join(", ")}`
+      );
+    }
+    if (skippedFiles.length > 0) {
+      this.log.warn("Patch partially applied", {
+        applied: appliedCount,
+        skipped: skippedFiles.length,
+        skippedFiles,
+      });
     }
   }
 

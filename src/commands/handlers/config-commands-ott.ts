@@ -174,20 +174,29 @@ function handleToggle(
 
 /**
  * Handle /config OTT commands.
+ * Read (/config) works without /link.
+ * Mutations (active-memory, auto-handoff) require linked identity (CPO auth fix).
  */
 export function handleConfigOttCommand(
   args: string[],
   chatId: string,
+  isLinked?: boolean,
 ): CommandResult {
   const sub = args[0]?.toLowerCase();
 
   if (!sub) return handleConfigShow();
 
   if (sub === "active-memory") {
+    if (isLinked === false) {
+      return { success: false, response: "⚠️ Use /link first to change Active Memory setting." };
+    }
     return handleToggle("active-memory", args[1], chatId);
   }
 
   if (sub === "auto-handoff") {
+    if (isLinked === false) {
+      return { success: false, response: "⚠️ Use /link first to change auto-handoff setting." };
+    }
     return handleToggle("auto-handoff", args[1], chatId);
   }
 

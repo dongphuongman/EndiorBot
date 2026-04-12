@@ -328,8 +328,19 @@ export class WebGatewayServer {
 
     // ── Sprint 135 T4: Web API endpoints ──
 
+    // CPO fix: enforce token auth on GET endpoints when bound to non-localhost
+    const isLocalhost = this._config.host === "127.0.0.1" || this._config.host === "localhost";
+    if (!isLocalhost && (url.startsWith("/api/config") || url.startsWith("/api/audit"))) {
+      const token = this._config.authToken ?? process.env["ENDIORBOT_GATEWAY_TOKEN"];
+      const provided = (req.headers.authorization ?? "").replace("Bearer ", "");
+      if (!token || provided !== token) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized — GATEWAY_TOKEN required for non-localhost access" }));
+        return;
+      }
+    }
+
     // GET /api/config — system configuration summary
-    // Security: localhost-only by default (C-SOFT-1). If 0.0.0.0 → user accepts risk.
     if (url === "/api/config" && req.method === "GET") {
       const config = {
         execPolicy: { preset: getPreset(), policy: getEffectivePolicy() },

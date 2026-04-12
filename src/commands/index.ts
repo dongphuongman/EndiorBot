@@ -126,16 +126,18 @@ export function createCommandDispatcher(): CommandDispatcher {
   d.register("audit", async (ctx) => handleAuditCommand(ctx.args));
 
   // Sprint 135: /exec-policy OTT commands (show, preset mutation, audit viewer)
+  // CPO fix: pass isLinked so mutations can enforce /link requirement
   d.register("exec-policy", async (ctx) => {
-    return handleExecPolicyOttCommand(ctx.args, ctx.chatId ?? ctx.userId);
+    const actorId = getLinkedActorId(ctx.userId);
+    const isLinked = actorId !== undefined;
+    return handleExecPolicyOttCommand(ctx.args, ctx.chatId ?? ctx.userId, isLinked);
   });
 
   // Sprint 135: /config OTT with mutations (active-memory, auto-handoff) + persistence
   d.register("config", async (ctx) => {
-    if (ctx.args.length > 0) {
-      return handleConfigOttCommand(ctx.args, ctx.chatId ?? ctx.userId);
-    }
-    return handleConfigOttCommand([], ctx.chatId ?? ctx.userId);
+    const actorId = getLinkedActorId(ctx.userId);
+    const isLinked = actorId !== undefined;
+    return handleConfigOttCommand(ctx.args, ctx.chatId ?? ctx.userId, isLinked);
   });
 
   d.register("init", async (ctx) => handleInitCommand(ctx.args, ctx.workspace));

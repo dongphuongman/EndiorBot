@@ -163,10 +163,13 @@ function handleAudit(): CommandResult {
 
 /**
  * Handle /exec-policy <subcommand> from OTT.
+ * Read commands (show, audit) work without /link.
+ * Mutation commands (preset) require linked identity (CPO auth fix).
  */
 export function handleExecPolicyOttCommand(
   args: string[],
   chatId: string,
+  isLinked?: boolean,
 ): CommandResult {
   const sub = args[0]?.toLowerCase();
 
@@ -174,6 +177,10 @@ export function handleExecPolicyOttCommand(
     case "show":
       return handleShow();
     case "preset":
+      // CPO fix: mutation requires linked identity
+      if (isLinked === false) {
+        return { success: false, response: "⚠️ Use /link first to change exec-policy preset." };
+      }
       return handlePreset(args.slice(1), chatId);
     case "audit":
       return handleAudit();
