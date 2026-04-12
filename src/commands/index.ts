@@ -29,7 +29,7 @@ import {
   handleComplianceCommand,
   executeFixCommand,
   handleConsultCommand,
-  handleConfigCommand,
+  // handleConfigCommand — replaced by handleConfigOttCommand (Sprint 135)
   handleInitCommand,
   handleModeCommand,
   handleWebhookCommand,
@@ -50,6 +50,8 @@ import {
 
 import { handlePlanCommand as handlePlanOttCommand } from "./handlers/plan-handler.js";
 import { handleAuditCommand } from "./handlers/audit-commands.js";
+import { handleExecPolicyOttCommand } from "./handlers/exec-policy-commands.js";
+import { handleConfigOttCommand } from "./handlers/config-commands-ott.js";
 import { buildCmdListResult, renderCmdListForChannel } from "./command-catalog.js";
 
 // Import remote command handlers
@@ -122,7 +124,18 @@ export function createCommandDispatcher(): CommandDispatcher {
 
   d.register("audit", async (ctx) => handleAuditCommand(ctx.args));
 
-  d.register("config", async () => handleConfigCommand());
+  // Sprint 135: /exec-policy OTT commands (show, preset mutation, audit viewer)
+  d.register("exec-policy", async (ctx) => {
+    return handleExecPolicyOttCommand(ctx.args, ctx.chatId ?? ctx.userId);
+  });
+
+  // Sprint 135: /config OTT with mutations (active-memory, auto-handoff) + persistence
+  d.register("config", async (ctx) => {
+    if (ctx.args.length > 0) {
+      return handleConfigOttCommand(ctx.args, ctx.chatId ?? ctx.userId);
+    }
+    return handleConfigOttCommand([], ctx.chatId ?? ctx.userId);
+  });
 
   d.register("init", async (ctx) => handleInitCommand(ctx.args, ctx.workspace));
 

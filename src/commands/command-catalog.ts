@@ -301,6 +301,15 @@ const COMMAND_METADATA: Record<string, CommandMeta> = {
     parameters: [{ name: "state", description: "on|off", type: "enum", required: false, choices: ["on", "off"] }],
     surfaceAvailability: "all",
   },
+  "exec-policy": {
+    description: "Exec-policy management (show/preset/audit)",
+    category: "security",
+    parameters: [
+      { name: "subcommand", description: "show|preset|audit", type: "enum", required: false, choices: ["show", "preset", "audit"] },
+      { name: "value", description: "Preset name (open|balanced|strict) for preset subcommand", type: "string", required: false },
+    ],
+    surfaceAvailability: "all",
+  },
   commands: {
     description: "List all available commands",
     category: "system",

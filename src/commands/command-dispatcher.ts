@@ -56,6 +56,7 @@ export const SENSITIVE_COMMANDS = new Set([
   "launch", "kill", "kill-team", "link",
   "sh", "run", "cp", "attach",
   "approve",
+  "exec-policy", // Sprint 135 C-HARD-1: preset mutation is highest-privilege action
 ]);
 
 // ============================================================================

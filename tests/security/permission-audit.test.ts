@@ -133,16 +133,18 @@ describe("formatAuditEntries", () => {
 // ============================================================================
 
 describe("handleAuditCommand", () => {
-  it("returns usage for unknown subcommand", () => {
+  it("returns help for unknown subcommand", () => {
     const result = handleAuditCommand(["unknown"]);
-    expect(result.success).toBe(false);
-    expect(result.response).toContain("Usage");
+    expect(result.success).toBe(true);
+    expect(result.response).toContain("/audit permissions");
+    expect(result.response).toContain("/audit exec-policy");
   });
 
-  it("returns usage for empty args", () => {
+  it("returns help for empty args", () => {
     const result = handleAuditCommand([]);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
     expect(result.response).toContain("/audit permissions");
+    expect(result.response).toContain("/audit exec-policy");
   });
 
   it("handles 'permissions' subcommand", () => {
