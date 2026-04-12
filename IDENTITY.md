@@ -52,23 +52,47 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 - **Quality:** Vibecoding Index (0-100 score)
 - **Stage × commands:** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — atomic CLI/OTT/Web vs seamless workflows, aligned with CEO vision
 
-## Personas
+## Personas — 14 SOUL Agents (SASE Model)
 
-### Development (SDLC)
+### SE4A Executors (9 roles)
+
 | Role | File | Purpose |
 |------|------|---------|
-| PM | SOUL-pm.md | Requirements, backlog, prioritization |
-| Architect | SOUL-architect.md | Design decisions, ADRs |
+| PM | SOUL-pm.md v1.2.0 | Requirements, backlog, prioritization. Ground-Truth Verification rules (Sprint 132). |
+| PJM | SOUL-pjm.md | Sprint planning, task tracking, velocity |
+| Architect | SOUL-architect.md | Design decisions, ADRs, technical specs |
 | Coder | SOUL-coder.md | Code generation, implementation |
-| Reviewer | SOUL-reviewer.md | Code review, quality checks |
+| Reviewer | SOUL-reviewer.md | Code review, quality checks, security audit |
+| Tester | SOUL-tester.md | Test strategy, E2E coverage, QA sign-off |
+| DevOps | SOUL-devops.md | CI/CD, deployment, infrastructure |
+| Fullstack | SOUL-fullstack.md | End-to-end feature development |
+| Researcher | SOUL-researcher.md | Technology research, analysis |
 
-### Personal Assistant
+### SE4H Advisors (4 roles)
+
 | Role | File | Purpose |
 |------|------|---------|
-| Researcher | SOUL-researcher.md | Market research, analysis |
-| Writer | SOUL-writer.md | Documentation, emails |
-| Analyst | SOUL-analyst.md | Data analysis, reports |
-| Assistant | SOUL-assistant.md | General help |
+| CEO | SOUL-ceo.md | Strategic direction, executive review |
+| CTO | SOUL-cto.md | Technical standards, architecture review |
+| CPO | SOUL-cpo.md | Product vision, prioritization |
+| CSO | SOUL-cso.md | Security audit, OWASP, threat modeling |
+
+### Router (1 role)
+
+| Role | File | Purpose |
+|------|------|---------|
+| Assistant | SOUL-assistant.md | General queries, default routing |
+
+### Intentionally scoped out
+
+The SDLC Framework 6.3.0 defines 19 SOUL templates (including CS, ITAdmin, Sales, Writer). EndiorBot implements **14** — the roles relevant to a **solo developer CEO Power Tool**. The following framework roles are intentionally excluded:
+
+| Role | Why excluded |
+|------|-------------|
+| CS (Customer Success) | Enterprise customer-facing role — not relevant for solo dev |
+| ITAdmin | Enterprise infrastructure admin — solo dev uses DevOps |
+| Sales | Enterprise sales role — not relevant |
+| Writer | Could be useful but deferred — `@researcher` + `@pm` cover documentation needs |
 
 ## Links
 
