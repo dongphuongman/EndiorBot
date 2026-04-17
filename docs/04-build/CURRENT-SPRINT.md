@@ -4,9 +4,12 @@
 
 ## Active / Most Recent
 
-- **Sprint 135** — Surface Parity (OTT + Web API for Sprint 131-134 features) — **PLANNED** (2026-04-12)
+- **Sprint 135** — Surface Parity + P1 Workspace Awareness — **IMPLEMENTATION COMPLETE** (2026-04-17, awaiting formal close)
   - Plan: [sprint-135-surface-parity.md](sprints/sprint-135-surface-parity.md)
-  - Authority: CTO G2 APPROVED + CPO 9.4/10 APPROVED
+  - Authority: CTO G2 APPROVED + CPO 9.4/10 APPROVED (original scope); CPO 9.5/10 + @cto countersign (P1 addition)
+  - Original scope (items 1-8): all shipped — commits `2959517` (t1-t3), `b6b192e` (t4-t5-t8), `0da795a` (t6-t7), `9fcdfcb` + `835f5f4` (135a CPO review fixes)
+  - P1 addition (triggered by MTClaw Workspace Awareness Notice 2026-04-17): SDLC Framework 6.3.1 adoption, Layer 1.25 workspace-awareness injection, 5 executor SOULs updated, framework bump, 11 new tests. Commits `9df591f` + `999c325`. ADR: [ADR-048](../02-design/01-ADRs/ADR-048-framework-6-3-1-workspace-awareness.md).
+  - Pending for Sprint 136 kickoff: formal sprint close (@pjm), scope confirmation for Desktop + Web dashboard (CEO input needed), backlog items (L2 Handoff Completion, L1 CRG @pm polish, SOUL-pm v1.3.0 Rule 4, fetch boundary test).
 
 - **Sprint 134** — Config Externalization + Webhooks Ingress — **✅ COMPLETE** (2026-04-11, CTO 9/10)
   - [sprint-134-config-webhooks.md](sprints/sprint-134-config-webhooks.md)
@@ -41,4 +44,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.0 | Pointer updated 2026-04-11*
+*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.1 | Pointer updated 2026-04-17*
