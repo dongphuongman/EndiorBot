@@ -36,6 +36,12 @@ export {
   DEFAULT_INJECTION_CONFIG,
 } from "./context-injector.js";
 
+// Workspace Awareness (SDLC 6.3.1 Layer 1.25)
+export {
+  WORKSPACE_AWARENESS_SECTION,
+  WORKSPACE_AWARENESS_SOURCE_ID,
+} from "./workspace-awareness.js";
+
 // Project Verifier
 export {
   ProjectVerifier,

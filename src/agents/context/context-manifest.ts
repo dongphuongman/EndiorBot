@@ -31,21 +31,23 @@ export type ContextTier = "MUST" | "USEFUL" | "OPTIONAL";
  * Context source types.
  *
  * Sprint 63: Added "search" and "anchor" for Code Search Layer and Context Anchoring.
+ * SDLC 6.3.1: Added "workspace_awareness" for Layer 1.25 injection (Agent Continuity).
  */
 export type ContextSource =
-  | "brain_l4"      // Mental models
-  | "brain_l3"      // Structures
-  | "brain_l2"      // Patterns
-  | "brain_l1"      // Events (rarely used)
-  | "soul"          // SOUL template
-  | "tier_config"   // Tier configuration
-  | "project"       // Project context (active.json)
-  | "sdlc_stage"    // Current SDLC stage
-  | "git"           // Git context (branch, recent commits)
-  | "codebase"      // Relevant code files (Sprint 63: via search)
-  | "search"        // Code search results (Sprint 63)
-  | "anchor"        // Context anchors (Sprint 65)
-  | "custom";       // Custom injected context
+  | "brain_l4"            // Mental models
+  | "brain_l3"            // Structures
+  | "brain_l2"            // Patterns
+  | "brain_l1"            // Events (rarely used)
+  | "soul"                // SOUL template
+  | "workspace_awareness" // Workspace discovery directive (SDLC 6.3.1 Layer 1.25)
+  | "tier_config"         // Tier configuration
+  | "project"             // Project context (active.json)
+  | "sdlc_stage"          // Current SDLC stage
+  | "git"                 // Git context (branch, recent commits)
+  | "codebase"            // Relevant code files (Sprint 63: via search)
+  | "search"              // Code search results (Sprint 63)
+  | "anchor"              // Context anchors (Sprint 65)
+  | "custom";             // Custom injected context
 
 /**
  * Single context item in the manifest.

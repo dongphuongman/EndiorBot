@@ -33,6 +33,10 @@ import {
   formatManifestLog,
 } from "./context-manifest.js";
 import {
+  WORKSPACE_AWARENESS_SECTION,
+  WORKSPACE_AWARENESS_SOURCE_ID,
+} from "./workspace-awareness.js";
+import {
   readMentalModels,
   readStructures,
   readPatterns,
@@ -193,6 +197,20 @@ export class ContextInjector {
         `SOUL template for @${request.agent}`,
         soulContent,
         this.getSoulPath(request.agent)
+      )
+    );
+
+    // 2a.5 (Layer 1.25). Workspace Awareness directive (MUST) - SDLC 6.3.1
+    // Static module constant: no runtime interpolation, no caller-supplied text.
+    // Injected between SOUL and Brain L4 to guarantee every agent runs
+    // workspace discovery before asking the user for workspace-visible state.
+    // Ref: .sdlc-framework/05-Templates-Tools/04-SASE-Artifacts/Agent-Continuity-Runtime-Guidance.md
+    items.push(
+      createContextItem(
+        WORKSPACE_AWARENESS_SOURCE_ID,
+        "MUST",
+        "Workspace awareness directive (SDLC 6.3.1 Layer 1.25)",
+        WORKSPACE_AWARENESS_SECTION
       )
     );
 
@@ -740,8 +758,26 @@ export class ContextInjector {
     // Add SOUL content
     sections.push(soulContent);
 
-    // Add injected context
-    const injectedItems = manifest.items.filter((i) => i.injected && i.source !== "soul");
+    // Layer 1.25: Workspace Awareness directive (SDLC 6.3.1) - always injected
+    // right after SOUL so every agent sees the discovery protocol before Brain
+    // L4 context is evaluated. Emitted explicitly (not via manifest items)
+    // because the static constant is authoritative and must not be subject to
+    // manifest filtering/truncation.
+    const workspaceItem = manifest.items.find(
+      (i) => i.source === WORKSPACE_AWARENESS_SOURCE_ID && i.injected
+    );
+    if (workspaceItem) {
+      sections.push("\n---\n");
+      sections.push(WORKSPACE_AWARENESS_SECTION);
+    }
+
+    // Add injected context (excluding soul + workspace_awareness already emitted)
+    const injectedItems = manifest.items.filter(
+      (i) =>
+        i.injected &&
+        i.source !== "soul" &&
+        i.source !== WORKSPACE_AWARENESS_SOURCE_ID
+    );
 
     if (injectedItems.length > 0) {
       sections.push("\n---\n\n## Context");
