@@ -1,6 +1,6 @@
 ---
 adr: 048
-status: "STUB — retroactive; documents framework bump 6.3.0 → 6.3.1 shipped 2026-04-17 without prior ADR. Scheduled for @cto sign-off before Sprint 136 kickoff."
+status: "STUB — @cto countersigned 2026-04-17 (9.5/10). Retroactive documentation for 6.3.0 → 6.3.1 bump. Full expansion deferred to Sprint 136."
 date: 2026-04-17
 title: "Framework 6.3.1 Upgrade — Workspace Awareness (Agent Continuity) Adoption"
 authority: "@pm proposal (retroactive). @cto countersign pending. Triggered by SDLC Framework 6.3.1 addendum (upstream commit cac8cdd) and MTClaw Workspace Awareness Notice (2026-04-17)."
