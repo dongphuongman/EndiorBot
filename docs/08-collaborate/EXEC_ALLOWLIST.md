@@ -1,6 +1,6 @@
 # Exec Allowlist — Shell Command Execution Inventory
 
-**Last updated:** 2026-03-23 (Sprint 118)
+**Last updated:** 2026-04-12 (Sprint 135)
 **Policy:** All `execSync`/`execFileSync` calls in `src/` must be documented here with justification. New `exec*` calls require PR review and allowlist update.
 
 ## Summary
@@ -61,6 +61,21 @@ All template-literal interpolated `execSync` calls have been converted to `execF
 - `src/agents/intelligence/workspace-context.ts` — 1 site converted
 - `src/cli/commands/evidence.ts` — 1 site converted
 - `src/cli/commands/sprint-close.ts` — 2 sites converted
+
+## Exec-Policy Layer (Sprint 132-135)
+
+In addition to this static allowlist, EndiorBot has a runtime exec-policy system that gates autonomous command execution:
+
+| Layer | Scope | Mechanism |
+|-------|-------|-----------|
+| This allowlist | `exec*` calls in source code | Static code review |
+| Exec-policy (Sprint 132) | Commands run by autonomous agents | Runtime allowlist/deny patterns via `checkCommand()` |
+| Shell-guard (`src/security/shell-guard.ts`) | 8 deny patterns | Runtime reactive blocking |
+| SSRF validator (`src/security/http-validator.ts`, Sprint 133) | Outbound fetch URLs | Runtime URL validation |
+
+Exec-policy presets (`open`/`balanced`/`strict`) control agent behavior at runtime. Hard-deny list (26 patterns) blocks destructive commands regardless of preset. See [ADR-046](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md).
+
+Webhooks ingress (Sprint 134) adds `handleWebhookRequest()` which validates auth via `timingSafeEqual`, rate-limits per trigger, and strips auth headers before dispatch. No `exec*` calls — webhook handlers are async functions, not shell commands.
 
 ## Adding New exec* Calls
 

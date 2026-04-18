@@ -132,4 +132,4 @@ EndiorBot is [MIT licensed](../../LICENSE). All dependencies are MIT/ISC/Apache/
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 08: Collaborate*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 08: Collaborate*

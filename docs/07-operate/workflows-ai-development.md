@@ -1,8 +1,8 @@
-# AI Development Workflows — EndiorBot + SDLC 6.3.0
+# AI Development Workflows — EndiorBot + SDLC 6.3.1
 
 **Phân tích use cases, workflows khi phát triển ứng dụng với AI Agents**
 **Tham chiếu:** Sau Sheong, "From vibe coding to agentic engineering" (Apr 2026)
-**Framework:** SDLC 6.3.0 · EndiorBot Sprint 133
+**Framework:** SDLC 6.3.1 · EndiorBot Sprint 135
 
 ---
 
@@ -10,7 +10,7 @@
 
 Sau Sheong trích dẫn mô hình 5 cấp độ. EndiorBot hoạt động ở **Level 2–3** và đang tiến tới **Level 4**:
 
-| Level | Mô tả | EndiorBot hiện tại | SDLC 6.3.0 Alignment |
+| Level | Mô tả | EndiorBot hiện tại | SDLC 6.3.1 Alignment |
 |-------|-------|--------------------|----------------------|
 | **L1** | Spicy autocomplete (Copilot) | Không — EndiorBot không phải IDE plugin | Không áp dụng |
 | **L2** | AI coding assistants (Claude Code, Cursor) | **Có** — `@coder` spawn Claude Code trong tmux pane, multi-turn, persist session | Stage 04 (Build) — agent thực thi theo task, CEO review output |
@@ -41,7 +41,7 @@ Telegram: /gate status
 # EndiorBot:    Telegram notification → Tap approve → Agent resumes → 30 giây
 ```
 
-**SDLC 6.3.0 alignment:**
+**SDLC 6.3.1 alignment:**
 - **Gate Engine as code** (ADR-004) — gates evaluated programmatically, không manually checked
 - **Conversation-First Governance** — approval qua OTT (Telegram/Zalo), không cần mở laptop
 - **`ENDIORBOT_AUTO_HANDOFF=true`** — agent tự route, CEO chỉ approve ở boundary decisions
@@ -77,7 +77,7 @@ endiorbot @coder "implement Redis session store theo ADR-047"
 → Sprint docs: what shipped, why, approved by whom
 ```
 
-**SDLC 6.3.0 alignment:**
+**SDLC 6.3.1 alignment:**
 - **10-stage documentation structure** (00-foundation → 09-govern) — specifications, ADRs, gate evidence bền vững hơn code
 - **SOUL-pm.md Ground-Truth Verification** — mọi claim phải verify trước khi trở thành decision
 - **Correction-trail discipline** — sai thì sửa visible (không silent rewrite), tạo institutional memory
@@ -124,7 +124,7 @@ endiorbot exec-policy audit  # Xem AI đã làm gì
 # Truyền thống: 2-3 sprints, 3-5 người, 2-4 tuần
 ```
 
-**SDLC 6.3.0 alignment:**
+**SDLC 6.3.1 alignment:**
 - **14 SOUL agents** thay thế 14 vai trò trong team truyền thống
 - **Tier system** (LITE→ENTERPRISE) — solo dev dùng LITE (2 files, 4 stages), đủ governance cho side projects
 - **Sprint automation** — `endiorbot plan` → `@architect` → `@coder` → `@reviewer` → `@tester` là 1 pipeline, không phải 5 meetings
@@ -327,11 +327,15 @@ Sau Sheong viết: "Active knowledge decays without practice. We need to design 
 │                    CEO/Developer Day                          │
 ├──────────────────────────────────────────────────────────────┤
 │                                                               │
-│  📱 Telegram/Zalo (di chuyển)                                 │
+│  📱 Telegram/Zalo (di chuyển) — Sprint 135: full surface       │
 │  ├─ /status → sprint progress                                │
 │  ├─ /gate status → approve/reject gates                      │
 │  ├─ @pm plan feature → structured plan                       │
-│  └─ /commands → full command catalog                         │
+│  ├─ /commands → full command catalog                         │
+│  ├─ /exec-policy show|preset|audit → security from phone     │
+│  ├─ /config → view all config, toggle AM + auto-handoff      │
+│  ├─ /audit exec-policy|ssrf|webhooks → audit from phone      │
+│  └─ /webhooks list|test → webhook management                 │
 │                                                               │
 │  💻 CLI (trước máy tính)                                      │
 │  ├─ endiorbot chat → multi-turn session                      │
@@ -342,8 +346,12 @@ Sau Sheong viết: "Active knowledge decays without practice. We need to design 
 │  ├─ endiorbot exec-policy show → current security posture    │
 │  └─ endiorbot compliance check → SDLC health                 │
 │                                                               │
-│  🌐 Web (localhost:18790)                                     │
-│  └─ Same commands, visual interface                          │
+│  🌐 Web API (localhost:18790) — Sprint 135                    │
+│  ├─ GET /api/config → system config JSON                     │
+│  ├─ GET /api/audit/:type → audit log viewer                  │
+│  ├─ GET /api/status → system status + Active Memory          │
+│  ├─ POST /api/config/* → mutations (GATEWAY_TOKEN auth)      │
+│  └─ POST /api/webhooks/:id → webhook ingress (Sprint 134)    │
 │                                                               │
 │  🔒 Governance (automatic, embedded)                         │
 │  ├─ exec-policy → command allowlist BEFORE Gates A/B/C       │
@@ -358,17 +366,37 @@ Sau Sheong viết: "Active knowledge decays without practice. We need to design 
 
 ---
 
+## Sprint 134-135: Config Externalization + Surface Parity
+
+Sprint 134 externalized all hardcoded timeouts into `src/config/timeouts.ts` (SSOT, env-overridable) and shipped webhooks ingress (Zapier/email forward support).
+
+Sprint 135 achieved **surface parity** — every Sprint 131-134 backend feature is now accessible from all 4 channels:
+
+| Feature | CLI | Telegram/Zalo | Web API |
+|---------|-----|---------------|---------|
+| Exec-policy management | `endiorbot exec-policy *` | `/exec-policy show\|preset\|audit` | `POST /api/config/exec-policy/preset` |
+| Active Memory toggle | env var | `/config active-memory on\|off` | `POST /api/config/active-memory` |
+| Auto-handoff toggle | env var | `/config auto-handoff on\|off` | — |
+| Audit log viewer | `tail ~/.endiorbot/audit-logs/*` | `/audit exec-policy\|ssrf\|webhooks` | `GET /api/audit/:type` |
+| Config viewer | env vars | `/config` | `GET /api/config` |
+| Webhook management | — | `/webhooks list\|test` | `POST /api/webhooks/:triggerId` |
+
+**OTT mutations require 2-step confirm** (C-HARD-1): user sends command → bot asks "Reply YES within 30s" → user confirms → execute + audit log.
+
+---
+
 ## Tham chiếu
 
 - Sau Sheong, "From vibe coding to agentic engineering (abridged)", Apr 2026
 - Dan Shapiro, Five Levels of AI Engineering
-- [EndiorBot User Guide](user-guide.md)
+- [EndiorBot Usage Guide](USAGE-GUIDE.md)
 - [CLI Reference](../04-build/cli-reference.md)
 - [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
 - [SOUL-pm.md v1.2.0](../reference/templates/souls/SOUL-pm.md) — Ground-Truth Verification rules
 - [Product Vision](../00-foundation/product-vision.md)
+- [Deploy Guide](../06-deploy/README.md) — Environment variables, webhook setup
 - [openclaw-backport PRD](../01-planning/openclaw-backport/PRD.md)
 
 ---
 
-*EndiorBot | CEO Power Tool | SDLC 6.3.0 | AI Development Workflows v1.0 — Sprint 133*
+*EndiorBot | CEO Power Tool | SDLC 6.3.1 | AI Development Workflows v1.1 — Sprint 135*

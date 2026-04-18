@@ -229,4 +229,4 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 07: Operate*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 07: Operate*

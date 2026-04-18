@@ -4,7 +4,7 @@
 
 EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code (and Codex) as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
 
-**Last Updated:** Sprint 133 (2026-04-11) · SDLC 6.3.0
+**Last Updated:** Sprint 135 (2026-04-12) · SDLC 6.3.1
 
 ---
 
@@ -26,8 +26,11 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 14. [Workflow 11: Autonomous Development](#workflow-11-autonomous-development-sprint-131-133)
 15. [Workflow 12: Command Discovery](#workflow-12-command-discovery-sprint-132)
 16. [Workflow 13: Security & Governance](#workflow-13-security--governance-sprint-132-133)
-17. [Command Reference](#command-reference)
-18. [Troubleshooting](#troubleshooting)
+17. [Workflow 14: OTT Surface Control](#workflow-14-ott-surface-control-sprint-135)
+18. [Workflow 15: Web API](#workflow-15-web-api-sprint-135)
+19. [Workflow 16: Webhooks Ingress](#workflow-16-webhooks-ingress-sprint-134-135)
+20. [Command Reference](#command-reference)
+21. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -681,6 +684,144 @@ All outbound HTTP calls go through `safeFetch` — blocks private IPs, cloud met
 
 ---
 
+## Workflow 14: OTT Surface Control (Sprint 135)
+
+Control all Sprint 131-134 features directly from Telegram or Zalo — no CLI required.
+
+### Exec-Policy from Phone
+
+```
+# Check current state
+/exec-policy show
+
+# Change preset (2-step confirm for safety)
+/exec-policy preset balanced
+→ ⚠️ Change exec-policy preset to "balanced"? Reply /exec-policy preset yes within 30s.
+/exec-policy preset yes
+→ ✅ Preset changed: strict → balanced
+
+# View recent decisions
+/exec-policy audit
+```
+
+### Config Toggle from Phone
+
+```
+# View all configuration
+/config
+→ Shows: preset, Active Memory on/off, auto-handoff, timeouts
+
+# Toggle Active Memory (2-step confirm)
+/config active-memory off
+→ ⚠️ Disable Active Memory? Reply /config active-memory yes within 30s.
+/config active-memory yes
+→ ✅ Active Memory disabled (persisted to config.json)
+
+# Toggle auto-handoff
+/config auto-handoff on
+→ same confirm flow
+```
+
+### Audit Logs from Phone
+
+```
+/audit exec-policy          # Last 10 exec-policy decisions
+/audit ssrf                 # Last 10 SSRF blocks
+/audit webhooks             # Last 10 webhook events
+/audit permissions          # Permission audit trail
+/audit exec-policy --limit 20
+```
+
+### Security Notes
+
+- **Mutations** (`/exec-policy preset`, `/config ... on|off`) require OTT identity via `/link` + 2-step confirmation (30s TTL)
+- **Read commands** (`show`, `audit`, `/config` view) are un-gated
+- All mutations persist to `~/.endiorbot/config.json` and survive restarts
+- Audit trail records both the request and the confirm step
+
+---
+
+## Workflow 15: Web API (Sprint 135)
+
+HTTP endpoints for external tools, scripts, and the upcoming Desktop app (Sprint 136).
+
+### Read Endpoints (no auth on localhost)
+
+```bash
+# Full system config
+curl http://localhost:18790/api/config | jq .
+
+# Audit logs by type
+curl "http://localhost:18790/api/audit/exec-policy?limit=5" | jq .
+curl "http://localhost:18790/api/audit/ssrf?limit=10" | jq .
+curl "http://localhost:18790/api/audit/webhooks?limit=10" | jq .
+
+# System status (includes Active Memory state)
+curl http://localhost:18790/api/status | jq .
+```
+
+### Mutation Endpoints (GATEWAY_TOKEN required)
+
+```bash
+# Change exec-policy preset
+curl -X POST http://localhost:18790/api/config/exec-policy/preset \
+  -H "Authorization: Bearer $ENDIORBOT_GATEWAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"preset":"balanced"}'
+
+# Toggle Active Memory
+curl -X POST http://localhost:18790/api/config/active-memory \
+  -H "Authorization: Bearer $ENDIORBOT_GATEWAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled":true}'
+```
+
+### Security Model
+
+- Gateway binds to `127.0.0.1` by default — GET endpoints are auth-free on localhost
+- If you set `ENDIORBOT_GATEWAY_HOST=0.0.0.0`, you accept network exposure risk — add `ENDIORBOT_GATEWAY_TOKEN` and pass it as Bearer token on all API calls
+- POST mutations always require `ENDIORBOT_GATEWAY_TOKEN`
+
+---
+
+## Workflow 16: Webhooks Ingress (Sprint 134-135)
+
+Accept inbound webhooks from Zapier, email forwards, or custom integrations.
+
+### Setup
+
+```bash
+# 1. Set shared secret (required — fail-closed without it)
+export ENDIORBOT_WEBHOOK_SECRET="your-secret-here"
+
+# 2. Start the server
+endiorbot serve
+```
+
+### Send a Webhook
+
+```bash
+curl -X POST http://localhost:18790/api/webhooks/my-trigger \
+  -H "x-webhook-secret: $ENDIORBOT_WEBHOOK_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"from":"zapier","event":"new_email","subject":"Review Q2 report"}'
+```
+
+### OTT Commands
+
+```
+/webhooks list    → show registered triggers (runtime-only in v1)
+/webhooks test    → instructions for testing triggers via curl
+```
+
+### Limits
+
+- Rate: 10 requests/min per trigger (configurable via `ENDIORBOT_WEBHOOK_RATE_LIMIT`)
+- Auth headers (`x-webhook-secret`, `authorization`) stripped before forwarding to handler
+- Audit: `~/.endiorbot/audit-logs/webhooks.log` (JSONL, 10 MB rotation)
+
+---
+
 ## Command Reference
 
 ### Information Commands (no auth required)
@@ -690,8 +831,34 @@ All outbound HTTP calls go through `safeFetch` — blocks private IPs, cloud met
 | `/help` | Show all commands | All |
 | `/agents` | List available agents | All |
 | `/teams` | List tier teams | All |
-| `/config` | Show project config | All |
+| `/config` | Show system config (exec-policy, Active Memory, timeouts) | All |
+| `/config active-memory on\|off` | Toggle Active Memory (2-step confirm) | All |
+| `/config auto-handoff on\|off` | Toggle auto-handoff (2-step confirm) | All |
 | `/cost` | Show token usage & cost | All |
+
+### Exec-Policy Commands (Sprint 135)
+
+| Command | Description | Channels |
+|---------|-------------|----------|
+| `/exec-policy show` | Current preset + effective rules | All |
+| `/exec-policy preset <name>` | Change preset (2-step confirm on OTT) | All |
+| `/exec-policy audit` | Last 5 exec-policy decisions | All |
+
+### Audit Commands (Sprint 135)
+
+| Command | Description | Channels |
+|---------|-------------|----------|
+| `/audit exec-policy` | Last 10 exec-policy decisions | All |
+| `/audit ssrf` | Last 10 SSRF blocks | All |
+| `/audit webhooks` | Last 10 webhook events | All |
+| `/audit permissions` | Permission audit trail | All |
+
+### Webhook Commands (Sprint 135)
+
+| Command | Description | Channels |
+|---------|-------------|----------|
+| `/webhooks list` | Show registered triggers | All |
+| `/webhooks test` | How to test a trigger | All |
 
 ### SDLC Commands (no auth required)
 
@@ -843,23 +1010,25 @@ AI Routing Fallback:
 ~/.endiorbot/
   ├── repos.json          # Registered repositories
   ├── chat-focus.json     # Per-chat workspace focus
+  ├── config.json         # Persisted config (exec-policy preset, Active Memory, auto-handoff)
   ├── exec-policy/        # Exec-policy preset + custom rules (Sprint 132)
+  │   └── approvals.json  # Active preset + extra allow/deny patterns
   ├── audit-logs/
   │   ├── exec-policy.log # Command allow/deny/prompt decisions (JSONL, 10MB rotation)
-  │   └── ssrf-blocks.log # Outbound fetch blocks (Sprint 133)
-  ├── sessions/           # Chat session persistence
-  └── config.json         # User preferences
+  │   ├── ssrf-blocks.log # Outbound fetch blocks (Sprint 133)
+  │   └── webhooks.log    # Webhook events (Sprint 134)
+  └── sessions/           # Chat session persistence
 ```
 
 ---
 
 ## Related Documentation
 
-- [AI Development Workflows](workflows-ai-development.md) — Use cases mapped to Sau Sheong's "From vibe coding to agentic engineering" + SDLC 6.3.0
+- [AI Development Workflows](workflows-ai-development.md) — Use cases mapped to Sau Sheong's "From vibe coding to agentic engineering" + SDLC 6.3.1
 - [CLI Reference](../04-build/cli-reference.md) — Full command reference
 - [Deploy Guide](../06-deploy/README.md) — Deployment options + exec-policy config
 - [ADR-046](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md) — Binding policy for exec-policy + auto-handoff
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.0 | Updated Sprint 133*
+*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.1 | Updated Sprint 135*
