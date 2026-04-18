@@ -198,9 +198,32 @@ export class BusConsumer {
       // CTO C1 (BLOCKER, RESOLVED): Guard replyFn() — Telegram may be down,
       // bot may be blocked, or channel adapter may have disconnected.
       // Inner try-catch prevents unhandledRejection from crashing Node.js ≥ v15.
+      //
+      // Sprint 136 B4 (2026-04-18): surface the router's specific error text
+      // to users instead of a blanket "Internal error". Sprint 136 A11 + B3
+      // made ChannelRouter.callAI() throw actionable messages (Claude Code
+      // timed out / auth failed / rate-limited). Previously, THIS catch
+      // swallowed those messages on the async bus path — the only path used
+      // by Telegram/Zalo/WebUI in production. Now we recognize user-facing
+      // prefixes and relay them through, clamped to keep stack traces /
+      // secrets from leaking into chat.
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const userFacingPrefixes = [
+        "⚠️",
+        "🔑",
+        "Claude Code",
+        "Claude Code request",
+      ];
+      const looksUserFacing =
+        typeof errMsg === "string" &&
+        errMsg.length > 0 &&
+        errMsg.length <= 800 &&
+        userFacingPrefixes.some((p) => errMsg.includes(p));
+      const replyText = looksUserFacing ? errMsg : "Internal error. Please try again.";
+
       try {
         // Sprint 110: Pass correlationId in error path too (isTrainableTurn=false)
-        await msg.replyFn("Internal error. Please try again.", {
+        await msg.replyFn(replyText, {
           correlationId: msg.correlationId,
           isTrainableTurn: false,
         });
@@ -211,7 +234,7 @@ export class BusConsumer {
 
       this.bus.publishOutbound({
         correlationId: msg.correlationId,
-        text: "Internal error.",
+        text: looksUserFacing ? errMsg : "Internal error.",
         isError: true,
       });
     }
