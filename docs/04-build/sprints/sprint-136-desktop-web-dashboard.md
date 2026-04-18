@@ -33,6 +33,22 @@ Sprint 135 closed with P1 Workspace Awareness added on top of the original 8-ite
 - ~~SENSITIVE_COMMANDS "exec-policy"~~ — already in Set at `src/commands/command-dispatcher.ts:59` (Sprint 135 C-HARD-1)
 - ~~Fetch boundary test~~ — already exists at `tests/architecture/fetch-boundary.test.ts` (Sprint 133 S2, 126 lines, active)
 
+### Part A' — Gateway-level UX Fix (added 2026-04-18 after CEO field test)
+
+**CEO use case** — CEO chạy `@tester` trên Telegram từ phone. Không có progress events, CEO thấy 5-phút silent wait rồi reply — nghĩ bot đơ, re-send, nhận duplicate work. Với A6-A10, CEO thấy heartbeat mỗi 10s + fallback transitions, tin tưởng hệ thống, không spam. **Serves CEO Power Tool <30s-answer guarantee directly** — user biết là bot đang làm, không phải chờ mù.
+
+**Trigger incident** (2026-04-18 16:47–16:54): CEO gửi `@tester plan smoke tests` → 7 phút silent (Claude Code CLI timeout 5 phút + cloud fallback 2 phút). Zero mid-flight updates.
+
+| # | Item | Effort (CTO-revised) | Priority | Authority |
+|---|------|---------------------|----------|-----------|
+| A6 | Gateway progress events — ChannelRouter publishes `bus.publishOutbound({correlationId, text, isProgress: true})` every 10s during agent invocation. **Reuses existing `EventEmitterBus.publishOutbound` + `BusOutboundMessage.isProgress` field** — no new bus API needed (verified via grep 2026-04-18). | 30 min | P1 | CPO approval 2026-04-18 + @pm C-HARD-1 resolved |
+| A7 | Fallback status event — when Claude Code Bridge times out/fails, Router publishes a progress event with `text: "⚠️ Claude Code timeout, switching to Gemini fallback..."` before invoking next provider. Reuses same `isProgress: true` channel. | 15 min | P1 | CPO approval 2026-04-18 |
+| A8 | Telegram adapter: subscribe to progress events → `editMessageText`. 4 implementation steps: (1) Add `editMessage(chatId, messageId, newText)` wrapper on `TelegramChannel`; (2) Store `placeholderMessageId` per `correlationId` in state map; (3) Subscribe handler in adapter that calls wrapper on `isProgress: true`; (4) Cleanup state on final reply or session end. | 45-60 min | P1 | @pm C-SOFT-1 resolved |
+| A9 | Zalo/WebUI/CLI/Desktop adapter stubs (log-only subscribers). **Zalo capability TBD** — Zalo Bot API may not support inline edit; fallback UX is either "send new progress message (chat spam)" or "suppress progress on Zalo entirely". WebUI has WebSocket — edit via `bus.response` event. CLI/Desktop are stubs for now. | 1-1.5h (after Zalo design answer) | P2 | @pm C-SOFT-2 (unresolved — needs Zalo API check before binding) |
+| A10 | `ENDIORBOT_DISABLE_ANTHROPIC_FALLBACK=true` — opt-out flag in `src/providers/init.ts:50` block. **Prevent accidental Anthropic API spend when Claude Code OAuth hiccups — CEO wants to know OAuth failed, not silently swap to billable API.** | 10 min | P1 | **SHIPPED** in commit `60d92fb` (2026-04-18) |
+
+**Bus infrastructure note**: A6 grep confirmed `EventEmitterBus` (src/bus/message-bus.ts:44) + `BusOutboundMessage.isProgress` (src/bus/types.ts:136) already exist. `publishOutbound({isProgress:true})` does NOT decrement `inFlight` counter (message-bus.ts:70). Zero new bus types or publish API needed — just call sites in ChannelRouter.
+
 ### Part B — Desktop + Web Dashboard (SCOPE TBD — CEO input required)
 
 **@pm claim (unverified):** *"original Sprint 136 scope, 5.5d — from surface-parity plan"*
