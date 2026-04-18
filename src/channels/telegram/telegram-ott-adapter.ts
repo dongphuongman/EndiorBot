@@ -228,9 +228,27 @@ export function createTelegramOttAdapter(
       }
 
       // R5: Error boundary — adapter crash doesn't kill process
-      console.error("[TelegramOTT] Message handling error:", (error as Error).message);
+      const errMsg = (error as Error).message;
+      console.error("[TelegramOTT] Message handling error:", errMsg);
+      // Sprint 136 B4 (2026-04-18): surface the router's error message to CEO
+      // instead of a blanket "Internal error" — router now throws specific,
+      // actionable messages (Claude Code timed out / auth failed / rate-limited)
+      // per Sprint 136 A11. Clamp at 800 chars to avoid leaking stack traces
+      // and prefer the router message if it contains a recognizable user-facing
+      // prefix (emoji, "Claude Code", etc.). Otherwise fall back to generic.
+      const userFacingPrefixes = [
+        "⚠️", "🔑", "Claude Code", "Claude Code request",
+      ];
+      const looksUserFacing =
+        typeof errMsg === "string" &&
+        errMsg.length > 0 &&
+        errMsg.length <= 800 &&
+        userFacingPrefixes.some((p) => errMsg.includes(p));
+      const replyText = looksUserFacing
+        ? errMsg
+        : "Internal error. Please try again.";
       try {
-        await channel.send("Internal error. Please try again.");
+        await channel.send(replyText);
       } catch {
         // Send failed — silently ignore to prevent crash cascade
       }
