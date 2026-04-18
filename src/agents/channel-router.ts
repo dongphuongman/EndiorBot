@@ -11,6 +11,7 @@ import { parseMention } from "./orchestrator/mention-parser.js";
 import type { ChannelSendFn } from "../bus/types.js";
 import type { MTClawBridge } from "../mtclaw/bridge.js";
 import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mtclaw/types.js";
+import { TIMEOUTS } from "../config/timeouts.js";
 
 // Sprint 121 T3: Import from extracted submodules
 import {
@@ -92,7 +93,10 @@ export const DEFAULT_ROUTER_CONFIG: ChannelRouterConfig = {
   ollamaRemoteModel: process.env["OLLAMA_REMOTE_MODEL"] ?? "qwen3-coder:30b",
   ollamaRemoteTimeout: 120000,
   projectRoot: process.cwd(),
-  claudeTimeout: 300,
+  // Sprint 136 B3 fix (2026-04-18): was hardcoded `300` seconds, disconnected from
+  // ENDIORBOT_CLAUDE_TIMEOUT_MS env var. Now sourced from TIMEOUTS SSOT (ms → s).
+  // See src/config/timeouts.ts.
+  claudeTimeout: Math.max(1, Math.round(TIMEOUTS.claudeCode / 1000)),
   claudeMaxTokens: 4000,
   verbose: false,
 };
