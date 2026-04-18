@@ -21,7 +21,7 @@ endiorbot serve --port 3000         # Custom port
 
 # 4. Docker deployment
 docker build -t endiorbot .
-docker run -p 18790:18790 --env-file .env endiorbot serve
+docker run -p 18790:18790 --env-file .env.local endiorbot serve
 ```
 
 ## Deployment Options
@@ -58,22 +58,44 @@ npx @dttai/endiorbot init
 docker build -t endiorbot .
 docker run -d \
   -p 18790:18790 \
-  --env-file .env \
+  --env-file .env.local \
   --name endiorbot \
   endiorbot serve
 ```
 
 ## Environment Variables
 
+### Auth Model
+
+**Default primary provider: Claude Code CLI via OAuth** (e.g. Claude Max 200 subscription). EndiorBot invokes the `claude` CLI process; no API key is extracted or required for the default chat path. Reference: [src/providers/init.ts](../../src/providers/init.ts) + ADR-043-A1.
+
+API keys are only needed for non-default providers or `/consult` multi-model routing. Provider priority (ADR-043-A1): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback last).
+
+Secrets live in `.env.local` (git-ignored). `.env.example` is the template.
+
+### Provider Keys
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key (primary provider) |
-| `OPENAI_API_KEY` | Yes (for consult) | OpenAI API key |
-| `GOOGLE_API_KEY` | Optional | Gemini API key |
-| `TELEGRAM_BOT_TOKEN` | Optional | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Optional | Your Telegram chat ID |
-| `ZALO_BOT_TOKEN` | Optional | Zalo bot token |
+| `ANTHROPIC_API_KEY` | Optional (fallback) | Only needed to use Anthropic API directly instead of Claude Code OAuth |
+| `GOOGLE_API_KEY` | Optional | Gemini provider + `/consult` multi-model |
+| `OPENAI_API_KEY` | Optional | OpenAI provider + `/consult` multi-model |
+| `OLLAMA_URL` | Optional | Local Ollama fallback |
+
+### Channel Adapters
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | Bot token from BotFather |
+| `ENDIORBOT_TELEGRAM_CHAT_ID` | Optional | CEO's private chat id (for notifications) |
+| `ZALO_BOT_TOKEN` | For Zalo | Zalo bot token |
+
+### Gateway
+
+| Variable | Required | Description |
+|----------|----------|-------------|
 | `ENDIORBOT_GATEWAY_PORT` | Optional | Gateway port (default: 18790) |
+| `ENDIORBOT_GATEWAY_TOKEN` | For non-localhost Web API mutations | Auth token (Sprint 135 CPO-2) |
 | `ENDIORBOT_AUTO_HANDOFF` | Optional | Auto-handoff from @mentions (default: `false`). Set `true` for power mode — routes without CEO prompt. Sprint 131. |
 | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | Optional | Per-query context refresh (default: `false`). Kill switch — CEO flips directly. Sprint 133. |
 

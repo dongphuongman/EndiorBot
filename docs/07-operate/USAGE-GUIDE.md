@@ -150,14 +150,16 @@ endiorbot serve --no-zalo          # Skip Zalo
 endiorbot serve -p 3000            # Custom port
 ```
 
-**Environment variables needed:**
+**Environment variables needed** (file: `.env.local`, git-ignored):
+
+Default AI path is **Claude Code CLI via OAuth** (e.g. Claude Max 200). No API key required for the primary chat provider. API keys below are only for non-default providers or `/consult` multi-model routing.
 
 | Variable | Required For |
 |----------|-------------|
-| `ANTHROPIC_API_KEY` | Claude AI responses |
-| `GOOGLE_API_KEY` | Gemini fallback |
-| `OPENAI_API_KEY` | OpenAI fallback |
-| `TELEGRAM_BOT_TOKEN` | Telegram channel |
+| `ANTHROPIC_API_KEY` | Optional fallback — only if not using Claude Code OAuth |
+| `GOOGLE_API_KEY` | Gemini provider + `/consult` |
+| `OPENAI_API_KEY` | OpenAI provider + `/consult` |
+| `ENDIORBOT_TELEGRAM_BOT_TOKEN` | Telegram channel |
 | `ZALO_APP_ID` + `ZALO_APP_SECRET` | Zalo channel |
 
 ### Step 4: Connect from Telegram
@@ -965,7 +967,7 @@ endiorbot serve
 
 **Cause:** Bot token not set or server not running.
 **Solution:**
-1. Verify `TELEGRAM_BOT_TOKEN` is set in `.env`
+1. Verify `ENDIORBOT_TELEGRAM_BOT_TOKEN` is set in `.env.local`
 2. Ensure `endiorbot serve` is running (not `--no-telegram`)
 3. Send `/link` to bind your identity
 
@@ -978,18 +980,23 @@ endiorbot serve
 
 ## Environment Variables
 
+Stored in `.env.local` (git-ignored; `.env.example` is the template). **Primary AI path is Claude Code CLI via OAuth** — no API key required for default chat. Provider priority per [src/providers/init.ts](../../src/providers/init.ts): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback).
+
 | Variable | Required | Default | Purpose | Since |
 |----------|----------|---------|---------|-------|
-| `ANTHROPIC_API_KEY` | Recommended | — | Claude AI (primary) | — |
-| `GOOGLE_API_KEY` | Recommended | — | Gemini AI (fallback) | — |
-| `OPENAI_API_KEY` | Optional | — | OpenAI (fallback) | — |
-| `TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot | — |
+| `ANTHROPIC_API_KEY` | Optional (fallback) | — | Anthropic API direct — only if not using Claude Code OAuth | — |
+| `GOOGLE_API_KEY` | Optional | — | Gemini provider + `/consult` | — |
+| `OPENAI_API_KEY` | Optional | — | OpenAI provider + `/consult` | — |
+| `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot token | — |
+| `ENDIORBOT_TELEGRAM_CHAT_ID` | Optional | — | CEO's private chat id | — |
 | `ZALO_APP_ID` | For Zalo | — | Zalo mini app | — |
 | `ZALO_APP_SECRET` | For Zalo | — | Zalo authentication | — |
 | `ENDIORBOT_STATE_DIR` | No | `~/.endiorbot/` | State directory | — |
 | `ENDIORBOT_DEBUG` | No | `false` | Debug mode (allows localhost fetch) | — |
 | `ENDIORBOT_AUTO_HANDOFF` | No | `false` | Auto-route @mention handoffs | Sprint 131 |
 | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | No | `false` | Per-query context refresh kill switch | Sprint 133 |
+| `ENDIORBOT_GATEWAY_TOKEN` | For non-localhost Web API mutations | — | Auth token | Sprint 135 |
+| `ENDIORBOT_WEBHOOK_SECRET` | For webhook ingress | — | Shared secret (fail-closed) | Sprint 134 |
 
 ---
 

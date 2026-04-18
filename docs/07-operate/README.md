@@ -167,7 +167,7 @@ Records: `timestamp`, `url` (scrubbed), `reason`, `provider`, `session_id`.
 ```bash
 # Disable immediately if latency regresses
 export ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false
-# Or in .env: ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false
+# Or in .env.local: ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false
 ```
 
 **Circuit breaker states:**
@@ -208,7 +208,7 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 | Problem | Solution |
 |---------|----------|
 | Port 18790 in use | `ENDIORBOT_GATEWAY_PORT=3000 endiorbot serve` |
-| Telegram not responding | Check `TELEGRAM_BOT_TOKEN` in `.env` |
+| Telegram not responding | Check `ENDIORBOT_TELEGRAM_BOT_TOKEN` in `.env.local` |
 | Agent says "no Bash tool" | Agent is in READ mode; use `--risk patch` |
 | Chat: "Provider not available" | Check API key for selected provider |
 | Bootstrap: "Toolchain not found" | Install ecosystem toolchain first |
