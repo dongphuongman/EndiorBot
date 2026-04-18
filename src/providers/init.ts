@@ -47,7 +47,12 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   }
 
   // Anthropic (Claude API key)
-  if (process.env.ANTHROPIC_API_KEY) {
+  // Sprint 136 A10: CEO opt-out — set ENDIORBOT_DISABLE_ANTHROPIC_FALLBACK=true to
+  // skip AnthropicProvider registration even when ANTHROPIC_API_KEY is present.
+  // Use case: CEO runs Claude Code via OAuth (Max subscription) and does not
+  // want any direct Anthropic API spend for fallback routing.
+  const anthropicDisabled = process.env.ENDIORBOT_DISABLE_ANTHROPIC_FALLBACK === "true";
+  if (process.env.ANTHROPIC_API_KEY && !anthropicDisabled) {
     try {
       const anthropic = new AnthropicProvider();
       await anthropic.initialize({
@@ -59,6 +64,8 @@ export async function initializeProvidersFromEnv(): Promise<number> {
     } catch (error) {
       console.warn("⚠ Failed to register AnthropicProvider:", error instanceof Error ? error.message : String(error));
     }
+  } else if (process.env.ANTHROPIC_API_KEY && anthropicDisabled) {
+    console.log("  AnthropicProvider: skipped (ENDIORBOT_DISABLE_ANTHROPIC_FALLBACK=true)");
   }
 
   // OpenAI (GPT)
