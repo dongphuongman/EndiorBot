@@ -159,9 +159,71 @@ export class BusConsumer {
       }
       inbound.metadata.notifyFn = msg.notifyFn;
     }
+    // Sprint 136 A7 (2026-04-18): thread progressFn into metadata so the router
+    // can announce fallback transitions ("⚡ Claude Code rate-limited —
+    // switching to Gemini..."). The closure delegates to replyFn and to the
+    // bus progress channel simultaneously, matching the A6 heartbeat pattern.
+    if (inbound.metadata === undefined) {
+      inbound.metadata = {};
+    }
+    inbound.metadata.progressFn = (text: string): void => {
+      void msg
+        .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
+        .catch(() => {});
+      this.bus.publishOutbound({
+        correlationId: msg.correlationId,
+        text,
+        isProgress: true,
+      });
+    };
+
+    // Sprint 136 A6 (2026-04-18): periodic progress ticker so CEO is never
+    // left staring at a blank placeholder for minutes. Fires at 20s and then
+    // every 30s afterwards while handleInbound is in flight. The ticker
+    // publishes to the bus as an `isProgress: true` outbound (doesn't close
+    // inFlight) AND calls msg.replyFn() so the channel (Telegram/Zalo) shows
+    // a fresh heartbeat. A8 (editMessageText instead of new message) is
+    // follow-up work; the simple append pattern is acceptable given CEO's
+    // explicit preference ("better spam than silence").
+    const startedAt = Date.now();
+    let tickCount = 0;
+    const tickIntervalMs = 30_000;
+    const firstTickDelayMs = 20_000;
+    const firstTickTimer = setTimeout(() => {
+      tickCount = 1;
+      emitTick();
+      progressTicker = setInterval(() => {
+        tickCount += 1;
+        emitTick();
+      }, tickIntervalMs);
+    }, firstTickDelayMs);
+    let progressTicker: ReturnType<typeof setInterval> | null = null;
+
+    const emitTick = (): void => {
+      const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+      const text = `⏳ still working… (${elapsedSec}s elapsed, tick ${tickCount})`;
+      // Best-effort replyFn — swallow errors so a dead channel doesn't break processing.
+      void msg
+        .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
+        .catch(() => {});
+      // Also publish onto the bus as a progress event (isProgress=true does NOT
+      // decrement inFlight, see src/bus/message-bus.ts publishOutbound).
+      this.bus.publishOutbound({
+        correlationId: msg.correlationId,
+        text,
+        isProgress: true,
+      });
+    };
+
+    const cancelTicker = (): void => {
+      clearTimeout(firstTickTimer);
+      if (progressTicker) clearInterval(progressTicker);
+      progressTicker = null;
+    };
 
     try {
       const response = await this.ingress.handleInbound(inbound);
+      cancelTicker();
 
       // Direct channel delivery via replyFn (MTClaw: consumer → channel.Send())
       // Sprint 110 (Step 0.5): Pass correlationId + RL hints for feedback keyboard linking.
@@ -195,6 +257,8 @@ export class BusConsumer {
       this.bus.publishOutbound(outbound);
 
     } catch (err) {
+      // Sprint 136 A6: stop progress ticker before reporting error.
+      cancelTicker();
       // CTO C1 (BLOCKER, RESOLVED): Guard replyFn() — Telegram may be down,
       // bot may be blocked, or channel adapter may have disconnected.
       // Inner try-catch prevents unhandledRejection from crashing Node.js ≥ v15.
@@ -211,6 +275,8 @@ export class BusConsumer {
       const userFacingPrefixes = [
         "⚠️",
         "🔑",
+        "⚡",
+        "⏳",
         "Claude Code",
         "Claude Code request",
       ];

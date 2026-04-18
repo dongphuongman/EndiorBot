@@ -234,9 +234,14 @@ export class GatewayIngress {
     const notifyFn = typeof rawNotify === "function"
       ? (rawNotify as ChannelSendFn)
       : undefined;
+    // Sprint 136 A7: Extract progressFn from bus metadata for fallback status
+    const rawProgress = msg.metadata?.progressFn;
+    const progressFn = typeof rawProgress === "function"
+      ? (rawProgress as (text: string) => void)
+      : undefined;
     // Use sanitized text for AI call (defense-in-depth against prompt injection)
     const sanitizedTask = violations.length > 0 ? sanitizedText : routeResult.task;
-    const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn);
+    const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn, progressFn);
     const responseText = this.router.formatResponse(agent, result);
 
     // Store assistant turn

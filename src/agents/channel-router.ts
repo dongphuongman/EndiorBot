@@ -189,6 +189,13 @@ export class ChannelRouter {
     workspace?: string,
     /** Sprint 115 (T3): Optional notification function for approval messages */
     notifyFn?: ChannelSendFn,
+    /**
+     * Sprint 136 A7 (2026-04-18): optional progress callback invoked on fallback
+     * transitions. Wire from BusConsumer so CEO gets a heartbeat when the router
+     * moves off Claude Code to a cloud provider. Text is CEO-facing (emoji-
+     * prefixed so channel adapters can recognize it as user-facing).
+     */
+    progressFn?: (text: string) => void,
   ): Promise<AIResult> {
     const ws = workspace ?? this.config.projectRoot;
     const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
@@ -218,15 +225,21 @@ export class ChannelRouter {
         console.log(
           `[Router] Claude Code rate-limited (${failure.matchedToken ?? "unknown"}) — falling back to cloud provider for @${agent}...`,
         );
+        // Sprint 136 A7: notify CEO explicitly when fallback happens. CEO
+        // should know the response will come from Gemini, not Claude Code Max.
+        progressFn?.(
+          `⚡ Claude Code rate-limited (${failure.matchedToken ?? "Max plan window"}) — switching to Gemini fallback for @${agent}…`,
+        );
         const cloudResult = await callCloudFallback(deps, agent, task, history, ws);
         if (cloudResult) return cloudResult;
 
         console.log(`[Router] Cloud fallback unavailable — trying remote Ollama for @${agent}...`);
+        progressFn?.(`⚡ Cloud providers unavailable — trying remote Ollama for @${agent}…`);
         const remoteResult = await callRemoteOllama(deps, agent, task, history, ws);
         if (remoteResult) return remoteResult;
 
         throw new Error(
-          `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset, or check GEMINI/OPENAI keys in .env.local.`,
+          `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset, or check GEMINI/OPENAI keys in .env.`,
         );
       }
       case "TIMEOUT":

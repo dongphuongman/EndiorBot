@@ -112,29 +112,39 @@ describe("BusConsumer — InboundMessage translation", () => {
     bus.publishInbound(msg);
     await flushPromises();
 
-    expect(ingress.handleInbound).toHaveBeenCalledWith({
-      channel: "telegram",
-      senderId: "user-1",
-      content: "@coder fix the bug",
-      metadata: { chatId: "chat-123", messageId: 42 },
-    } satisfies InboundMessage);
+    // Sprint 136 A7: progressFn is always injected into metadata so the router
+    // can announce fallback transitions. Strip it here before asserting the
+    // translation invariant.
+    const calledWith = (ingress.handleInbound as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as InboundMessage;
+    expect(typeof calledWith.metadata?.progressFn).toBe("function");
+    expect(calledWith.channel).toBe("telegram");
+    expect(calledWith.senderId).toBe("user-1");
+    expect(calledWith.content).toBe("@coder fix the bug");
+    expect(calledWith.metadata?.chatId).toBe("chat-123");
+    expect(calledWith.metadata?.messageId).toBe(42);
   });
 
-  it("T16: metadata optional prop conditionally assigned (exactOptionalPropertyTypes)", async () => {
+  it("T16: metadata always carries A6 progressFn (Sprint 136)", async () => {
     const bus = new EventEmitterBus();
     const ingress = makeIngress({ text: "result" });
     const consumer = new BusConsumer(bus, ingress);
     consumer.start();
 
-    // Message WITHOUT metadata
+    // Message WITHOUT caller-supplied metadata
     const msg = makeInboundMsg("hello");
-    delete msg.metadata; // ensure no metadata
+    delete msg.metadata;
     bus.publishInbound(msg);
     await flushPromises();
 
     const calledWith = (ingress.handleInbound as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as InboundMessage;
-    // metadata should NOT be present on the InboundMessage
-    expect(calledWith).not.toHaveProperty("metadata");
+    // Sprint 136 A7: progressFn is always present even when caller omits metadata.
+    // Downstream consumers (ingress → router.callAI) depend on it for fallback
+    // status announcements, so the invariant is: metadata.progressFn is always a function.
+    expect(calledWith.metadata).toBeDefined();
+    expect(typeof calledWith.metadata?.progressFn).toBe("function");
+    // But no caller-supplied fields leaked in (chatId, messageId, etc.).
+    expect(calledWith.metadata?.chatId).toBeUndefined();
+    expect(calledWith.metadata?.messageId).toBeUndefined();
   });
 });
 
