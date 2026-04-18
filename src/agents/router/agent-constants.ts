@@ -43,7 +43,7 @@ export type AgentName = (typeof VALID_AGENTS)[number];
 export const TIER_AGENT_MODEL_MAP: Record<string, Record<string, string>> = {
   LITE: { assistant: "sonnet", coder: "sonnet", tester: "sonnet" },
   STANDARD: { pm: "sonnet", architect: "opus", reviewer: "opus" },
-  PROFESSIONAL: { devops: "sonnet", fullstack: "sonnet", pjm: "haiku", researcher: "sonnet", cso: "opus" },
+  PROFESSIONAL: { devops: "sonnet", fullstack: "sonnet", pjm: "sonnet", researcher: "sonnet", cso: "opus" },
   ENTERPRISE: { ceo: "opus", cto: "opus", cpo: "opus" },
 };
 
