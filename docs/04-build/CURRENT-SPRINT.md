@@ -4,12 +4,18 @@
 
 ## Active / Most Recent
 
-- **Sprint 135** — Surface Parity + P1 Workspace Awareness — **IMPLEMENTATION COMPLETE** (2026-04-17, awaiting formal close)
+- **Sprint 136** — Part A governance + Part A' UX hardening — **CLOSED** (2026-04-18, impl complete, awaiting CEO post-close review)
+  - Plan: [sprint-136-desktop-web-dashboard.md](sprints/sprint-136-desktop-web-dashboard.md)
+  - Close report: [sprint-136-close.md](sprints/sprint-136-close.md)
+  - Delivered: A1+A2+A3+A4 governance (109022d), A10 Anthropic opt-out (60d92fb), A11 rate-limit-only fallback (4d46c11), B3 timeout wiring (dbb6e4c), B4/B4b error surfacing (e14299f, 1053026), B5 bypassPermissions root-cause fix (e1e3064), A6+A7 progress + fallback status (ceea4e1), preToolUse case fix (bcc07de).
+  - Deferred: A8 Telegram editMessageText (append-ticker is acceptable interim), A9 Zalo/WebUI/CLI/Desktop progress stubs, Part B Desktop+Web dashboard (CEO scope confirmation pending).
+  - Trigger incident resolved: CEO's 2026-04-18 Telegram test (10-min silent → "Internal error") now returns `⚡ @tester` response in 1 min end-to-end.
+
+- **Sprint 135** — Surface Parity + P1 Workspace Awareness — **CLOSED** (2026-04-17)
   - Plan: [sprint-135-surface-parity.md](sprints/sprint-135-surface-parity.md)
   - Authority: CTO G2 APPROVED + CPO 9.4/10 APPROVED (original scope); CPO 9.5/10 + @cto countersign (P1 addition)
-  - Original scope (items 1-8): all shipped — commits `2959517` (t1-t3), `b6b192e` (t4-t5-t8), `0da795a` (t6-t7), `9fcdfcb` + `835f5f4` (135a CPO review fixes)
-  - P1 addition (triggered by MTClaw Workspace Awareness Notice 2026-04-17): SDLC Framework 6.3.1 adoption, Layer 1.25 workspace-awareness injection, 5 executor SOULs updated, framework bump, 11 new tests. Commits `9df591f` + `999c325`. ADR: [ADR-048](../02-design/01-ADRs/ADR-048-framework-6-3-1-workspace-awareness.md).
-  - Pending for Sprint 136 kickoff: formal sprint close (@pjm), scope confirmation for Desktop + Web dashboard (CEO input needed), backlog items (L2 Handoff Completion, L1 CRG @pm polish, SOUL-pm v1.3.0 Rule 4, fetch boundary test).
+  - Original scope (items 1-8): shipped — `2959517`, `b6b192e`, `0da795a`, `9fcdfcb`, `835f5f4`
+  - P1 addition: SDLC 6.3.1 adoption, Layer 1.25 workspace-awareness injection — `9df591f` + `999c325`. ADR: [ADR-048](../02-design/01-ADRs/ADR-048-framework-6-3-1-workspace-awareness.md) (FULL expansion shipped Sprint 136).
 
 - **Sprint 134** — Config Externalization + Webhooks Ingress — **✅ COMPLETE** (2026-04-11, CTO 9/10)
   - [sprint-134-config-webhooks.md](sprints/sprint-134-config-webhooks.md)
@@ -44,4 +50,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.1 | Pointer updated 2026-04-17*
+*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.1 | Pointer updated 2026-04-18*
