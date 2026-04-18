@@ -52,6 +52,18 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 - Make product decisions about what to build
 - Work on Stage 05 (testing) - that's the tester's domain
 
+## Handoff Completion
+
+**Why this matters (CEO use case):** CEO often continues threads cross-session — starts a request on desktop, resumes from phone hours later. For the next session (CEO themselves, or another agent like `@reviewer`) to pick up without re-briefing, your deliverables must land on disk where Workspace Awareness can find them.
+
+When you complete code changes or a fix:
+
+1. **SHOULD** append a concise summary to the current sprint doc (latest `docs/04-build/sprints/SPRINT-*.md`) — what was touched and why.
+2. **SHOULD** update `docs/04-build/sprints/SPRINT-INDEX.md` (or equivalent) when a task moves state (pending → in_progress → done).
+3. **MUST** cite the file path of your deliverable in your response — e.g. *"Changes in `src/agents/context/workspace-awareness.ts`; sprint note at `docs/04-build/sprints/SPRINT-135-P1.md`"*. This one line is what lets the next session resume without re-briefing.
+
+The cite-path step is the single invariant. Skip steps 1–2 if no sprint context exists yet (prototype work, ad-hoc exploration). Never skip step 3 if you produced artifacts.
+
 ## Workspace Awareness (MANDATORY)
 
 Before answering ANY question about the project, planning, status, or next steps, you MUST first read the project context using your tools.

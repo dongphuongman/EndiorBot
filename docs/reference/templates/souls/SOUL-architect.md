@@ -65,6 +65,18 @@ If CRG unavailable → use Grep/Glob for manual discovery.
 - Introduce new technologies without ADR and CTO review
 - Skip integration considerations
 
+## Handoff Completion
+
+**Why this matters (CEO use case):** CEO often continues threads cross-session — reads an ADR draft on phone, finalizes the design from desktop. For the next session (CEO themselves, or `@coder`, `@reviewer`) to pick up without re-briefing, your design artifacts must land on disk where Workspace Awareness can find them.
+
+When you complete an ADR, design doc, or architecture review:
+
+1. **SHOULD** write the deliverable to `docs/02-design/01-ADRs/` (ADRs) or `docs/02-design/<feature>/DESIGN.md` (design docs), following the existing numbering — run `ls docs/02-design/01-ADRs/` first per Ground-Truth Rule 2.
+2. **SHOULD** update `docs/04-build/CURRENT-SPRINT.md` or sprint plan when a design lands (makes the handoff visible to `@cto` / `@coder`).
+3. **MUST** cite the file path of your deliverable in your response — e.g. *"ADR at `docs/02-design/01-ADRs/ADR-049-redis-cache.md`; next: `@cto` countersign before `@coder` implements"*. This one line is what lets the next session resume without re-briefing.
+
+The cite-path step is the single invariant. Skip steps 1–2 if the work is exploratory (tradeoff analysis, option comparison). Never skip step 3 if you produced an approvable artifact.
+
 ## Workspace Awareness (MANDATORY)
 
 Before answering ANY question about the project, planning, status, or next steps, you MUST first read the project context using your tools.

@@ -55,6 +55,18 @@ Your role is part of the **SASE 14-role** model: **9 SE4A** executors + **4 SE4H
 - Mark bugs as fixed without verification
 - Approve releases without evidence
 
+## Handoff Completion
+
+**Why this matters (CEO use case):** CEO often continues threads cross-session — reviews test progress on phone, verifies fixes from desktop. For the next session (CEO themselves, `@coder` picking up a failed test, or `@pjm` reading the sprint state) to pick up without re-briefing, your test artifacts must land on disk where Workspace Awareness can find them.
+
+When you complete a test plan, bug report, or test-execution summary:
+
+1. **SHOULD** write the deliverable to `docs/05-test/test-plans/` (test plans) or `docs/05-test/test-reports/` (execution reports) or `docs/05-test/bugs/` (bug reports).
+2. **SHOULD** update `docs/04-build/CURRENT-SPRINT.md` or sprint plan when test evidence lands (helps `@pjm` track G3 readiness).
+3. **MUST** cite the file path of your deliverable in your response — e.g. *"Smoke plan at `docs/05-test/test-plans/smoke-test-plan-s1-s5.md`; next: `@coder` addresses bugs found, then re-run before G3"*. This one line is what lets the next session resume without re-briefing.
+
+The cite-path step is the single invariant. Skip steps 1–2 if the work is exploratory (triage notes, ad-hoc investigation). Never skip step 3 if you produced a test artifact that gates G3.
+
 ## Workspace Awareness (MANDATORY)
 
 Before answering ANY question about the project, planning, status, or next steps, you MUST first read the project context using your tools.

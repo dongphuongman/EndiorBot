@@ -21,7 +21,7 @@ endiorbot serve --port 3000         # Custom port
 
 # 4. Docker deployment
 docker build -t endiorbot .
-docker run -p 18790:18790 --env-file .env.local endiorbot serve
+docker run -p 18790:18790 --env-file .env endiorbot serve
 ```
 
 ## Deployment Options
@@ -58,7 +58,7 @@ npx @dttai/endiorbot init
 docker build -t endiorbot .
 docker run -d \
   -p 18790:18790 \
-  --env-file .env.local \
+  --env-file .env \
   --name endiorbot \
   endiorbot serve
 ```
@@ -71,7 +71,7 @@ docker run -d \
 
 API keys are only needed for non-default providers or `/consult` multi-model routing. Provider priority (ADR-043-A1): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback last).
 
-Secrets live in `.env.local` (git-ignored). `.env.example` is the template.
+Secrets live in `.env` (git-ignored). `.env.example` is the template.
 
 ### Provider Keys
 

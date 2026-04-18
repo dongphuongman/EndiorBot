@@ -150,7 +150,7 @@ endiorbot serve --no-zalo          # Skip Zalo
 endiorbot serve -p 3000            # Custom port
 ```
 
-**Environment variables needed** (file: `.env.local`, git-ignored):
+**Environment variables needed** (file: `.env`, git-ignored):
 
 Default AI path is **Claude Code CLI via OAuth** (e.g. Claude Max 200). No API key required for the primary chat provider. API keys below are only for non-default providers or `/consult` multi-model routing.
 
@@ -967,7 +967,7 @@ endiorbot serve
 
 **Cause:** Bot token not set or server not running.
 **Solution:**
-1. Verify `ENDIORBOT_TELEGRAM_BOT_TOKEN` is set in `.env.local`
+1. Verify `ENDIORBOT_TELEGRAM_BOT_TOKEN` is set in `.env`
 2. Ensure `endiorbot serve` is running (not `--no-telegram`)
 3. Send `/link` to bind your identity
 
@@ -980,7 +980,7 @@ endiorbot serve
 
 ## Environment Variables
 
-Stored in `.env.local` (git-ignored; `.env.example` is the template). **Primary AI path is Claude Code CLI via OAuth** — no API key required for default chat. Provider priority per [src/providers/init.ts](../../src/providers/init.ts): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback).
+Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI path is Claude Code CLI via OAuth** — no API key required for default chat. Provider priority per [src/providers/init.ts](../../src/providers/init.ts): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback).
 
 | Variable | Required | Default | Purpose | Since |
 |----------|----------|---------|---------|-------|
