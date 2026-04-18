@@ -547,6 +547,21 @@ Output the diff in a code block with \`\`\`diff format.`,
       args.push("-p");
       args.push("--output-format", "text");
       args.push("--no-session-persistence");
+      // Sprint 136 B5 (2026-04-18): non-interactive mode MUST bypass permission
+      // prompts or Claude CLI hangs forever on Write/Edit approval dialogs
+      // (bridge spawns with stdio: ["ignore", ...] — no stdin to answer Y/N).
+      //
+      // Safety is preserved by `--disallowed-tools` below: in READ mode the
+      // bridge denylists Write/Edit/NotebookEdit, so bypassPermissions only
+      // affects the ASK flow — blocked tools still fail closed at the CLI.
+      // In PATCH mode, the bridge only invokes AFTER CEO pre-approves via
+      // requestPatchConfirmation(), so bypassing at the CLI layer is safe.
+      //
+      // Diagnosis: CEO terminal test (2026-04-18 17:54) showed Claude CLI
+      // emit "Waiting for permission to write. Here are the 5 smoke tests..."
+      // — the CLI blocks on interactive approval. EndiorBot's non-interactive
+      // spawn has no way to answer, producing 60s timeouts and zero output.
+      args.push("--permission-mode", "bypassPermissions");
     }
 
     // Model selection — per-agent routing (model-routing-strategy.md)
