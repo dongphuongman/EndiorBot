@@ -27,6 +27,12 @@ import {
 } from "./agent-constants.js";
 import { requestPatchConfirmation, executePatch } from "./patch-flow.js";
 import type { ChannelRouterConfig, AIResult } from "../channel-router.js";
+import {
+  classifyClaudeCodeFailure,
+  type ClaudeCodeFailureClassification,
+  type ClaudeCodeFailureKind,
+} from "../../providers/claude-code/rate-limit-detector.js";
+export type { ClaudeCodeFailureKind, ClaudeCodeFailureClassification };
 
 // ============================================================================
 // Provider Dependencies (CTO C1: explicit params)
@@ -141,6 +147,118 @@ export async function callClaudeBridge(
   }
 }
 
+/**
+ * Classified variant of `callClaudeBridge` — returns both the result (if any)
+ * and a classification of the failure (rate-limit / timeout / auth / other).
+ *
+ * Sprint 136 A11 (2026-04-18): CEO policy — only RATE_LIMITED triggers Gemini
+ * fallback. Timeout/auth/other surface to user directly.
+ *
+ * This wraps the original callClaudeBridge without changing its contract, so
+ * existing tests and callers continue to work unmodified.
+ */
+export async function callClaudeBridgeClassified(
+  deps: ProviderDeps,
+  agent: string,
+  task: string,
+  history?: Array<{ role: string; content: string }>,
+  workspace?: string,
+  notifyFn?: ChannelSendFn,
+): Promise<{ result: AIResult | null; failure: ClaudeCodeFailureClassification | null }> {
+  if (!deps.claudeAvailable || !deps.bridge) {
+    return {
+      result: null,
+      failure: {
+        kind: "OTHER",
+        reason: "Claude Code bridge not available (not configured or disabled)",
+      },
+    };
+  }
+
+  // Delegate to the classic function for the happy path + re-do the invocation
+  // here when we need the raw response to classify. To avoid double-calling the
+  // bridge, we duplicate the invocation preamble (prompt, tier, model) and
+  // capture the low-level response directly.
+  const ws = workspace ?? deps.config.projectRoot;
+  const intent = classifyPatchIntent(task);
+
+  const contextParts: string[] = [];
+  if (
+    intent.intent === "PATCH" &&
+    intent.confidence >= 0.8 &&
+    !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT
+  ) {
+    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+    if (wsCtx) contextParts.push(wsCtx);
+  }
+  const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+  if (enrichment) contextParts.push(enrichment);
+  const contextSuffix = contextParts.length > 0 ? "\n" + contextParts.join("\n") : "";
+  const systemPrompt =
+    getAgentSoul(agent) + formatHistoryContext(history ?? []) + contextSuffix;
+  const tier = resolveWorkspaceTier(ws);
+  const resolvedModel = getAgentModel(agent, tier);
+  const model = resolvedModel ?? "sonnet";
+
+  // PATCH flow short-circuits classification — re-use the classic path for now.
+  if (intent.intent === "PATCH" && intent.confidence >= 0.8) {
+    const result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+    return { result, failure: result ? null : { kind: "OTHER", reason: "PATCH flow failed or declined" } };
+  }
+
+  try {
+    const response = await deps.bridge.invokeRead({
+      systemPrompt,
+      userPrompt: task,
+      workspace: workspace ?? deps.config.projectRoot,
+      agent: agent as AgentRole,
+      timeout: deps.config.claudeTimeout,
+      maxTokens: deps.config.claudeMaxTokens,
+      model,
+    });
+
+    if (response.success && response.output) {
+      const aiResult: AIResult = {
+        content: response.output,
+        provider: "claude-code",
+        durationMs: response.durationMs,
+      };
+      if (response.tokenUsage) {
+        aiResult.tokenUsage = {
+          inputTokens: response.tokenUsage.input,
+          outputTokens: response.tokenUsage.output,
+          totalTokens: response.tokenUsage.input + response.tokenUsage.output,
+        };
+      }
+      return { result: aiResult, failure: null };
+    }
+
+    const timedOutByHost = typeof response.error === "string" && /^Timed out after/.test(response.error);
+    const classifyCtx: {
+      stdout?: string;
+      stderr?: string;
+      error?: string;
+      timedOutByHost?: boolean;
+      exitCode?: number;
+    } = { timedOutByHost, exitCode: response.exitCode };
+    if (response.output) classifyCtx.stdout = response.output;
+    if (response.error) classifyCtx.error = response.error;
+    const failure = classifyClaudeCodeFailure(classifyCtx);
+    log.warn(`Claude Bridge error [${failure.kind}]: ${failure.reason}`);
+    return { result: null, failure };
+  } catch (e) {
+    const msg = (e as Error).message;
+    log.warn(`Claude Bridge threw: ${msg}`);
+    return {
+      result: null,
+      failure: classifyClaudeCodeFailure({
+        error: msg,
+        timedOutByHost: /timed out/i.test(msg),
+      }),
+    };
+  }
+}
+
 // ============================================================================
 // Cloud Fallback Provider
 // ============================================================================
@@ -159,8 +277,36 @@ export async function callCloudFallback(
   modelOverride?: string,
 ): Promise<AIResult | null> {
   const registry = getProviderRegistry();
-  const provider = registry.getDefault();
-  if (!provider) return null;
+  // Sprint 136 A11 (2026-04-18): Cloud fallback MUST skip `claude-code` provider —
+  // that is the path that already failed upstream. Previously `getDefault()`
+  // returned `claude-code` first and the "cloud fallback" was just a second
+  // Claude Code CLI invocation, wasting 60s then reaching the real cloud
+  // fallback with everything hung. Prefer actual cloud providers (Gemini,
+  // OpenAI) which CEO has explicitly approved via .env.local keys.
+  //
+  // Preference order (matches ADR-043-A1 minus `claude-code` + Anthropic opt-out):
+  //   gemini → openai → any remaining registered provider
+  const preferredOrder = ["gemini", "openai", "anthropic"];
+  let provider: ReturnType<typeof registry.get> = undefined;
+  for (const id of preferredOrder) {
+    if (registry.has(id)) {
+      provider = registry.get(id);
+      if (provider) break;
+    }
+  }
+  if (!provider) {
+    // Last-resort: any non-claude-code provider registered
+    for (const p of registry.list()) {
+      if (p.id !== "claude-code") {
+        provider = p;
+        break;
+      }
+    }
+  }
+  if (!provider) {
+    log.warn("Cloud fallback: no non-claude-code provider available");
+    return null;
+  }
 
   const ws = workspace ?? deps.config.projectRoot;
   // CTO F2: Log tier for cloud fallback observability

@@ -17,7 +17,7 @@ import {
   VALID_AGENTS as VALID_AGENTS_LIST,
 } from "./router/agent-constants.js";
 import {
-  callClaudeBridge,
+  callClaudeBridgeClassified,
   callCloudFallback,
   callRemoteOllama,
 } from "./router/providers.js";
@@ -164,7 +164,20 @@ export class ChannelRouter {
     return null;
   }
 
-  /** Call AI with full fallback chain: Claude Bridge → Cloud → Remote Ollama. */
+  /**
+   * Call AI with a policy-driven fallback chain.
+   *
+   * Sprint 136 A11 (2026-04-18, CEO directive):
+   *   "chúng ta chỉ fallback sang Gemini khi bị rate limit (5h, weekly) của CC"
+   *
+   * Policy:
+   *   1. Claude Code Bridge is primary.
+   *   2. On RATE_LIMITED (Max plan 5h / weekly limit) → fallback to cloud
+   *      provider (Gemini/OpenAI) → then remote Ollama.
+   *   3. On TIMEOUT / AUTH / OTHER failures → surface a clear error to user.
+   *      Do NOT silently swap to a paid API (that would mask real Claude Code
+   *      bugs and produce unexpected billing).
+   */
   async callAI(
     agent: string,
     task: string,
@@ -176,21 +189,56 @@ export class ChannelRouter {
     const ws = workspace ?? this.config.projectRoot;
     const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
 
-    // 1. PRIMARY: Claude Code Bridge
-    const bridgeResult = await callClaudeBridge(deps, agent, task, history, ws, notifyFn);
+    // 1. PRIMARY: Claude Code Bridge (with failure classification)
+    const { result: bridgeResult, failure } = await callClaudeBridgeClassified(
+      deps,
+      agent,
+      task,
+      history,
+      ws,
+      notifyFn,
+    );
     if (bridgeResult) return bridgeResult;
 
-    // 2. FALLBACK: Cloud provider (Gemini/OpenAI/Anthropic)
-    console.log(`[Router] Trying cloud fallback for @${agent}...`);
-    const cloudResult = await callCloudFallback(deps, agent, task, history, ws);
-    if (cloudResult) return cloudResult;
+    // Claude Code failed — decide fallback policy based on WHY it failed.
+    if (!failure) {
+      // Defensive: no classification — treat as OTHER failure.
+      throw new Error(
+        "Claude Code request failed without a classification. Please retry; if the problem persists, run `claude --version` to verify the CLI is healthy.",
+      );
+    }
 
-    // 3. LAST FALLBACK: Remote Ollama
-    console.log(`[Router] Trying remote Ollama for @${agent}...`);
-    const remoteResult = await callRemoteOllama(deps, agent, task, history, ws);
-    if (remoteResult) return remoteResult;
+    switch (failure.kind) {
+      case "RATE_LIMITED": {
+        // Only case where we silently fallback to a billed API.
+        console.log(
+          `[Router] Claude Code rate-limited (${failure.matchedToken ?? "unknown"}) — falling back to cloud provider for @${agent}...`,
+        );
+        const cloudResult = await callCloudFallback(deps, agent, task, history, ws);
+        if (cloudResult) return cloudResult;
 
-    throw new Error("All providers failed (Claude Code, Cloud APIs, Remote Ollama)");
+        console.log(`[Router] Cloud fallback unavailable — trying remote Ollama for @${agent}...`);
+        const remoteResult = await callRemoteOllama(deps, agent, task, history, ws);
+        if (remoteResult) return remoteResult;
+
+        throw new Error(
+          `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset, or check GEMINI/OPENAI keys in .env.local.`,
+        );
+      }
+      case "TIMEOUT":
+        throw new Error(
+          `⚠️ Claude Code timed out — the CLI did not respond in time. This is NOT a rate-limit (we detected no limit signal). Please retry; if it keeps happening, the Claude Code CLI process may be hung (try 'claude --version' to verify). Silent fallback is disabled so you can diagnose the root cause.`,
+        );
+      case "AUTH":
+        throw new Error(
+          `🔑 Claude Code authentication failed — your OAuth session may have expired. Please run 'claude login' and retry.`,
+        );
+      case "OTHER":
+      default:
+        throw new Error(
+          `Claude Code failed: ${failure.reason}. Silent fallback is disabled for non-rate-limit failures — please fix the root cause or retry.`,
+        );
+    }
   }
 
   /** Format agent response for display. */
