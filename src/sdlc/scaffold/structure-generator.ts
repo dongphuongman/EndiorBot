@@ -517,10 +517,14 @@ exit 0
  * Generate Claude settings.
  */
 function generateClaudeSettings(): string {
+  // Sprint 136 hook-case fix (2026-04-18): Claude Code CLI expects PascalCase
+  // hook event names (PreToolUse, PostToolUse, etc.). The earlier camelCase
+  // (preToolUse) was silently ignored, causing scaffolded projects to report
+  // "Invalid Settings" on `claude doctor`. See BetterBox-TTS field report.
   return JSON.stringify(
     {
       hooks: {
-        preToolUse: ".claude/hooks/pre-tool-use.sh",
+        PreToolUse: ".claude/hooks/pre-tool-use.sh",
       },
       commands: {
         gate: ".claude/commands/gate.md",
