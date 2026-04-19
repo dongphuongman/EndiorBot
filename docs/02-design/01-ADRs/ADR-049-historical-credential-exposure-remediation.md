@@ -1,13 +1,16 @@
 ---
 adr: 049
-status: "STUB — incident record, awaiting @cto countersign"
+status: "ACCEPTED — @cto countersigned 2026-04-19, full expansion not required"
 date: 2026-04-19
 title: "Historical credential exposure remediation (Sprint 138 P3-01)"
 authority:
   proposer: "@devops"
-  countersigners: []
+  countersigners:
+    - actor: "@cto"
+      date: "2026-04-19"
+      reference: "Sprint 138 P3-01 session review — noted safety discipline (private flip first, bare-mirror snapshot, two-pass filter-repo for blobs + messages, test-fixture restore, pre-rewrite tag deletion)"
   trigger: "Sprint 138 P3-01 rotation checklist authoring — `git log -S` on key prefixes returned non-zero matches on pre-Sprint-41 commits. Exposure surface identified before secrets reached wild-abuse state."
-  notes: "STUB pending CTO countersign. CTO obligation from Sprint 137 partial close — ADR-049 was pre-allocated for this incident."
+  notes: "CTO waived full expansion on countersign: the STUB content (context, decision, execution log with timestamps, consequences, preventive, back-compat, rollback) already meets full-ADR bar."
 sdlc_framework: "6.3.1"
 supersedes: []
 referenced_by: ["Sprint 138 plan", "Sprint 138 P3-01 rotation checklist", "SECURITY.md incident section"]
@@ -15,7 +18,7 @@ referenced_by: ["Sprint 138 plan", "Sprint 138 P3-01 rotation checklist", "SECUR
 
 # ADR-049: Historical credential exposure remediation (Sprint 138 P3-01)
 
-**Status:** STUB — full expansion after CTO countersign.
+**Status:** ACCEPTED — @cto countersigned 2026-04-19. Full expansion waived; the sections below are the authoritative record.
 
 ## Context
 
