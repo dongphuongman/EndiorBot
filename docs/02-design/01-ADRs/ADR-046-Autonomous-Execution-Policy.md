@@ -4,7 +4,24 @@ status: "FULL — Sprint 132; @pm + @cpo reviewed + signed 2026-04-11; Amendment
 date: 2026-04-10
 expanded: 2026-04-11
 title: "Autonomous Execution Policy"
-authority: "CTO 8/10 + CPO Approval (Sprint 131 review); Sprint 132 expansion drafted by @cto (SOUL advisory)"
+authority:
+  proposer: "@cto"
+  countersigners:
+    - actor: "@cto"
+      date: "2026-04-10"
+      grade: "8/10"
+      reference: "Sprint 131 review"
+    - actor: "@cpo"
+      date: "2026-04-11"
+      reference: "Sprint 132 openclaw-backport review"
+    - actor: "@cto"
+      date: "2026-04-11"
+      reference: "Amendment 1 — Finding #2 scope honesty (Sprint 132)"
+    - actor: "@cpo"
+      date: "2026-04-11"
+      reference: "Amendment 1 re-acknowledgement"
+  trigger: "Sprint 132 openclaw backport — exec-policy cluster landing required documented boundary for command-allowlist x Gates A/B/C x auto-handoff interaction"
+  notes: "Drafted by @cto in SOUL advisory scope. Countersign-structure migration to this object shape landed Sprint 138 P3-02."
 sdlc_framework: "6.3.0"
 supersedes: []
 referenced_by: ["Sprint 131 plan", "Sprint 132 openclaw-backport", "ADR-042 (Autonomous Execution Engine)", "ADR-044 (Agentic OS Alignment)", "ADR-045 (CRG Client)"]

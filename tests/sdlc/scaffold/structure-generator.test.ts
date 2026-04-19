@@ -558,4 +558,19 @@ describe("generateStageReadme — SDLC 6.1.1 enrichment (Sprint 80)", () => {
       }
     }
   });
+
+  // Sprint 138 P3-03: gitignore template should cover .sdlc-framework
+  // symlink/dir so VoiceOfVietnam-style scaffolds don't leave an untracked
+  // entry on every `git status`.
+  it("scaffolded .gitignore ignores .sdlc-framework without trailing slash", async () => {
+    await scaffoldStandard();
+    const gitignorePath = join(TEST_DIR, ".gitignore");
+    expect(existsSync(gitignorePath)).toBe(true);
+    const content = readFileSync(gitignorePath, "utf-8");
+    // No trailing slash matches both symlink → dir and plain dir cases.
+    expect(content).toMatch(/^\.sdlc-framework\s*$/m);
+    // Ensure the original entries are still present (regression guard).
+    expect(content).toContain(".claude/");
+    expect(content).toContain(".endiorbot/");
+  });
 });

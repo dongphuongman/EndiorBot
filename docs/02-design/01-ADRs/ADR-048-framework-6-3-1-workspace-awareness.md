@@ -3,7 +3,15 @@ adr: 048
 status: "FULL — @cto countersigned 2026-04-17 (9.5/10). Full expansion shipped Sprint 136 (2026-04-18)."
 date: 2026-04-17
 title: "Framework 6.3.1 Upgrade — Workspace Awareness (Agent Continuity) Adoption"
-authority: "@pm proposal (retroactive). @cto countersign pending. Triggered by SDLC Framework 6.3.1 addendum (upstream commit cac8cdd) and MTClaw Workspace Awareness Notice (2026-04-17)."
+authority:
+  proposer: "@pm"
+  countersigners:
+    - actor: "@cto"
+      date: "2026-04-17"
+      grade: "9.5/10"
+      reference: "docs/04-build/sprints/sprint-135-surface-parity.md"
+  trigger: "SDLC Framework 6.3.1 addendum (upstream commit cac8cdd) + MTClaw Workspace Awareness Notice (2026-04-17)"
+  notes: "Retroactive — the STUB shipped after the framework bump; FULL expansion landed Sprint 136. Countersign-structure migration to this object shape landed Sprint 138 P3-02."
 sdlc_framework: "6.3.1"
 supersedes: []
 referenced_by: ["Sprint 135 P1 (Workspace Awareness)", "docs/reference/templates/souls/SOUL-coder.md", "docs/reference/templates/souls/SOUL-pm.md", "docs/reference/templates/souls/SOUL-architect.md", "docs/reference/templates/souls/SOUL-reviewer.md", "docs/reference/templates/souls/SOUL-tester.md"]

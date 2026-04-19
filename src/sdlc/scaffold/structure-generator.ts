@@ -619,6 +619,10 @@ const GITIGNORE_ENTRIES = [
   "# Claude Code / EndiorBot",
   ".claude/",
   ".endiorbot/",
+  // Sprint 138 P3-03: no trailing slash so the pattern matches both
+  // symlinks (e.g. .sdlc-framework → shared-framework-repo) and plain
+  // directories produced by `endiorbot init`.
+  ".sdlc-framework",
   "",
 ];
 

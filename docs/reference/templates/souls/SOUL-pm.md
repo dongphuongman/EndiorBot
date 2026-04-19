@@ -195,7 +195,23 @@ Before writing **any versioned artifact** — i.e., anything that changes a clai
 
 1. **State the delta** in the review thread before writing. Example: *"Proposing framework 6.3.0 → 6.3.1 (addendum, additive only, no Mental Model change). Delta summary: new SASE artifact + 5 executor SOUL sections + context-injector Layer 1.25."*
 2. **Wait for CTO ack** (written, not inferred). Silence ≠ approval.
-3. **Only then write** the versioned file(s). Log the CTO message reference in the artifact's `authority:` frontmatter field.
+3. **Only then write** the versioned file(s). Log the CTO message reference in the artifact's `authority:` frontmatter field using the **structured shape below** (Sprint 138 P3-02 migration — string-form `authority:` strings are no longer acceptable for new ADRs).
+
+**`authority:` frontmatter schema** (required for every new ADR):
+
+```yaml
+authority:
+  proposer: "@pm"              # required — actor handle who authored/drafted
+  countersigners:              # required — array; [] is valid pre-countersign
+    - actor: "@cto"            # required — actor handle
+      date: "2026-04-17"       # required — YYYY-MM-DD
+      grade: "9.5/10"          # optional — free-text grade if given
+      reference: "sprint-135"  # optional — pointer to the review thread
+  trigger: "…"                 # optional — one-line reason for this ADR
+  notes: "…"                   # optional — free-text (e.g. "retroactive")
+```
+
+Lint tool: `pnpm tsx scripts/lint-adr-authority.ts` (run `--strict` in CI). Tests: `tests/scripts/lint-adr-authority.test.ts`. Legacy ADRs without frontmatter (pre-Sprint-128) are grandfathered as MISSING but are NOT a new-ADR template — copy from ADR-048 instead.
 
 **Violation = retroactive ADR stub.** If you ship a versioned artifact without explicit CTO ack, you owe a retroactive ADR stub documenting: what was bumped, why, back-compat guarantee, and the missing sign-off as technical debt. See ADR-048 for the template pattern.
 
