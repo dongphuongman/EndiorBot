@@ -1,9 +1,19 @@
 # CLAUDE.md - Claude Code Integration Guide
 
-## Identity (LOCKED)
+## Identity (LOCKED, LOCAL-ONLY)
 
 > **EndiorBot is a CEO Power Tool** — not a platform, not an SDLC enforcer.
 > Help CEO get answers in <30s instead of 30-60 min.
+>
+> **Scope: local MacBook repos + general CEO support only.** Product execution
+> on remote infrastructure (GPU servers, production deployment, multi-user
+> platforms) belongs to **MTClaw / SDLC Orchestrator**, not EndiorBot.
+>
+> **Handoff boundary:** EndiorBot scaffolds and ceremonies a project locally
+> on the CEO's MacBook through G2/G3. When the project moves to a product-org
+> repo on remote infrastructure, hand off to MTClaw's @pm running directly on
+> the target server (Claude Code VSC extension) — EndiorBot does not SSH or
+> orchestrate remotely. Locked 2026-04-19 after the VoiceOfVietnam handoff.
 
 ## Overview
 
@@ -60,7 +70,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 
 - **Project:** EndiorBot
 - **Type:** Solo developer tool for enterprise-scale projects
-- **Framework:** MTS SDLC Framework 6.3.0
+- **Framework:** MTS SDLC Framework 6.3.1
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
 ## Quick Start
@@ -119,9 +129,15 @@ pnpm build && pnpm test
   ├── backups/             # Daily/weekly backups
   ├── repos.json           # Registered repos (ADR-029)
   ├── chat-focus.json      # Per-chat workspace focus (ADR-029)
+  ├── config.json          # Persisted config (exec-policy preset, Active Memory, auto-handoff)
+  ├── exec-policy/         # Exec-policy store (Sprint 132, ADR-046)
+  │   └── approvals.json   # Active preset + extra allow/deny patterns
+  ├── audit-logs/          # Structured audit logs (JSONL, 10MB rotation, 0o600)
+  │   ├── exec-policy.log  # Command allow/deny/prompt decisions (Sprint 132)
+  │   ├── ssrf-blocks.log  # Outbound fetch blocks (Sprint 133)
+  │   └── webhooks.log     # Webhook events (Sprint 134)
   ├── rl-training-data/    # RL feedback JSONL (ADR-033)
-  ├── audit-logs/          # Bridge audit logs
-  └── config.json          # User preferences
+  └── sessions/            # Chat session persistence
 ```
 
 ## Environment Variables
@@ -132,6 +148,12 @@ pnpm build && pnpm test
 | `ENDIORBOT_CONFIG_PATH` | Config file path | `.sdlc-config.json` |
 | `ENDIORBOT_PROFILE` | Active profile | `default` |
 | `ENDIORBOT_DEBUG` | Debug mode | `false` |
+| `ENDIORBOT_AUTO_HANDOFF` | Auto-route @mention handoffs (Sprint 131) | `false` |
+| `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | Per-query context refresh kill switch (Sprint 133) | `false` |
+| `ENDIORBOT_WEBHOOK_SECRET` | Shared secret for webhook ingress (Sprint 134) | — |
+| `ENDIORBOT_GATEWAY_TOKEN` | Auth token for Web API mutations (Sprint 135) | — |
+| `ENDIORBOT_MODEL_TIMEOUT_MS` | Per-model API call timeout (Sprint 134) | `30000` |
+| `ENDIORBOT_CHAT_TIMEOUT_MS` | Total chat handler timeout (Sprint 134) | `60000` |
 
 ## Code Style
 
@@ -156,9 +178,9 @@ src/
 ├── bus/           # MessageBus (EventEmitter, debounce, dedup)
 ├── channels/      # OTT adapters (Telegram, Zalo)
 ├── cli/           # CLI commands (init, serve, sprint close, …)
-├── commands/      # Unified command handlers (30 commands)
-├── config/        # Configuration management
-├── gateway/       # HTTP/WS server, Ingress
+├── commands/      # Unified command handlers (35+ commands, Sprint 135 OTT surface)
+├── config/        # Configuration management, feature flags, timeouts SSOT
+├── gateway/       # HTTP/WS server, Ingress, Web API, Webhooks
 ├── memory/        # ClawVault memory module
 ├── providers/     # AI model providers (Anthropic, OpenAI, Gemini, Ollama)
 ├── rl/            # RL feedback capture (JSONL, data store)
@@ -166,8 +188,8 @@ src/
 │   ├── gates/     # Gate evaluation
 │   ├── scaffold/  # Init templates (CLAUDE.md, IDENTITY.md, etc.)
 │   └── vibecoding/ # Quality index
-├── security/      # Sanitizer, scrubber, guard
-└── sessions/      # Session state machine, resilience, checkpoints
+├── security/      # Sanitizer, scrubber, guard, exec-approvals cluster, http-validator
+└── sessions/      # Session state machine, resilience, checkpoints, autonomous
 ```
 
 ## Commands
@@ -183,12 +205,35 @@ pnpm lint           # Check code style
 
 ### CLI
 ```bash
-./endiorbot.mjs --help           # Show help
-./endiorbot.mjs serve            # Unified serve (Web + Telegram + Zalo)
-./endiorbot.mjs init             # Initialize SDLC structure
-./endiorbot.mjs gate status      # Show gate status
-./endiorbot.mjs consult <query>  # Multi-model query
-./endiorbot.mjs compliance check # Verify SDLC compliance
+./endiorbot.mjs --help              # Show help
+./endiorbot.mjs serve               # Unified serve (Web + Telegram + Zalo)
+./endiorbot.mjs init                # Initialize SDLC structure
+./endiorbot.mjs gate status         # Show gate status
+./endiorbot.mjs consult <query>     # Multi-model query
+./endiorbot.mjs compliance check    # Verify SDLC compliance
+./endiorbot.mjs commands            # List all commands across 4 channels (Sprint 132)
+./endiorbot.mjs exec-policy show    # Current exec-policy preset + rules (Sprint 132)
+./endiorbot.mjs exec-policy preset balanced  # Change preset (Sprint 132)
+```
+
+### OTT Commands (Sprint 135 — Telegram + Zalo)
+```
+/exec-policy show|preset|audit      # Exec-policy management from phone
+/config                             # View system config
+/config active-memory on|off        # Toggle Active Memory
+/config auto-handoff on|off         # Toggle auto-handoff
+/audit exec-policy|ssrf|webhooks    # Audit log viewer
+/webhooks list|test                 # Webhook management
+```
+
+### Web API (Sprint 135)
+```bash
+GET  /api/config                    # System config JSON
+GET  /api/audit/:type?limit=N       # Audit logs (exec-policy, ssrf, webhooks)
+GET  /api/status                    # System status + Active Memory
+POST /api/config/exec-policy/preset # Change preset (GATEWAY_TOKEN required)
+POST /api/config/active-memory      # Toggle Active Memory (GATEWAY_TOKEN required)
+POST /api/webhooks/:triggerId       # Webhook ingress (WEBHOOK_SECRET required)
 ```
 
 ## SDLC Integration
@@ -357,8 +402,8 @@ const mentalModels = await getBrain().getMentalModels();
 
 *Claude Code integration for EndiorBot v0.1.0-beta.1*
 *Identity: CEO Power Tool (LOCKED)*
-*SDLC Framework v6.3.0*
-*Sprint 118+ | 6,596+ tests | 30 OTT commands | 14 SOUL agents*
+*SDLC Framework v6.3.1*
+*Sprint 135 | 7,921 tests | 35+ CLI commands | 30+ OTT commands | 14 SOUL agents | 6 providers*
 
 ## graphify
 

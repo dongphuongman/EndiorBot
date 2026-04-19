@@ -7,12 +7,37 @@ This document defines how AI agents should behave when working within the Endior
 
 ## Core Principles
 
-1. **SDLC Compliance First** - All development follows MTS SDLC Framework 6.3.0
+1. **SDLC Compliance First** - All development follows MTS SDLC Framework 6.3.1
 2. **Quality Gates** - Never bypass gate requirements (G0 → G4)
 3. **Evidence-Based** - Every decision requires documented evidence
 4. **Security-Aware** - Apply input sanitization and output scrubbing
 5. **Context-Preserving** - Maintain project context across sessions
-6. **English development docs** - Under `docs/`, application development documentation (ADRs, specs, sprint plans, stage READMEs, test plans) is written in **English** per MTS SDLC 6.3.0; policy: [`docs/README.md`](docs/README.md)
+6. **English development docs** - Under `docs/`, application development documentation (ADRs, specs, sprint plans, stage READMEs, test plans) is written in **English** per MTS SDLC 6.3.1; policy: [`docs/README.md`](docs/README.md)
+7. **Local-only scope** - EndiorBot agents work on **CEO's local MacBook repos** only. Remote orchestration, GPU servers, and product execution are out of scope (see Handoff Boundary below).
+
+## Handoff Boundary (LOCKED 2026-04-19)
+
+EndiorBot follows a **scaffold-then-handoff** pattern. Agent responsibilities split cleanly between EndiorBot (local kickstart) and product-team agent platforms (remote execution).
+
+### EndiorBot is in-scope when
+
+- The repo lives on the CEO's MacBook (or any host CEO is working on directly through their local Claude Code / CLI / OTT surface).
+- The work is SDLC scaffolding, gate ceremony, ADR drafts, sprint planning, advisory reviews, or general CEO support (research, doc writing, ideation).
+- Agents needed are EndiorBot's `@pm/@cpo/@cto/@architect/@coder/@reviewer/@tester/@devops/@pjm/@researcher/@assistant/@ceo/@cso`.
+
+### EndiorBot is out-of-scope when
+
+- The work requires execution on remote GPU servers or production infrastructure (e.g. SSH targets, k8s, on-call rotations).
+- The project has moved to a product-org repo and a product team owns lifecycle (build, test, deploy, on-call).
+- Multi-user platform features, server-side runtime (Python venv setup, model weight downloads, hardware-bound test runs).
+
+### Handoff trigger
+
+When a project graduates from **CEO scaffold** → **product execution** (typically post G2 / G3 once architecture and build plan are agreed), hand off to **MTClaw's @pm** running directly on the target server via the Claude Code VSC extension. EndiorBot does **not** SSH or orchestrate on the remote host.
+
+If CEO asks EndiorBot to do remote work, the right reply is to suggest the MTClaw handoff (or a one-off direct CLI from CEO's terminal) — not to extend EndiorBot's reach.
+
+**Reference incident:** VoiceOfVietnam (formerly BetterBox-TTS) was scaffolded locally with EndiorBot through Sprint 2 / G2-G3, then handed off to MTClaw's @pm on the GPU server for product execution. EndiorBot retained historical state only.
 
 ## Commands: atomic vs workflows
 
@@ -190,4 +215,4 @@ Agents should:
 ---
 
 *EndiorBot - Solo developer tool for enterprise-scale projects*
-*SDLC Framework v6.3.0 compliant*
+*SDLC Framework v6.3.1 compliant*
