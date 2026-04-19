@@ -23,8 +23,9 @@
  * @sdlc SDLC Framework 6.3.0
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { resolve as resolvePath } from "node:path";
 import type { Command } from "commander";
 import { loadActiveProject } from "../../config/paths.js";
 import {
@@ -53,13 +54,71 @@ interface ProjectContext {
 // ============================================================================
 
 /**
- * Get current project from state.
+ * Sprint 137 P0-03 (2026-04-19): resolve a project context from a directory by
+ * reading `.sdlc-config.json`. Returns undefined if the file is missing or
+ * malformed. Used by `--project <path>` flag and cwd auto-detect to avoid the
+ * footgun where `endiorbot gate confirm` silently targets the wrong repo (the
+ * one stored in `~/.endiorbot/active-project.json`) instead of the cwd CEO is
+ * actually working in.
  */
-function getCurrentProject(): ProjectContext | undefined {
-  const active = loadActiveProject();
-  if (!active) {
+function readProjectFromDir(dir: string): ProjectContext | undefined {
+  const configPath = resolvePath(dir, ".sdlc-config.json");
+  if (!existsSync(configPath)) return undefined;
+  try {
+    const raw = readFileSync(configPath, "utf-8");
+    const cfg = JSON.parse(raw) as {
+      project?: { id?: string; name?: string };
+      tier?: string;
+    };
+    const id = cfg.project?.id;
+    const name = cfg.project?.name ?? id;
+    if (!id || !name) return undefined;
+    return {
+      id,
+      name,
+      path: resolvePath(dir),
+      tier: cfg.tier ?? "STANDARD",
+    };
+  } catch {
     return undefined;
   }
+}
+
+/**
+ * Get current project for a gate command.
+ *
+ * Resolution order (Sprint 137 P0-03):
+ *   1. `--project <path>` if supplied (explicit override).
+ *   2. cwd auto-detect — if the current directory holds a `.sdlc-config.json`,
+ *      use it. This is the fix for CEO's "I ran `endiorbot gate confirm` from
+ *      BetterBox-TTS but it confirmed the gate against the EndiorBot repo
+ *      because that was the active project" footgun.
+ *   3. Active project from `~/.endiorbot/active-project.json` (legacy default).
+ *
+ * When the cwd-detected project differs from the active project, log a one-line
+ * notice so CEO can spot accidental cross-repo confirms.
+ */
+function getCurrentProject(projectFlag?: string): ProjectContext | undefined {
+  if (projectFlag) {
+    const fromFlag = readProjectFromDir(projectFlag);
+    if (fromFlag) return fromFlag;
+    console.log(`⚠️  --project ${projectFlag} has no readable .sdlc-config.json`);
+    return undefined;
+  }
+
+  const fromCwd = readProjectFromDir(process.cwd());
+  const active = loadActiveProject();
+
+  if (fromCwd) {
+    if (active && active.path !== fromCwd.path) {
+      console.log(
+        `ℹ️  Using cwd project '${fromCwd.id}' (active project '${active.name}' at ${active.path} ignored — pass --project to override)`,
+      );
+    }
+    return fromCwd;
+  }
+
+  if (!active) return undefined;
 
   return {
     id: active.name,
@@ -144,8 +203,8 @@ function isGateAutoReady(checklist: ChecklistItem[]): boolean {
  *   - All gates after current → 🔒 LOCKED
  *   - If --gate flag specified → show detailed evaluation for that gate
  */
-async function gateStatusAction(options: { gate?: string; runChecks?: boolean }): Promise<void> {
-  const project = getCurrentProject();
+async function gateStatusAction(options: { gate?: string; runChecks?: boolean; project?: string }): Promise<void> {
+  const project = getCurrentProject(options.project);
 
   if (!project) {
     console.log("⚠️  No active project. Use 'endiorbot start <project>' first.");
@@ -249,9 +308,9 @@ async function gateStatusAction(options: { gate?: string; runChecks?: boolean })
  */
 async function gateRecommendAction(
   gateId: string,
-  options: { feature?: string; runChecks?: boolean },
+  options: { feature?: string; runChecks?: boolean; project?: string },
 ): Promise<void> {
-  const project = getCurrentProject();
+  const project = getCurrentProject(options.project);
 
   if (!project) {
     console.log("⚠️  No active project. Use 'endiorbot start <project>' first.");
@@ -342,7 +401,7 @@ async function gateRecommendAction(
  */
 async function gateConfirmAction(
   gateId: string,
-  options: { feature?: string; force?: boolean; confirm?: boolean },
+  options: { feature?: string; force?: boolean; confirm?: boolean; project?: string },
 ): Promise<void> {
   // INVARIANT: Explicit --confirm flag required
   if (!options.confirm) {
@@ -358,10 +417,12 @@ async function gateConfirmAction(
     process.exit(1);
   }
 
-  const project = getCurrentProject();
+  const project = getCurrentProject(options.project);
 
   if (!project) {
-    console.log("⚠️  No active project. Use 'endiorbot start <project>' first.");
+    console.log("⚠️  No project resolvable from --project, cwd, or active project.");
+    console.log("   Either cd into a project with .sdlc-config.json,");
+    console.log("   pass --project <path>, or run 'endiorbot start <name>'.");
     return;
   }
 
@@ -369,7 +430,7 @@ async function gateConfirmAction(
   const tier = (project.tier as ProjectTier) ?? "STANDARD";
 
   console.log("");
-  console.log(`🔐 Confirming ${gateId} for ${featureId}...`);
+  console.log(`🔐 Confirming ${gateId} for ${featureId} in '${project.id}' (${project.path})...`);
 
   // Create gate engine
   const engine = new GateEngine({ projectRoot: project.path, tier });
@@ -450,6 +511,7 @@ export function registerGateCommand(program: Command): void {
     .description("Show gate checklists")
     .option("-g, --gate <gateId>", "Show specific gate (G0, G1, G2, G3, G4)")
     .option("--run-checks", "Run command checks (build/lint/test) — slower but complete")
+    .option("--project <path>", "Override resolved project (defaults to cwd, then active project)")
     .action(gateStatusAction);
 
   gate
@@ -457,6 +519,7 @@ export function registerGateCommand(program: Command): void {
     .description("Evaluate a gate and show recommendation (read-only)")
     .option("-f, --feature <featureId>", "Feature ID", "default")
     .option("--run-checks", "Run command checks (build/lint/test) — slower but complete")
+    .option("--project <path>", "Override resolved project (defaults to cwd, then active project)")
     .action(gateRecommendAction);
 
   gate
@@ -465,6 +528,7 @@ export function registerGateCommand(program: Command): void {
     .option("-f, --feature <featureId>", "Feature ID", "default")
     .option("--confirm", "Explicit confirmation (required)")
     .option("--force", "Force confirmation even if checks fail")
+    .option("--project <path>", "Override resolved project (defaults to cwd, then active project)")
     .action(gateConfirmAction);
 
   // Legacy aliases (deprecated, will be removed in v2.0)

@@ -161,8 +161,12 @@ export class BusConsumer {
     }
     // Sprint 136 A7 (2026-04-18): thread progressFn into metadata so the router
     // can announce fallback transitions ("⚡ Claude Code rate-limited —
-    // switching to Gemini..."). The closure delegates to replyFn and to the
-    // bus progress channel simultaneously, matching the A6 heartbeat pattern.
+    // switching to Gemini..."). Sprint 137 P0-01 (2026-04-19): closure delivers
+    // exclusively via replyFn (single owner = originating channel). Previously
+    // also published an `isProgress: true` outbound bus event, but no surface
+    // currently consumes those for OTT-originated messages, and any future
+    // surface that did would observe duplicate progress text alongside what the
+    // channel adapter already rendered. Keep delivery surface = 1.
     if (inbound.metadata === undefined) {
       inbound.metadata = {};
     }
@@ -170,21 +174,19 @@ export class BusConsumer {
       void msg
         .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
         .catch(() => {});
-      this.bus.publishOutbound({
-        correlationId: msg.correlationId,
-        text,
-        isProgress: true,
-      });
     };
 
     // Sprint 136 A6 (2026-04-18): periodic progress ticker so CEO is never
     // left staring at a blank placeholder for minutes. Fires at 20s and then
-    // every 30s afterwards while handleInbound is in flight. The ticker
-    // publishes to the bus as an `isProgress: true` outbound (doesn't close
-    // inFlight) AND calls msg.replyFn() so the channel (Telegram/Zalo) shows
-    // a fresh heartbeat. A8 (editMessageText instead of new message) is
-    // follow-up work; the simple append pattern is acceptable given CEO's
-    // explicit preference ("better spam than silence").
+    // every 30s afterwards while handleInbound is in flight. Sprint 137 P0-01
+    // (2026-04-19): ticker now delivers exclusively via msg.replyFn() — the
+    // originating channel adapter (Telegram/Zalo) is the single owner of the
+    // user-visible heartbeat. The `isProgress: true` outbound bus publish was
+    // dead-code for current surfaces (only WebSocket subscribed, but Web UI
+    // doesn't render OTT-originated ticks) and risked double delivery the
+    // moment a future surface mirrored OTT chat content. A8 (editMessageText
+    // instead of new message) remains follow-up work; the simple append
+    // pattern is acceptable given CEO's "better spam than silence" preference.
     const startedAt = Date.now();
     let tickCount = 0;
     const tickIntervalMs = 30_000;
@@ -206,13 +208,6 @@ export class BusConsumer {
       void msg
         .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
         .catch(() => {});
-      // Also publish onto the bus as a progress event (isProgress=true does NOT
-      // decrement inFlight, see src/bus/message-bus.ts publishOutbound).
-      this.bus.publishOutbound({
-        correlationId: msg.correlationId,
-        text,
-        isProgress: true,
-      });
     };
 
     const cancelTicker = (): void => {

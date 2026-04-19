@@ -435,6 +435,18 @@ Output the diff in a code block with \`\`\`diff format.`,
       let lastOutputTime = Date.now();
       let idleWarned = false;
       const IDLE_THRESHOLD_MS = 30_000;
+      // Sprint 137 P0-02 (2026-04-19): post-output drain. CEO observed cosmetic
+      // 300s timeouts even after the CLI had already streamed a full response —
+      // the child process holds open (lingering MCP/subprocess handles) and
+      // never emits "close", so the hard `timeout` fires anyway. Once we've
+      // seen meaningful stdout AND no new bytes arrive for POST_OUTPUT_DRAIN_MS,
+      // SIGTERM the process and treat the run as success. Tunable via env so
+      // CEO can dial it down if responses get truncated.
+      const POST_OUTPUT_DRAIN_MS = Number(
+        process.env.ENDIORBOT_BRIDGE_POST_OUTPUT_DRAIN_MS ?? 5_000,
+      );
+      let postOutputDrainId: ReturnType<typeof setTimeout> | null = null;
+      let drainKilled = false;
 
       const timeoutId = setTimeout(() => {
         timedOut = true;
@@ -452,6 +464,19 @@ Output the diff in a code block with \`\`\`diff format.`,
         }
       }, 10_000);
 
+      const armPostOutputDrain = (): void => {
+        if (postOutputDrainId) clearTimeout(postOutputDrainId);
+        postOutputDrainId = setTimeout(() => {
+          if (drainKilled) return;
+          drainKilled = true;
+          this.log.info("Post-output drain elapsed — terminating CLI", {
+            drainMs: POST_OUTPUT_DRAIN_MS,
+            outputLen: output.length,
+          });
+          claude.kill("SIGTERM");
+        }, POST_OUTPUT_DRAIN_MS);
+      };
+
       // Stream stdout — always show output in real-time for responsive UX
       claude.stdout?.on("data", (data: Buffer) => {
         const chunk = data.toString();
@@ -460,6 +485,7 @@ Output the diff in a code block with \`\`\`diff format.`,
         idleWarned = false; // reset idle warning on new output
         // Always stream to stderr (stdout reserved for structured output)
         process.stderr.write(chunk);
+        armPostOutputDrain();
       });
 
       // Collect stderr
@@ -467,25 +493,34 @@ Output the diff in a code block with \`\`\`diff format.`,
         const chunk = data.toString();
         error += chunk;
         lastOutputTime = Date.now();
+        armPostOutputDrain();
       });
 
       // Handle close
       claude.on("close", (code) => {
         clearTimeout(timeoutId);
         clearInterval(idleCheckId);
+        if (postOutputDrainId) clearTimeout(postOutputDrainId);
         const durationMs = Date.now() - startTime;
+
+        // Sprint 137 P0-02: drain-kill is success when we collected real output.
+        // The CLI was already done streaming; we just terminated a lingering
+        // process. Treat exit-code as 0 in that path so callers don't see a
+        // spurious failure.
+        const drainKilledWithOutput = drainKilled && output.trim().length > 0;
+        const effectiveCode = drainKilledWithOutput ? 0 : (code ?? 1);
 
         const response: ClaudeResponse = {
           output: output.trim(),
-          exitCode: code ?? 1,
+          exitCode: effectiveCode,
           durationMs,
-          success: code === 0 && !timedOut,
+          success: effectiveCode === 0 && !timedOut,
           mode: request.mode,
         };
 
         if (timedOut) {
           response.error = `Timed out after ${timeout / 1000}s`;
-        } else if (code !== 0) {
+        } else if (effectiveCode !== 0) {
           // Use stderr if available, otherwise stdout, otherwise generic message
           response.error = error.trim() || output.trim() || `Exited with code ${code}`;
         }
@@ -519,6 +554,8 @@ Output the diff in a code block with \`\`\`diff format.`,
       // Handle error
       claude.on("error", (err) => {
         clearTimeout(timeoutId);
+        clearInterval(idleCheckId);
+        if (postOutputDrainId) clearTimeout(postOutputDrainId);
         resolve({
           output: "",
           exitCode: 1,
