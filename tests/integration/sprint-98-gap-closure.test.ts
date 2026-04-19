@@ -138,13 +138,16 @@ describe("Phase 1 — AGENT_MODEL_MAP", () => {
     });
   });
 
-  describe("ops / project-tracking agents map to haiku", () => {
-    it("pjm → haiku", () => {
-      expect(AGENT_MODEL_MAP["pjm"]).toBe("haiku");
+  describe("ops / project-tracking agents map to sonnet (Sprint 136 promotion)", () => {
+    // Sprint 136 commits 1cbe357 (devops) + 9423ae7 (pjm) — promoted from
+    // haiku to sonnet so executor-class agents share the same cadence on
+    // sprint docs and ops actions.
+    it("pjm → sonnet", () => {
+      expect(AGENT_MODEL_MAP["pjm"]).toBe("sonnet");
     });
 
-    it("devops → haiku", () => {
-      expect(AGENT_MODEL_MAP["devops"]).toBe("haiku");
+    it("devops → sonnet", () => {
+      expect(AGENT_MODEL_MAP["devops"]).toBe("sonnet");
     });
   });
 
@@ -201,13 +204,15 @@ describe("Phase 1 — AGENT_MODEL_MAP", () => {
       expect(opusAgents.sort()).toEqual(expectedOpusAgents.sort());
     });
 
-    it("haiku is only for ops agents (lowest cost tier)", () => {
+    it("haiku is no longer in routing (Sprint 136: @devops + @pjm promoted to sonnet)", () => {
+      // Sprint 136 commits 1cbe357 + 9423ae7 (2026-04-18): @devops and @pjm
+      // moved from haiku → sonnet to match executor-class cadence on sprint
+      // docs. No agent currently routes to haiku at the orchestration layer.
       const haikuAgents = Object.entries(AGENT_MODEL_MAP)
         .filter(([, tier]) => tier === "haiku")
         .map(([agent]) => agent);
 
-      const expectedHaikuAgents = ["pjm", "devops"];
-      expect(haikuAgents.sort()).toEqual(expectedHaikuAgents.sort());
+      expect(haikuAgents).toEqual([]);
     });
 
     it("sonnet is the most common tier (balanced default for dev agents)", () => {
@@ -218,11 +223,10 @@ describe("Phase 1 — AGENT_MODEL_MAP", () => {
 
       const sonnetCount = tierCounts["sonnet"] ?? 0;
       const opusCount = tierCounts["opus"] ?? 0;
-      const haikuCount = tierCounts["haiku"] ?? 0;
 
-      // sonnet has at least as many entries as opus, and more than haiku
+      // sonnet has at least as many entries as opus.
+      // (Sprint 136: haiku tier emptied, no haiku agents remain.)
       expect(sonnetCount).toBeGreaterThanOrEqual(opusCount);
-      expect(sonnetCount).toBeGreaterThan(haikuCount);
     });
   });
 });
@@ -1048,21 +1052,17 @@ describe("AGENT_MODEL_MAP × VALID_AGENTS cross-reference", () => {
     expect(Object.keys(AGENT_MODEL_MAP)).toHaveLength(14);
   });
 
-  it("model routing follows the documented cost strategy (opus > sonnet > haiku)", () => {
-    // Opus: high-cost agents (executive + architecture)
-    const opusTier: AgentName[] = ["ceo", "cpo", "cto", "architect", "reviewer"];
-    // Haiku: low-cost ops agents
-    const haikuTier: AgentName[] = ["pjm", "devops"];
-    // Sonnet: the rest (default balanced tier)
+  it("model routing follows the documented cost strategy (opus > sonnet)", () => {
+    // Opus: executive + architecture agents (incl. cso added Sprint 100).
+    const opusTier: AgentName[] = ["ceo", "cpo", "cso", "cto", "architect", "reviewer"];
+    // Sonnet: everything else. Sprint 136 (1cbe357 + 9423ae7) promoted
+    // @devops and @pjm haiku → sonnet to match executor-class cadence.
     const sonnetTier: AgentName[] = [
-      "pm", "coder", "tester", "researcher", "fullstack", "assistant",
+      "pm", "coder", "tester", "researcher", "fullstack", "assistant", "devops", "pjm",
     ];
 
     for (const agent of opusTier) {
       expect(AGENT_MODEL_MAP[agent], `${agent} should be opus`).toBe("opus");
-    }
-    for (const agent of haikuTier) {
-      expect(AGENT_MODEL_MAP[agent], `${agent} should be haiku`).toBe("haiku");
     }
     for (const agent of sonnetTier) {
       expect(AGENT_MODEL_MAP[agent], `${agent} should be sonnet`).toBe("sonnet");

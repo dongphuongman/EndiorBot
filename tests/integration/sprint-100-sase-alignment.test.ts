@@ -137,7 +137,9 @@ describe("Phase 3: Tier-Aware AGENT_MODEL_MAP", () => {
     const { AGENT_MODEL_MAP } = await import("../../src/agents/channel-router.js");
     expect(AGENT_MODEL_MAP.ceo).toBe("opus");
     expect(AGENT_MODEL_MAP.coder).toBe("sonnet");
-    expect(AGENT_MODEL_MAP.devops).toBe("haiku");
+    // Sprint 136 (1cbe357): @devops promoted haiku → sonnet to match
+    // executor-class cadence on sprint docs / ops actions.
+    expect(AGENT_MODEL_MAP.devops).toBe("sonnet");
     expect(AGENT_MODEL_MAP.architect).toBe("opus");
   });
 });
@@ -178,7 +180,8 @@ describe("Phase 3: getAgentModel()", () => {
   it("ENTERPRISE tier has all agents", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
     expect(getAgentModel("ceo", "ENTERPRISE")).toBe("opus");
-    expect(getAgentModel("devops", "ENTERPRISE")).toBe("haiku");
+    // Sprint 136 (1cbe357): @devops promoted haiku → sonnet.
+    expect(getAgentModel("devops", "ENTERPRISE")).toBe("sonnet");
     expect(getAgentModel("coder", "ENTERPRISE")).toBe("sonnet");
   });
 
