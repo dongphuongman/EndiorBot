@@ -420,7 +420,7 @@ test("MT-83-30", "redactBridgeOutput passes clean git output", () => {
 });
 
 test("MT-83-31", "redactBridgeOutput redacts API tokens", () => {
-  const result = redactBridgeOutput("TOKEN=***REMOVED-ANTHROPIC-KEY***", "read");
+  const result = redactBridgeOutput("TOKEN=sk-ant-api03-abc123", "read");
   assert(!result.blocked, "Should not be fully blocked");
   assert(result.content.includes("[REDACTED]"), "Should have [REDACTED]");
 });

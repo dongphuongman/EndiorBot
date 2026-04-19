@@ -32,7 +32,7 @@ function createMockResponse(data: unknown, ok = true): Response {
 // ============================================================================
 
 // Valid bot token format: <numeric_id>:<35+ char alphanumeric>
-const VALID_BOT_TOKEN = "***REMOVED-TELEGRAM-BOT-TOKEN***90";
+const VALID_BOT_TOKEN = "1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ_1234567890";
 
 function createTelegramChannel(): TelegramChannel {
   return new TelegramChannel({

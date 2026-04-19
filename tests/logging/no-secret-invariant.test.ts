@@ -28,7 +28,7 @@ import {
 
 const TEST_SECRETS = {
   // Anthropic API key format
-  anthropicKey: "***REMOVED-ANTHROPIC-KEY***",
+  anthropicKey: "sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJ",
 
   // OpenAI API key format
   openaiKey: "sk-proj-1234567890abcdefghijklmnopqrstuvwxyz",

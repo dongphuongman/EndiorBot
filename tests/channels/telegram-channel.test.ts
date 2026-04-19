@@ -43,7 +43,7 @@ function createMockResponse(ok: boolean, result?: unknown): Response {
 
 function createTestConfig(): TelegramChannelConfig {
   return {
-    botToken: "***REMOVED-TELEGRAM-BOT-TOKEN***0",
+    botToken: "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890",
     chatId: "987654321",
     parseMode: "Markdown",
     disableNotification: false,
@@ -99,7 +99,7 @@ describe("TelegramChannel", () => {
 
   describe("Configuration", () => {
     it("should validate correct bot token format", () => {
-      expect(isValidBotToken("***REMOVED-TELEGRAM-BOT-TOKEN***0")).toBe(true);
+      expect(isValidBotToken("123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890")).toBe(true);
       expect(isValidBotToken("987654321:ABCDEFGHIJKLMNOPQRSTUVWXYZ_-abcdef")).toBe(true);
     });
 
@@ -123,13 +123,13 @@ describe("TelegramChannel", () => {
     });
 
     it("should load config from environment variables", () => {
-      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "***REMOVED-TELEGRAM-BOT-TOKEN***0";
+      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890";
       process.env.ENDIORBOT_TELEGRAM_CHAT_ID = "987654321";
 
       const config = loadTelegramConfig();
 
       expect(config).not.toBeNull();
-      expect(config?.botToken).toBe("***REMOVED-TELEGRAM-BOT-TOKEN***0");
+      expect(config?.botToken).toBe("123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890");
       expect(config?.chatId).toBe("987654321");
     });
 
@@ -139,7 +139,7 @@ describe("TelegramChannel", () => {
     });
 
     it("should return null when only token is set", () => {
-      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "***REMOVED-TELEGRAM-BOT-TOKEN***0";
+      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890";
 
       const config = loadTelegramConfig();
       expect(config).toBeNull();
@@ -148,7 +148,7 @@ describe("TelegramChannel", () => {
     it("should check if Telegram is configured", () => {
       expect(isTelegramConfigured()).toBe(false);
 
-      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "***REMOVED-TELEGRAM-BOT-TOKEN***0";
+      process.env.ENDIORBOT_TELEGRAM_BOT_TOKEN = "123456789:ABCdefGHIjklMNOpqrSTUvwxYZ1234567890";
       process.env.ENDIORBOT_TELEGRAM_CHAT_ID = "987654321";
 
       expect(isTelegramConfigured()).toBe(true);

@@ -298,7 +298,7 @@ test("MT-82-22", "OutputRedactor blocks high-sensitivity patterns", () => {
 });
 
 test("MT-82-23", "OutputRedactor redacts API keys", () => {
-  const result = redactBridgeOutput("token: ***REMOVED-ANTHROPIC-KEY***", "read");
+  const result = redactBridgeOutput("token: sk-ant-api03-abc123xyz", "read");
   assert(!result.blocked, "Should not be blocked (redact only)");
   assert(result.content.includes("[REDACTED]"), "Should contain [REDACTED]");
 });
