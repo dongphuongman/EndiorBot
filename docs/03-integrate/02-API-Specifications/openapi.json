@@ -1,0 +1,722 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "EndiorBot Gateway API",
+    "version": "0.1.0-beta.1",
+    "description": "EndiorBot's local gateway exposes a small HTTP REST surface (config, audit, webhooks, health) and a 47-method WebSocket JSON-RPC surface (agents, approvals, budget, chat, checkpoints, eval, optimizer, router, sessions, system).\n\n**Identity (LOCKED, LOCAL-ONLY):** This API serves the CEO's local MacBook only. Non-localhost access is gated by GATEWAY_TOKEN; remote / multi-user deployment is not in scope (see docs/08-collaborate/01-SDLC-Compliance/AGENTS.md → 'Handoff Boundary').\n\n**Generated:** automatically from src/gateway/ via `pnpm tsx scripts/generate-openapi.ts`. Do not edit by hand.",
+    "contact": {
+      "name": "EndiorBot",
+      "url": "https://github.com/anthropics/endiorbot"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:18790",
+      "description": "Local gateway (default)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "web-ui",
+      "description": "Web UI HTML/assets"
+    },
+    {
+      "name": "system",
+      "description": "Health, status, version, stats"
+    },
+    {
+      "name": "config",
+      "description": "Runtime configuration + feature flags"
+    },
+    {
+      "name": "audit",
+      "description": "Audit log readers"
+    },
+    {
+      "name": "webhooks",
+      "description": "External webhook ingress (Sprint 134)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Web UI (HTML)",
+        "description": "Serves the EndiorBot web UI index page. Returns HTML.",
+        "tags": [
+          "web-ui"
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "System status",
+        "description": "Returns gateway status plus Active Memory feature flag state. Lightweight; safe to poll.",
+        "tags": [
+          "system"
+        ],
+        "responses": {
+          "200": {
+            "description": "Status JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "activeMemory": {
+                      "type": "boolean"
+                    },
+                    "uptime": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Aggregates component health (gateway, bus, providers). Used by /health checks and CI.",
+        "tags": [
+          "system"
+        ],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "degraded"
+                      ]
+                    },
+                    "components": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "summary": "System configuration summary",
+        "description": "Returns exec-policy preset, Active Memory + auto-handoff toggles, timeouts SSOT, webhook triggers. Localhost bypass auth; non-localhost requires GATEWAY_TOKEN.",
+        "tags": [
+          "config"
+        ],
+        "responses": {
+          "200": {
+            "description": "Config JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execPolicy": {
+                      "type": "object"
+                    },
+                    "activeMemory": {
+                      "type": "object"
+                    },
+                    "autoHandoff": {
+                      "type": "object"
+                    },
+                    "timeouts": {
+                      "type": "object"
+                    },
+                    "webhooks": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (non-localhost without token)"
+          }
+        },
+        "security": [
+          {},
+          {
+            "GatewayToken": []
+          }
+        ],
+        "x-localhost-bypass": true
+      }
+    },
+    "/api/audit/{type}": {
+      "get": {
+        "summary": "Audit log tail",
+        "description": "Returns recent entries from an audit log. `type` must be one of: exec-policy, ssrf, webhooks. `limit` query param caps entries (max 100, default 10).",
+        "tags": [
+          "config",
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "exec-policy",
+                        "ssrf",
+                        "webhooks"
+                      ]
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown audit type"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {},
+          {
+            "GatewayToken": []
+          }
+        ],
+        "x-localhost-bypass": true,
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ]
+      }
+    },
+    "/api/config/exec-policy/preset": {
+      "post": {
+        "summary": "Change exec-policy preset",
+        "description": "Sets the active exec-policy preset. Requires GATEWAY_TOKEN on every request (no localhost bypass for mutations).",
+        "tags": [
+          "config"
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "old": {
+                      "type": "string"
+                    },
+                    "new": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid preset or body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "preset"
+                ],
+                "properties": {
+                  "preset": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "balanced",
+                      "strict"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
+    "/api/config/active-memory": {
+      "post": {
+        "summary": "Toggle Active Memory feature flag",
+        "description": "Enables/disables the per-query context refresh hook at runtime. Requires GATEWAY_TOKEN.",
+        "tags": [
+          "config"
+        ],
+        "responses": {
+          "200": {
+            "description": "Toggle applied"
+          },
+          "400": {
+            "description": "Invalid body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "enabled"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
+    "/api/webhooks/{triggerId}": {
+      "post": {
+        "summary": "Webhook ingress (Sprint 134)",
+        "description": "Receives external webhook events. Payload is HMAC-verified against the registered trigger secret.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted + dispatched"
+          },
+          "401": {
+            "description": "Invalid signature"
+          },
+          "404": {
+            "description": "Unknown triggerId"
+          },
+          "413": {
+            "description": "Payload too large"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WebhookSecret": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "triggerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/webhook/{subpath}": {
+      "post": {
+        "summary": "Legacy webhook handler",
+        "description": "Legacy webhook route (pre-Sprint 134). Delegates to the same dispatcher as /api/webhooks; kept for existing integrations.",
+        "tags": [
+          "webhooks",
+          "deprecated"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "No webhook handler configured"
+          }
+        },
+        "security": [
+          {
+            "WebhookSecret": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "subpath",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "GatewayToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque",
+        "description": "Bearer token read from `Authorization: Bearer <ENDIORBOT_GATEWAY_TOKEN>`. Required for mutations regardless of host; required for reads when gateway is bound to a non-localhost interface."
+      },
+      "WebhookSecret": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Webhook-Signature",
+        "description": "HMAC-SHA256 signature of the raw body, keyed with the trigger's registered secret. See src/gateway/webhooks/."
+      }
+    }
+  },
+  "x-jsonrpc-endpoint": {
+    "ws": "ws://127.0.0.1:18790/ws",
+    "description": "All JSON-RPC methods below are invoked via a single WebSocket endpoint. Request/response shape follows JSON-RPC 2.0 (method, params, id)."
+  },
+  "x-jsonrpc-methods": {
+    "agents": [
+      {
+        "method": "agents.consult",
+        "file": "agents.ts",
+        "domain": "agents"
+      },
+      {
+        "method": "agents.get",
+        "file": "agents.ts",
+        "domain": "agents"
+      },
+      {
+        "method": "agents.route",
+        "file": "agents.ts",
+        "domain": "agents"
+      },
+      {
+        "method": "agents.routingStats",
+        "file": "agents.ts",
+        "domain": "agents"
+      },
+      {
+        "method": "agents.status",
+        "file": "agents.ts",
+        "domain": "agents"
+      }
+    ],
+    "approval": [
+      {
+        "method": "approval.approve",
+        "file": "approval.ts",
+        "domain": "approval"
+      },
+      {
+        "method": "approval.get",
+        "file": "approval.ts",
+        "domain": "approval"
+      },
+      {
+        "method": "approval.list",
+        "file": "approval.ts",
+        "domain": "approval"
+      },
+      {
+        "method": "approval.pendingCount",
+        "file": "approval.ts",
+        "domain": "approval"
+      },
+      {
+        "method": "approval.reject",
+        "file": "approval.ts",
+        "domain": "approval"
+      }
+    ],
+    "budget": [
+      {
+        "method": "budget.get",
+        "file": "budget.ts",
+        "domain": "budget"
+      },
+      {
+        "method": "budget.history",
+        "file": "budget.ts",
+        "domain": "budget"
+      },
+      {
+        "method": "budget.remaining",
+        "file": "budget.ts",
+        "domain": "budget"
+      },
+      {
+        "method": "budget.resetSession",
+        "file": "budget.ts",
+        "domain": "budget"
+      },
+      {
+        "method": "budget.setLimits",
+        "file": "budget.ts",
+        "domain": "budget"
+      }
+    ],
+    "chat": [
+      {
+        "method": "chat.abort",
+        "file": "chat.ts",
+        "domain": "chat"
+      },
+      {
+        "method": "chat.history",
+        "file": "chat.ts",
+        "domain": "chat"
+      },
+      {
+        "method": "chat.send",
+        "file": "chat.ts",
+        "domain": "chat"
+      },
+      {
+        "method": "chat.stream",
+        "file": "chat.ts",
+        "domain": "chat"
+      }
+    ],
+    "checkpoints": [
+      {
+        "method": "checkpoints.create",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      },
+      {
+        "method": "checkpoints.delete",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      },
+      {
+        "method": "checkpoints.get",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      },
+      {
+        "method": "checkpoints.latest",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      },
+      {
+        "method": "checkpoints.list",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      },
+      {
+        "method": "checkpoints.restore",
+        "file": "checkpoints.ts",
+        "domain": "checkpoints"
+      }
+    ],
+    "cmd": [
+      {
+        "method": "cmd.list",
+        "file": "bridge-commands.ts",
+        "domain": "cmd"
+      }
+    ],
+    "eval": [
+      {
+        "method": "eval.compare",
+        "file": "eval.ts",
+        "domain": "eval"
+      },
+      {
+        "method": "eval.history",
+        "file": "eval.ts",
+        "domain": "eval"
+      },
+      {
+        "method": "eval.score",
+        "file": "eval.ts",
+        "domain": "eval"
+      }
+    ],
+    "optimizer": [
+      {
+        "method": "optimizer.reset",
+        "file": "optimizer.ts",
+        "domain": "optimizer"
+      },
+      {
+        "method": "optimizer.status",
+        "file": "optimizer.ts",
+        "domain": "optimizer"
+      }
+    ],
+    "router": [
+      {
+        "method": "router.chat",
+        "file": "router-chat.ts",
+        "domain": "router"
+      },
+      {
+        "method": "router.status",
+        "file": "router-chat.ts",
+        "domain": "router"
+      }
+    ],
+    "sessions": [
+      {
+        "method": "sessions.create",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      },
+      {
+        "method": "sessions.get",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      },
+      {
+        "method": "sessions.list",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      },
+      {
+        "method": "sessions.pause",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      },
+      {
+        "method": "sessions.resume",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      },
+      {
+        "method": "sessions.status",
+        "file": "sessions.ts",
+        "domain": "sessions"
+      }
+    ],
+    "system": [
+      {
+        "method": "auth",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "chat",
+        "file": "web-server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "subscribe",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "system.health",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "system.ping",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "system.stats",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "system.version",
+        "file": "server.ts",
+        "domain": "system"
+      },
+      {
+        "method": "unsubscribe",
+        "file": "server.ts",
+        "domain": "system"
+      }
+    ]
+  }
+}

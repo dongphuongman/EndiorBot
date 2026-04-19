@@ -1,0 +1,56 @@
+{
+  "sprint": 137,
+  "gate": "G3",
+  "generated_at": "2026-04-19T13:13:54.604Z",
+  "artifacts": [
+    {
+      "path": "docs/03-integrate/02-API-Specifications/openapi.json",
+      "sha256": "06870e28d5e556a09eaa455af81214d4736999af9b795283c03f78ab2ed55b55",
+      "bytes": 18297,
+      "mtime": "2026-04-19T13:09:29.040Z"
+    },
+    {
+      "path": "scripts/generate-openapi.ts",
+      "sha256": "d45d625ba7e3b4883b71dc51ec7b678c3deaff64db9a0a6cfc89d5e4449819a4",
+      "bytes": 14484,
+      "mtime": "2026-04-19T13:08:10.977Z"
+    },
+    {
+      "path": "docs/05-test/07-E2E-Testing/README.md",
+      "sha256": "aaa93e5241830cc9da0ba3a0c871cf1082d17057f83814f21d4cb4319e877867",
+      "bytes": 2859,
+      "mtime": "2026-04-19T13:13:35.482Z"
+    },
+    {
+      "path": "docs/05-test/07-E2E-Testing/owasp-api-1-6.md",
+      "sha256": "513d088e1b036b27c2aed802d7d3d075e00243e9075119972af2b29ac9d42f62",
+      "bytes": 7274,
+      "mtime": "2026-04-19T13:12:06.290Z"
+    },
+    {
+      "path": "docs/05-test/07-E2E-Testing/scripts/smoke-endpoints.mjs",
+      "sha256": "a1053db1ce4261db578d82342384116a646ebeb5a1a3fe56cddcc481b0315ed3",
+      "bytes": 3901,
+      "mtime": "2026-04-19T13:10:58.507Z"
+    },
+    {
+      "path": "docs/05-test/07-E2E-Testing/scripts/make-evidence-manifest.mjs",
+      "sha256": "3be5c14b7f2be478a65a850ab4f991c440a3f2c261bb70216c7574d8860e60d9",
+      "bytes": 2398,
+      "mtime": "2026-04-19T13:13:50.358Z"
+    },
+    {
+      "path": "tests/e2e/openapi/openapi-contract.test.ts",
+      "sha256": "6d9e978981803020b38e88fc701a951859ea92767963bfdacc6591664d0d9c5a",
+      "bytes": 6902,
+      "mtime": "2026-04-19T13:10:31.837Z"
+    },
+    {
+      "path": "tests/e2e/openapi/owasp-controls.test.ts",
+      "sha256": "6ab596de037ab1c63cc27b5d5189238956ea7546cda639fc2e19b804f37cf3c5",
+      "bytes": 5912,
+      "mtime": "2026-04-19T13:12:54.471Z"
+    }
+  ],
+  "note": "Stage 03 ↔ Stage 05 traceability for the EndiorBot gateway API surface. Upstream spec lives in 03-integrate; contract tests + triage live in 05-test. LOCAL-ONLY identity constraint applies (see AGENTS.md → Handoff Boundary)."
+}
