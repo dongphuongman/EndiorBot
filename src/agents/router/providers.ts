@@ -22,6 +22,7 @@ import { getWorkspaceContext, formatWorkspaceContext } from "../intelligence/wor
 import {
   getAgentSoul,
   getAgentModel,
+  getAgentTimeoutMs,
   formatHistoryContext,
   resolveWorkspaceTier,
 } from "./agent-constants.js";
@@ -113,13 +114,18 @@ export async function callClaudeBridge(
   }
 
   // Default: invokeRead (READ mode — safe, no file changes)
+  // Sprint 137 B6: per-agent timeout (executor=60s / advisory=180s /
+  // adr-writer=600s); env-tunable per agent + per class. invokeRead expects
+  // seconds, so divide ms → s.
+  const perAgentTimeoutMs = getAgentTimeoutMs(agent, deps.config.claudeTimeout * 1000);
+  const perAgentTimeoutSec = Math.max(1, Math.round(perAgentTimeoutMs / 1000));
   try {
     const response = await deps.bridge.invokeRead({
       systemPrompt,
       userPrompt: task,
       workspace: workspace ?? deps.config.projectRoot,
       agent: agent as AgentRole,
-      timeout: deps.config.claudeTimeout,
+      timeout: perAgentTimeoutSec,
       maxTokens: deps.config.claudeMaxTokens,
       model,
     });
@@ -206,13 +212,16 @@ export async function callClaudeBridgeClassified(
     return { result, failure: result ? null : { kind: "OTHER", reason: "PATCH flow failed or declined" } };
   }
 
+  // Sprint 137 B6: per-agent timeout (same SSOT as the classic callClaudeBridge path).
+  const perAgentTimeoutMs2 = getAgentTimeoutMs(agent, deps.config.claudeTimeout * 1000);
+  const perAgentTimeoutSec2 = Math.max(1, Math.round(perAgentTimeoutMs2 / 1000));
   try {
     const response = await deps.bridge.invokeRead({
       systemPrompt,
       userPrompt: task,
       workspace: workspace ?? deps.config.projectRoot,
       agent: agent as AgentRole,
-      timeout: deps.config.claudeTimeout,
+      timeout: perAgentTimeoutSec2,
       maxTokens: deps.config.claudeMaxTokens,
       model,
     });

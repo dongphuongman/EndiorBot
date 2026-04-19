@@ -101,6 +101,90 @@ export const AGENT_SOULS: Record<string, string> = new Proxy(
 );
 
 // ============================================================================
+// Per-Agent Timeout Class (Sprint 137 B6)
+// ============================================================================
+
+/**
+ * Timeout class per agent. Three tiers map to expected response cadence:
+ *   - executor (60s): quick reads, status, light edits — coder, tester,
+ *     devops, fullstack, pjm, researcher, assistant
+ *   - advisory (180s): reasoning-heavy responses — pm, reviewer, ceo, cpo,
+ *     cto, cso
+ *   - adr-writer (600s): @architect specifically when producing ADRs or
+ *     long architectural docs; the broad architect timeout sits here so the
+ *     CLI doesn't get killed mid-spec.
+ *
+ * Override per-agent at runtime: ENDIORBOT_AGENT_TIMEOUT_<NAME>_MS
+ * (e.g. ENDIORBOT_AGENT_TIMEOUT_ARCHITECT_MS=900000).
+ *
+ * Override per-class at runtime:
+ *   ENDIORBOT_AGENT_TIMEOUT_EXECUTOR_MS
+ *   ENDIORBOT_AGENT_TIMEOUT_ADVISORY_MS
+ *   ENDIORBOT_AGENT_TIMEOUT_ADR_WRITER_MS
+ *
+ * Falls back to TIMEOUTS.claudeCode (envInt ENDIORBOT_CLAUDE_TIMEOUT_MS,
+ * default 300_000 ms) when no agent / class override applies.
+ */
+export type AgentTimeoutClass = "executor" | "advisory" | "adr-writer";
+
+export const AGENT_TIMEOUT_CLASS: Record<AgentName, AgentTimeoutClass> = {
+  pm: "advisory",
+  architect: "adr-writer",
+  coder: "executor",
+  reviewer: "advisory",
+  tester: "executor",
+  researcher: "executor",
+  devops: "executor",
+  fullstack: "executor",
+  pjm: "executor",
+  ceo: "advisory",
+  cpo: "advisory",
+  cto: "advisory",
+  cso: "advisory",
+  assistant: "executor",
+};
+
+const DEFAULT_AGENT_TIMEOUT_MS_BY_CLASS: Record<AgentTimeoutClass, number> = {
+  executor: 60_000,
+  advisory: 180_000,
+  "adr-writer": 600_000,
+};
+
+function envIntLocal(key: string, fallback: number): number {
+  const raw = process.env[key];
+  if (raw === undefined || raw === "") return fallback;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Resolve the timeout (in milliseconds) for an agent's Claude Code invocation.
+ *
+ * Resolution order (Sprint 137 B6):
+ *   1. ENDIORBOT_AGENT_TIMEOUT_<AGENT>_MS (per-agent override)
+ *   2. ENDIORBOT_AGENT_TIMEOUT_<CLASS>_MS (per-class override)
+ *   3. AGENT_TIMEOUT_CLASS[agent] → DEFAULT_AGENT_TIMEOUT_MS_BY_CLASS
+ *   4. TIMEOUTS.claudeCode (legacy global; passed via fallbackMs)
+ *
+ * @param agent — agent name (e.g. "coder", "architect")
+ * @param fallbackMs — fallback when agent is unknown (typically TIMEOUTS.claudeCode)
+ */
+export function getAgentTimeoutMs(agent: string, fallbackMs: number): number {
+  const upper = agent.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+  const perAgent = envIntLocal(`ENDIORBOT_AGENT_TIMEOUT_${upper}_MS`, NaN);
+  if (Number.isFinite(perAgent)) return perAgent;
+
+  const klass = AGENT_TIMEOUT_CLASS[agent as AgentName];
+  if (!klass) return fallbackMs;
+
+  const classKey = klass.toUpperCase().replace("-", "_");
+  const perClass = envIntLocal(`ENDIORBOT_AGENT_TIMEOUT_${classKey}_MS`, NaN);
+  if (Number.isFinite(perClass)) return perClass;
+
+  return DEFAULT_AGENT_TIMEOUT_MS_BY_CLASS[klass];
+}
+
+// ============================================================================
 // Conversation History
 // ============================================================================
 
