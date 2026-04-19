@@ -171,8 +171,14 @@ export class BusConsumer {
       inbound.metadata = {};
     }
     inbound.metadata.progressFn = (text: string): void => {
+      // Sprint 137 A8: isProgress flag lets the channel adapter edit a
+      // placeholder message in place (Telegram) vs sending a new one.
       void msg
-        .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
+        .replyFn(text, {
+          correlationId: msg.correlationId,
+          isTrainableTurn: false,
+          isProgress: true,
+        })
         .catch(() => {});
     };
 
@@ -205,8 +211,14 @@ export class BusConsumer {
       const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
       const text = `⏳ still working… (${elapsedSec}s elapsed, tick ${tickCount})`;
       // Best-effort replyFn — swallow errors so a dead channel doesn't break processing.
+      // Sprint 137 A8: isProgress flag lets the channel adapter edit a
+      // placeholder message in place (Telegram) vs appending each tick.
       void msg
-        .replyFn(text, { correlationId: msg.correlationId, isTrainableTurn: false })
+        .replyFn(text, {
+          correlationId: msg.correlationId,
+          isTrainableTurn: false,
+          isProgress: true,
+        })
         .catch(() => {});
     };
 

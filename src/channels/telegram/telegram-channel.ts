@@ -910,6 +910,52 @@ export class TelegramChannel implements BidirectionalChannel {
 
 
   /**
+   * Sprint 137 A8: send a plain message and return its Telegram message_id.
+   * No RL keyboard, no feedback wiring — designed for placeholder/progress
+   * messages where the OTT adapter wants to remember the id so it can
+   * editMessageText() later.
+   *
+   * Returns null on failure (channel not configured, API error).
+   */
+  async sendCapturingId(
+    text: string,
+    options?: { format?: string },
+  ): Promise<number | null> {
+    if (!this.config) return null;
+    const useMarkdown = options?.format === "markdown";
+    return this.sendMessageWithId(text, useMarkdown);
+  }
+
+  /**
+   * Sprint 137 A8: edit an existing message in place (Bot API editMessageText).
+   * Used by telegram-ott-adapter to update a placeholder progress message
+   * instead of appending one new "⏳ still working…" message per tick.
+   *
+   * Returns true on success, false otherwise (silent — caller falls back to
+   * a fresh send if the edit fails, e.g. message too old / API rate-limited).
+   */
+  async editMessage(
+    messageId: number,
+    text: string,
+    options?: { format?: string },
+  ): Promise<boolean> {
+    if (!this.config) return false;
+
+    const useMarkdown = options?.format === "markdown";
+    const body: Record<string, unknown> = {
+      chat_id: this.config.chatId,
+      message_id: messageId,
+      text,
+    };
+    if (useMarkdown) {
+      body.parse_mode = this.config.parseMode;
+    }
+
+    const response = await this.apiCall("editMessageText", "POST", body);
+    return response.ok;
+  }
+
+  /**
    * Make an API call to Telegram.
    */
   private async apiCall<T>(

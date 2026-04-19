@@ -69,6 +69,103 @@ function stripSanitizerWrapper(text: string): string {
   return match?.[1] ?? text;
 }
 
+/**
+ * Sprint 137 A8: progress-aware Telegram channel surface.
+ *
+ * Subset of TelegramChannel that buildProgressAwareReplyFn depends on. Letting
+ * tests inject a stub keeps the unit isolated from the real Bot API.
+ */
+export interface ProgressAwareTelegramChannel {
+  send(
+    text: string,
+    options?: {
+      format?: string;
+      correlationId?: string;
+      isTrainableTurn?: boolean;
+      provider?: string;
+      request?: Array<{ role: string; content: string }>;
+      tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+    },
+  ): Promise<boolean>;
+  sendCapturingId(
+    text: string,
+    options?: { format?: string },
+  ): Promise<number | null>;
+  editMessage(
+    messageId: number,
+    text: string,
+    options?: { format?: string },
+  ): Promise<boolean>;
+}
+
+/**
+ * Sprint 137 A8: build a Telegram replyFn that edits a placeholder message
+ * in place when the BusConsumer flags an outbound as `isProgress: true`.
+ *
+ * Lifecycle (per `correlationId`):
+ *   1. First `replyFn(text, { isProgress: true, correlationId })` →
+ *      `channel.sendCapturingId()`; the captured Telegram message_id is
+ *      stored under `correlationId` in `placeholders`.
+ *   2. Subsequent `replyFn(text, { isProgress: true, correlationId })` →
+ *      `channel.editMessage(id, text)`. On edit failure (message too old,
+ *      transient API error) the placeholder is purged and a fresh
+ *      `sendCapturingId()` is attempted so the heartbeat keeps going.
+ *   3. Final `replyFn(text, …)` (isProgress not set, or false) →
+ *      `channel.send()` and the placeholder for that `correlationId` is
+ *      deleted.
+ *
+ * Single-owner invariant (CTO precondition): the placeholder map is owned by
+ * THIS adapter; the bus payload still contains only generic `isProgress: true`.
+ * Other channels can ignore the flag and fall through to their default send,
+ * so no Telegram-specific message id ever leaks onto the bus.
+ */
+export function buildProgressAwareReplyFn(
+  channel: ProgressAwareTelegramChannel,
+  placeholders: Map<string, number>,
+): ChannelSendFn {
+  return async (text, opts) => {
+    const truncated = truncateForTelegram(text);
+    const cid = opts?.correlationId;
+
+    // Progress path — try to edit the placeholder in place.
+    if (opts?.isProgress && cid) {
+      const existingId = placeholders.get(cid);
+      if (existingId !== undefined) {
+        const editOpts: { format?: string } = {};
+        if (opts.format) editOpts.format = opts.format;
+        const ok = await channel.editMessage(existingId, truncated, editOpts);
+        if (ok) return true;
+        // Edit failed (message too old, network blip) — fall through and
+        // post a fresh placeholder so the heartbeat keeps going.
+        placeholders.delete(cid);
+      }
+      const captureOpts: { format?: string } = {};
+      if (opts.format) captureOpts.format = opts.format;
+      const newId = await channel.sendCapturingId(truncated, captureOpts);
+      if (newId !== null) {
+        placeholders.set(cid, newId);
+        return true;
+      }
+      // sendCapturingId failed — fall through to generic send so the user
+      // still sees something. The next isProgress call will retry capture.
+    }
+
+    // Non-progress (final response / error / approval) — clear the
+    // placeholder so a future correlationId of the same id starts clean.
+    if (cid && !opts?.isProgress) placeholders.delete(cid);
+
+    const sendOpts: Parameters<typeof channel.send>[1] = {};
+    if (opts?.format) sendOpts.format = opts.format;
+    if (opts?.correlationId) sendOpts.correlationId = opts.correlationId;
+    if (opts?.isTrainableTurn !== undefined) sendOpts.isTrainableTurn = opts.isTrainableTurn;
+    if (opts?.provider) sendOpts.provider = opts.provider;
+    if (opts?.request) sendOpts.request = opts.request;
+    // Sprint 114 (CTO C1): thread tokenUsage for RL pipeline
+    if (opts?.tokenUsage) sendOpts.tokenUsage = opts.tokenUsage;
+    return channel.send(truncated, sendOpts);
+  };
+}
+
 // ============================================================================
 // Factory
 // ============================================================================
@@ -104,6 +201,11 @@ export function createTelegramOttAdapter(
   // Sprint 110.5: Wire RL feedback service (if provided)
   if (feedbackService) channel.setFeedbackService(feedbackService);
 
+  // Sprint 137 A8: progress-aware replyFn — see buildProgressAwareReplyFn
+  // docstring for the lifecycle contract. The placeholder map is owned here
+  // (single owner = THIS adapter; never escapes onto bus payload).
+  const progressPlaceholders = new Map<string, number>();
+
   // Register message handler — routes ALL messages through Gateway ingress
   channel.onMessage(async (msg) => {
     let typingInterval: ReturnType<typeof setInterval> | null = null;
@@ -134,17 +236,8 @@ export function createTelegramOttAdapter(
 
         // replyFn: channel-specific send, called by BusConsumer after processing
         // Sprint 110 (Step 0.5): Forward correlationId + RL hints from opts to channel.send()
-        const replyFn: ChannelSendFn = async (text, opts) => {
-          const sendOpts: Parameters<typeof channel.send>[1] = {};
-          if (opts?.format) sendOpts.format = opts.format;
-          if (opts?.correlationId) sendOpts.correlationId = opts.correlationId;
-          if (opts?.isTrainableTurn !== undefined) sendOpts.isTrainableTurn = opts.isTrainableTurn;
-          if (opts?.provider) sendOpts.provider = opts.provider;
-          if (opts?.request) sendOpts.request = opts.request;
-          // Sprint 114 (CTO C1): thread tokenUsage for RL pipeline
-          if (opts?.tokenUsage) sendOpts.tokenUsage = opts.tokenUsage;
-          return channel.send(truncateForTelegram(text), sendOpts);
-        };
+        // Sprint 137 A8: handle isProgress edit-in-place via buildProgressAwareReplyFn.
+        const replyFn = buildProgressAwareReplyFn(channel, progressPlaceholders);
 
         const busMsg: BusInboundMessage = {
           correlationId,

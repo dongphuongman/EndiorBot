@@ -44,6 +44,16 @@ export type ChannelSendFn = (
     request?: Array<{ role: string; content: string }>;
     /** Sprint 114 (CTO C1): Token usage from AI call for RL pipeline */
     tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+    /**
+     * Sprint 137 A8: marks a tick / progress message. Channel adapters MAY
+     * use this to in-place edit a placeholder message (Telegram editMessageText)
+     * instead of appending a new one. Adapters that don't support edit
+     * semantics (Zalo, CLI, plain Web) ignore the flag and fall through to a
+     * normal send — the bus contract is unchanged. The placeholder
+     * message-id state stays inside the channel adapter, NOT on bus payload,
+     * to preserve the single-owner invariant established in P0-01.
+     */
+    isProgress?: boolean;
   },
 ) => Promise<boolean>;
 
