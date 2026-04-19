@@ -1,0 +1,30 @@
+# gitleaks configuration — EndiorBot
+# Sprint 138 P3-01: Added as preventive control after the 2026-04-19 history
+# credential leak incident (see SECURITY.md + ADR-049).
+
+# Extend the default gitleaks ruleset.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test fixtures + format-reference docs — NOT real credentials"
+paths = [
+  # Synthetic test vectors for scrubber / redactor / rate-limit-detector
+  # contracts. These are intentional format-valid strings, not real keys.
+  '''tests/security/output-scrubber\.test\.ts''',
+  '''tests/logging/logging\.test\.ts''',
+  '''tests/logging/no-secret-invariant\.test\.ts''',
+  '''tests/bridge/security/output-redactor\.test\.ts''',
+  '''tests/providers/claude-code/rate-limit-detector\.test\.ts''',
+  '''tests/bus/dedup\.test\.ts''',
+  '''tests/channels/telegram-channel\.test\.ts''',
+  '''tests/channels/telegram-adapter\.test\.ts''',
+  '''tests/manual/mt-\d+-.*\.mjs''',
+
+  # Format-reference documentation — cites key prefixes and regex patterns
+  # without containing real values.
+  '''docs/08-collaborate/secrets-rotation-checklist\.md''',
+  '''docs/02-design/01-ADRs/ADR-049-historical-credential-exposure-remediation\.md''',
+  '''SECURITY\.md''',
+  '''scripts/lint-adr-authority\.ts''',
+]

@@ -106,5 +106,6 @@ ollama
 .endiorbot-aliases
 
 # EndiorBot local state
+.endiorbot/
 .endiorbot/audit-logs/
 .aider*

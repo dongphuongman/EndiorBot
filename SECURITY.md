@@ -48,3 +48,25 @@ Some developers keep **unofficial** clones (e.g. source-map recoveries, communit
 This policy applies to the EndiorBot npm package (`endiorbot`) and its official Docker image.
 
 Third-party integrations and plugins are not covered by this policy.
+
+## 2026-04-19 incident — historical credential exposure
+
+During Sprint 138 P3-01, a git-history credential leak was identified. Pre-Sprint-41 commits contained real API key values (Anthropic, Google, OpenAI, GitHub PAT, multiple Telegram bot tokens) in files that were **deleted from HEAD** by commit `92cd19a` (2026-04-04, "redact NQH private content") but **not removed from history** — the values remained reachable via `git log -p` on any clone. See ADR-049 for full analysis.
+
+**Remediation (completed 2026-04-19):**
+
+- **Option B (key rotation, immediate):** CEO rotated every affected key at each vendor console. Dead keys = zero cryptographic surface regardless of history state. Checklist: [`docs/08-collaborate/secrets-rotation-checklist.md`](docs/08-collaborate/secrets-rotation-checklist.md).
+- **Option A (history rewrite, follow-up):** Repository flipped private; `git filter-repo` rewrote all 175 commits, stripping credential-bearing files (`SPRINT-38-*.md`, archived guides, binaries) and applying regex redaction over blobs + commit messages for: `sk-ant-*`, `AIzaSy*`, `sk-proj-*`, legacy `sk-*`, `ghp_*`, `github_pat_*`, Telegram `\d{9,10}:[A-Za-z0-9_-]{35}`, internal infra hostnames.
+- **Tag purge:** `pre-sprint-129-push`, `v1.0-pre-search`, `v1.0.0`, `v2.0.0` pointed at pre-rewrite commits and exposed the same keys via tag targets; deleted from origin. Release markers can be re-tagged on rewritten SHAs if needed.
+- **Force push:** `main` advanced from `4284f56` (pre-rewrite) to `2fa7e2f` (rewritten). **All existing clones are stale** — re-clone rather than pull.
+
+**Residual risk (accepted):**
+
+- Pre-rewrite SHAs may survive briefly in GitHub's internal GC cycle (hours to days). Keys are rotated-dead, so this is forensic exposure only.
+- A local bundle mirror of the pre-rewrite repository exists on one maintainer machine for rollback safety; not shared, scheduled for deletion after the 7-day window.
+
+**Preventive controls (Sprint 138 follow-up):**
+
+- `gitleaks` pre-commit hook prevents new real-key commits.
+- `.gitleaksignore` allowlists the known-synthetic test fixtures (Telegram `isValidBotToken` contract tests, scrubber invariant tests) that carry format-valid test vectors by design.
+- ADR-049 records the incident for future reference.

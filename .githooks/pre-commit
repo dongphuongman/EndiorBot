@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Sprint 138 P3-01: gitleaks pre-commit guard.
+#
+# Blocks commits that introduce credential-looking strings. Allowlist for
+# synthetic test fixtures lives in .gitleaks.toml. To install:
+#
+#   git config core.hooksPath .githooks
+#
+# `pnpm install` runs a `prepare` script that sets the config automatically.
+# If gitleaks is not installed, the hook prints install instructions and
+# lets the commit through (don't block developers who haven't installed it
+# yet; the remote/CI guard catches it).
+#
+# Bypass for a legit reason: `git commit --no-verify`. Only do this if you
+# understand what you're committing — and log it.
+
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  cat <<'EOF' >&2
+[pre-commit] gitleaks not installed — skipping secret scan.
+
+To enable local secret-scan protection:
+  macOS:    brew install gitleaks
+  Linux:    see https://github.com/gitleaks/gitleaks#installing
+
+Commit proceeds without scan. The server-side check will still run.
+EOF
+  exit 0
+fi
+
+# Scan only what's staged — fast, targeted.
+if ! gitleaks protect --staged --no-banner --redact 2>&1; then
+  cat <<'EOF' >&2
+
+[pre-commit] gitleaks BLOCKED this commit — a secret-looking string was
+detected in staged changes. Review the finding above.
+
+If the match is a known-synthetic test fixture, add its path to
+.gitleaks.toml [allowlist].paths (NOT .gitleaksignore — fingerprints
+are brittle).
+
+If you're intentionally committing dev-only placeholder values (e.g.
+.env.example), prefer short placeholder strings like "sk-ant-xxx"
+that don't match the real-key regex shape.
+
+Bypass (DANGEROUS): git commit --no-verify
+EOF
+  exit 1
+fi
