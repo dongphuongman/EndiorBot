@@ -146,7 +146,7 @@ endiorbot exec-policy audit
 # Or read JSONL directly
 tail -20 ~/.endiorbot/audit-logs/exec-policy.log | jq .
 
-# Change preset in production
+# Change preset in your live local instance
 endiorbot exec-policy preset balanced
 endiorbot exec-policy show            # Verify
 ```

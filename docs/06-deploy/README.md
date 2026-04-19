@@ -2,7 +2,9 @@
 
 ## Purpose
 
-**How to SHIP safely** — release to production/staging with repeatable pipelines and clear rollback procedures.
+**How to RUN EndiorBot on the CEO's local MacBook.**
+
+EndiorBot is a CEO Power Tool with a **local-only scope** (locked 2026-04-19, see [`AGENTS.md`](../../AGENTS.md) → "Handoff Boundary"). The deployment options below are all single-host, single-user setups for the CEO's machine. EndiorBot does **not** target remote production infrastructure, multi-user platforms, or GPU servers — those belong to MTClaw / SDLC Orchestrator. The Docker option exists so the CEO can sandbox EndiorBot in a container locally, not as a path to remote/cluster deployment.
 
 ---
 

@@ -26,3 +26,7 @@ If CRG unavailable → use Grep/Glob (existing workflow). Never block on CRG.
 - **SE4A** (pm, architect, coder, reviewer, tester, researcher, devops, fullstack, pjm): execute within SDLC gates, produce MRP evidence
 - **Budget**: Sonnet default. Opus for architecture decisions only.
 - **Accountability**: Human (CEO) is always accountable for agent outputs.
+
+### Local-Only Scope (LOCKED 2026-04-19)
+
+EndiorBot agents operate exclusively on the **CEO's local MacBook**. If a task requires remote orchestration, GPU servers, production deployment, SSH execution, or any work on a product-team server, **stop and recommend the MTClaw handoff** — do not extend EndiorBot's reach. Scaffold-then-handoff: EndiorBot kickstarts the project locally; product-team agents (MTClaw, SDLC Orchestrator) take over once the project moves to a product-org repo. See `AGENTS.md` → "Handoff Boundary" for the full protocol.

@@ -277,7 +277,7 @@ endiorbot @researcher "compare Redis vs PostgreSQL"
 
 ## Workflow 4: Claude Code Bridge
 
-The bridge launches Claude Code CLI in tmux sessions, allowing remote control from any channel.
+The bridge launches Claude Code CLI in tmux sessions on the CEO's local MacBook, allowing channel-driven control (Telegram / Zalo / Web UI / CLI) of agent runs that all execute locally. "Remote" here means "remote channel" (e.g. Telegram from CEO's phone), not "remote host" — EndiorBot does not SSH or orchestrate on other machines (see `AGENTS.md` → "Handoff Boundary").
 
 ### Launch an Agent Session
 
@@ -974,7 +974,7 @@ endiorbot serve
 ### Zalo commands limited
 
 **Cause:** Zalo channel supports only 14 of 31 commands by design.
-**Solution:** Use Telegram for bridge commands (`/launch`, `/sessions`, `/capture`, etc.) and remote commands (`/repos`, `/focus`, `/sh`, etc.).
+**Solution:** Use Telegram for bridge commands (`/launch`, `/sessions`, `/capture`, etc.) and the channel-from-phone commands (`/repos`, `/focus`, `/sh`, etc. — all execute on the CEO's local MacBook where the gateway runs).
 
 ---
 
