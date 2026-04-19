@@ -231,7 +231,17 @@ async function serveAction(options: ServeOptions): Promise<void> {
     console.log(green(`  Gateway started on http://127.0.0.1:${port} (web) | ws://127.0.0.1:${port}/ws`));
 
     // Wire bus outbound events → WebSocket broadcast (Sprint 106, ADR-032)
-    // Web UI clients subscribed to "bus.response" receive async responses
+    // Web UI clients subscribed to "bus.response" receive async responses.
+    //
+    // Sprint 137 A9 stub for WebUI / Desktop progress: BusConsumer's A6
+    // heartbeats and A7 fallback announces are delivered to the originating
+    // OTT channel via msg.replyFn (P0-01 single-owner invariant). Web UI
+    // requests today bypass the bus entirely (gateway → ingress directly),
+    // so they never trigger BusConsumer ticks. When Web UI grows to publish
+    // through the bus, add a parallel `bus.progress` event class on the
+    // outbound broadcast (msg.isProgress is the discriminator already on
+    // BusOutboundMessage). CLI is sync-only and prints its own per-call
+    // spinner via process.stderr — also not in the bus path.
     bus.onOutbound((msg) => {
       server.broadcast({
         type: "bus.response",

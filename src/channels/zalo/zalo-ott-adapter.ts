@@ -63,6 +63,40 @@ function stripMarkdown(text: string): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"); // [text](url) → text
 }
 
+/**
+ * Sprint 137 A9: Zalo Bot API does not expose `editMessageText` in our
+ * integration, so we cannot do the in-place edit Telegram does (A8). Instead
+ * we throttle progress messages — only the FIRST progress tick per
+ * correlationId reaches Zalo, plus a fresh tick at most once per
+ * ZALO_PROGRESS_THROTTLE_MS afterwards. Final responses always go through.
+ *
+ * Override at runtime: ENDIORBOT_ZALO_PROGRESS_THROTTLE_MS (default 60_000).
+ */
+const ZALO_PROGRESS_THROTTLE_MS = (() => {
+  const raw = process.env.ENDIORBOT_ZALO_PROGRESS_THROTTLE_MS;
+  if (!raw) return 60_000;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 60_000;
+})();
+
+/**
+ * Decide whether a Zalo progress tick should be sent or dropped.
+ *
+ * Returns the new `lastSentMs` value to record, or `null` if the tick
+ * should be skipped (already sent within the throttle window).
+ *
+ * Exported for unit testing — pure function, no side effects.
+ */
+export function decideZaloProgressEmit(
+  lastSentMs: number | undefined,
+  nowMs: number,
+  throttleMs: number = ZALO_PROGRESS_THROTTLE_MS,
+): number | null {
+  if (lastSentMs === undefined) return nowMs;
+  if (nowMs - lastSentMs >= throttleMs) return nowMs;
+  return null;
+}
+
 // ============================================================================
 // Factory
 // ============================================================================
@@ -92,6 +126,11 @@ export function createZaloOttAdapter(
   let pollingActive = false;
   let pollTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // Sprint 137 A9: per-correlationId last-progress-sent timestamps.
+  // Adapter-owned (single-owner invariant — never on bus payload). Zalo lacks
+  // editMessage support so we throttle to one progress message per window.
+  const zaloProgressLastSent = new Map<string, number>();
+
   async function handleUpdate(update: ZaloBotUpdate): Promise<void> {
     if (update.event_name !== "message.text.received") return;
     const msg = update.message;
@@ -113,11 +152,29 @@ export function createZaloOttAdapter(
       if (bus) {
         const correlationId = createCorrelationId("zalo", msg.from.id);
 
-        // Zalo: opts intentionally unused — Zalo channel excluded from RL pipeline
-        // (no inline keyboard support, plain text only). See CTO review Sprint 115.
-        const replyFn: ChannelSendFn = async (text, _opts) => {
+        // Sprint 137 A9: Zalo replyFn. Honors `isProgress` by throttling
+        // progress messages — Zalo Bot API lacks editMessageText, so the
+        // alternative to Telegram's in-place edit (A8) is "drop the
+        // intermediate ticks, keep one heartbeat per ZALO_PROGRESS_THROTTLE_MS".
+        // Final responses always go through (they hit the non-progress branch).
+        // Zalo remains excluded from RL pipeline (no keyboard).
+        const replyFn: ChannelSendFn = async (text, opts) => {
           const plainText = stripMarkdown(text);
           const formattedText = truncateForZalo(plainText);
+          const cid = opts?.correlationId;
+
+          if (opts?.isProgress && cid) {
+            const decision = decideZaloProgressEmit(
+              zaloProgressLastSent.get(cid),
+              Date.now(),
+            );
+            if (decision === null) return true; // throttled — pretend delivered
+            zaloProgressLastSent.set(cid, decision);
+          } else if (cid && !opts?.isProgress) {
+            // Final response or error — clear throttle state for the cid.
+            zaloProgressLastSent.delete(cid);
+          }
+
           await sendMessage(token, { chat_id: msg.chat.id, text: formattedText });
           return true;
         };
