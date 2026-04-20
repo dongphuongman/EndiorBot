@@ -286,6 +286,36 @@ export interface OptimizedResponse {
 /**
  * Configuration for the evaluator loop.
  */
+/**
+ * Sprint 139 P0-1 (OpenMythos ACT analog): convergence guard configuration.
+ * Robust pattern per CPO: patience + minDelta + warmup, not raw decline count.
+ *
+ * The guard watches the score trajectory across evaluator iterations:
+ *   - `warmup`: number of initial iterations to skip before arming (allow the
+ *     optimizer to find its footing). 0 = arm from iteration 1.
+ *   - `patience`: consecutive non-improving iterations to tolerate before halting.
+ *     Non-improving = current score ≤ (bestScore - minDelta).
+ *   - `minDelta`: minimum absolute score improvement to count as "improving".
+ *     0 = any improvement counts; 1 = must gain ≥1 point to reset patience.
+ *
+ * CTO condition: uses `<=` not `<` — a flat score after decline counts as
+ * non-convergence.
+ */
+export interface ConvergenceGuardConfig {
+  /** Skip the first N iterations before arming the guard (default: 0) */
+  warmup: number;
+  /** Consecutive non-improving iterations to tolerate before halting (default: 2) */
+  patience: number;
+  /** Minimum score gain to count as improvement (default: 1) */
+  minDelta: number;
+}
+
+export const DEFAULT_CONVERGENCE_GUARD: ConvergenceGuardConfig = {
+  warmup: 0,
+  patience: 2,
+  minDelta: 1,
+};
+
 export interface LoopConfig {
   /** Whether loop is enabled */
   enabled: boolean;
@@ -300,6 +330,11 @@ export interface LoopConfig {
     /** Maximum optimization time in ms (default: 30000) */
     maxOptimizationTime: number;
   };
+  /**
+   * Sprint 139 P0-1: Convergence guard stops the loop when scores plateau
+   * or decline. Optional — omit or set patience to Infinity to disable.
+   */
+  convergenceGuard?: ConvergenceGuardConfig;
   /** CEO notification settings */
   notifications: {
     /** Whether to notify on low scores */

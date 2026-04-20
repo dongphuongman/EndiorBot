@@ -16,8 +16,9 @@ import type {
   EvaluationResult,
   ScoreCard,
   LoopConfig,
+  ConvergenceGuardConfig,
 } from './types.js';
-import { DEFAULT_SCORE_THRESHOLDS } from './types.js';
+import { DEFAULT_SCORE_THRESHOLDS, DEFAULT_CONVERGENCE_GUARD } from './types.js';
 
 const logger = createLogger('evaluator-loop');
 
@@ -78,7 +79,7 @@ export interface ProcessedResponse {
 /**
  * Event types for the loop.
  */
-export type LoopEventType = 'evaluated' | 'optimized' | 'failed' | 'skipped';
+export type LoopEventType = 'evaluated' | 'optimized' | 'failed' | 'skipped' | 'convergence_halted';
 
 /**
  * Event handler function.
@@ -256,6 +257,15 @@ export class EvaluatorLoop {
     try {
       const optimizationStart = Date.now();
 
+      // Sprint 139 P0-1 (OpenMythos ACT analog): convergence guard.
+      // Robust pattern (CPO: patience + minDelta + warmup).
+      // Tracks consecutive non-improving iterations after a warmup period.
+      // "Non-improving" = current score ≤ (bestScore - minDelta).
+      // Uses <= per CTO: flat score after decline is still non-convergence.
+      const cg: ConvergenceGuardConfig =
+        this.config.convergenceGuard ?? DEFAULT_CONVERGENCE_GUARD;
+      let nonImprovingStreak = 0;
+
       // Main optimization loop
       for (let iter = 0; iter < this.config.limits.maxRetries; iter++) {
         iterations++;
@@ -295,6 +305,38 @@ export class EvaluatorLoop {
           bestScore = currentEvaluation.scores.overall;
           bestResponse = currentResponse;
           bestEvaluation = currentEvaluation;
+        }
+
+        // Sprint 139 P0-1: Convergence guard (OpenMythos ACT analog).
+        // After warmup, check if this iteration improved by at least minDelta
+        // over bestScore. If not, increment the non-improving streak. Once the
+        // streak reaches `patience`, halt and return bestResponse.
+        if (iter >= cg.warmup) {
+          const improved = currentEvaluation.scores.overall > bestScore - cg.minDelta;
+          if (!improved) {
+            nonImprovingStreak++;
+            if (nonImprovingStreak >= cg.patience) {
+              logger.info('Convergence guard: non-improving streak reached patience limit', {
+                responseId: response.id,
+                iterations,
+                bestScore,
+                currentScore: currentEvaluation.scores.overall,
+                patience: cg.patience,
+                warmup: cg.warmup,
+                minDelta: cg.minDelta,
+                nonImprovingStreak,
+              });
+              this.emitEvent({
+                type: 'convergence_halted',
+                responseId: response.id,
+                score: bestScore,
+                timestamp: new Date().toISOString(),
+              });
+              break;
+            }
+          } else {
+            nonImprovingStreak = 0;
+          }
         }
 
         // Early exit on PASS (CTO spec)
