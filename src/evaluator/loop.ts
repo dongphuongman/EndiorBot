@@ -196,6 +196,18 @@ export class EvaluatorLoop {
    * @param passThreshold - Score threshold to pass (default: minOverall from config)
    * @returns Processed response with evaluation and possible optimization
    */
+  /**
+   * Process a response through the evaluator-optimizer loop.
+   *
+   * Sprint 139 P0-2: threshold precedence (W3 doc fix):
+   *   1. `ADAPTIVE_LOOP_PARAMS[complexity].passThreshold` — when complexity is set
+   *   2. `passThreshold` parameter — explicit caller override
+   *   3. `this.config.thresholds.minOverall` — static config fallback
+   *
+   * When `complexity` is provided, it overrides BOTH maxRetries AND passThreshold
+   * from ADAPTIVE_LOOP_PARAMS. The explicit `passThreshold` parameter is only used
+   * when no complexity is set.
+   */
   async processResponse(
     response: AgentResponse,
     passThreshold?: number,
@@ -218,11 +230,13 @@ export class EvaluatorLoop {
         threshold,
         staticMaxRetries: this.config.limits.maxRetries,
       });
+      // W2 fix: include iterationsSaved for telemetry consumers
       this.emitEvent({
-        type: 'iteration_budget_applied' as LoopEventType,
+        type: 'iteration_budget_applied',
         responseId: response.id,
-        score: 0,
+        score: effectiveMaxRetries,
         timestamp: new Date().toISOString(),
+        strategy: `complexity=${complexity}, saved=${this.config.limits.maxRetries - effectiveMaxRetries}`,
       });
     }
 
@@ -372,8 +386,8 @@ export class EvaluatorLoop {
         // over bestScore. If not, increment the non-improving streak. Once the
         // streak reaches `patience`, halt and return bestResponse.
         if (iter >= cg.warmup) {
-          const improved = currentEvaluation.scores.overall > bestScore - cg.minDelta;
-          if (!improved) {
+          const meetsConvergenceCriteria = currentEvaluation.scores.overall > bestScore - cg.minDelta;
+          if (!meetsConvergenceCriteria) {
             nonImprovingStreak++;
             if (nonImprovingStreak >= cg.patience) {
               logger.info('Convergence guard: non-improving streak reached patience limit', {

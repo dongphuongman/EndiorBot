@@ -162,9 +162,9 @@ export class Optimizer {
    *
    * Sprint 139 P1-4 (OpenMythos loop-index analog): when `iterationIndex`
    * is provided, strategy priority is adjusted per iteration tier:
-   *   - Early (0):  favor low-risk (rephrase, add-context)
-   *   - Middle (1): favor mid-risk (reduce-scope, decompose)
-   *   - Late (2+):  favor high-impact (escalate-model, decompose)
+   *   - Early (0):  boost low-risk (rephrase, add-context); penalize aggressive
+   *   - Middle (1): no adjustment — use base priority as-is (W7 fix)
+   *   - Late (2+):  boost high-impact (escalate-model, decompose); penalize safe
    */
   selectStrategy(scoreCard: ScoreCard, iterationIndex?: number): OptimizationStrategy | null {
     const strategies = this.selectStrategies(scoreCard, 3, iterationIndex);
@@ -270,10 +270,13 @@ export class Optimizer {
   ): Promise<OptimizedResponse> {
     const attemptNumber = this.getAttemptCount(response.id, strategy.name) + 1;
 
+    // B5 fix: include iterationIndex in log payloads for telemetry evidence
     logger.info("Starting optimization", {
       responseId: response.id,
       strategy: strategy.name,
       attemptNumber,
+      iterationIndex,
+      totalIterations,
     });
 
     // Check if max attempts exceeded
@@ -306,11 +309,23 @@ export class Optimizer {
         durationMs: Date.now() - startTime,
       };
 
+      // B5 fix: include iterationIndex in completion log
       logger.info("Optimization complete", {
         responseId: response.id,
         strategy: strategy.name,
         durationMs: result.durationMs,
+        iterationIndex,
       });
+
+      // B2 fix: emit frozen_context_injected telemetry with token count
+      if (frozenContext) {
+        const frozenTokens = Math.ceil(frozenContext.originalTask.length / 4);
+        logger.info("Frozen context injected", {
+          responseId: response.id,
+          frozenTokens,
+          truncated: frozenContext.originalTask.length > FROZEN_CONTEXT_CHAR_CAP,
+        });
+      }
 
       return result;
     } catch (error) {
@@ -408,10 +423,10 @@ export class Optimizer {
     const frozenBlock = this.buildFrozenContextBlock(frozenContext);
     const iterGuide = this.buildIterationGuidance(iterationIndex, totalIterations);
 
-    // Build enhanced prompt
+    // Build enhanced prompt — frozenBlock + iterGuide ALWAYS prepended (B3/BG1 fix)
     let enhancedTask = frozenBlock + iterGuide + response.task;
     if (params.additionalContext) {
-      enhancedTask = `${frozenBlock}${response.task}\n\nAdditional context: ${params.additionalContext}`;
+      enhancedTask = `${frozenBlock}${iterGuide}${response.task}\n\nAdditional context: ${params.additionalContext}`;
     }
 
     const messages: Message[] = [
@@ -500,7 +515,7 @@ export class Optimizer {
   private async applyModifyStrategy(
     response: AgentResponse,
     strategy: OptimizationStrategy,
-    _frozenContext?: FrozenContext,
+    frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     const provider = await this.getProvider();
     const params = strategy.action.params as {
@@ -508,11 +523,16 @@ export class Optimizer {
       simplify?: boolean;
     };
 
+    // B4 fix: frozen context anchors the modification to the original CEO task.
+    // The LLM simplifies/modifies the task, but the frozen block ensures the
+    // original intent is preserved in the modification prompt.
+    const frozenBlock = this.buildFrozenContextBlock(frozenContext);
+
     let prompt: string;
     if (params.simplify) {
-      prompt = `The following task prompt may be too complex. Simplify it while preserving the core requirements:\n\nOriginal task: ${response.task}\n\nSimplified task:`;
+      prompt = `${frozenBlock}The following task prompt may be too complex. Simplify it while preserving the core requirements:\n\nOriginal task: ${response.task}\n\nSimplified task:`;
     } else {
-      prompt = `Modify the following task based on this instruction: ${params.modification}\n\nOriginal task: ${response.task}\n\nModified task:`;
+      prompt = `${frozenBlock}Modify the following task based on this instruction: ${params.modification}\n\nOriginal task: ${response.task}\n\nModified task:`;
     }
 
     const messages: Message[] = [
@@ -526,11 +546,12 @@ export class Optimizer {
       maxTokens: 500,
     });
 
-    // Now execute with simplified task
+    // Now execute with simplified task — prepend frozen block so execution
+    // stays anchored to the CEO's original request even after modification.
     const simplifiedTask = simplifyResponse.content;
 
     const executeMessages: Message[] = [
-      { role: "user", content: simplifiedTask },
+      { role: "user", content: frozenBlock + simplifiedTask },
     ];
 
     const chatResponse = await provider.chat({
@@ -571,20 +592,26 @@ export class Optimizer {
       formatting?: string;
     };
 
+    // B3 fix: frozenBlock ALWAYS prepended; enhancement suffixes appended
+    // after the base task, not replacing it.
     const frozenBlock = this.buildFrozenContextBlock(frozenContext);
-    let enhancedTask = frozenBlock + response.task;
+    const suffixes: string[] = [];
 
     if (params.addExamples) {
-      enhancedTask = `${response.task}\n\nPlease include concrete examples to illustrate your answer.`;
+      suffixes.push("Please include concrete examples to illustrate your answer.");
     }
 
     if (params.securityReview) {
-      enhancedTask = `${response.task}\n\nIMPORTANT: Ensure your response follows security best practices. Avoid exposing secrets, use parameterized queries, and validate all inputs.`;
+      suffixes.push("IMPORTANT: Ensure your response follows security best practices. Avoid exposing secrets, use parameterized queries, and validate all inputs.");
     }
 
     if (params.formatting) {
-      enhancedTask = `${response.task}\n\nPlease format your response as: ${params.formatting}`;
+      suffixes.push(`Please format your response as: ${params.formatting}`);
     }
+
+    const enhancedTask = suffixes.length > 0
+      ? `${frozenBlock}${response.task}\n\n${suffixes.join("\n\n")}`
+      : frozenBlock + response.task;
 
     const messages: Message[] = [
       { role: "user", content: enhancedTask },

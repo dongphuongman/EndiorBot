@@ -8,9 +8,9 @@
  *   - iterationIndex + totalIterations are threaded to optimizer
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Optimizer } from "../../src/evaluator/optimizer.js";
-import type { ScoreCard, OptimizationStrategy } from "../../src/evaluator/types.js";
+import type { OptimizationStrategy } from "../../src/evaluator/types.js";
 
 // ---------------------------------------------------------------------------
 // Iteration guidance text
