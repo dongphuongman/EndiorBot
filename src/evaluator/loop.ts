@@ -421,7 +421,8 @@ export class EvaluatorLoop {
         }
 
         // Select strategy for lowest-scoring dimension
-        const strategy = this.optimizer.selectStrategy(currentEvaluation.scores);
+        // Sprint 139 P1-4: pass iteration index for iteration-aware strategy selection
+        const strategy = this.optimizer.selectStrategy(currentEvaluation.scores, iter);
 
         // Exit when no strategy available (CTO spec - prevents infinite loop)
         if (!strategy) {
@@ -441,11 +442,14 @@ export class EvaluatorLoop {
         try {
           // Sprint 139 P1-3: pass frozenCtx so the optimizer re-anchors
           // to the CEO's original task at every iteration.
+          // Sprint 139 P1-4: pass iteration index + total for iteration-aware prompting.
           const optimized = await this.optimizer.optimize(
             currentResponse,
             strategy,
             currentEvaluation.scores,
             frozenCtx,
+            iter,
+            effectiveMaxRetries,
           );
 
           // Update current response for next iteration

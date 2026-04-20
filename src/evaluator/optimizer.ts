@@ -157,15 +157,25 @@ export class Optimizer {
   /**
    * Select the best strategy for the given score card.
    */
-  selectStrategy(scoreCard: ScoreCard): OptimizationStrategy | null {
-    const strategies = this.selectStrategies(scoreCard, 1);
+  /**
+   * Select the best strategy for the current iteration.
+   *
+   * Sprint 139 P1-4 (OpenMythos loop-index analog): when `iterationIndex`
+   * is provided, strategy priority is adjusted per iteration tier:
+   *   - Early (0):  favor low-risk (rephrase, add-context)
+   *   - Middle (1): favor mid-risk (reduce-scope, decompose)
+   *   - Late (2+):  favor high-impact (escalate-model, decompose)
+   */
+  selectStrategy(scoreCard: ScoreCard, iterationIndex?: number): OptimizationStrategy | null {
+    const strategies = this.selectStrategies(scoreCard, 3, iterationIndex);
     return strategies[0] ?? null;
   }
 
   /**
    * Select multiple applicable strategies for the given score card.
+   * Sprint 139 P1-4: `iterationIndex` adjusts priority weights.
    */
-  selectStrategies(scoreCard: ScoreCard, max: number = 3): OptimizationStrategy[] {
+  selectStrategies(scoreCard: ScoreCard, max: number = 3, iterationIndex?: number): OptimizationStrategy[] {
     const applicable: OptimizationStrategy[] = [];
 
     // Get all strategies sorted by priority
@@ -176,16 +186,48 @@ export class Optimizer {
       if (this.isOnCooldown(strategy.name)) continue;
       if (this.checkTrigger(strategy.trigger, scoreCard)) {
         applicable.push(strategy);
-        if (applicable.length >= max) break;
       }
     }
 
+    // Sprint 139 P1-4: re-sort by iteration-aware priority when iterationIndex is set.
+    if (iterationIndex !== undefined && applicable.length > 1) {
+      applicable.sort((a, b) => {
+        const aPriority = this.iterationAdjustedPriority(a, iterationIndex);
+        const bPriority = this.iterationAdjustedPriority(b, iterationIndex);
+        return bPriority - aPriority;
+      });
+    }
+
+    const result = applicable.slice(0, max);
+
     logger.debug("Selected strategies", {
-      count: applicable.length,
-      names: applicable.map((s) => s.name),
+      count: result.length,
+      names: result.map((s) => s.name),
+      iterationIndex,
     });
 
-    return applicable;
+    return result;
+  }
+
+  /**
+   * Sprint 139 P1-4: adjust strategy priority based on iteration tier.
+   * Early iterations prefer safe strategies; late iterations prefer aggressive ones.
+   */
+  private iterationAdjustedPriority(strategy: OptimizationStrategy, iterationIndex: number): number {
+    const base = strategy.priority;
+    const name = strategy.name;
+
+    if (iterationIndex <= 0) {
+      // Early: boost safe strategies, penalize aggressive ones
+      if (name === "rephrase" || name === "add-context") return base + 20;
+      if (name === "escalate-model" || name === "decompose") return base - 10;
+    } else if (iterationIndex >= 2) {
+      // Late: boost aggressive strategies, penalize safe ones
+      if (name === "escalate-model" || name === "decompose") return base + 20;
+      if (name === "rephrase" || name === "add-context") return base - 10;
+    }
+    // Middle (iterationIndex === 1): no adjustment — base priority
+    return base;
   }
 
   /**
@@ -223,6 +265,8 @@ export class Optimizer {
     strategy: OptimizationStrategy,
     scoreCard: ScoreCard,
     frozenContext?: FrozenContext,
+    iterationIndex?: number,
+    totalIterations?: number,
   ): Promise<OptimizedResponse> {
     const attemptNumber = this.getAttemptCount(response.id, strategy.name) + 1;
 
@@ -246,7 +290,8 @@ export class Optimizer {
       // Apply the optimization based on action type
       // Sprint 139 P1-3: thread frozenContext so each strategy re-anchors to the
       // original CEO task (OpenMythos frozen input `e` pattern).
-      const optimizedResponse = await this.applyOptimization(response, strategy, frozenContext);
+      // Sprint 139 P1-4: thread iterationIndex for iteration-aware prompting.
+      const optimizedResponse = await this.applyOptimization(response, strategy, frozenContext, iterationIndex, totalIterations);
 
       // Set cooldown
       this.setCooldown(strategy.name, strategy.cooldownMs);
@@ -285,10 +330,12 @@ export class Optimizer {
     response: AgentResponse,
     strategy: OptimizationStrategy,
     frozenContext?: FrozenContext,
+    iterationIndex?: number,
+    totalIterations?: number,
   ): Promise<AgentResponse> {
     switch (strategy.action.type) {
       case "retry":
-        return this.applyRetryStrategy(response, strategy, frozenContext);
+        return this.applyRetryStrategy(response, strategy, frozenContext, iterationIndex, totalIterations);
       case "escalate":
         return this.applyEscalateStrategy(response, strategy, frozenContext);
       case "modify":
@@ -298,6 +345,23 @@ export class Optimizer {
       default:
         throw new Error(`Unknown action type: ${strategy.action.type}`);
     }
+  }
+
+  /**
+   * Sprint 139 P1-4 (OpenMythos loop-index analog): generate iteration-aware
+   * guidance text for the optimization prompt. Each tier gets qualitatively
+   * different instructions so retries are distinct, not redundant.
+   */
+  buildIterationGuidance(iterationIndex?: number, totalIterations?: number): string {
+    if (iterationIndex === undefined) return "";
+    const total = totalIterations ?? "?";
+    if (iterationIndex <= 0) {
+      return `[Optimization attempt ${iterationIndex + 1}/${total}] This is the first refinement. Focus on the lowest-scoring dimension. Make targeted, minimal improvements.\n\n`;
+    }
+    if (iterationIndex === 1) {
+      return `[Optimization attempt ${iterationIndex + 1}/${total}] Previous refinement did not reach threshold. Try a different approach from the first attempt — rethink the structure or strategy.\n\n`;
+    }
+    return `[Optimization attempt ${iterationIndex + 1}/${total}] Multiple refinements attempted without convergence. Consider restructuring the response entirely or addressing a fundamentally different dimension.\n\n`;
   }
 
   /**
@@ -328,6 +392,8 @@ export class Optimizer {
     response: AgentResponse,
     strategy: OptimizationStrategy,
     frozenContext?: FrozenContext,
+    iterationIndex?: number,
+    totalIterations?: number,
   ): Promise<AgentResponse> {
     const provider = await this.getProvider(response.model);
     const params = strategy.action.params as {
@@ -338,10 +404,12 @@ export class Optimizer {
 
     // Sprint 139 P1-3: prepend frozen context so the optimizer stays anchored
     // to the original CEO task, even across multiple refinement iterations.
+    // Sprint 139 P1-4: add iteration-aware guidance for qualitatively different retries.
     const frozenBlock = this.buildFrozenContextBlock(frozenContext);
+    const iterGuide = this.buildIterationGuidance(iterationIndex, totalIterations);
 
     // Build enhanced prompt
-    let enhancedTask = frozenBlock + response.task;
+    let enhancedTask = frozenBlock + iterGuide + response.task;
     if (params.additionalContext) {
       enhancedTask = `${frozenBlock}${response.task}\n\nAdditional context: ${params.additionalContext}`;
     }
