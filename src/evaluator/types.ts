@@ -39,6 +39,32 @@ export const ADAPTIVE_LOOP_PARAMS: Record<TaskComplexity, {
 export type { TaskComplexity };
 
 // ============================================================================
+// Frozen Input Injection (Sprint 139 P1-3, OpenMythos frozen `e` analog)
+// ============================================================================
+
+/**
+ * Sprint 139 P1-3: Frozen context re-injected at every optimizer iteration.
+ * OpenMythos analog: the encoded input `e` from Prelude is frozen (detached)
+ * and re-injected at every recurrent loop iteration, preventing hidden state
+ * drift from the original signal.
+ *
+ * In EndiorBot: the CEO's original task + SOUL identity are preserved across
+ * optimizer iterations so the response doesn't drift from the original request.
+ */
+export interface FrozenContext {
+  /** CEO's original question — immutable across iterations */
+  originalTask: string;
+  /** Agent SOUL identity string (optional) */
+  soulIdentity?: string;
+  /** Non-negotiable constraints (e.g. "LOCAL-ONLY") */
+  constraints?: string;
+}
+
+/** Max token count for frozen context (CTO condition: 500). chars/4 estimate. */
+export const FROZEN_CONTEXT_TOKEN_CAP = 500;
+export const FROZEN_CONTEXT_CHAR_CAP = FROZEN_CONTEXT_TOKEN_CAP * 4; // 2000 chars
+
+// ============================================================================
 // Score Card Types
 // ============================================================================
 

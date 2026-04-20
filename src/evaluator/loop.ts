@@ -18,6 +18,7 @@ import type {
   LoopConfig,
   ConvergenceGuardConfig,
   TaskComplexity,
+  FrozenContext,
 } from './types.js';
 import { DEFAULT_SCORE_THRESHOLDS, DEFAULT_CONVERGENCE_GUARD, ADAPTIVE_LOOP_PARAMS } from './types.js';
 
@@ -281,6 +282,13 @@ export class EvaluatorLoop {
     try {
       const optimizationStart = Date.now();
 
+      // Sprint 139 P1-3 (OpenMythos frozen input analog): construct frozen
+      // context ONCE from the original response. Passed to every optimize() call
+      // so the optimizer stays anchored to the CEO's original task.
+      const frozenCtx: FrozenContext = {
+        originalTask: response.task,
+      };
+
       // Sprint 139 P0-1 (OpenMythos ACT analog): convergence guard.
       // Robust pattern (CPO: patience + minDelta + warmup).
       // Tracks consecutive non-improving iterations after a warmup period.
@@ -431,10 +439,13 @@ export class EvaluatorLoop {
         });
 
         try {
+          // Sprint 139 P1-3: pass frozenCtx so the optimizer re-anchors
+          // to the CEO's original task at every iteration.
           const optimized = await this.optimizer.optimize(
             currentResponse,
             strategy,
-            currentEvaluation.scores
+            currentEvaluation.scores,
+            frozenCtx,
           );
 
           // Update current response for next iteration

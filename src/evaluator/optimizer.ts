@@ -18,6 +18,8 @@ import {
   type OptimizedResponse,
   type AgentResponse,
   type StrategyTrigger,
+  type FrozenContext,
+  FROZEN_CONTEXT_CHAR_CAP,
   getDimensionsBelowThreshold,
 } from "./types.js";
 
@@ -219,7 +221,8 @@ export class Optimizer {
   async optimize(
     response: AgentResponse,
     strategy: OptimizationStrategy,
-    scoreCard: ScoreCard
+    scoreCard: ScoreCard,
+    frozenContext?: FrozenContext,
   ): Promise<OptimizedResponse> {
     const attemptNumber = this.getAttemptCount(response.id, strategy.name) + 1;
 
@@ -241,7 +244,9 @@ export class Optimizer {
 
     try {
       // Apply the optimization based on action type
-      const optimizedResponse = await this.applyOptimization(response, strategy);
+      // Sprint 139 P1-3: thread frozenContext so each strategy re-anchors to the
+      // original CEO task (OpenMythos frozen input `e` pattern).
+      const optimizedResponse = await this.applyOptimization(response, strategy, frozenContext);
 
       // Set cooldown
       this.setCooldown(strategy.name, strategy.cooldownMs);
@@ -278,25 +283,51 @@ export class Optimizer {
    */
   private async applyOptimization(
     response: AgentResponse,
-    strategy: OptimizationStrategy
+    strategy: OptimizationStrategy,
+    frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     switch (strategy.action.type) {
       case "retry":
-        return this.applyRetryStrategy(response, strategy);
+        return this.applyRetryStrategy(response, strategy, frozenContext);
       case "escalate":
-        return this.applyEscalateStrategy(response, strategy);
+        return this.applyEscalateStrategy(response, strategy, frozenContext);
       case "modify":
-        return this.applyModifyStrategy(response, strategy);
+        return this.applyModifyStrategy(response, strategy, frozenContext);
       case "enhance":
-        return this.applyEnhanceStrategy(response, strategy);
+        return this.applyEnhanceStrategy(response, strategy, frozenContext);
       default:
         throw new Error(`Unknown action type: ${strategy.action.type}`);
     }
   }
 
+  /**
+   * Sprint 139 P1-3: Build a frozen context prefix for the optimization prompt.
+   * Caps at FROZEN_CONTEXT_CHAR_CAP (CTO condition: 500 tokens ≈ 2000 chars).
+   */
+  private buildFrozenContextBlock(ctx?: FrozenContext): string {
+    if (!ctx) return "";
+    const parts: string[] = [
+      "## FROZEN CONTEXT (do not deviate from this)",
+    ];
+    let task = ctx.originalTask;
+    if (task.length > FROZEN_CONTEXT_CHAR_CAP) {
+      task = task.slice(0, FROZEN_CONTEXT_CHAR_CAP - 20) + "\n[...truncated]";
+    }
+    parts.push(`Original Task: ${task}`);
+    if (ctx.soulIdentity) {
+      parts.push(`Agent Identity: ${ctx.soulIdentity.slice(0, 200)}`);
+    }
+    if (ctx.constraints) {
+      parts.push(`Constraints: ${ctx.constraints}`);
+    }
+    parts.push("---");
+    return parts.join("\n") + "\n\n";
+  }
+
   private async applyRetryStrategy(
     response: AgentResponse,
-    strategy: OptimizationStrategy
+    strategy: OptimizationStrategy,
+    frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     const provider = await this.getProvider(response.model);
     const params = strategy.action.params as {
@@ -305,10 +336,14 @@ export class Optimizer {
       maxTokens?: number;
     };
 
+    // Sprint 139 P1-3: prepend frozen context so the optimizer stays anchored
+    // to the original CEO task, even across multiple refinement iterations.
+    const frozenBlock = this.buildFrozenContextBlock(frozenContext);
+
     // Build enhanced prompt
-    let enhancedTask = response.task;
+    let enhancedTask = frozenBlock + response.task;
     if (params.additionalContext) {
-      enhancedTask = `${response.task}\n\nAdditional context: ${params.additionalContext}`;
+      enhancedTask = `${frozenBlock}${response.task}\n\nAdditional context: ${params.additionalContext}`;
     }
 
     const messages: Message[] = [
@@ -345,7 +380,8 @@ export class Optimizer {
 
   private async applyEscalateStrategy(
     response: AgentResponse,
-    strategy: OptimizationStrategy
+    strategy: OptimizationStrategy,
+    frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     if (!this.config.allowEscalation) {
       throw new Error("Model escalation is disabled");
@@ -360,8 +396,9 @@ export class Optimizer {
 
     const provider = await this.getProvider(targetModel);
 
+    const frozenBlock = this.buildFrozenContextBlock(frozenContext);
     const messages: Message[] = [
-      { role: "user", content: response.task },
+      { role: "user", content: frozenBlock + response.task },
     ];
 
     const request: ChatRequest = {
@@ -394,7 +431,8 @@ export class Optimizer {
 
   private async applyModifyStrategy(
     response: AgentResponse,
-    strategy: OptimizationStrategy
+    strategy: OptimizationStrategy,
+    _frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     const provider = await this.getProvider();
     const params = strategy.action.params as {
@@ -455,7 +493,8 @@ export class Optimizer {
 
   private async applyEnhanceStrategy(
     response: AgentResponse,
-    strategy: OptimizationStrategy
+    strategy: OptimizationStrategy,
+    frozenContext?: FrozenContext,
   ): Promise<AgentResponse> {
     const provider = await this.getProvider(response.model);
     const params = strategy.action.params as {
@@ -464,7 +503,8 @@ export class Optimizer {
       formatting?: string;
     };
 
-    let enhancedTask = response.task;
+    const frozenBlock = this.buildFrozenContextBlock(frozenContext);
+    let enhancedTask = frozenBlock + response.task;
 
     if (params.addExamples) {
       enhancedTask = `${response.task}\n\nPlease include concrete examples to illustrate your answer.`;
