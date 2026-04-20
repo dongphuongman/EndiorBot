@@ -54,4 +54,31 @@ Scaffold outputs and agent guidance: [`reference/templates/`](reference/template
 
 ---
 
-*EndiorBot | docs/ stage index | SDLC 6.3.0*
+## Current state (Sprint 135, 2026-04-12)
+
+| Metric | Value |
+|--------|-------|
+| Tests | 7,921 passing |
+| CLI commands | ~35 |
+| OTT commands | 30+ (Telegram + Zalo) |
+| SOUL agents | 14 + preamble |
+| AI providers | 6 (Anthropic, OpenAI, Gemini, GitHub, Ollama, Claude Code) |
+| Channels | 4 (CLI, Web, Telegram, Zalo) + Desktop (Electron) |
+
+### Sprint 131-135 capabilities (openclaw backport + surface parity)
+
+| Capability | Backend | CLI | OTT | Web API | Ref |
+|------------|---------|-----|-----|---------|-----|
+| Command discovery | `cmd.list` RPC | `endiorbot commands` | `/commands` | JSON-RPC | Sprint 132 M0 |
+| Exec-policy | 9-module cluster | 6 subcommands | `/exec-policy show\|preset\|audit` | `POST /api/config/exec-policy/preset` | Sprint 132 M1 |
+| Active Memory | Cache-first context refresh | env toggle | `/config active-memory on\|off` | `POST /api/config/active-memory` | Sprint 133 S1 |
+| SSRF defense | `safeFetch` + `http-validator.ts` | — | `/audit ssrf` | `GET /api/audit/ssrf` | Sprint 133 S2 |
+| Config SSOT | `src/config/timeouts.ts` | env vars | `/config` view | `GET /api/config` | Sprint 134 |
+| Webhooks ingress | `POST /api/webhooks/:triggerId` | — | `/webhooks list\|test` | `GET /api/audit/webhooks` | Sprint 134 |
+| Unified audit | JSONL logs | `exec-policy audit` | `/audit exec-policy\|ssrf\|webhooks` | `GET /api/audit/:type` | Sprint 135 |
+
+Key docs: [ADR-046 (exec-policy)](02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md) · [Deploy guide](06-deploy/README.md) · [Usage guide](07-operate/USAGE-GUIDE.md) · [Openclaw backport PRD](01-planning/openclaw-backport/PRD.md)
+
+---
+
+*EndiorBot | docs/ stage index | SDLC 6.3.0 | Updated Sprint 135*

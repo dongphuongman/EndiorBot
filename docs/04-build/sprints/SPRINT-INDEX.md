@@ -2,7 +2,7 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.3.0
-**Last Updated**: 2026-04-11 (Sprint 132 COMPLETE — openclaw Backport M0 + M1; 7,786 tests)
+**Last Updated**: 2026-04-12 (Sprint 134 COMPLETE — Config + Webhooks; Sprint 135 PLANNED)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 133 | TBD | S1 Active Memory + S2 SSRF Audit (PLANNING) | 📋 PLANNING | — |
+| Sprint 135 | Apr 12, 2026 | Surface Parity — OTT + Web API for Sprint 131-134 features | 📋 PLANNED | [sprint-135](sprint-135-surface-parity.md) |
 
 ## Deferred Sprint
 
@@ -22,10 +22,12 @@
 
 ## Completed Sprints
 
-### Tier 8: openclaw Backport + Autonomous Execution Policy (Sprint 130-132)
+### Tier 8: openclaw Backport + Config + Surface Parity (Sprint 130-135)
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 134 | Apr 11, 2026 | Config externalization + timeouts SSOT + C2 webhooks ingress (closes Plan v3) | ✅ COMPLETE (CTO 9/10) | [sprint-134](sprint-134-config-webhooks.md) |
+| Sprint 133 | Apr 11, 2026 | S1 Active Memory + S2 SSRF defense + 8 bug fixes (dogfooding) | ✅ COMPLETE (CTO 9.5/10) | [sprint-133](sprint-133-active-memory-ssrf.md) |
 | Sprint 132 | Apr 11, 2026 | openclaw Backport M0 (cmd.list RPC) + M1 (exec-policy cluster) + ADR-046 full expansion + Amendment 1 | ✅ COMPLETE (CTO 9.5/10) | [sprint-132](sprint-132-openclaw-backport.md) |
 | Sprint 131 | Apr 10, 2026 | CRG wiring + auto-handoff + per-task state machine + UX wins + ADR-046 STUB | ✅ COMPLETE (CPO accepted post-merge) | [sprint-131](sprint-131-crg-wiring-knowledge-velocity.md) |
 | Sprint 130 | Apr 2026 | Security + ADR + Chat | ✅ COMPLETE | [sprint-130](sprint-130-security-adr-chat.md) |
