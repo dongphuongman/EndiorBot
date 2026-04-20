@@ -17,8 +17,9 @@ import type {
   ScoreCard,
   LoopConfig,
   ConvergenceGuardConfig,
+  TaskComplexity,
 } from './types.js';
-import { DEFAULT_SCORE_THRESHOLDS, DEFAULT_CONVERGENCE_GUARD } from './types.js';
+import { DEFAULT_SCORE_THRESHOLDS, DEFAULT_CONVERGENCE_GUARD, ADAPTIVE_LOOP_PARAMS } from './types.js';
 
 const logger = createLogger('evaluator-loop');
 
@@ -79,7 +80,7 @@ export interface ProcessedResponse {
 /**
  * Event types for the loop.
  */
-export type LoopEventType = 'evaluated' | 'optimized' | 'failed' | 'skipped' | 'convergence_halted';
+export type LoopEventType = 'evaluated' | 'optimized' | 'failed' | 'skipped' | 'convergence_halted' | 'iteration_budget_applied';
 
 /**
  * Event handler function.
@@ -196,10 +197,33 @@ export class EvaluatorLoop {
    */
   async processResponse(
     response: AgentResponse,
-    passThreshold?: number
+    passThreshold?: number,
+    complexity?: TaskComplexity,
   ): Promise<ProcessedResponse> {
     const startTime = Date.now();
-    const threshold = passThreshold ?? this.config.thresholds.minOverall;
+
+    // Sprint 139 P0-2 (OpenMythos variable-depth analog): resolve effective
+    // loop limits from TaskComplexity. When complexity is provided, the
+    // ADAPTIVE_LOOP_PARAMS map overrides the static config.
+    const adaptiveParams = complexity ? ADAPTIVE_LOOP_PARAMS[complexity] : undefined;
+    const effectiveMaxRetries = adaptiveParams?.maxRetries ?? this.config.limits.maxRetries;
+    const threshold = adaptiveParams?.passThreshold ?? passThreshold ?? this.config.thresholds.minOverall;
+
+    if (adaptiveParams) {
+      logger.info('Adaptive iteration budget applied', {
+        responseId: response.id,
+        complexity,
+        effectiveMaxRetries,
+        threshold,
+        staticMaxRetries: this.config.limits.maxRetries,
+      });
+      this.emitEvent({
+        type: 'iteration_budget_applied' as LoopEventType,
+        responseId: response.id,
+        score: 0,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Check if loop is running
     if (this.state !== 'running') {
@@ -266,8 +290,36 @@ export class EvaluatorLoop {
         this.config.convergenceGuard ?? DEFAULT_CONVERGENCE_GUARD;
       let nonImprovingStreak = 0;
 
+      // Sprint 139 P0-2: simple-task fast path.
+      // CPO condition: 0 optimize iterations + 1 lightweight eval (not total
+      // skip — the score is recorded for telemetry). When effectiveMaxRetries
+      // is 0, run a single evaluation and return immediately.
+      if (effectiveMaxRetries === 0) {
+        const singleEval = await this.evaluator.evaluate(response);
+        this.metrics.totalEvaluated++;
+        this.scoreHistory.push(singleEval.scores.overall);
+        this.updateDimensionAverages(singleEval.scores);
+        this.storeFeedbackEntry(response, singleEval, undefined, false);
+
+        logger.info('Simple-task fast path: 1 eval, 0 optimize iterations', {
+          responseId: response.id,
+          complexity,
+          score: singleEval.scores.overall,
+        });
+
+        return {
+          original: response,
+          evaluation: singleEval,
+          finalScore: singleEval.scores.overall,
+          iterations: 1,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
       // Main optimization loop
-      for (let iter = 0; iter < this.config.limits.maxRetries; iter++) {
+      // Sprint 139 P0-2: use effectiveMaxRetries (adaptive per complexity)
+      // instead of static this.config.limits.maxRetries.
+      for (let iter = 0; iter < effectiveMaxRetries; iter++) {
         iterations++;
 
         // Evaluate current response
@@ -351,7 +403,7 @@ export class EvaluatorLoop {
         }
 
         // Don't optimize on last iteration
-        if (iter >= this.config.limits.maxRetries - 1) {
+        if (iter >= effectiveMaxRetries - 1) {
           break;
         }
 

@@ -3,9 +3,40 @@
  *
  * Core type definitions for the self-improving feedback loop.
  * Implements ADR-010: Evaluator-Optimizer Loop.
+ * Sprint 139 (ADR-050): OpenMythos-inspired adaptive loop patterns.
  *
  * @module evaluator/types
  */
+
+import type { TaskComplexity } from "../agents/types.js";
+
+// ============================================================================
+// Adaptive Loop Budget (Sprint 139 P0-2, OpenMythos variable-depth analog)
+// ============================================================================
+
+/**
+ * Sprint 139 P0-2: Complexity → loop iteration budget mapping.
+ * OpenMythos analog: variable `max_loop_iters` (1-64) per task difficulty.
+ *
+ * Controls how deeply the evaluator loop iterates per request. Simple CEO
+ * questions skip the evaluator entirely (0 iterations), while critical
+ * architecture decisions get an extended loop with a higher quality bar.
+ *
+ * CPO condition: "simple" gets 0 optimize iterations + 1 lightweight eval
+ * (not a total skip — the score is still recorded for telemetry).
+ */
+export const ADAPTIVE_LOOP_PARAMS: Record<TaskComplexity, {
+  maxRetries: number;
+  passThreshold: number;
+}> = {
+  simple:   { maxRetries: 0, passThreshold: 0 },
+  moderate: { maxRetries: 1, passThreshold: 50 },
+  complex:  { maxRetries: 3, passThreshold: 65 },
+  critical: { maxRetries: 5, passThreshold: 75 },
+};
+
+// Re-export TaskComplexity for downstream consumers
+export type { TaskComplexity };
 
 // ============================================================================
 // Score Card Types
