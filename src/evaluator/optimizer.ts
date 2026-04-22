@@ -155,9 +155,6 @@ export class Optimizer {
   // ==========================================================================
 
   /**
-   * Select the best strategy for the given score card.
-   */
-  /**
    * Select the best strategy for the current iteration.
    *
    * Sprint 139 P1-4 (OpenMythos loop-index analog): when `iterationIndex`
@@ -309,12 +306,13 @@ export class Optimizer {
         durationMs: Date.now() - startTime,
       };
 
-      // B5 fix: include iterationIndex in completion log
+      // B5 fix: include iterationIndex + totalIterations in completion log
       logger.info("Optimization complete", {
         responseId: response.id,
         strategy: strategy.name,
         durationMs: result.durationMs,
         iterationIndex,
+        totalIterations,
       });
 
       // B2 fix: emit frozen_context_injected telemetry with token count
