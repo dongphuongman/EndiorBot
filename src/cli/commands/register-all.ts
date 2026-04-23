@@ -41,6 +41,7 @@ import {
   registerWorkflowCommand,
   registerAnalyticsCommand,
   registerPerformanceCommand,
+  registerCostCommand,
   registerInitCommand,
   registerComplianceCommand,
   registerDevopsCommand,
@@ -84,6 +85,7 @@ export function registerAllCommands(program: Command): void {
   registerWorkflowCommand(program);
   registerAnalyticsCommand(program);
   registerPerformanceCommand(program);
+  registerCostCommand(program);
   registerInitCommand(program);
   registerComplianceCommand(program);
   registerDevopsCommand(program);

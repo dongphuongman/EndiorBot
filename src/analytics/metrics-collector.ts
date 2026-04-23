@@ -42,6 +42,12 @@ export interface AgentMetric {
   };
   cost?: number;
   handoffs?: number;
+  /** Sprint 141 P0-1: provider that served this invocation (ADR-052 tier mapping) */
+  provider?: string;
+  /** Sprint 141 P0-1: model used (e.g. "kimi-k2-6", "claude-opus-4") */
+  model?: string;
+  /** Sprint 141 P0-1: whether a fallback provider was used instead of primary */
+  fallbackUsed?: boolean;
 }
 
 /**
@@ -59,11 +65,20 @@ export interface DailyMetrics {
   cost: {
     total: number;
     byProvider: Record<string, number>;
+    /** Sprint 141 P0-1: per-agent cost breakdown */
+    byAgent: Record<string, number>;
   };
   tokens: {
     totalInput: number;
     totalOutput: number;
     byAgent: Record<string, { input: number; output: number }>;
+    /** Sprint 141 P0-1: per-provider token breakdown */
+    byProvider: Record<string, { input: number; output: number }>;
+  };
+  /** Sprint 141 P0-1: fallback frequency tracking */
+  fallbacks: {
+    total: number;
+    byProvider: Record<string, number>;
   };
   performance: {
     avgResponseTimeMs: number;
@@ -123,9 +138,9 @@ export class MetricsCollector {
   private metricsDir: string;
   private currentSession: SessionMetrics | null = null;
 
-  constructor() {
+  constructor(config?: { metricsDir?: string }) {
     this.logger = createLogger("metrics-collector");
-    this.metricsDir = join(resolveStateDir(), METRICS_DIR);
+    this.metricsDir = config?.metricsDir ?? join(resolveStateDir(), METRICS_DIR);
     this.ensureMetricsDir();
   }
 
@@ -214,19 +229,37 @@ export class MetricsCollector {
       daily.usage.handoffs += metric.handoffs;
     }
 
-    // Update cost
+    // Update cost — Sprint 141 P0-1: populate byProvider + byAgent
     if (metric.cost) {
       daily.cost.total += metric.cost;
+      daily.cost.byAgent[metric.agent] = (daily.cost.byAgent[metric.agent] ?? 0) + metric.cost;
+      if (metric.provider) {
+        daily.cost.byProvider[metric.provider] = (daily.cost.byProvider[metric.provider] ?? 0) + metric.cost;
+      }
     }
 
-    // Update tokens
+    // Sprint 141 P0-1: track fallback usage
+    if (metric.fallbackUsed && metric.provider) {
+      daily.fallbacks.total++;
+      daily.fallbacks.byProvider[metric.provider] = (daily.fallbacks.byProvider[metric.provider] ?? 0) + 1;
+    }
+
+    // Update tokens — Sprint 141 P0-1: add byProvider tracking
     if (metric.tokenUsage) {
       daily.tokens.totalInput += metric.tokenUsage.input;
       daily.tokens.totalOutput += metric.tokenUsage.output;
+
       const agentTokens = daily.tokens.byAgent[metric.agent] ?? { input: 0, output: 0 };
       agentTokens.input += metric.tokenUsage.input;
       agentTokens.output += metric.tokenUsage.output;
       daily.tokens.byAgent[metric.agent] = agentTokens;
+
+      if (metric.provider) {
+        const providerTokens = daily.tokens.byProvider[metric.provider] ?? { input: 0, output: 0 };
+        providerTokens.input += metric.tokenUsage.input;
+        providerTokens.output += metric.tokenUsage.output;
+        daily.tokens.byProvider[metric.provider] = providerTokens;
+      }
     }
 
     // Update performance
@@ -251,13 +284,36 @@ export class MetricsCollector {
   }
 
   /**
-   * Load daily metrics for a date.
+   * Sprint 141 P0-1: Public accessor for daily metrics by date.
+   * Used by the `cost report` CLI command to build per-agent/per-provider breakdown.
+   * Returns null if no metrics exist for the date.
+   */
+  getDailyMetrics(date: string): DailyMetrics | null {
+    const filePath = join(this.metricsDir, `${DAILY_FILE_PREFIX}${date}.json`);
+    if (!existsSync(filePath)) return null;
+    try {
+      return JSON.parse(readFileSync(filePath, "utf-8")) as DailyMetrics;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Load daily metrics for a date (creates empty if not found).
    */
   private loadDailyMetrics(date: string): DailyMetrics {
     const filePath = join(this.metricsDir, `${DAILY_FILE_PREFIX}${date}.json`);
     if (existsSync(filePath)) {
       try {
-        return JSON.parse(readFileSync(filePath, "utf-8")) as DailyMetrics;
+        const raw = JSON.parse(readFileSync(filePath, "utf-8")) as Partial<DailyMetrics>;
+        // Sprint 141 P0-1: backfill new fields for legacy metrics files
+        if (!raw.cost) raw.cost = { total: 0, byProvider: {}, byAgent: {} };
+        if (!raw.cost.byAgent) raw.cost.byAgent = {};
+        if (!raw.cost.byProvider) raw.cost.byProvider = {};
+        if (!raw.tokens) raw.tokens = { totalInput: 0, totalOutput: 0, byAgent: {}, byProvider: {} };
+        if (!raw.tokens.byProvider) raw.tokens.byProvider = {};
+        if (!raw.fallbacks) raw.fallbacks = { total: 0, byProvider: {} };
+        return raw as DailyMetrics;
       } catch {
         // Fall through to create new
       }
@@ -275,11 +331,17 @@ export class MetricsCollector {
       cost: {
         total: 0,
         byProvider: {},
+        byAgent: {},
       },
       tokens: {
         totalInput: 0,
         totalOutput: 0,
         byAgent: {},
+        byProvider: {},
+      },
+      fallbacks: {
+        total: 0,
+        byProvider: {},
       },
       performance: {
         avgResponseTimeMs: 0,
