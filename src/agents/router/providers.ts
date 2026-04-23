@@ -415,6 +415,10 @@ export async function callKimiProvider(
   const modelId = modelOverride ?? agentConfig?.model ?? provider.models[0]?.id ?? "kimi-k2-6";
   if (!modelId) return null;
 
+  // Sprint 141 P0-3: rate-limit monitoring
+  const { recordProxySuccess, recordProxyRateLimit, recordFallbackToApi } =
+    await import("../../providers/kimi-proxy/rate-limit-monitor.js");
+
   try {
     const startTime = Date.now();
     const response = await provider.chat({
@@ -426,10 +430,12 @@ export async function callKimiProvider(
       temperature: 0.7,
       maxTokens: 2000,
     });
+    const latencyMs = Date.now() - startTime;
+    recordProxySuccess(latencyMs);
     const result: AIResult = {
       content: response.content,
       provider: provider.id === "kimi-proxy" ? "kimi-proxy" : "kimi-api",
-      durationMs: Date.now() - startTime,
+      durationMs: latencyMs,
     };
     if (response.usage) {
       result.tokenUsage = {
@@ -440,7 +446,50 @@ export async function callKimiProvider(
     }
     return result;
   } catch (e) {
-    log.warn(`Kimi provider failed for @${agent}: ${(e as Error).message}`);
+    const errMsg = e instanceof Error ? e.message : String(e);
+
+    // Sprint 141 P0-3: detect 429 rate-limit and try kimi-api fallback
+    const is429 = errMsg.includes("429") || errMsg.includes("rate limit") || errMsg.includes("Rate limit");
+    if (is429 && provider.id === "kimi-proxy") {
+      recordProxyRateLimit();
+      log.warn(`Kimi proxy rate-limited for @${agent} — trying kimi-api fallback`);
+
+      // Try kimi-api as immediate fallback
+      const apiProvider = registry.has("kimi-api") ? registry.get("kimi-api") : undefined;
+      if (apiProvider) {
+        try {
+          const fbStart = Date.now();
+          const fbResponse = await apiProvider.chat({
+            model: modelId,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: task },
+            ],
+            temperature: 0.7,
+            maxTokens: 2000,
+          });
+          const fbLatency = Date.now() - fbStart;
+          recordFallbackToApi(fbLatency);
+          const fbResult: AIResult = {
+            content: fbResponse.content,
+            provider: "kimi-api",
+            durationMs: fbLatency,
+          };
+          if (fbResponse.usage) {
+            fbResult.tokenUsage = {
+              inputTokens: fbResponse.usage.promptTokens,
+              outputTokens: fbResponse.usage.completionTokens,
+              totalTokens: fbResponse.usage.totalTokens,
+            };
+          }
+          return fbResult;
+        } catch (fbErr) {
+          log.warn(`Kimi API fallback also failed: ${(fbErr as Error).message}`);
+        }
+      }
+    }
+
+    log.warn(`Kimi provider failed for @${agent}: ${errMsg}`);
     return null;
   }
 }
