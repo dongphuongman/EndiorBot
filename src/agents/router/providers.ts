@@ -562,8 +562,25 @@ export async function dispatchAgentPrimary(
       return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
     case "kimi":
       return callKimiProvider(deps, agent, task, history, workspace, config.model);
-    case "ollama":
-      return callRemoteOllama(deps, agent, task, history, workspace);
+    case "ollama": {
+      // Sprint 141 P0-2: Ollama confidence check for Tier-3 agents.
+      // Score the response; if below threshold AND FF enabled, return null
+      // to trigger the fallback chain (typically Kimi).
+      // CTO C1: always log confidence regardless of FF state.
+      const ollamaResult = await callRemoteOllama(deps, agent, task, history, workspace);
+      if (ollamaResult) {
+        const { scoreOllamaConfidence } = await import("./ollama-confidence.js");
+        const confidence = scoreOllamaConfidence(ollamaResult.content, agent);
+        if (confidence.shouldEscalate) {
+          log.info(`Ollama response below confidence threshold — escalating @${agent}`, {
+            score: confidence.score,
+            reason: confidence.reason,
+          });
+          return null; // triggers fallback chain
+        }
+      }
+      return ollamaResult;
+    }
     default:
       log.warn(`Unknown provider ${config.provider} for @${agent} — falling back to Claude Code`);
       return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
