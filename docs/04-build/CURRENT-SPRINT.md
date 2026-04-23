@@ -4,6 +4,29 @@
 
 ## Active / Most Recent
 
+- **Sprint 141** — Cost Telemetry + Ollama Confidence + Kimi Resilience — **G1 APPROVED** (CTO + CPO countersigned 2026-04-23 with 9 binding conditions)
+  - Plan: [sprint-141-plan.md](sprints/sprint-141-plan.md)
+  - Scope: P0-1 cost telemetry dashboard, P0-2 Ollama confidence auto-escalation (FF-gated), P0-3 Kimi rate-limit monitoring, P1-1 @consult registry cleanup
+  - CTO conditions: 6 (FF_OLLAMA_AUTO_ESCALATE=false first, Vietnamese keywords deferred, KIMI_API_KEY verified, rollback criterion, TokenUsage schema, metrics JSON schema)
+  - CPO conditions: 3 (business success metrics, decision owner for gates, cost report 3-question format)
+
+- **Sprint 140** — Kimi k2.6 Integration + Agent-Model Tier Mapping — **CLOSED** (2026-04-23, retroactive, CTO + CPO APPROVED)
+  - Plan: [sprint-140-plan.md](sprints/sprint-140-plan.md) (retroactive — SDLC violation acknowledged)
+  - ADRs: [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)
+  - Delivered: Kimi proxy subprocess orchestrator, 3-tier agent-model mapping (Opus: 3, Kimi: 10, Ollama: 1), @consult 3-model panel, fallback chain restructure (Gemini + Anthropic API removed)
+  - Tests: 8,048 pass, 10 skipped, 0 failures. 53 files changed.
+  - Commit: `4028d33`
+
+- **Sprint 139** — OpenMythos Pattern Adoption — **CLOSED** (2026-04-20, CTO 9.5/10 re-review approved)
+  - Plan: [sprint-139-plan.md](sprints/sprint-139-plan.md)
+  - Delivered: 4 evaluator optimizations (convergence guard, dynamic iteration budget, frozen input injection, loop-index aware optimization) + CTO review fixes
+  - Tests: 8,036 pass at close. 7 commits.
+
+- **Sprint 138** — Governance Debt + Security Incident Remediation — **CLOSED** (2026-04-19)
+  - Plan: [sprint-138-plan.md](sprints/sprint-138-plan.md)
+  - Delivered: P3-01 secrets rotation + CRITICAL git-history rewrite (Option A), P3-02 ADR authority schema, P3-03 scaffold gitignore, gitleaks pre-commit hook, ADR-049 incident record
+  - Security: 🚨 CRITICAL → ✅ RESOLVED. History rewritten, keys rotated, gitleaks hook active.
+
 - **Sprint 137** — Polish + Identity Refinement + E2E Quality — **PARTIAL CLOSE** (2026-04-19, CTO 9.5/10 across P0/P1/P2; P2 spikes + P3 governance carry forward)
   - Plan: [sprint-137-plan.md](sprints/sprint-137-plan.md)
   - Close report: [sprint-137-partial-close.md](sprints/sprint-137-partial-close.md)
@@ -62,4 +85,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-19*
+*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-23*

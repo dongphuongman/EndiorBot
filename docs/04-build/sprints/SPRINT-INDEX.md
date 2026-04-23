@@ -1,8 +1,8 @@
 # Sprint Index
 
 **Project**: EndiorBot
-**Framework**: SDLC 6.3.0
-**Last Updated**: 2026-04-12 (Sprint 134 COMPLETE — Config + Webhooks; Sprint 135 PLANNED)
+**Framework**: SDLC 6.3.1
+**Last Updated**: 2026-04-23 (Sprint 140 COMPLETE — Kimi2.6 Integration + Agent-Model Tier Mapping)
 
 ---
 
@@ -10,12 +10,21 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 135 | Apr 12, 2026 | Surface Parity — OTT + Web API for Sprint 131-134 features | 📋 PLANNED | [sprint-135](sprint-135-surface-parity.md) |
+| Sprint 141 | TBD | Cost telemetry validation + Ollama confidence tuning | 📋 PLANNED | — |
+
+## Recently Completed
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 140 | Apr 23, 2026 | Kimi2.6 Integration + Agent-Model Tier Mapping (ADR-051 + ADR-052) + @consult 3-model panel | ✅ COMPLETE (retroactive plan) | [sprint-140](sprint-140-plan.md) |
+| Sprint 139 | Apr 20, 2026 | OpenMythos Pattern Adoption — convergence guard, dynamic iteration budget, frozen input, loop-index | ✅ COMPLETE | [sprint-139](sprint-139-plan.md) |
+| Sprint 138 | Apr 19, 2026 | Governance debt + security incident remediation | ✅ COMPLETE | [sprint-138-plan.md](sprint-138-plan.md) |
 
 ## Deferred Sprint
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 135 | Apr 12, 2026 | Surface Parity — OTT + Web API for Sprint 131-134 features | 🚧 DEFERRED | [sprint-135](sprint-135-surface-parity.md) |
 | Sprint 108 | Mar 13, 2026 | Async Notifications — `notifyFn` PATCH approval, Zalo bus + debounce, bus metrics in `/api/status` (ADR-032 Phase 3) | 🚧 DEFERRED | [sprint-108](sprint-108-async-notifications.md) |
 
 ---
@@ -231,4 +240,4 @@
 ---
 
 **Maintained by**: @pm (AI)
-**SDLC Framework**: 6.3.0
+**SDLC Framework**: 6.3.1
