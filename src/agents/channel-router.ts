@@ -14,6 +14,7 @@ import type { MTClawBridge } from "../mtclaw/bridge.js";
 import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mtclaw/types.js";
 import { TIMEOUTS } from "../config/timeouts.js";
 import { getMetricsCollector, type AgentMetric } from "../analytics/index.js";
+import { createPricingRegistry } from "../budget/pricing-registry.js";
 
 // Sprint 121 T3: Import from extracted submodules
 import {
@@ -321,10 +322,20 @@ export class ChannelRouter {
           input: result.tokenUsage.inputTokens,
           output: result.tokenUsage.outputTokens,
         };
+        // CPO blocker fix: derive cost from tokenUsage × pricing-registry
+        // so cost.byAgent/byProvider in DailyMetrics are non-zero.
+        try {
+          const model = getAgentProviderModel(agent)?.model ?? "sonnet";
+          const pricing = createPricingRegistry();
+          metric.cost = pricing.calculateCost(
+            model,
+            result.tokenUsage.inputTokens,
+            result.tokenUsage.outputTokens,
+          );
+        } catch {
+          // pricing lookup failed — leave cost undefined
+        }
       }
-      // Cost estimation from token usage + provider pricing would go here;
-      // for now, leave cost undefined and let the dashboard calculate from
-      // tokens × pricing-registry rates.
       getMetricsCollector().recordInvocation(metric);
     } catch {
       // Best-effort telemetry — never block the response path
