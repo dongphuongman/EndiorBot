@@ -450,16 +450,23 @@ export class ChatHandler {
    * Query a single provider.
    */
   private async queryProvider(
-    providerId: "anthropic" | "openai" | "google" | "kimi",
+    providerId: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-proxy",
     model: string,
     message: string,
     systemContext?: string,
   ): Promise<ModelResponse> {
     const startTime = Date.now();
-    // Map "kimi" to actual provider IDs in registry (kimi-api preferred, fallback to kimi-proxy)
-    const resolvedId = providerId === "kimi"
-      ? (this.providers.get("kimi-api") ? "kimi-api" : this.providers.get("kimi-proxy") ? "kimi-proxy" : null)
-      : providerId;
+    // Sprint 141 P1-1: resolve "kimi" via provider registry instead of
+    // conditional this.providers.get() checks (tech debt from Sprint 140).
+    // Registry lookup order: kimi-proxy (OAuth) → kimi-api (API key)
+    type ProviderId = ModelResponse["provider"];
+    let resolvedId: ProviderId | null = providerId;
+    if (providerId === "kimi") {
+      const registry = getProviderRegistry();
+      if (registry.has("kimi-proxy")) resolvedId = "kimi-proxy";
+      else if (registry.has("kimi-api")) resolvedId = "kimi-api";
+      else resolvedId = null;
+    }
     const provider = resolvedId ? this.providers.get(resolvedId) : undefined;
 
     if (!provider) {
