@@ -95,6 +95,9 @@ export {
   GEMINI_TASK_ROUTING,
 } from "./gemini/index.js";
 
+// Kimi Proxy Provider (Sprint 140 — Kimi2.6 fallback)
+export { KimiProxyProvider, createKimiProxyProviderFromEnv } from "./kimi-proxy/index.js";
+
 // GitHub Models Provider (Sprint 46 Day 2-3)
 export type {
   GitHubModel,

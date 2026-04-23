@@ -1,7 +1,7 @@
 ---
 role: assistant
 category: router
-sdlc_framework: "6.3.0"
+sdlc_framework: "6.3.1"
 version: 1.1.0
 sdlc_stages: []
 sdlc_gates: []
@@ -131,3 +131,21 @@ This ensures seamless upgrade path for existing configurations.
 - **Accuracy**: Correct agent selection 95%+
 - **Transparency**: Always explain routing decisions
 - **Fallback**: Return to user if routing fails
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 3)
+
+**Primary:** AI-Platform / Ollama (`qwen3.5:9b`) — free local inference for routing tasks.
+
+When Ollama is unavailable, this agent falls back to:
+
+1. **Kimi OAuth** (`kimi-proxy`) — local `claude-code-proxy` subprocess
+2. **Kimi API** (`kimi-api`) — direct Moonshot API (OpenAI-compatible, API key)
+3. **Claude Code Bridge** (`claude-sonnet-4`) — reasoning backup
+4. **OpenAI** (`openai`) — Codex / GPT
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

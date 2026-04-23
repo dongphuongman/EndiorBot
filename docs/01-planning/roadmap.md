@@ -229,14 +229,17 @@ Per Master Plan v2.0, these are explicitly excluded:
 | **M6: Intelligence** | End Sprint 88 | SOUL + Brain + Context + Evaluator | ✅ DONE |
 | **M7: Agent Teams** | End Sprint 91 | Team launch, monitoring, cost | ✅ DONE |
 | **M8: Unified Launcher** | End Sprint 92 | PID tracking, crash recovery, lock | ✅ DONE |
+| **M9: Kimi2.6 Fallback** | Sprint 140 | Kimi API + OAuth proxy as first fallback for all agents | 🔄 IN PROGRESS |
 
 ---
 
 ## Current Sprint
 
-**Sprint 92 (Unified Launcher)** — COMPLETE
+**Sprint 140 (Kimi2.6 Fallback Integration)** — IN PROGRESS
+- Scope: [FR-011](./requirements.md) + [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md)
+- Status: Implementation complete, awaiting G3 test evidence
 
-Next sprint: TBD (Tier 4 Bridge & Intelligence complete)
+Next sprint: TBD
 
 ---
 

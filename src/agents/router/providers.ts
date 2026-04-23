@@ -25,6 +25,8 @@ import {
   getAgentTimeoutMs,
   formatHistoryContext,
   resolveWorkspaceTier,
+  getAgentProviderModel,
+  TIER_FALLBACK_CHAIN,
 } from "./agent-constants.js";
 import { requestPatchConfirmation, executePatch } from "./patch-flow.js";
 import type { ChannelRouterConfig, AIResult } from "../channel-router.js";
@@ -293,9 +295,11 @@ export async function callCloudFallback(
   // fallback with everything hung. Prefer actual cloud providers (Gemini,
   // OpenAI) which CEO has explicitly approved via .env.local keys.
   //
-  // Preference order (matches ADR-043-A1 minus `claude-code` + Anthropic opt-out):
-  //   gemini → openai → any remaining registered provider
-  const preferredOrder = ["gemini", "openai", "anthropic"];
+  // ADR-051 (Sprint 140): Fallback chain per CEO directive 2026-04-23.
+  // Preference order:
+  //   kimi-proxy (OAuth) → kimi-api (API key) → openai
+  //   Gemini removed; Anthropic removed.
+  const preferredOrder = ["kimi-proxy", "kimi-api", "openai"];
   let provider: ReturnType<typeof registry.get> = undefined;
   for (const id of preferredOrder) {
     if (registry.has(id)) {
@@ -364,6 +368,84 @@ export async function callCloudFallback(
 }
 
 // ============================================================================
+// Kimi Provider (Tier 2 Primary)
+// ============================================================================
+
+/**
+ * Call Kimi provider (proxy → API) for Tier-2 agents.
+ * ADR-051: kimi-proxy (OAuth) preferred, kimi-api (API key) fallback.
+ */
+export async function callKimiProvider(
+  deps: ProviderDeps,
+  agent: string,
+  task: string,
+  history?: Array<{ role: string; content: string }>,
+  workspace?: string,
+  modelOverride?: string,
+): Promise<AIResult | null> {
+  const registry = getProviderRegistry();
+  const preferredOrder = ["kimi-proxy", "kimi-api"];
+  let provider: ReturnType<typeof registry.get> = undefined;
+  for (const id of preferredOrder) {
+    if (registry.has(id)) {
+      provider = registry.get(id);
+      if (provider) break;
+    }
+  }
+  if (!provider) {
+    log.warn(`Kimi provider unavailable for @${agent}`);
+    return null;
+  }
+
+  const ws = workspace ?? deps.config.projectRoot;
+  const kimiParts: string[] = [`[Workspace: ${ws}]`];
+  const kimiIntent = classifyPatchIntent(task);
+  if (kimiIntent.intent === "PATCH" && kimiIntent.confidence >= 0.8
+      && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
+    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+    if (wsCtx) kimiParts.push(wsCtx);
+  }
+  const kimiEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+  if (kimiEnrichment) kimiParts.push(kimiEnrichment);
+  const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
+    + "\n\n" + kimiParts.join("\n");
+
+  // Use agent's configured Kimi model or override
+  const agentConfig = getAgentProviderModel(agent);
+  const modelId = modelOverride ?? agentConfig?.model ?? provider.models[0]?.id ?? "kimi-k2-6";
+  if (!modelId) return null;
+
+  try {
+    const startTime = Date.now();
+    const response = await provider.chat({
+      model: modelId,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: task },
+      ],
+      temperature: 0.7,
+      maxTokens: 2000,
+    });
+    const result: AIResult = {
+      content: response.content,
+      provider: provider.id === "kimi-proxy" ? "kimi-proxy" : "kimi-api",
+      durationMs: Date.now() - startTime,
+    };
+    if (response.usage) {
+      result.tokenUsage = {
+        inputTokens: response.usage.promptTokens,
+        outputTokens: response.usage.completionTokens,
+        totalTokens: response.usage.totalTokens,
+      };
+    }
+    return result;
+  } catch (e) {
+    log.warn(`Kimi provider failed for @${agent}: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+// ============================================================================
 // Remote Ollama Provider
 // ============================================================================
 
@@ -400,12 +482,18 @@ export async function callRemoteOllama(
 
   try {
     const startTime = Date.now();
+    // ADR-052: Use agent's configured Ollama model for Tier-3 agents
+    const agentConfig = getAgentProviderModel(agent);
+    const ollamaModel = agentConfig?.provider === "ollama"
+      ? agentConfig.model
+      : deps.config.ollamaRemoteModel;
+
     // AI-Platform uses OpenAI-compatible API (not native Ollama)
     const res = await fetch(`${deps.config.ollamaRemoteUrl}/api/v1/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        model: deps.config.ollamaRemoteModel,
+        model: ollamaModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: task },
@@ -440,4 +528,91 @@ export async function callRemoteOllama(
     log.warn(`Remote Ollama failed: ${(e as Error).message}`);
     return null;
   }
+}
+
+// ============================================================================
+// Agent-Aware Dispatch (ADR-052)
+// ============================================================================
+
+/**
+ * Dispatch to an agent's PRIMARY provider (per ADR-052 tier mapping).
+ *
+ * Tier 1 (@architect, @cso, @ceo)  → Claude Code Bridge (Opus)
+ * Tier 2 (@coder, @reviewer, ...)   → Kimi (proxy → API)
+ * Tier 3 (@assistant)               → Ollama (AI-Platform)
+ */
+export async function dispatchAgentPrimary(
+  deps: ProviderDeps,
+  agent: string,
+  task: string,
+  history?: Array<{ role: string; content: string }>,
+  workspace?: string,
+  notifyFn?: ChannelSendFn,
+): Promise<AIResult | null> {
+  const config = getAgentProviderModel(agent);
+  if (!config) {
+    log.warn(`No provider config for @${agent} — falling back to Claude Code`);
+    return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+  }
+
+  log.info(`ADR-052 dispatch: @${agent} → ${config.provider} (${config.model}) [tier ${config.tier}]`);
+
+  switch (config.provider) {
+    case "claude-code":
+      return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+    case "kimi":
+      return callKimiProvider(deps, agent, task, history, workspace, config.model);
+    case "ollama":
+      return callRemoteOllama(deps, agent, task, history, workspace);
+    default:
+      log.warn(`Unknown provider ${config.provider} for @${agent} — falling back to Claude Code`);
+      return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+  }
+}
+
+/**
+ * Dispatch to an agent's FALLBACK chain (per ADR-052 tier mapping).
+ *
+ * Iterates the tier-specific fallback chain until a provider responds.
+ */
+export async function dispatchAgentFallback(
+  deps: ProviderDeps,
+  agent: string,
+  task: string,
+  history?: Array<{ role: string; content: string }>,
+  workspace?: string,
+  notifyFn?: ChannelSendFn,
+): Promise<AIResult | null> {
+  const config = getAgentProviderModel(agent);
+  const tier = config?.tier ?? 2;
+  const chain = TIER_FALLBACK_CHAIN[tier];
+
+  // Skip the primary provider (already tried and failed)
+  const primaryProvider = config?.provider;
+  const fallbackChain = chain.filter((p) => p !== primaryProvider);
+
+  for (const providerId of fallbackChain) {
+    log.info(`ADR-052 fallback: @${agent} → ${providerId} [tier ${tier}]`);
+    let result: AIResult | null = null;
+
+    switch (providerId) {
+      case "claude-code":
+        result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+        break;
+      case "kimi":
+        result = await callKimiProvider(deps, agent, task, history, workspace, config?.model);
+        break;
+      case "ollama":
+        result = await callRemoteOllama(deps, agent, task, history, workspace);
+        break;
+    }
+
+    if (result) {
+      log.info(`ADR-052 fallback success: @${agent} via ${providerId}`);
+      return result;
+    }
+  }
+
+  log.warn(`ADR-052 fallback exhausted for @${agent} — no provider responded`);
+  return null;
 }

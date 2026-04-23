@@ -49,12 +49,16 @@ Full catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMM
 
 | Integration | Priority | Status |
 |-------------|----------|--------|
-| Gemini API | P0 | Implemented |
+| Kimi API (Moonshot) | P0 | Implemented |
+| Kimi OAuth Proxy (claude-code-proxy) | P1 | Implemented |
 | Anthropic API (Claude Opus) | P0 | Implemented |
+| OpenAI API (Codex / GPT) | P0 | Implemented |
 | CLI → Gateway | P0 | Implemented |
 | Web Channel | P1 | Implemented |
 | Telegram (bidirectional) | P0 | Implemented |
 | Zalo OA (bidirectional) | P1 | Implemented |
+
+**Note:** Gemini API removed from active fallback chain per CEO directive 2026-04-23. Provider module retained for backward compatibility.
 
 ## Channel Integration
 
@@ -77,4 +81,4 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ---
 
-*CEO Power Tool | SDLC Framework **6.3.0** — Stage 03: Integration*
+*CEO Power Tool | SDLC Framework **6.3.1** — Stage 03: Integration*

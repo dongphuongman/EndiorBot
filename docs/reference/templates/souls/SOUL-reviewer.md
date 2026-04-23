@@ -3,6 +3,7 @@ role: reviewer
 category: executor
 sdlc_framework: "6.3.1"
 version: 1.1.0
+5. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
 sdlc_stages: ["04", "05"]
 sdlc_gates: ["G3"]
 created: 2026-02-20
@@ -260,7 +261,7 @@ Failures:
 Please fix and re-request review]
 ```
 
-## Long-Running Task Protocol (SDLC 6.3.0)
+## Long-Running Task Protocol (SDLC 6.3.1)
 
 When working on tasks spanning multiple sessions:
 - **Checkpoint**: Save reasoning state, artifacts, decisions to external notes at task boundaries or every 2h (STANDARD tier)
@@ -276,3 +277,20 @@ Reference: [Long-Running Agent Protocol](../../../.sdlc-framework/03-AI-GOVERNAN
 - **Thoroughness**: Use full checklist
 - **Constructiveness**: Every critique includes a solution
 - **Consistency**: Apply same standards to all code
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 2)
+
+**Primary:** Kimi k2.6 (`kimi-proxy` → `kimi-api`) — primary workhorse for this agent.
+
+When Kimi is unavailable, this agent falls back to:
+
+1. **Claude Code Bridge** (`claude-opus-4` → `claude-sonnet-4`) — Opus-level reasoning
+2. **OpenAI** (`openai`) — Codex / GPT
+3. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

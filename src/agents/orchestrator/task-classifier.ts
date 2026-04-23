@@ -237,31 +237,36 @@ export class TaskClassifier {
    * OpenAI = primary expert, Gemini = critic (per ADR-001 amendment).
    */
   getRecommendedModels(taskType: TaskType): ModelSelection[] {
+    // ADR-052 (Sprint 140): Consult panel uses OpenAI + Gemini + Kimi
     switch (taskType) {
       case "architecture":
         return [
           { provider: "openai", model: "gpt-5.4", role: "primary" },
           { provider: "google", model: "gemini-2.5-pro", role: "expert" },
+          { provider: "kimi", model: "kimi-k2-6", role: "expert" },
         ];
       case "security":
         return [
           { provider: "openai", model: "gpt-5.4", role: "primary" },
           { provider: "google", model: "gemini-2.5-pro", role: "expert" },
+          { provider: "kimi", model: "kimi-k2-6", role: "expert" },
         ];
       case "code_gen":
       case "bug_fix":
-        // Coding normally via Claude Code Bridge; fallback to OpenAI for consultation
         return [
-          { provider: "openai", model: "gpt-5.4", role: "primary" },
+          { provider: "kimi", model: "kimi-k2-6", role: "primary" },
+          { provider: "openai", model: "gpt-5.4", role: "expert" },
         ];
       case "research":
         return [
-          { provider: "google", model: "gemini-2.5-pro", role: "primary" },
-          { provider: "openai", model: "gpt-5.4", role: "expert" },
+          { provider: "openai", model: "gpt-5.4", role: "primary" },
+          { provider: "google", model: "gemini-2.5-pro", role: "expert" },
+          { provider: "kimi", model: "kimi-k2-6", role: "expert" },
         ];
       default:
         return [
           { provider: "openai", model: "gpt-5.4", role: "primary" },
+          { provider: "kimi", model: "kimi-k2-6", role: "expert" },
         ];
     }
   }
@@ -500,42 +505,66 @@ export class TaskClassifier {
     taskType: TaskType,
     complexity: TaskComplexity
   ): ModelRecommendation {
-    // Critical complexity always needs expert
+    // ADR-052 (Sprint 140): Provider-aware model recommendations.
+    // Critical complexity → Claude Opus (Tier 1)
     if (complexity === "critical") {
       return {
         model: "claude-opus-4",
-        reason: "Critical task requires expert-level reasoning",
+        provider: "claude-code",
+        reason: "Critical task requires expert-level reasoning (Tier 1)",
       };
     }
 
-    // Security and architecture need powerful+
+    // Security and architecture need powerful+ → Claude Opus (Tier 1)
     if (taskType === "security" || taskType === "architecture") {
       return {
         model: "claude-opus-4",
-        reason: `${taskType} task requires thorough analysis`,
+        provider: "claude-code",
+        reason: `${taskType} task requires thorough analysis (Tier 1)`,
       };
     }
 
-    // Complex needs powerful
+    // Complex coding tasks → Kimi k2.6 (Tier 2)
+    if (complexity === "complex" && (taskType === "code_gen" || taskType === "bug_fix")) {
+      return {
+        model: "kimi-k2-6",
+        provider: "kimi",
+        reason: "Complex coding task — Kimi k2.6 provides strong reasoning at lower cost (Tier 2)",
+      };
+    }
+
+    // Complex non-coding → Kimi k2.6 (Tier 2)
     if (complexity === "complex") {
       return {
-        model: "claude-sonnet-4",
-        reason: "Complex task needs strong reasoning",
+        model: "kimi-k2-6",
+        provider: "kimi",
+        reason: "Complex task — Kimi k2.6 balanced power and cost (Tier 2)",
       };
     }
 
-    // Moderate uses balanced
+    // Moderate tasks → Kimi k2.6 (Tier 2)
     if (complexity === "moderate") {
       return {
-        model: "claude-sonnet-4",
-        reason: "Balanced speed and quality for moderate task",
+        model: "kimi-k2-6",
+        provider: "kimi",
+        reason: "Balanced speed and quality via Kimi k2.6 (Tier 2)",
       };
     }
 
-    // Simple uses fast
+    // Simple non-coding → Ollama (Tier 3, free)
+    if (complexity === "simple" && taskType !== "code_gen" && taskType !== "bug_fix") {
+      return {
+        model: "qwen3.5:9b",
+        provider: "ollama",
+        reason: "Simple non-coding task — Ollama free tier sufficient (Tier 3)",
+      };
+    }
+
+    // Simple coding → Kimi k2.6 (still Tier 2 for coding quality)
     return {
-      model: "claude-haiku-4",
-      reason: "Fast response for simple task",
+      model: "kimi-k2-6",
+      provider: "kimi",
+      reason: "Simple task — Kimi k2.6 fast and cost-effective (Tier 2)",
     };
   }
 }

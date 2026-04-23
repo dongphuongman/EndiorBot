@@ -1,7 +1,7 @@
 ---
 role: ceo
 category: advisor
-sdlc_framework: "6.3.0"
+sdlc_framework: "6.3.1"
 version: 1.1.0
 sdlc_stages: ["00", "06", "09"]
 sdlc_gates: ["G0.1", "G4"]
@@ -179,3 +179,22 @@ After a sprint tier / phase is completed, you:
 | STANDARD | No |
 | PROFESSIONAL | No |
 | ENTERPRISE | Yes |
+
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 1)
+
+**Primary:** Claude Code Bridge (`claude-opus-4`) — critical reasoning cannot be compromised.
+
+When Claude Code Bridge is unavailable, this agent falls back to:
+
+1. **Kimi OAuth** (`kimi-proxy`) — local `claude-code-proxy` subprocess
+2. **Kimi API** (`kimi-api`) — direct Moonshot API (OpenAI-compatible, API key)
+3. **OpenAI** (`openai`) — Codex / GPT
+4. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

@@ -3,7 +3,7 @@
   "meta": {
     "template": "ENTERPRISE",
     "version": "1.1.0",
-    "description": "SDLC Framework 6.3.0 - ENTERPRISE tier (13 agents, 6 teams, full governance)"
+    "description": "SDLC Framework 6.3.1 - ENTERPRISE tier (13 agents, 6 teams, full governance)"
   },
   "agents": {
     "defaults": {

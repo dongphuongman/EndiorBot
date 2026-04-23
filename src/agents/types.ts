@@ -81,6 +81,7 @@ export interface QueryClassification {
 
 export interface ModelRecommendation {
   model: string;
+  provider?: "claude-code" | "kimi" | "ollama" | "openai" | "google";
   reason: string;
 }
 

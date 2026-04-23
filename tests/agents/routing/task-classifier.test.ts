@@ -229,17 +229,19 @@ describe("TaskClassifier", () => {
       expect(models.some((m) => m.role === "expert")).toBe(true);
     });
 
-    it("should return single model for code_gen", () => {
+    it("should return Kimi + OpenAI for code_gen", () => {
       const models = classifier.getRecommendedModels("code_gen");
 
-      expect(models.length).toBe(1);
-      expect(models[0]?.role).toBe("primary");
+      expect(models.length).toBe(2);
+      expect(models[0]?.provider).toBe("kimi");
+      expect(models[1]?.provider).toBe("openai");
     });
 
-    it("should prioritize Gemini for research", () => {
+    it("should prioritize OpenAI for research with Kimi expert", () => {
       const models = classifier.getRecommendedModels("research");
 
-      expect(models[0]?.provider).toBe("google");
+      expect(models[0]?.provider).toBe("openai");
+      expect(models.some((m) => m.provider === "kimi")).toBe(true);
     });
   });
 });
@@ -286,18 +288,21 @@ describe("Model Recommendations", () => {
 
   it("should recommend appropriate model for simple vs moderate tasks", () => {
     const simple = classifier.classify("fix a simple typo @quick");
-    const moderate = classifier.classify("implement user authentication with database integration");
+    const moderate = classifier.classify("implement a todo list component with local storage");
 
-    // Simple should get fast model
-    expect(simple.recommendedModel.model).toBe("claude-haiku-4");
+    // ADR-052: Simple coding tasks still use Kimi k2.6 (Tier 2)
+    expect(simple.recommendedModel.model).toBe("kimi-k2-6");
+    expect(simple.recommendedModel.provider).toBe("kimi");
 
-    // Moderate+ should get at least Sonnet
-    expect(["claude-sonnet-4", "claude-opus-4"]).toContain(moderate.recommendedModel.model);
+    // Moderate coding tasks use Kimi k2.6
+    expect(moderate.recommendedModel.model).toBe("kimi-k2-6");
+    expect(moderate.recommendedModel.provider).toBe("kimi");
   });
 
-  it("should recommend Haiku for simple tasks", () => {
-    const result = classifier.classify("simple typo fix @quick");
+  it("should recommend Ollama for simple non-coding tasks", () => {
+    const result = classifier.classify("summarize this document briefly");
 
-    expect(result.recommendedModel.model).toBe("claude-haiku-4");
+    expect(result.recommendedModel.model).toBe("qwen3.5:9b");
+    expect(result.recommendedModel.provider).toBe("ollama");
   });
 });

@@ -102,6 +102,31 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
       output_per_1k: 0.0003,
       notes: "Fast, very economical",
     },
+    // Kimi models (Moonshot AI)
+    "kimi-k2-6": {
+      provider: "kimi",
+      input_per_1k: 0.003,
+      output_per_1k: 0.015,
+      notes: "Kimi k2.6 — primary workhorse for Tier-2 agents",
+    },
+    "kimi-for-coding": {
+      provider: "kimi",
+      input_per_1k: 0.003,
+      output_per_1k: 0.015,
+      notes: "Kimi coding-specialized variant",
+    },
+    "moonshot-v1-128k": {
+      provider: "kimi",
+      input_per_1k: 0.002,
+      output_per_1k: 0.01,
+      notes: "Moonshot v1 128K context",
+    },
+    "moonshot-v1-32k": {
+      provider: "kimi",
+      input_per_1k: 0.001,
+      output_per_1k: 0.005,
+      notes: "Moonshot v1 32K context — economical",
+    },
     // Remote Ollama infrastructure
     "nqh/qwen3-coder": {
       provider: "nqh",
@@ -114,6 +139,19 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
       input_per_1k: 0,
       output_per_1k: 0,
       notes: "Free via company infrastructure",
+    },
+    // Local Ollama models
+    "qwen3.5:9b": {
+      provider: "ollama",
+      input_per_1k: 0,
+      output_per_1k: 0,
+      notes: "Free local inference — Tier-3 router agent",
+    },
+    "qwen3-coder:30b": {
+      provider: "ollama",
+      input_per_1k: 0,
+      output_per_1k: 0,
+      notes: "Free local inference — code generation",
     },
   },
 };

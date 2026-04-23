@@ -7,6 +7,7 @@
 
 import { getClaudeCodeBridge, type ClaudeCodeBridge } from "./invoke/index.js";
 import { initializeProvidersFromEnv } from "../providers/init.js";
+import { registerKimiProxyCleanup } from "../providers/kimi-proxy/index.js";
 import { parseMention } from "./orchestrator/mention-parser.js";
 import type { ChannelSendFn } from "../bus/types.js";
 import type { MTClawBridge } from "../mtclaw/bridge.js";
@@ -16,11 +17,12 @@ import { TIMEOUTS } from "../config/timeouts.js";
 // Sprint 121 T3: Import from extracted submodules
 import {
   VALID_AGENTS as VALID_AGENTS_LIST,
+  getAgentProviderModel,
 } from "./router/agent-constants.js";
 import {
   callClaudeBridgeClassified,
-  callCloudFallback,
-  callRemoteOllama,
+  dispatchAgentPrimary,
+  dispatchAgentFallback,
 } from "./router/providers.js";
 
 // Re-export constants from agent-constants (preserve public API)
@@ -114,6 +116,9 @@ export class ChannelRouter {
 
   /** Initialize all AI providers and check availability. */
   async initialize(): Promise<RouterStatus> {
+    // Register Kimi proxy process cleanup (ADR-051)
+    registerKimiProxyCleanup();
+
     // Init cloud providers (fallback)
     this.providerCount = await initializeProvidersFromEnv();
     console.log(`[Router] ${this.providerCount} fallback providers ready`);
@@ -200,62 +205,75 @@ export class ChannelRouter {
     const ws = workspace ?? this.config.projectRoot;
     const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
 
-    // 1. PRIMARY: Claude Code Bridge (with failure classification)
-    const { result: bridgeResult, failure } = await callClaudeBridgeClassified(
-      deps,
-      agent,
-      task,
-      history,
-      ws,
-      notifyFn,
-    );
-    if (bridgeResult) return bridgeResult;
+    // ADR-052 (Sprint 140): Agent-aware provider dispatch.
+    // Tier 1 (Claude primary) retains failure-classification behavior.
+    // Tier 2/3 (Kimi/Ollama primary) use fallback chain on any failure.
+    const agentConfig = getAgentProviderModel(agent);
+    const isClaudePrimary = !agentConfig || agentConfig.provider === "claude-code";
 
-    // Claude Code failed — decide fallback policy based on WHY it failed.
-    if (!failure) {
-      // Defensive: no classification — treat as OTHER failure.
-      throw new Error(
-        "Claude Code request failed without a classification. Please retry; if the problem persists, run `claude --version` to verify the CLI is healthy.",
+    if (isClaudePrimary) {
+      // ─── Tier 1: Claude Code Bridge (legacy behavior with failure classification) ───
+      const { result: bridgeResult, failure } = await callClaudeBridgeClassified(
+        deps,
+        agent,
+        task,
+        history,
+        ws,
+        notifyFn,
       );
-    }
+      if (bridgeResult) return bridgeResult;
 
-    switch (failure.kind) {
-      case "RATE_LIMITED": {
-        // Only case where we silently fallback to a billed API.
-        console.log(
-          `[Router] Claude Code rate-limited (${failure.matchedToken ?? "unknown"}) — falling back to cloud provider for @${agent}...`,
-        );
-        // Sprint 136 A7: notify CEO explicitly when fallback happens. CEO
-        // should know the response will come from Gemini, not Claude Code Max.
-        progressFn?.(
-          `⚡ Claude Code rate-limited (${failure.matchedToken ?? "Max plan window"}) — switching to Gemini fallback for @${agent}…`,
-        );
-        const cloudResult = await callCloudFallback(deps, agent, task, history, ws);
-        if (cloudResult) return cloudResult;
-
-        console.log(`[Router] Cloud fallback unavailable — trying remote Ollama for @${agent}...`);
-        progressFn?.(`⚡ Cloud providers unavailable — trying remote Ollama for @${agent}…`);
-        const remoteResult = await callRemoteOllama(deps, agent, task, history, ws);
-        if (remoteResult) return remoteResult;
-
+      if (!failure) {
         throw new Error(
-          `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset, or check GEMINI/OPENAI keys in .env.`,
+          "Claude Code request failed without a classification. Please retry; if the problem persists, run `claude --version` to verify the CLI is healthy.",
         );
       }
-      case "TIMEOUT":
-        throw new Error(
-          `⚠️ Claude Code timed out — the CLI did not respond in time. This is NOT a rate-limit (we detected no limit signal). Please retry; if it keeps happening, the Claude Code CLI process may be hung (try 'claude --version' to verify). Silent fallback is disabled so you can diagnose the root cause.`,
-        );
-      case "AUTH":
-        throw new Error(
-          `🔑 Claude Code authentication failed — your OAuth session may have expired. Please run 'claude login' and retry.`,
-        );
-      case "OTHER":
-      default:
-        throw new Error(
-          `Claude Code failed: ${failure.reason}. Silent fallback is disabled for non-rate-limit failures — please fix the root cause or retry.`,
-        );
+
+      switch (failure.kind) {
+        case "RATE_LIMITED": {
+          console.log(
+            `[Router] Claude Code rate-limited (${failure.matchedToken ?? "unknown"}) — falling back for @${agent}...`,
+          );
+          progressFn?.(
+            `⚡ Claude Code rate-limited (${failure.matchedToken ?? "Max plan window"}) — switching to fallback for @${agent}…`,
+          );
+          const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+          if (fallbackResult) return fallbackResult;
+
+          throw new Error(
+            `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset.`,
+          );
+        }
+        case "TIMEOUT":
+          throw new Error(
+            `⚠️ Claude Code timed out — the CLI did not respond in time. This is NOT a rate-limit. Please retry; if it keeps happening, the Claude Code CLI process may be hung (try 'claude --version' to verify).`,
+          );
+        case "AUTH":
+          throw new Error(
+            `🔑 Claude Code authentication failed — your OAuth session may have expired. Please run 'claude login' and retry.`,
+          );
+        case "OTHER":
+        default:
+          throw new Error(
+            `Claude Code failed: ${failure.reason}. Silent fallback is disabled for non-rate-limit failures — please fix the root cause or retry.`,
+          );
+      }
     }
+
+    // ─── Tier 2/3: Kimi or Ollama primary ───
+    console.log(`[Router] ADR-052: @${agent} primary = ${agentConfig!.provider}`);
+    const primaryResult = await dispatchAgentPrimary(deps, agent, task, history, ws, notifyFn);
+    if (primaryResult) return primaryResult;
+
+    // Primary failed — try tier-specific fallback chain
+    console.log(`[Router] Primary provider failed for @${agent} — trying fallback chain...`);
+    progressFn?.(`⚡ ${agentConfig!.provider} unavailable — trying fallback for @${agent}…`);
+    const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+    if (fallbackResult) return fallbackResult;
+
+    throw new Error(
+      `All providers failed for @${agent}. Primary (${agentConfig!.provider}) and fallback chain exhausted.`,
+    );
   }
 
   /** Format agent response for display. */

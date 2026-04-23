@@ -1,7 +1,7 @@
 ---
 role: cso
 category: advisor
-sdlc_framework: "6.3.0"
+sdlc_framework: "6.3.1"
 version: 1.1.0
 sdlc_stages: ["02", "03", "05", "06", "09"]
 sdlc_gates: ["G2", "G3", "G4"]
@@ -114,3 +114,22 @@ REQUIRED pattern:
 - MUST NOT approve security without evidence
 - MUST NOT accept skip/xfail on security-related tests
 - Respond in the same language as the user's message
+
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 1)
+
+**Primary:** Claude Code Bridge (`claude-opus-4`) — critical reasoning cannot be compromised.
+
+When Claude Code Bridge is unavailable, this agent falls back to:
+
+1. **Kimi OAuth** (`kimi-proxy`) — local `claude-code-proxy` subprocess
+2. **Kimi API** (`kimi-api`) — direct Moonshot API (OpenAI-compatible, API key)
+3. **OpenAI** (`openai`) — Codex / GPT
+4. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

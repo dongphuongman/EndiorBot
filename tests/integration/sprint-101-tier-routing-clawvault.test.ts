@@ -111,25 +111,29 @@ describe("Phase 1: Workspace Tier Resolver", () => {
 // Phase 2: Tier-Aware Routing Wiring
 // ============================================================================
 
-describe("Phase 2: getAgentModel() wiring verification", () => {
-  it("getAgentModel() still works with ENTERPRISE default", async () => {
+describe("Phase 2: getAgentModel() wiring verification (ADR-052)", () => {
+  it("getAgentModel() returns provider-aware model with ENTERPRISE default", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder")).toBe("sonnet");
-    expect(getAgentModel("ceo")).toBe("opus");
+    // ADR-052: coder is Tier 2 → Kimi k2.6
+    expect(getAgentModel("coder")).toBe("kimi-k2-6");
+    // ADR-052: ceo is Tier 1 → Claude Opus
+    expect(getAgentModel("ceo")).toBe("claude-opus-4");
   });
 
-  it("getAgentModel() with LITE tier only returns LITE agents", async () => {
+  it("getAgentModel() with LITE tier returns provider-aware models for available agents", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder", "LITE")).toBe("sonnet");
+    // ADR-052: coder is Tier 2 → Kimi k2.6 (available at all tiers)
+    expect(getAgentModel("coder", "LITE")).toBe("kimi-k2-6");
     expect(getAgentModel("pm", "LITE")).toBeUndefined();
     expect(getAgentModel("ceo", "LITE")).toBeUndefined();
   });
 
   it("getAgentModel() with STANDARD tier includes LITE + STANDARD agents", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder", "STANDARD")).toBe("sonnet");
-    expect(getAgentModel("pm", "STANDARD")).toBe("sonnet");
-    expect(getAgentModel("architect", "STANDARD")).toBe("opus");
+    // ADR-052: provider-aware models override legacy tier map
+    expect(getAgentModel("coder", "STANDARD")).toBe("kimi-k2-6");
+    expect(getAgentModel("pm", "STANDARD")).toBe("kimi-k2-6");
+    expect(getAgentModel("architect", "STANDARD")).toBe("claude-opus-4");
     expect(getAgentModel("ceo", "STANDARD")).toBeUndefined();
   });
 

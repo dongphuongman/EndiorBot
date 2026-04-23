@@ -71,7 +71,7 @@ docker run -d \
 
 **Default primary provider: Claude Code CLI via OAuth** (e.g. Claude Max 200 subscription). EndiorBot invokes the `claude` CLI process; no API key is extracted or required for the default chat path. Reference: [src/providers/init.ts](../../src/providers/init.ts) + ADR-043-A1.
 
-API keys are only needed for non-default providers or `/consult` multi-model routing. Provider priority (ADR-043-A1): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback last).
+API keys are only needed for non-default providers or `/consult` multi-model routing. Provider priority (ADR-051): `claude-code` (OAuth) → `kimi-api` → `kimi-proxy` → `openai` → `ollama` (last resort).
 
 Secrets live in `.env` (git-ignored). `.env.example` is the template.
 
@@ -79,8 +79,8 @@ Secrets live in `.env` (git-ignored). `.env.example` is the template.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Optional (fallback) | Only needed to use Anthropic API directly instead of Claude Code OAuth |
-| `GOOGLE_API_KEY` | Optional | Gemini provider + `/consult` multi-model |
+| `KIMI_API_KEY` | Optional (fallback) | Moonshot Kimi API — primary fallback |
+| `GOOGLE_API_KEY` | Optional | Gemini provider + `/consult` multi-model (legacy) |
 | `OPENAI_API_KEY` | Optional | OpenAI provider + `/consult` multi-model |
 | `OLLAMA_URL` | Optional | Local Ollama fallback |
 

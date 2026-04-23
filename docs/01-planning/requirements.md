@@ -170,6 +170,28 @@ endiorbot switch <project>      # Minimal context
 - [Master Plan v2.0](../00-foundation/master-plan.md)
 - [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md)
 
+### FR-011: Kimi2.6 First Fallback via Subprocess Orchestrator (Sprint 140)
+
+| ID | Requirement | Priority | Tier |
+|----|-------------|----------|------|
+| FR-011.1 | Auto-detect and spawn `claude-code-proxy` as managed subprocess | P0 | ALL |
+| FR-011.2 | Dynamic port allocation for proxy (avoid hardcoded 18765) | P0 | ALL |
+| FR-011.3 | Insert `kimi-proxy` as first fallback for all SDLC agents | P0 | ALL |
+| FR-011.4 | Graceful degrade if proxy binary missing or not authenticated | P0 | ALL |
+| FR-011.5 | Health check `/healthz` ≤ 3s, non-blocking router init | P0 | ALL |
+| FR-011.6 | Cleanup proxy process on EndiorBot shutdown (SIGTERM) | P0 | ALL |
+| FR-011.7 | Kill switch `ENDIORBOT_DISABLE_KIMI_PROXY=true` | P1 | ALL |
+| FR-011.8 | Auth pre-check before starting proxy (warn if not logged in) | P1 | ALL |
+
+**Acceptance Criteria:**
+- Given `claude-code-proxy` installed and Kimi authenticated, When EndiorBot starts, Then proxy auto-starts on a free port and registers as `kimi-proxy` provider.
+- Given Claude Code Bridge returns RATE_LIMITED, When any agent is called, Then router tries `kimi-proxy` before cloud providers.
+- Given `claude-code-proxy` not in PATH, When EndiorBot starts, Then router initializes without error and skips kimi-proxy fallback.
+
+**Design Doc:** [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md)
+
+---
+
 ## Feature PRDs
 
 Feature-scoped PRDs that extend this MVP requirements spec:

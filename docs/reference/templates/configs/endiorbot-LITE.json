@@ -3,7 +3,7 @@
   "meta": {
     "template": "LITE",
     "version": "1.1.0",
-    "description": "SDLC Framework 6.3.0 - LITE tier (2 agents, minimal workflow)"
+    "description": "SDLC Framework 6.3.1 - LITE tier (2 agents, minimal workflow)"
   },
   "agents": {
     "defaults": {

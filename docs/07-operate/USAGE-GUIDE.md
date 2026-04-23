@@ -64,7 +64,7 @@ pnpm install && pnpm build
 
 - Node.js >= 20
 - pnpm (via corepack: `corepack enable`)
-- At least one AI API key (Anthropic, Google Gemini, or OpenAI)
+- At least one AI API key (Kimi, Google Gemini, or OpenAI) — or Claude Code OAuth subscription
 
 ---
 
@@ -980,11 +980,11 @@ endiorbot serve
 
 ## Environment Variables
 
-Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI path is Claude Code CLI via OAuth** — no API key required for default chat. Provider priority per [src/providers/init.ts](../../src/providers/init.ts): `claude-code` (OAuth) → `gemini` → `ollama` → `openai` → `anthropic` (fallback).
+Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI path is Claude Code CLI via OAuth** — no API key required for default chat. Provider priority per [src/providers/init.ts](../../src/providers/init.ts): `claude-code` (OAuth) → `kimi-api` → `kimi-proxy` → `openai` → `ollama` (last resort).
 
 | Variable | Required | Default | Purpose | Since |
 |----------|----------|---------|---------|-------|
-| `ANTHROPIC_API_KEY` | Optional (fallback) | — | Anthropic API direct — only if not using Claude Code OAuth | — |
+| `KIMI_API_KEY` | Optional (fallback) | — | Moonshot Kimi API — primary fallback | Sprint 140 |
 | `GOOGLE_API_KEY` | Optional | — | Gemini provider + `/consult` | — |
 | `OPENAI_API_KEY` | Optional | — | OpenAI provider + `/consult` | — |
 | `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot token | — |

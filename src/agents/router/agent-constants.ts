@@ -24,21 +24,77 @@ export const VALID_AGENTS = [
 export type AgentName = (typeof VALID_AGENTS)[number];
 
 // ============================================================================
-// Tier-Aware Model Routing
+// Provider-Aware Agent Model Routing (ADR-052)
 // ============================================================================
 
 /**
- * Tier-aware per-agent model routing map.
- * Each tier defines agents available at that level with their model.
- * Higher tiers inherit all agents from lower tiers.
+ * Provider identifiers for agent routing.
+ * @since Sprint 140 — ADR-052 Agent-Model Tier Mapping
+ */
+export type AgentProviderId = "claude-code" | "kimi" | "ollama";
+
+/**
+ * Per-agent model configuration with provider.
+ */
+export interface AgentModelConfig {
+  /** Primary provider for this agent */
+  provider: AgentProviderId;
+  /** Model identifier (provider-specific) */
+  model: string;
+  /** Tier classification (for documentation) */
+  tier: 1 | 2 | 3;
+  /** Human-readable rationale */
+  rationale?: string;
+}
+
+/**
+ * Agent-Model Tier Mapping (ADR-052).
  *
- * LITE: assistant, coder, tester
- * STANDARD: + pm, architect, reviewer
- * PROFESSIONAL: + devops, fullstack, pjm, researcher, cso
- * ENTERPRISE: + ceo, cto, cpo
+ * Three-tier strategy:
+ *   Tier 1 (claude-code/opus): Critical reasoning — ADR, security, CEO strategy
+ *   Tier 2 (kimi/kimi-k2-6): Primary workhorse — coding, review, PM, research
+ *   Tier 3 (ollama/qwen3.5:9b): Free tier — routing, lightweight tasks
  *
- * @see docs/03-design/model-routing-strategy.md
- * @since Sprint 100 — SASE 6.1.2 alignment
+ * @see docs/02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md
+ */
+export const AGENT_PROVIDER_MODEL_MAP: Record<AgentName, AgentModelConfig> = {
+  // ─── Tier 1: Claude Opus — Critical Reasoning ───
+  architect:   { provider: "claude-code", model: "claude-opus-4",     tier: 1, rationale: "ADR writing, system design, G2 gate — deepest reasoning required" },
+  cso:         { provider: "claude-code", model: "claude-opus-4",     tier: 1, rationale: "Security review, threat modeling, ASVS L2 — must not compromise" },
+  ceo:         { provider: "claude-code", model: "claude-opus-4",     tier: 1, rationale: "Strategic decisions, Go/No-Go, resource allocation" },
+
+  // ─── Tier 2: Kimi k2.6 — Primary Workhorse ───
+  coder:       { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Code generation, TDD, implementation — Kimi coding ≈ Sonnet" },
+  reviewer:    { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Code review, blast-radius — Kimi sufficient, cost reduction" },
+  tester:      { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Test plans, E2E, coverage verification" },
+  pm:          { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "PRDs, requirements, backlog — 256K context fits" },
+  cpo:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Product-market fit, requirements validation" },
+  cto:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Architecture oversight, tech debt (advisory, not ADR writer)" },
+  fullstack:   { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Solo loop — Kimi primary reduces cost significantly" },
+  pjm:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Sprint planning, velocity tracking, blocker escalation" },
+  researcher:  { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Evidence gathering, market analysis, feasibility" },
+  devops:      { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Deploy scripts, runbooks, pipeline config" },
+
+  // ─── Tier 3: AI-Platform / Ollama — Free Tier ───
+  assistant:   { provider: "ollama",      model: "qwen3.5:9b",        tier: 3, rationale: "Routing, delegation tracking — qwen3.5:9b router model sufficient" },
+};
+
+/**
+ * Fallback chain per tier (ordered by preference).
+ * @since Sprint 140 — ADR-052
+ */
+export const TIER_FALLBACK_CHAIN: Record<1 | 2 | 3, AgentProviderId[]> = {
+  1: ["claude-code", "kimi", "ollama"],   // Tier 1: Opus → Kimi → Ollama
+  2: ["kimi", "claude-code", "ollama"],   // Tier 2: Kimi → Opus → Ollama
+  3: ["ollama", "kimi", "claude-code"],   // Tier 3: Ollama → Kimi → Opus
+};
+
+// ============================================================================
+// Legacy Tier-Aware Model Routing (Claude-only, preserved for backward compat)
+// ============================================================================
+
+/**
+ * @deprecated Use AGENT_PROVIDER_MODEL_MAP instead. Kept for backward compatibility.
  */
 export const TIER_AGENT_MODEL_MAP: Record<string, Record<string, string>> = {
   LITE: { assistant: "sonnet", coder: "sonnet", tester: "sonnet" },
@@ -53,25 +109,58 @@ export const AGENT_MODEL_MAP: Record<string, string> = Object.assign(
 );
 
 /**
+ * Get the provider-model configuration for an agent (ADR-052).
+ *
+ * @param agent - Agent name (e.g., "pm", "coder")
+ * @returns AgentModelConfig or undefined if agent unknown
+ */
+export function getAgentProviderModel(agent: string): AgentModelConfig | undefined {
+  return AGENT_PROVIDER_MODEL_MAP[agent as AgentName];
+}
+
+/**
  * Get model for an agent at a specific tier.
  * Returns undefined if agent is not available at the requested tier (strict enforcement).
  *
  * @param agent - Agent name (e.g., "pm", "coder")
  * @param tier - Project tier (defaults to ENTERPRISE = all agents available)
  * @returns Model name or undefined if agent not available at tier
+ * @deprecated Use getAgentProviderModel() for provider-aware routing.
  */
 export function getAgentModel(agent: string, tier?: string): string | undefined {
   const tierOrder = ["LITE", "STANDARD", "PROFESSIONAL", "ENTERPRISE"];
   const targetTier = tier ?? "ENTERPRISE";
   const tierIdx = tierOrder.indexOf(targetTier);
-  if (tierIdx < 0) return AGENT_MODEL_MAP[agent]; // unknown tier → fallback to flat map
 
+  // Check tier restrictions first (strict enforcement)
+  let agentAvailableAtTier = false;
+  if (tierIdx < 0) {
+    agentAvailableAtTier = agent in AGENT_MODEL_MAP; // unknown tier → flat map
+  } else {
+    for (let i = 0; i <= tierIdx; i++) {
+      const tierKey = tierOrder[i]!;
+      const tierAgents = TIER_AGENT_MODEL_MAP[tierKey];
+      if (tierAgents && agent in tierAgents) {
+        agentAvailableAtTier = true;
+        break;
+      }
+    }
+  }
+
+  if (!agentAvailableAtTier) return undefined;
+
+  // ADR-052: Return provider-aware model if agent is available at tier
+  const providerConfig = getAgentProviderModel(agent);
+  if (providerConfig) return providerConfig.model;
+
+  // Fallback to legacy tier map
+  if (tierIdx < 0) return AGENT_MODEL_MAP[agent];
   for (let i = 0; i <= tierIdx; i++) {
     const tierKey = tierOrder[i]!;
     const tierAgents = TIER_AGENT_MODEL_MAP[tierKey];
     if (tierAgents && agent in tierAgents) return tierAgents[agent];
   }
-  return undefined; // agent not available at requested tier
+  return undefined;
 }
 
 /**

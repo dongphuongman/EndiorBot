@@ -62,9 +62,10 @@ export interface ChatHandlerRequest {
   /** Override models (CEO选latest) */
   openaiModel?: string;
   geminiModel?: string;
+  kimiModel?: string;
   claudeModel?: string;
-  /** Primary provider (default: claude, use openai/gemini when Claude API credits low) */
-  primaryProvider?: "claude" | "openai" | "gemini";
+  /** Primary provider (default: openai, use gemini/kimi for alternative perspectives) */
+  primaryProvider?: "claude" | "openai" | "gemini" | "kimi";
   /** Force full consultation */
   forceConsultation?: boolean;
 }
@@ -73,7 +74,7 @@ export interface ChatHandlerRequest {
  * Individual model response.
  */
 export interface ModelResponse {
-  provider: "anthropic" | "openai" | "google";
+  provider: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-proxy";
   model: string;
   content: string;
   latencyMs: number;
@@ -90,6 +91,7 @@ export interface ConsolidatedResponse {
   critiques?: {
     openai?: string;
     gemini?: string;
+    kimi?: string;
   };
   agreement: "full" | "partial" | "divergent";
   recommendation: string;
@@ -121,6 +123,7 @@ export const DEFAULT_MODELS = {
   anthropic: "claude-sonnet-4-5-20250929", // Claude via Bridge (OAuth), not API
   openai: "gpt-5.4",                       // Latest OpenAI for consultation
   gemini: "gemini-2.5-pro",                // Latest Gemini for consultation
+  kimi: "kimi-k2-6",                       // Latest Kimi for consultation
 };
 
 /** Per-model timeout (30s) */
@@ -177,12 +180,12 @@ export function routeTask(taskType: ChatTaskType): ModelSelection {
 
     case "architecture":
     case "research":
-      // Full expert panel
-      return { primary: "openai", critics: ["gemini"] };
+      // Full expert panel (OpenAI + Gemini + Kimi)
+      return { primary: "openai", critics: ["gemini", "kimi"] };
 
     case "security":
-      // Both experts for security critical
-      return { primary: "openai", critics: ["gemini"] };
+      // All experts for security critical
+      return { primary: "openai", critics: ["gemini", "kimi"] };
 
     default:
       return { primary: "openai", critics: [] };
@@ -267,7 +270,7 @@ export class ChatHandler {
 
     const taskType = classifyTask(request.message);
     const routing = request.forceConsultation
-      ? { primary: "openai", critics: ["gemini"] }
+      ? { primary: "openai", critics: ["gemini", "kimi"] }
       : routeTask(taskType);
 
     this.log.info("Handling chat request", {
@@ -304,6 +307,13 @@ export class ChatHandler {
       primaryResponse = await this.queryProvider(
         "google",
         request.geminiModel ?? DEFAULT_MODELS.gemini,
+        request.message,
+        projectContext,
+      );
+    } else if (primaryProvider === "kimi") {
+      primaryResponse = await this.queryProvider(
+        "kimi",
+        request.kimiModel ?? DEFAULT_MODELS.kimi,
         request.message,
         projectContext,
       );
@@ -344,6 +354,17 @@ export class ChatHandler {
         );
       }
 
+      if (routing.critics.includes("kimi")) {
+        criticPromises.push(
+          this.queryProvider(
+            "kimi",
+            request.kimiModel ?? DEFAULT_MODELS.kimi,
+            request.message,
+            projectContext,
+          ),
+        );
+      }
+
       // Wait for critics with timeout
       const criticResults = await Promise.race([
         Promise.allSettled(criticPromises),
@@ -364,7 +385,7 @@ export class ChatHandler {
         } else {
           // Add timeout/error response
           responses.push({
-            provider: "openai", // Will be corrected below
+            provider: "kimi",
             model: "unknown",
             content: "",
             latencyMs: Date.now() - startTime,
@@ -429,17 +450,21 @@ export class ChatHandler {
    * Query a single provider.
    */
   private async queryProvider(
-    providerId: "anthropic" | "openai" | "google",
+    providerId: "anthropic" | "openai" | "google" | "kimi",
     model: string,
     message: string,
     systemContext?: string,
   ): Promise<ModelResponse> {
     const startTime = Date.now();
-    const provider = this.providers.get(providerId);
+    // Map "kimi" to actual provider IDs in registry (kimi-api preferred, fallback to kimi-proxy)
+    const resolvedId = providerId === "kimi"
+      ? (this.providers.get("kimi-api") ? "kimi-api" : this.providers.get("kimi-proxy") ? "kimi-proxy" : null)
+      : providerId;
+    const provider = resolvedId ? this.providers.get(resolvedId) : undefined;
 
     if (!provider) {
       return {
-        provider: providerId,
+        provider: resolvedId ?? providerId,
         model,
         content: "",
         latencyMs: Date.now() - startTime,
@@ -482,7 +507,7 @@ export class ChatHandler {
       clearTimeout(timeoutId);
 
       return {
-        provider: providerId,
+        provider: resolvedId ?? providerId,
         model: response.model,
         content: response.content,
         latencyMs: Date.now() - startTime,
@@ -494,7 +519,7 @@ export class ChatHandler {
       };
     } catch (error) {
       return {
-        provider: providerId,
+        provider: resolvedId ?? providerId,
         model,
         content: "",
         latencyMs: Date.now() - startTime,
@@ -511,7 +536,7 @@ export class ChatHandler {
     primary: ModelResponse,
     allResponses: ModelResponse[],
   ): ConsolidatedResponse {
-    const critiques: { openai?: string; gemini?: string } = {};
+    const critiques: { openai?: string; gemini?: string; kimi?: string } = {};
 
     // Extract critiques from non-primary responses
     for (const response of allResponses) {
@@ -521,10 +546,13 @@ export class ChatHandler {
       if (response.provider === "google" && response.status === "success") {
         critiques.gemini = response.content;
       }
+      if ((response.provider === "kimi" || response.provider === "kimi-api" || response.provider === "kimi-proxy") && response.status === "success") {
+        critiques.kimi = response.content;
+      }
     }
 
     // If no critiques, return primary only
-    if (!critiques.openai && !critiques.gemini) {
+    if (!critiques.openai && !critiques.gemini && !critiques.kimi) {
       return {
         primary: primary.content,
         agreement: "full",
@@ -559,9 +587,9 @@ export class ChatHandler {
    */
   private calculateAgreement(
     primary: string,
-    critiques: { openai?: string; gemini?: string },
+    critiques: { openai?: string; gemini?: string; kimi?: string },
   ): "full" | "partial" | "divergent" {
-    const allResponses = [primary, critiques.openai, critiques.gemini].filter(
+    const allResponses = [primary, critiques.openai, critiques.gemini, critiques.kimi].filter(
       Boolean,
     ) as string[];
 
@@ -572,7 +600,7 @@ export class ChatHandler {
     let matchCount = 0;
     let totalWords = 0;
 
-    for (const response of [critiques.openai, critiques.gemini]) {
+    for (const response of [critiques.openai, critiques.gemini, critiques.kimi]) {
       if (!response) continue;
       const words = response.toLowerCase().match(/\b\w{4,}\b/g) ?? [];
       totalWords += words.length;
@@ -590,7 +618,7 @@ export class ChatHandler {
    * Extract different points from critiques.
    */
   private extractDifferentPoints(
-    critiques: { openai?: string; gemini?: string },
+    critiques: { openai?: string; gemini?: string; kimi?: string },
     _primary: string,
   ): string {
     const notes: string[] = [];
@@ -606,6 +634,11 @@ export class ChatHandler {
       notes.push(`• Gemini: ${firstSentence?.trim() ?? "No specific point"}`);
     }
 
+    if (critiques.kimi) {
+      const firstSentence = critiques.kimi.split(/[.!?]/)[0];
+      notes.push(`• Kimi: ${firstSentence?.trim() ?? "No specific point"}`);
+    }
+
     return notes.join("\n");
   }
 
@@ -614,12 +647,12 @@ export class ChatHandler {
    */
   private formatDivergentViews(
     primary: string,
-    critiques: { openai?: string; gemini?: string },
+    critiques: { openai?: string; gemini?: string; kimi?: string },
   ): string {
     const parts: string[] = [];
 
     parts.push("⚠️ **Divergent Views - CEO Review Required**\n");
-    parts.push("**Claude (Primary):**");
+    parts.push("**OpenAI (Primary):**");
     parts.push(primary.slice(0, 500));
 
     if (critiques.openai) {
@@ -630,6 +663,11 @@ export class ChatHandler {
     if (critiques.gemini) {
       parts.push("\n**Gemini (Critique):**");
       parts.push(critiques.gemini.slice(0, 300));
+    }
+
+    if (critiques.kimi) {
+      parts.push("\n**Kimi (Critique):**");
+      parts.push(critiques.kimi.slice(0, 300));
     }
 
     return parts.join("\n");
@@ -662,6 +700,9 @@ export class ChatHandler {
       }
       if (response.consolidated.critiques.gemini) {
         notesParts.push(`Gemini: ${response.consolidated.critiques.gemini.slice(0, 200)}`);
+      }
+      if (response.consolidated.critiques.kimi) {
+        notesParts.push(`Kimi: ${response.consolidated.critiques.kimi.slice(0, 200)}`);
       }
       if (notesParts.length > 0) {
         notes = notesParts.join("\n\n");

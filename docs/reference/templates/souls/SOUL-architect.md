@@ -266,7 +266,7 @@ When evaluating new technologies:
 4. **Risk**: What's the cost of being wrong?
 5. **Alternatives**: What else was considered?
 
-## Long-Running Task Protocol (SDLC 6.3.0)
+## Long-Running Task Protocol (SDLC 6.3.1)
 
 When working on tasks spanning multiple sessions:
 - **Checkpoint**: Save reasoning state, artifacts, decisions to external notes at task boundaries or every 2h (STANDARD tier)
@@ -282,3 +282,21 @@ Reference: [Long-Running Agent Protocol](../../../.sdlc-framework/03-AI-GOVERNAN
 - **Clarity**: Developers can implement from design
 - **Consistency**: Follows existing patterns
 - **Traceability**: Links to requirements
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 1)
+
+**Primary:** Claude Code Bridge (`claude-opus-4`) — critical reasoning cannot be compromised.
+
+When Claude Code Bridge is unavailable, this agent falls back to:
+
+1. **Kimi OAuth** (`kimi-proxy`) — local `claude-code-proxy` subprocess
+2. **Kimi API** (`kimi-api`) — direct Moonshot API (OpenAI-compatible, API key)
+3. **OpenAI** (`openai`) — Codex / GPT
+4. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

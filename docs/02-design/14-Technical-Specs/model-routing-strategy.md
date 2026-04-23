@@ -22,16 +22,14 @@ EndiorBot supports **12 agent roles** organized into **4 teams**, with intellige
 ### Team 1: Planning (4 agents)
 | Agent ID | Role | Description | Primary Model | Fallback |
 |----------|------|-------------|---------------|----------|
-| `researcher` | SE4A-00 | Discovery and user research | Gemini 2 Pro | Claude Sonnet |
-| `pm` | SE4A-00-01 | Requirements and user stories | Claude Sonnet | GPT-4o |
-| `pjm` | SE4A Sprint | Sprint coordination and task tracking | Claude Haiku | Ollama |
-| `architect` | SE4A-02 | System design and ADRs | Claude Opus | GPT-4o |
+| `researcher` | SE4A-00 | Discovery and user research | Claude Sonnet | Kimi API |
+| `pm` | SE4A-00-01 | Requirements and user stories | Claude Sonnet | Kimi API |
+| `pjm` | SE4A Sprint | Sprint coordination and task tracking | Claude Haiku | Kimi API |
+| `architect` | SE4A-02 | System design and ADRs | Claude Opus | Kimi API |
 
 **Routing Logic**:
 ```typescript
-if (task.type === 'research') {
-  return 'gemini-2-pro';  // Latest data, web search
-} else if (task.type === 'architecture') {
+if (task.type === 'architecture') {
   return 'claude-opus-4';  // Deep reasoning
 } else if (task.type === 'sprint-tracking') {
   return 'qwen3-coder:30b';  // Local, fast, cost-effective
@@ -115,10 +113,13 @@ if (task.type === 'deployment') {
 | GPT-4o | `gpt-4o` | 128K | Creative tasks, reasoning |
 | GPT-4o-mini | `gpt-4o-mini` | 128K | Fast, cost-effective |
 
-### Google (Gemini)
+### Kimi (Moonshot)
 | Model | ID | Context | Use Case |
 |-------|------|---------|----------|
-| Gemini 2 Pro | `gemini-2.0-flash-exp` | 1M | Research, latest data |
+| Kimi K2.6 | `kimi-k2-6` | 256K | Research, coding, reasoning |
+
+### Google (Gemini)
+**Removed from fallback chain per CEO directive 2026-04-23.**
 
 ### Local (Ollama)
 | Model | ID | Context | Use Case |
@@ -224,7 +225,7 @@ For critical decisions, consult **multiple models in parallel**:
 ```typescript
 const expertPanel = {
   primary: 'claude-opus-4',
-  experts: ['gpt-4o', 'gemini-2.0-flash-exp'],
+  experts: ['gpt-4o', 'kimi-k2-6'],
   taskType: 'architecture',
   query: 'Design payment gateway integration for Bflow AR module',
 };
@@ -261,8 +262,8 @@ export const MODEL_ROUTING: Record<AgentRole, ModelRoutingConfig> = {
 
   // Planning Team (Balanced)
   researcher: {
-    primary: 'gemini-2.0-flash-exp',
-    fallback: 'claude-sonnet-4.5',
+    primary: 'claude-sonnet-4.5',
+    fallback: 'kimi-k2-6',
     consultation: false,
   },
   pm: {
@@ -317,7 +318,8 @@ export const MODEL_ROUTING: Record<AgentRole, ModelRoutingConfig> = {
 - [x] Setup Anthropic provider (Claude)
 - [x] Setup OpenAI provider (GPT)
 - [x] Setup Ollama provider (local)
-- [ ] Add Gemini provider (need API key)
+- [x] Add Kimi API provider (Moonshot)
+- [x] Add Kimi OAuth proxy provider
 - [ ] Implement model routing logic
 - [ ] Test multi-model consultation
 
@@ -353,7 +355,7 @@ export const MODEL_ROUTING: Record<AgentRole, ModelRoutingConfig> = {
 
 ## TODO
 
-- [ ] Add Google Gemini API key
+- [x] Add Moonshot Kimi API key
 - [ ] Add GitHub PAT (for GitHub Copilot integration)
 - [ ] Implement routing logic in Gateway
 - [ ] Add model selection UI in Desktop
@@ -362,4 +364,4 @@ export const MODEL_ROUTING: Record<AgentRole, ModelRoutingConfig> = {
 ---
 
 *Model Routing Strategy for EndiorBot ENTERPRISE tier*
-*SDLC Framework v6.1.1 compliant*
+*SDLC Framework v6.3.1 compliant*

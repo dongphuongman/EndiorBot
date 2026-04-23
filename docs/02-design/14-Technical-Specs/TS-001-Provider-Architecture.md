@@ -22,22 +22,28 @@ src/providers/
 ├── types.ts                 # Provider types
 ├── provider-registry.ts     # Provider registration
 ├── base-provider.ts         # Abstract base class
+├── init.ts                  # Provider initialization from env
 ├── anthropic/
 │   ├── index.ts
-│   ├── anthropic-provider.ts
-│   └── anthropic-types.ts
+│   └── anthropic-provider.ts
 ├── openai/
 │   ├── index.ts
-│   ├── openai-provider.ts
-│   └── openai-types.ts
-├── google/
+│   └── openai-provider.ts
+├── gemini/
 │   ├── index.ts
-│   ├── google-provider.ts
-│   └── google-types.ts
-└── mistral/
+│   └── gemini-provider.ts
+├── kimi-api/
+│   ├── index.ts             # Moonshot direct API (OpenAI-compatible)
+│   └── subprocess-orchestrator.ts
+├── kimi-proxy/
+│   ├── index.ts             # Local claude-code-proxy (Anthropic-compatible)
+│   └── subprocess-orchestrator.ts
+├── ollama/
+│   ├── index.ts
+│   └── ollama-provider.ts
+└── claude-code/
     ├── index.ts
-    ├── mistral-provider.ts
-    └── mistral-types.ts
+    └── claude-code-provider.ts
 ```
 
 ---
@@ -258,10 +264,11 @@ providers:
     defaultModel: gpt-5
     timeout: 30000
 
-  google:
+  kimi-api:
     enabled: true
-    apiKey: ${GOOGLE_AI_API_KEY}
-    defaultModel: gemini-2-pro
+    apiKey: ${KIMI_API_KEY}
+    defaultModel: kimi-k2-6
+    baseUrl: https://api.moonshot.cn/v1
 
   mistral:
     enabled: false
@@ -296,9 +303,10 @@ providers:
 |---------|---------|---------|
 | @anthropic-ai/sdk | ^0.39 | Anthropic API |
 | openai | ^4.80 | OpenAI API |
-| @google/generative-ai | ^0.24 | Gemini API |
+| @google/generative-ai | ^0.24 | Gemini API (legacy, not in fallback chain) |
+| openai | ^4.80 | Moonshot Kimi API (OpenAI-compatible) |
 | @mistralai/mistralai | ^1.3 | Mistral API |
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 02: Design*
+*SDLC Framework v6.3.1 - Stage 02: Design*

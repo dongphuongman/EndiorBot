@@ -48,6 +48,7 @@ import { getClaudeCodeBridge } from "../../agents/invoke/claude-code-bridge.js";
 export const AVAILABLE_MODELS = {
   openai: ["gpt-5.4", "o3", "o3-mini", "o1", "gpt-4o", "gpt-4o-mini"],
   gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash-thinking", "gemini-2.0-flash"],
+  kimi: ["kimi-k2-6", "kimi-for-coding", "moonshot-v1-128k", "moonshot-v1-32k"],
   anthropic: ["claude-opus-4", "claude-sonnet-4", "claude-haiku-4"],
 } as const;
 
@@ -58,6 +59,7 @@ export const AVAILABLE_MODELS = {
 const DEFAULT_MODELS = {
   openai: "gpt-5.4",
   gemini: "gemini-2.5-pro",
+  kimi: "kimi-k2-6",
 } as const;
 
 // ============================================================================
@@ -99,6 +101,7 @@ function formatProvider(provider: string): string {
     anthropic: "Claude",
     openai: "GPT",
     google: "Gemini",
+    kimi: "Kimi",
     mistral: "Mistral",
   };
   return providers[provider] ?? provider;
@@ -229,7 +232,8 @@ interface ConsultOptions {
   claude?: string;
   openai?: string;
   gemini?: string;
-  primary?: "claude" | "openai" | "gemini";
+  kimi?: string;
+  primary?: "claude" | "openai" | "gemini" | "kimi";
   viaClaudeCode?: boolean;
   full?: boolean;
   verbose?: boolean;
@@ -248,7 +252,7 @@ const CLAUDE_MODEL_MAP: Record<string, string> = {
  * Validate model selection.
  */
 function validateModel(
-  provider: "openai" | "gemini" | "anthropic",
+  provider: "openai" | "gemini" | "kimi" | "anthropic",
   model: string,
 ): boolean {
   const available = AVAILABLE_MODELS[provider] as readonly string[];
@@ -284,6 +288,12 @@ async function consultAction(
   if (options.gemini && !validateModel("gemini", options.gemini)) {
     console.error(`❌ Invalid Gemini model: ${options.gemini}`);
     console.log(`   Available: ${AVAILABLE_MODELS.gemini.join(", ")}`);
+    process.exit(1);
+  }
+
+  if (options.kimi && !validateModel("kimi", options.kimi)) {
+    console.error(`❌ Invalid Kimi model: ${options.kimi}`);
+    console.log(`   Available: ${AVAILABLE_MODELS.kimi.join(", ")}`);
     process.exit(1);
   }
 
@@ -329,15 +339,17 @@ async function consultAction(
     }
   }
 
-  // Show selected models (OpenAI + Gemini expert panel)
+  // Show selected models (OpenAI + Gemini + Kimi expert panel)
   const openaiModel = options.openai ?? DEFAULT_MODELS.openai;
   const geminiModel = options.gemini ?? DEFAULT_MODELS.gemini;
+  const kimiModel = options.kimi ?? DEFAULT_MODELS.kimi;
   const primaryProvider = options.primary ?? "openai";
 
-  // Display with correct primary indicator (OpenAI default, Gemini critic)
+  // Display with correct primary indicator
   const openaiLabel = primaryProvider === "openai" ? `${openaiModel} (Primary)` : openaiModel;
   const geminiLabel = primaryProvider === "gemini" ? `${geminiModel} (Primary)` : geminiModel;
-  console.log(`   ${openaiLabel} + ${geminiLabel}`);
+  const kimiLabel = primaryProvider === "kimi" ? `${kimiModel} (Primary)` : kimiModel;
+  console.log(`   ${openaiLabel} + ${geminiLabel} + ${kimiLabel}`);
   console.log("");
 
   try {
@@ -361,6 +373,9 @@ async function consultAction(
     }
     if (options.gemini) {
       request.geminiModel = options.gemini;
+    }
+    if (options.kimi) {
+      request.kimiModel = options.kimi;
     }
     if (options.primary) {
       request.primaryProvider = options.primary;
@@ -512,10 +527,11 @@ function displayClaudeCodeResponse(
 export function registerConsultCommand(program: Command): void {
   program
     .command("consult <query>")
-    .description("Query expert panel for consultation (OpenAI + Gemini)")
+    .description("Query expert panel for consultation (OpenAI + Gemini + Kimi)")
     .option("--openai <model>", `OpenAI model (${AVAILABLE_MODELS.openai.join(", ")})`, DEFAULT_MODELS.openai)
     .option("--gemini <model>", `Gemini model (${AVAILABLE_MODELS.gemini.join(", ")})`, DEFAULT_MODELS.gemini)
-    .option("--primary <provider>", "Primary provider: openai or gemini (default: openai)")
+    .option("--kimi <model>", `Kimi model (${AVAILABLE_MODELS.kimi.join(", ")})`, DEFAULT_MODELS.kimi)
+    .option("--primary <provider>", "Primary provider: openai, gemini, or kimi (default: openai)")
     .option("--via-claude-code", "Use Claude Code CLI for single-model query")
     .option("--full", "Force full 3-model consultation regardless of task type")
     .option("-v, --verbose", "Show detailed responses from each model")
@@ -543,12 +559,18 @@ export function registerConsultCommand(program: Command): void {
         console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
       }
       console.log("│".padEnd(62) + "│");
+      console.log("│  Kimi (Expert):".padEnd(62) + "│");
+      for (const model of AVAILABLE_MODELS.kimi) {
+        const isDefault = model === DEFAULT_MODELS.kimi ? " (default)" : "";
+        console.log(`│     • ${model}${isDefault}`.padEnd(62) + "│");
+      }
+      console.log("│".padEnd(62) + "│");
       console.log("│  Claude (via Claude Code Bridge — development only):".padEnd(62) + "│");
       console.log("│     • Use --via-claude-code for single-model query".padEnd(62) + "│");
       console.log("└─────────────────────────────────────────────────────────────┘");
       console.log("");
       console.log("Usage:");
-      console.log("  endiorbot consult --openai o3 --gemini gemini-2.5-pro \"your question\"");
+      console.log("  endiorbot consult --openai o3 --gemini gemini-2.5-pro --kimi kimi-k2-6 \"your question\"");
       console.log("");
     });
 }

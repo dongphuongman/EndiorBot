@@ -5,7 +5,7 @@
  * Implements ADR-001 for expert consultation workflow.
  *
  * Features:
- * - Parallel queries to multiple providers (Claude, GPT, Gemini, Mistral)
+ * - Parallel queries to multiple providers (GPT, Gemini, Kimi, Mistral)
  * - Configurable timeouts and fallback behavior
  * - Response consolidation with consensus detection
  * - SDLC compliance checking
@@ -27,7 +27,7 @@
 /**
  * AI provider identifier.
  */
-export type ProviderId = "anthropic" | "openai" | "google" | "mistral";
+export type ProviderId = "anthropic" | "openai" | "google" | "kimi" | "mistral";
 
 /**
  * Model role in consultation.
@@ -168,25 +168,25 @@ export interface OrchestratorConfig {
 
 export const DEFAULT_ORCHESTRATOR_CONFIG: OrchestratorConfig = {
   primary: {
-    provider: "anthropic",
-    model: "claude-opus-4",
+    provider: "openai",
+    model: "gpt-5.4",
     role: "primary",
-    purpose: "Main development, SDLC compliance",
+    purpose: "Primary reasoning and analysis for CEO consultation",
   },
   experts: [
     {
-      provider: "openai",
-      model: "gpt-5",
+      provider: "google",
+      model: "gemini-2.5-pro",
       role: "expert",
-      purpose: "Architecture review, scaling analysis",
-      taskTypes: ["architecture", "security"],
+      purpose: "Multi-modal reasoning, long-context analysis, critic",
+      taskTypes: ["architecture", "research"],
     },
     {
-      provider: "google",
-      model: "gemini-2-pro",
+      provider: "kimi",
+      model: "kimi-k2-6",
       role: "expert",
-      purpose: "GCP integration, latest tech trends",
-      taskTypes: ["architecture", "research"],
+      purpose: "Code generation, Chinese-context knowledge, alternative perspective",
+      taskTypes: ["code_review", "architecture", "security"],
     },
   ],
   perModelTimeout: 30000, // 30s per model
@@ -297,6 +297,7 @@ export class MultiModelOrchestrator {
       anthropic: `[Claude] Analysis of "${query.slice(0, 50)}..."\n\nRecommendation: Use a modular approach with clear separation of concerns. Consider implementing adapter pattern for flexibility.`,
       openai: `[GPT] Review of "${query.slice(0, 50)}..."\n\nSuggestion: Focus on scalability from the start. Consider rate limiting and caching strategies.`,
       google: `[Gemini] Assessment of "${query.slice(0, 50)}..."\n\nInsight: Cloud-native solutions would provide better long-term maintainability. Consider serverless where appropriate.`,
+      kimi: `[Kimi] Analysis of "${query.slice(0, 50)}..."\n\nPerspective: Consider Chinese-market requirements and coding-specific optimizations. Evaluate long-context handling for large codebases.`,
       mistral: `[Mistral] Evaluation of "${query.slice(0, 50)}..."\n\nNote: Keep implementation simple. Avoid over-engineering for current requirements.`,
     };
 

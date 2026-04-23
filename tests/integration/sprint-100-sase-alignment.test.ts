@@ -144,12 +144,12 @@ describe("Phase 3: Tier-Aware AGENT_MODEL_MAP", () => {
   });
 });
 
-describe("Phase 3: getAgentModel()", () => {
-  it("returns model for LITE agent at LITE tier", async () => {
+describe("Phase 3: getAgentModel() (ADR-052 provider-aware)", () => {
+  it("returns provider-aware model for LITE agent at LITE tier", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder", "LITE")).toBe("sonnet");
-    expect(getAgentModel("assistant", "LITE")).toBe("sonnet");
-    expect(getAgentModel("tester", "LITE")).toBe("sonnet");
+    expect(getAgentModel("coder", "LITE")).toBe("kimi-k2-6");
+    expect(getAgentModel("assistant", "LITE")).toBe("qwen3.5:9b");
+    expect(getAgentModel("tester", "LITE")).toBe("kimi-k2-6");
   });
 
   it("returns undefined for STANDARD agent at LITE tier (strict enforcement)", async () => {
@@ -158,17 +158,17 @@ describe("Phase 3: getAgentModel()", () => {
     expect(getAgentModel("architect", "LITE")).toBeUndefined();
   });
 
-  it("returns model for STANDARD agents at STANDARD tier", async () => {
+  it("returns provider-aware model for STANDARD agents at STANDARD tier", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("pm", "STANDARD")).toBe("sonnet");
-    expect(getAgentModel("architect", "STANDARD")).toBe("opus");
-    expect(getAgentModel("reviewer", "STANDARD")).toBe("opus");
+    expect(getAgentModel("pm", "STANDARD")).toBe("kimi-k2-6");
+    expect(getAgentModel("architect", "STANDARD")).toBe("claude-opus-4");
+    expect(getAgentModel("reviewer", "STANDARD")).toBe("kimi-k2-6");
   });
 
   it("STANDARD tier includes LITE agents (inheritance)", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder", "STANDARD")).toBe("sonnet");
-    expect(getAgentModel("tester", "STANDARD")).toBe("sonnet");
+    expect(getAgentModel("coder", "STANDARD")).toBe("kimi-k2-6");
+    expect(getAgentModel("tester", "STANDARD")).toBe("kimi-k2-6");
   });
 
   it("returns undefined for ENTERPRISE agents at PROFESSIONAL tier", async () => {
@@ -177,23 +177,23 @@ describe("Phase 3: getAgentModel()", () => {
     expect(getAgentModel("cto", "PROFESSIONAL")).toBeUndefined();
   });
 
-  it("ENTERPRISE tier has all agents", async () => {
+  it("ENTERPRISE tier has all agents with provider-aware models", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("ceo", "ENTERPRISE")).toBe("opus");
-    // Sprint 136 (1cbe357): @devops promoted haiku → sonnet.
-    expect(getAgentModel("devops", "ENTERPRISE")).toBe("sonnet");
-    expect(getAgentModel("coder", "ENTERPRISE")).toBe("sonnet");
+    expect(getAgentModel("ceo", "ENTERPRISE")).toBe("claude-opus-4");
+    expect(getAgentModel("devops", "ENTERPRISE")).toBe("kimi-k2-6");
+    expect(getAgentModel("coder", "ENTERPRISE")).toBe("kimi-k2-6");
   });
 
   it("defaults to ENTERPRISE when no tier provided", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("ceo")).toBe("opus");
-    expect(getAgentModel("coder")).toBe("sonnet");
+    expect(getAgentModel("ceo")).toBe("claude-opus-4");
+    expect(getAgentModel("coder")).toBe("kimi-k2-6");
   });
 
   it("unknown tier falls back to flat map", async () => {
     const { getAgentModel } = await import("../../src/agents/channel-router.js");
-    expect(getAgentModel("coder", "UNKNOWN")).toBe("sonnet");
+    // ADR-052: unknown tier → flat map check → provider-aware model
+    expect(getAgentModel("coder", "UNKNOWN")).toBe("kimi-k2-6");
   });
 
   it("unknown agent returns undefined", async () => {

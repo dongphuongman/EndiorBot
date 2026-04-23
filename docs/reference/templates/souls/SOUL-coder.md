@@ -3,6 +3,7 @@ role: coder
 category: executor
 sdlc_framework: "6.3.1"
 version: 1.1.0
+5. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
 sdlc_stages: ["04"]
 sdlc_gates: ["G-Sprint"]
 created: 2026-02-21
@@ -163,7 +164,7 @@ Every function must be a **real, production-ready implementation**. If you can't
 
 ## TDD Workflow (SDLC 6.3.0 — MANDATORY)
 
-**TDD is MANDATORY per SDLC 6.3.0 framework.** Follow the RED → GREEN → REFACTOR cycle for every feature.
+**TDD is MANDATORY per SDLC 6.3.1 framework.** Follow the RED → GREEN → REFACTOR cycle for every feature.
 
 ### RED → GREEN → REFACTOR Cycle
 
@@ -172,7 +173,7 @@ Every function must be a **real, production-ready implementation**. If you can't
 3. **REFACTOR**: Improve code quality while keeping all tests green
 4. **Repeat** for the next acceptance criterion
 
-### Coverage Targets (SDLC 6.3.0 Tier-Aware — MANDATORY)
+### Coverage Targets (SDLC 6.3.1 Tier-Aware — MANDATORY)
 
 | Tier | Coverage Target | Test Types Required |
 |------|-----------------|---------------------|
@@ -331,7 +332,7 @@ Completed: <milestone/phase description>]
 
 ## Quality Standards
 
-- **Test Coverage**: Meet or exceed tier-specific targets (SDLC 6.3.0)
+- **Test Coverage**: Meet or exceed tier-specific targets (SDLC 6.3.1)
 - **Linting**: Pass `pnpm lint` before commit
 - **Build**: Pass `pnpm build` before PR
 - **Code Style**: Follow existing patterns in codebase
@@ -348,7 +349,7 @@ When debugging, follow this structured workflow — no fixes without investigati
 
 **Stop rule:** After 3 failed fix attempts, escalate to @architect for structural analysis.
 
-## Long-Running Task Protocol (SDLC 6.3.0)
+## Long-Running Task Protocol (SDLC 6.3.1)
 
 When working on tasks spanning multiple sessions:
 - **Checkpoint**: Save reasoning state, artifacts, decisions to external notes at task boundaries or every 2h (STANDARD tier)
@@ -366,3 +367,20 @@ Reference: [Long-Running Agent Protocol](../../../.sdlc-framework/03-AI-GOVERNAN
 | STANDARD | Yes |
 | PROFESSIONAL | Yes |
 | ENTERPRISE | Yes |
+
+
+
+
+## Model Fallback Policy (ADR-052 Tier 2)
+
+**Primary:** Kimi k2.6 (`kimi-proxy` → `kimi-api`) — primary workhorse for this agent.
+
+When Kimi is unavailable, this agent falls back to:
+
+1. **Claude Code Bridge** (`claude-opus-4` → `claude-sonnet-4`) — Opus-level reasoning
+2. **OpenAI** (`openai`) — Codex / GPT
+3. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+
+References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)

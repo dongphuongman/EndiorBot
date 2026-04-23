@@ -9,7 +9,7 @@ read_when:
 
 **Pattern:** Thin client — business logic lives in `./endiorbot.mjs` (or `pnpm exec endiorbot`), not in markdown.
 
-**Framework:** SDLC **6.3.0** · **14 roles** (9 SE4A + 4 SE4H + assistant router).
+**Framework:** SDLC **6.3.1** · **14 roles** (9 SE4A + 4 SE4H + assistant router).
 
 ---
 
@@ -20,7 +20,7 @@ read_when:
 | **Serve** | `endiorbot serve` | Gateway + OTT + bus (unified) |
 | **SDLC** | `endiorbot init`, `endiorbot gate …`, `endiorbot compliance …` | Init scaffold; gates; compliance |
 | **Fix** | `endiorbot fix …` | Compliance fix (dry-run default) |
-| **Consult** | `endiorbot consult "…"` | Multi-model (OpenAI primary + Gemini critic by default) |
+| **Consult** | `endiorbot consult "…"` | Multi-model (OpenAI primary + Gemini + Kimi2.6 expert panel) |
 | **Plan** | `endiorbot plan "…"` | Structured task plan, **display-only**; saves under `docs/04-build/sprints/drafts/` |
 | **Bootstrap** | `endiorbot bootstrap <git-url> …` | Clone → detect ecosystem → init SDLC → optional `--build` |
 | **DevOps** | `endiorbot ops build`, `endiorbot ops run …` | Polyglot (Node, Rust, Python, …) via shared detector |

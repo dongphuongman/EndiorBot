@@ -16,12 +16,15 @@ CEO uses `endiorbot chat` daily. Original ADR-043 defaulted to OpenAI (GPT-5.4) 
 
 **Provider priority change:**
 
-| Priority | Before (ADR-043) | After (A1) |
-|----------|-------------------|------------|
-| 1 (default) | OpenAI (GPT-5.4) | **Claude Code (OAuth)** |
-| 2 | Gemini | Gemini |
-| 3 | Ollama | Ollama |
-| 4 | Anthropic API | OpenAI |
+| Priority | Before (ADR-043) | After (A1) | After ADR-051 (Sprint 140) |
+|----------|-------------------|------------|----------------------------|
+| 1 (default) | OpenAI (GPT-5.4) | **Claude Code (OAuth)** | **Claude Code (OAuth)** |
+| 2 | Gemini | Gemini | **Kimi API** (Moonshot) |
+| 3 | Ollama | Ollama | **Kimi OAuth** (claude-code-proxy) |
+| 4 | Anthropic API | OpenAI | OpenAI / Anthropic |
+| 5 | — | — | Ollama (last resort) |
+
+**Note:** Gemini removed from fallback chain per CEO directive 2026-04-23.
 
 ## Implementation
 
@@ -38,7 +41,7 @@ History is managed by Claude Code's native session persistence — EndiorBot doe
 
 ### Fallback
 
-If `claude` CLI unavailable or OAuth expired → automatic fallback to Gemini/OpenAI with warning message.
+If `claude` CLI unavailable or OAuth expired → automatic fallback to Kimi API → Kimi OAuth proxy → OpenAI → Anthropic → Ollama with warning message.
 
 ### Cost Tracking
 
@@ -49,7 +52,7 @@ Parse `--output-format json` response for `cost_usd` field. Accumulate per sessi
 1. ADR-043-A1 addendum (this document)
 2. `/clear` starts new UUID, does NOT delete old sessions
 3. Show elapsed time per turn (~3-5s, OAuth)
-4. Fallback to Gemini/OpenAI if CLI unavailable
+4. Fallback to Kimi API / Kimi OAuth / OpenAI / Anthropic / Ollama if CLI unavailable
 5. Existing `ClaudeCodeBridge` unchanged — new provider is separate class
 6. 2K token/turn budget cannot be enforced at CLI level (documented)
 
