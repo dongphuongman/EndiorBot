@@ -661,6 +661,7 @@ export async function dispatchAgentFallback(
     log.info(`ADR-052 fallback: @${agent} → ${providerId} [tier ${tier}]`);
     let result: AIResult | null = null;
 
+    const fbStart = Date.now();
     switch (providerId) {
       case "claude-code":
         result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
@@ -675,6 +676,11 @@ export async function dispatchAgentFallback(
 
     if (result) {
       log.info(`ADR-052 fallback success: @${agent} via ${providerId}`);
+      // Sprint 141 P0-3 CPO fix: record fallback-to-Claude telemetry
+      if (providerId === "claude-code" && primaryProvider !== "claude-code") {
+        const { recordFallbackToClaude } = await import("../../providers/kimi-proxy/rate-limit-monitor.js");
+        recordFallbackToClaude(Date.now() - fbStart);
+      }
       return result;
     }
   }

@@ -13,6 +13,7 @@ import type { ChannelSendFn } from "../bus/types.js";
 import type { MTClawBridge } from "../mtclaw/bridge.js";
 import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mtclaw/types.js";
 import { TIMEOUTS } from "../config/timeouts.js";
+import { getMetricsCollector, type AgentMetric } from "../analytics/index.js";
 
 // Sprint 121 T3: Import from extracted submodules
 import {
@@ -204,6 +205,7 @@ export class ChannelRouter {
   ): Promise<AIResult> {
     const ws = workspace ?? this.config.projectRoot;
     const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
+    const callStartTime = Date.now();
 
     // ADR-052 (Sprint 140): Agent-aware provider dispatch.
     // Tier 1 (Claude primary) retains failure-classification behavior.
@@ -221,7 +223,10 @@ export class ChannelRouter {
         ws,
         notifyFn,
       );
-      if (bridgeResult) return bridgeResult;
+      if (bridgeResult) {
+        this.recordTelemetry(agent, task, callStartTime, true, bridgeResult.provider ?? "claude-code", false, bridgeResult);
+        return bridgeResult;
+      }
 
       if (!failure) {
         throw new Error(
@@ -238,7 +243,10 @@ export class ChannelRouter {
             `⚡ Claude Code rate-limited (${failure.matchedToken ?? "Max plan window"}) — switching to fallback for @${agent}…`,
           );
           const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
-          if (fallbackResult) return fallbackResult;
+          if (fallbackResult) {
+            this.recordTelemetry(agent, task, callStartTime, true, fallbackResult.provider ?? "fallback", true, fallbackResult);
+            return fallbackResult;
+          }
 
           throw new Error(
             `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset.`,
@@ -263,17 +271,64 @@ export class ChannelRouter {
     // ─── Tier 2/3: Kimi or Ollama primary ───
     console.log(`[Router] ADR-052: @${agent} primary = ${agentConfig!.provider}`);
     const primaryResult = await dispatchAgentPrimary(deps, agent, task, history, ws, notifyFn);
-    if (primaryResult) return primaryResult;
+    if (primaryResult) {
+      this.recordTelemetry(agent, task, callStartTime, true, primaryResult.provider ?? agentConfig!.provider, false, primaryResult);
+      return primaryResult;
+    }
 
     // Primary failed — try tier-specific fallback chain
     console.log(`[Router] Primary provider failed for @${agent} — trying fallback chain...`);
     progressFn?.(`⚡ ${agentConfig!.provider} unavailable — trying fallback for @${agent}…`);
     const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
-    if (fallbackResult) return fallbackResult;
+    if (fallbackResult) {
+      this.recordTelemetry(agent, task, callStartTime, true, fallbackResult.provider ?? "fallback", true, fallbackResult);
+      return fallbackResult;
+    }
 
     throw new Error(
       `All providers failed for @${agent}. Primary (${agentConfig!.provider}) and fallback chain exhausted.`,
     );
+  }
+
+  /**
+   * Sprint 141 P0-1: record invocation telemetry for the cost dashboard.
+   * Called at every successful return path in callAI().
+   * CPO blocker fix: connects runtime to MetricsCollector.recordInvocation().
+   */
+  private recordTelemetry(
+    agent: string,
+    task: string,
+    startTime: number,
+    success: boolean,
+    provider: string,
+    fallbackUsed: boolean,
+    result?: AIResult,
+  ): void {
+    try {
+      const metric: AgentMetric = {
+        agent,
+        task: task.slice(0, 200),
+        mode: "READ",
+        startTime,
+        endTime: Date.now(),
+        durationMs: Date.now() - startTime,
+        success,
+        provider,
+        fallbackUsed,
+      };
+      if (result?.tokenUsage) {
+        metric.tokenUsage = {
+          input: result.tokenUsage.inputTokens,
+          output: result.tokenUsage.outputTokens,
+        };
+      }
+      // Cost estimation from token usage + provider pricing would go here;
+      // for now, leave cost undefined and let the dashboard calculate from
+      // tokens × pricing-registry rates.
+      getMetricsCollector().recordInvocation(metric);
+    } catch {
+      // Best-effort telemetry — never block the response path
+    }
   }
 
   /** Format agent response for display. */

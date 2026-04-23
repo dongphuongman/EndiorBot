@@ -21,6 +21,7 @@
 
 import type { Command } from "commander";
 import { getMetricsCollector, type DailyMetrics } from "../../analytics/index.js";
+import { getRateLimitStats } from "../../providers/kimi-proxy/rate-limit-monitor.js";
 
 // ============================================================================
 // Types
@@ -170,6 +171,28 @@ function generateReport(
     lines.push(`  ${provider.padEnd(15)} ${formatUsd(cost).padEnd(12)} ${bar(cost, maxProviderCost)} ${pct(cost, totalCost).padStart(6)} ${tokenStr}${fbStr}`);
   }
   lines.push("");
+
+  // ── Kimi Rate-Limit Stats (Sprint 141 P0-3, CPO blocker fix) ──
+  const rlStats = getRateLimitStats();
+  if (rlStats.totalCalls > 0) {
+    lines.push("📊 Kimi Proxy Health (Sprint 141 P0-3)");
+    lines.push("─".repeat(60));
+    lines.push(`  Total Kimi calls:     ${rlStats.totalCalls}`);
+    lines.push(`  Rate-limited (429):   ${rlStats.rateLimitedCalls} (${rlStats.rateLimitRate.toFixed(1)}%)`);
+    lines.push(`  Fallback to kimi-api: ${rlStats.fallbackToApiCalls}`);
+    lines.push(`  Fallback to Claude:   ${rlStats.fallbackToClaudeCalls}`);
+    lines.push(`  Avg success latency:  ${rlStats.avgSuccessLatencyMs}ms`);
+    lines.push(`  Avg fallback latency: ${rlStats.avgFallbackLatencyMs}ms`);
+
+    if (rlStats.rateLimitRate > 30) {
+      lines.push(`  🚨 DECISION GATE: 429 rate ${rlStats.rateLimitRate.toFixed(1)}% > 30% → PROMOTE kimi-api to co-primary`);
+    } else if (rlStats.rateLimitRate > 10) {
+      lines.push(`  ⚠️  REVIEW: 429 rate ${rlStats.rateLimitRate.toFixed(1)}% — between 10-30%, needs attention`);
+    } else {
+      lines.push(`  ✅ MONITOR: 429 rate ${rlStats.rateLimitRate.toFixed(1)}% < 10% — healthy`);
+    }
+    lines.push("");
+  }
 
   // ── Question 3: "Tiết kiệm thực so với baseline bao nhiêu?" ──
   if (options.baseline || (!options.agent && !options.provider)) {
