@@ -382,6 +382,10 @@ export class AutonomousSessionManager {
    * OpenMythos analog: Prelude layers (1-6 fixed transformer blocks).
    */
   private async prelude(): Promise<void> {
+    this.emitEvent("phase_prelude_start", {
+      tasksInQueue: this.taskQueue.length,
+    });
+
     // Sprint 97: Inject prior context before first task (CTO F5: additive hook)
     if (this.contextLifecycle) {
       try {
@@ -398,6 +402,10 @@ export class AutonomousSessionManager {
         this.log.warn("Context injection failed, continuing without prior context");
       }
     }
+
+    this.emitEvent("phase_prelude_end", {
+      contextInjected: !!this.contextLifecycle,
+    });
   }
 
   /**
@@ -406,6 +414,11 @@ export class AutonomousSessionManager {
    * OpenMythos analog: Recurrent block looped T times.
    */
   private async recurrentLoop(): Promise<void> {
+    this.emitEvent("phase_recurrent_start", {
+      tasksInQueue: this.taskQueue.length,
+      budgetRemaining: this.budget.getRemaining(),
+    });
+
     while (this.isRunning && !this.isPaused) {
       // Check budget
       if (!this.checkBudgetAvailable()) {
@@ -467,6 +480,11 @@ export class AutonomousSessionManager {
         this.contextLifecycle.incrementTurn();
       }
     }
+
+    this.emitEvent("phase_recurrent_end", {
+      tasksCompleted: this.completedTasks.size,
+      budgetSpent: this.budget.getTotalSpent(),
+    });
   }
 
   /**
@@ -475,6 +493,10 @@ export class AutonomousSessionManager {
    * OpenMythos analog: Coda layers (1-6 fixed transformer blocks).
    */
   private async coda(): Promise<void> {
+    this.emitEvent("phase_coda_start", {
+      tasksCompleted: this.completedTasks.size,
+    });
+
     // Sprint 97: Extract context after loop exits (CTO F5: additive hook)
     if (this.contextLifecycle) {
       try {
@@ -490,6 +512,11 @@ export class AutonomousSessionManager {
         this.log.warn("Context extraction failed at session end");
       }
     }
+
+    this.emitEvent("phase_coda_end", {
+      contextExtracted: !!this.contextLifecycle,
+      tasksCompleted: this.completedTasks.size,
+    });
   }
 
   /**

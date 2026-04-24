@@ -372,7 +372,14 @@ export type AutonomousEventType =
   | "escalation_resolved"
   | "stage_transition"
   | "checkpoint_created"
-  | "recovery_attempted";
+  | "recovery_attempted"
+  // OpenMythos #5: Phase-specific events (Prelude/Recurrent/Coda)
+  | "phase_prelude_start"
+  | "phase_prelude_end"
+  | "phase_recurrent_start"
+  | "phase_recurrent_end"
+  | "phase_coda_start"
+  | "phase_coda_end";
 
 /**
  * Autonomous session event.
