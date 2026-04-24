@@ -342,12 +342,46 @@ export class AutonomousSessionManager {
   /**
    * Run the autonomous loop.
    */
+  /**
+   * Run the full autonomous session loop.
+   *
+   * OpenMythos Prelude/Recurrent/Coda pattern (Sprint 139 adoption #5):
+   *   prelude()       — run once: context injection, session setup
+   *   recurrentLoop() — loop: budget/time checks, task execution, context refresh
+   *   coda()          — run once: context extraction, metrics summary
+   *
+   * This refactor extracts the 3 phases into named methods without changing
+   * any behavior. CTO condition: refactor-first commit (no behavior change),
+   * then feature commit (add phase hooks/events).
+   */
   async runLoop(): Promise<void> {
     this.log.info("Starting autonomous loop", {
       sessionId: this.config.sessionId,
       tasksInQueue: this.taskQueue.length,
     });
 
+    await this.prelude();
+    await this.recurrentLoop();
+    await this.coda();
+
+    this.log.info("Autonomous loop finished", {
+      sessionId: this.config.sessionId,
+      tasksCompleted: this.completedTasks.size,
+      tasksFailed: Array.from(this.completedTasks.values()).filter((t) => !t.success).length,
+      budgetSpent: this.budget.getTotalSpent(),
+    });
+  }
+
+  // ==========================================================================
+  // Phase-Specific Behavior (OpenMythos Prelude/Recurrent/Coda)
+  // ==========================================================================
+
+  /**
+   * Prelude phase — run once before the task loop.
+   * Context injection, session initialization, workspace discovery.
+   * OpenMythos analog: Prelude layers (1-6 fixed transformer blocks).
+   */
+  private async prelude(): Promise<void> {
     // Sprint 97: Inject prior context before first task (CTO F5: additive hook)
     if (this.contextLifecycle) {
       try {
@@ -364,7 +398,14 @@ export class AutonomousSessionManager {
         this.log.warn("Context injection failed, continuing without prior context");
       }
     }
+  }
 
+  /**
+   * Recurrent phase — the main task execution loop.
+   * Budget checks, time limits, task dispatch, context refresh.
+   * OpenMythos analog: Recurrent block looped T times.
+   */
+  private async recurrentLoop(): Promise<void> {
     while (this.isRunning && !this.isPaused) {
       // Check budget
       if (!this.checkBudgetAvailable()) {
@@ -426,7 +467,14 @@ export class AutonomousSessionManager {
         this.contextLifecycle.incrementTurn();
       }
     }
+  }
 
+  /**
+   * Coda phase — run once after the task loop exits.
+   * Context extraction, evidence synthesis, metrics capture.
+   * OpenMythos analog: Coda layers (1-6 fixed transformer blocks).
+   */
+  private async coda(): Promise<void> {
     // Sprint 97: Extract context after loop exits (CTO F5: additive hook)
     if (this.contextLifecycle) {
       try {
@@ -442,13 +490,6 @@ export class AutonomousSessionManager {
         this.log.warn("Context extraction failed at session end");
       }
     }
-
-    this.log.info("Autonomous loop finished", {
-      sessionId: this.config.sessionId,
-      tasksCompleted: this.completedTasks.size,
-      tasksFailed: Array.from(this.completedTasks.values()).filter((t) => !t.success).length,
-      budgetSpent: this.budget.getTotalSpent(),
-    });
   }
 
   /**
