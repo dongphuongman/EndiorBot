@@ -15,6 +15,7 @@ import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "..
 import { TIMEOUTS } from "../config/timeouts.js";
 import { getMetricsCollector, type AgentMetric } from "../analytics/index.js";
 import { createPricingRegistry } from "../budget/pricing-registry.js";
+import { recordRoutingOutcome, getRecommendation } from "../providers/expert-routing.js";
 
 // Sprint 121 T3: Import from extracted submodules
 import {
@@ -337,6 +338,23 @@ export class ChannelRouter {
         }
       }
       getMetricsCollector().recordInvocation(metric);
+
+      // OpenMythos #7: Expert routing — record outcome for historical scoring.
+      // Always records regardless of FF state (Phase 1 data collection).
+      const agentModel = getAgentProviderModel(agent);
+      recordRoutingOutcome({
+        agent,
+        provider,
+        model: agentModel?.model ?? "unknown",
+        taskType: "chat", // simplified; could be enriched with classifyPatchIntent
+        success,
+        durationMs: metric.durationMs ?? 0,
+        tokenCount: (result?.tokenUsage?.inputTokens ?? 0) + (result?.tokenUsage?.outputTokens ?? 0),
+        timestamp: Date.now(),
+      });
+
+      // Phase 1: log recommendation (read-only, doesn't change routing)
+      getRecommendation(agent, "chat");
     } catch {
       // Best-effort telemetry — never block the response path
     }
