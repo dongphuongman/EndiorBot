@@ -396,6 +396,8 @@ export class AutonomousSessionManager {
     });
 
     // Sprint 97: Inject prior context before first task (CTO F5: additive hook)
+    // CTO B1 fix: track actual success, not just lifecycle existence.
+    let contextInjected = false;
     if (this.contextLifecycle) {
       try {
         const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
@@ -406,6 +408,7 @@ export class AutonomousSessionManager {
           undefined,
           sdlcStage ?? undefined,
         );
+        contextInjected = true;
       } catch {
         // Non-critical — session continues without prior context
         this.log.warn("Context injection failed, continuing without prior context");
@@ -413,7 +416,7 @@ export class AutonomousSessionManager {
     }
 
     this.emitEvent("phase_prelude_end", {
-      contextInjected: !!this.contextLifecycle,
+      contextInjected,
     });
   }
 
@@ -442,6 +445,8 @@ export class AutonomousSessionManager {
         this.log.warn("Stability guard BLOCKED — session paused", {
           violations: stabilityCheck.violations.map((v) => v.guard),
         });
+        // W1 fix: set isPaused so getStatus() reflects the pause.
+        this.isPaused = true;
         this.emitEvent("stability_violation", {
           violations: stabilityCheck.violations,
         });
@@ -532,6 +537,8 @@ export class AutonomousSessionManager {
     });
 
     // Sprint 97: Extract context after loop exits (CTO F5: additive hook)
+    // CTO B1 fix: track actual extraction success, not lifecycle existence.
+    let contextExtracted = false;
     if (this.contextLifecycle) {
       try {
         const results = Array.from(this.completedTasks.values()).map((r) => ({
@@ -541,6 +548,7 @@ export class AutonomousSessionManager {
         }));
         const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
         await this.contextLifecycle.onSessionEnd(results, undefined, sdlcStage ?? undefined);
+        contextExtracted = true;
       } catch {
         // Non-critical — context extraction failure doesn't affect session result
         this.log.warn("Context extraction failed at session end");
@@ -548,7 +556,7 @@ export class AutonomousSessionManager {
     }
 
     this.emitEvent("phase_coda_end", {
-      contextExtracted: !!this.contextLifecycle,
+      contextExtracted,
       tasksCompleted: this.completedTasks.size,
     });
   }
@@ -753,9 +761,15 @@ export class AutonomousSessionManager {
       });
     }
 
+    // OpenMythos #6 fix (CTO B1): update stability guard tracking fields.
+    this.tasksSinceLastCheckpoint++;
+
     // Checkpoint after task if configured
     if (this.config.autoCheckpoint && success) {
       await this.resilience.createCheckpoint("milestone", `Task ${task.id} completed`);
+      // Reset checkpoint tracking on successful checkpoint
+      this.lastCheckpointAt = Date.now();
+      this.tasksSinceLastCheckpoint = 0;
     }
 
     return result;
@@ -812,6 +826,12 @@ export class AutonomousSessionManager {
       }
     }
     // policyResult.decision === "allow" → fall through to Gate A/B/C checks below
+
+    // OpenMythos #6 fix (CTO B1): track risky ops for stability guard.
+    // Any task that would require Gate C (PATCH capability) is a risky op.
+    if (requiresGateC(task.type)) {
+      this.riskyOpTimestamps.push(Date.now());
+    }
 
     // C4: Gate B = READ only — block PATCH-requiring tasks
     if (requiresGateC(task.type)) {
