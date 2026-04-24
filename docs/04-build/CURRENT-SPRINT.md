@@ -4,11 +4,17 @@
 
 ## Active / Most Recent
 
-- **Sprint 141** — Cost Telemetry + Ollama Confidence + Kimi Resilience — **G1 APPROVED** (CTO + CPO countersigned 2026-04-23 with 9 binding conditions)
+- **Sprint 141** — Cost Telemetry + Ollama Confidence + Kimi Resilience — **CLOSED** (2026-04-24, CTO + CPO approved with fixes)
   - Plan: [sprint-141-plan.md](sprints/sprint-141-plan.md)
-  - Scope: P0-1 cost telemetry dashboard, P0-2 Ollama confidence auto-escalation (FF-gated), P0-3 Kimi rate-limit monitoring, P1-1 @consult registry cleanup
-  - CTO conditions: 6 (FF_OLLAMA_AUTO_ESCALATE=false first, Vietnamese keywords deferred, KIMI_API_KEY verified, rollback criterion, TokenUsage schema, metrics JSON schema)
-  - CPO conditions: 3 (business success metrics, decision owner for gates, cost report 3-question format)
+  - Delivered: P0-1 cost telemetry dashboard (`endiorbot cost report`), P0-2 Ollama confidence auto-escalation (FF-gated, English v1), P0-3 Kimi rate-limit monitoring + 429 auto-fallback, P1-1 @consult registry cleanup
+  - CPO fixes: telemetry wiring (`recordInvocation` in all `callAI` paths), rate-limit stats surfaced in cost report, `recordFallbackToClaude` wired, cost derived from tokenUsage × pricing-registry
+  - Tests: 8,111 pass, 10 skipped. 7 commits.
+  - OpenMythos backlog (#5-7) also shipped in this sprint: phase behavior, stability guard, expert routing (Phase 1 read-only). +64 tests, CTO review fixes applied.
+
+- **OpenMythos Adoption** — **CLOSED** (2026-04-24, 7/7 items shipped)
+  - Close report: [openmythos-adoption-close.md](sprints/openmythos-adoption-close.md)
+  - Delivered across Sprint 139 + backlog: convergence guard, dynamic budget, frozen injection, loop-index, phase behavior, stability guard, expert routing
+  - CTO 9.5/10 (Sprint 139) + CPO APPROVED (backlog). All CTO blockers resolved.
 
 - **Sprint 140** — Kimi k2.6 Integration + Agent-Model Tier Mapping — **CLOSED** (2026-04-23, retroactive, CTO + CPO APPROVED)
   - Plan: [sprint-140-plan.md](sprints/sprint-140-plan.md) (retroactive — SDLC violation acknowledged)
@@ -85,4 +91,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-23*
+*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-24*
