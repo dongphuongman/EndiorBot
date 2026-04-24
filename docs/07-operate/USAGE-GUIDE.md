@@ -4,7 +4,7 @@
 
 EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code (and Codex) as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
 
-**Last Updated:** Sprint 135 (2026-04-12) · SDLC 6.3.1
+**Last Updated:** Sprint 141 (2026-04-24) · SDLC 6.3.1
 
 ---
 
@@ -29,8 +29,10 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 17. [Workflow 14: OTT Surface Control](#workflow-14-ott-surface-control-sprint-135)
 18. [Workflow 15: Web API](#workflow-15-web-api-sprint-135)
 19. [Workflow 16: Webhooks Ingress](#workflow-16-webhooks-ingress-sprint-134-135)
-20. [Command Reference](#command-reference)
-21. [Troubleshooting](#troubleshooting)
+20. [Workflow 17: Agent-Model Routing & Fallback](#workflow-17-agent-model-routing--fallback-sprint-140-141)
+21. [Workflow 18: Cost Monitoring](#workflow-18-cost-monitoring-sprint-141)
+22. [Command Reference](#command-reference)
+23. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -367,10 +369,20 @@ endiorbot consult --primary openai "Explain microservices vs monolith"
 ```
 
 The consultation:
-1. Sends your query to 2-3 AI models in parallel
+1. Sends your query to 3 AI models in parallel (OpenAI + Gemini + Kimi)
 2. Collects responses
 3. Shows consensus and disagreements
 4. Provides a merged recommendation
+
+### Kimi Model Selection (Sprint 140)
+
+```bash
+# Use Kimi as primary consultation model
+endiorbot consult --primary kimi "Compare caching strategies"
+
+# Specify Kimi model explicitly
+endiorbot consult --kimi kimi-k2-6 "Design payment gateway"
+```
 
 ---
 
@@ -824,6 +836,119 @@ curl -X POST http://localhost:18790/api/webhooks/my-trigger \
 
 ---
 
+## Workflow 17: Agent-Model Routing & Fallback (Sprint 140-141)
+
+EndiorBot uses a 3-tier model routing strategy (ADR-052) to optimize cost while maintaining quality. Each agent has a designated primary provider with automatic fallback.
+
+### Agent-Model Mapping
+
+| Tier | Provider | Model | Agents | Rationale |
+|------|----------|-------|--------|-----------|
+| 1 | claude-code | claude-opus-4 | `@architect`, `@cso`, `@ceo` (3 agents) | Critical reasoning — ADR, security, CEO strategy |
+| 2 | kimi | kimi-k2-6 | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` (10 agents) | Primary workhorse — coding ≈ Sonnet quality, ~60-80% lower cost |
+| 3 | ollama | qwen3.5:9b | `@assistant` (1 agent) | Free tier — routing, delegation, lightweight tasks |
+
+### Kimi Access Paths
+
+| Provider ID | Access Method | Cost |
+|-------------|---------------|------|
+| `kimi-proxy` | Local `claude-code-proxy` → Kimi OAuth (macOS Keychain) | Free (OAuth) |
+| `kimi-api` | Via AI-Platform (centralized Moonshot API key) | Paid (Moonshot) |
+
+**Setup:** If `claude-code-proxy` is already running (e.g. via `claude-kimi` alias), set `ENDIORBOT_KIMI_PROXY_URL` in `.env` to reuse it:
+
+```bash
+# Reuse existing proxy — avoids dual-instance conflict
+ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765
+```
+
+Without this env var, EndiorBot auto-spawns a proxy subprocess (ADR-051).
+
+### Fallback Chains
+
+**Per-Tier Fallback (ADR-052):**
+
+```
+Tier 1 (Opus primary):    claude-code → kimi → ollama
+Tier 2 (Kimi primary):    kimi → claude-code → ollama
+Tier 3 (Ollama primary):  ollama → kimi → claude-code
+```
+
+**Cloud Fallback (rate-limit only):**
+
+```
+kimi-proxy (OAuth, free) → kimi-api (Moonshot via AI-Platform) → openai
+```
+
+**Kimi 429 Recovery (Sprint 141 P0-3):**
+
+```
+kimi-proxy 429 → immediate retry via kimi-api → if both fail → claude-code fallback
+                 (monitored: >30% 429 rate → promote kimi-api to co-primary)
+```
+
+**Ollama Confidence Escalation (Sprint 141 P0-2):**
+
+```
+ollama response → confidence scorer → if score < 0.5 AND FF enabled → escalate to kimi
+                                       (FF_OLLAMA_AUTO_ESCALATE = false currently, 3-day data)
+```
+
+### Source Files
+
+| File | What |
+|------|------|
+| `src/agents/router/agent-constants.ts` | `AGENT_PROVIDER_MODEL_MAP` + `TIER_FALLBACK_CHAIN` |
+| `src/agents/router/providers.ts` | Cloud fallback order, `callKimiProvider()`, `dispatchAgentPrimary()`, `dispatchAgentFallback()` |
+| `src/agents/router/ollama-confidence.ts` | Confidence scorer (FF-gated) |
+| `src/providers/kimi-proxy/rate-limit-monitor.ts` | Kimi proxy health tracking |
+
+---
+
+## Workflow 18: Cost Monitoring (Sprint 141)
+
+Track per-agent, per-provider costs to validate ADR-052's estimated 45-60% savings.
+
+### CLI Commands
+
+```bash
+# Full cost breakdown (agent × provider matrix)
+endiorbot cost report
+
+# Today's costs
+endiorbot cost report --today
+
+# Filter by agent
+endiorbot cost report --agent coder
+
+# Filter by provider
+endiorbot cost report --provider kimi
+
+# Weekly summary
+endiorbot cost report --week
+```
+
+### OTT Commands
+
+```
+/cost                    # Current session token usage
+```
+
+### What to Monitor
+
+| Metric | Target | Action if Exceeded |
+|--------|--------|--------------------|
+| `@coder` cost (Kimi) | < 40% of pre-ADR-052 cost | Verify Kimi routing is active |
+| Kimi proxy 429 rate | < 30% of Tier-2 calls | Promote `kimi-api` to co-primary |
+| Ollama escalation rate | < 20% of `@assistant` calls | Demote `@assistant` from Ollama |
+| Total daily cost | Trending down vs. pre-Sprint 140 | Validate ADR-052 ROI |
+
+### Cost Data Location
+
+Persisted to `~/.endiorbot/metrics/YYYY-MM-DD.json`. Each entry records agent, provider, model, tokens (input/output), and estimated cost.
+
+---
+
 ## Command Reference
 
 ### Information Commands (no auth required)
@@ -965,11 +1090,38 @@ endiorbot serve
 
 ### Telegram bot not responding
 
-**Cause:** Bot token not set or server not running.
+**Cause:** Bot token not set, server not running, or startup stuck on Kimi proxy health check.
 **Solution:**
 1. Verify `ENDIORBOT_TELEGRAM_BOT_TOKEN` is set in `.env`
 2. Ensure `endiorbot serve` is running (not `--no-telegram`)
 3. Send `/link` to bind your identity
+4. Check logs for "Telegram adapter started" — if missing, startup may be stuck on Kimi proxy health check (10s timeout). Set `ENDIORBOT_KIMI_PROXY_URL` or `ENDIORBOT_DISABLE_KIMI_PROXY=true`
+
+### Server stuck at "Initializing ChannelRouter" or slow startup (~20s)
+
+**Cause:** `claude-code-proxy` is already running externally (e.g. via `claude-kimi` alias). EndiorBot's orchestrator (ADR-051) tries to spawn a new instance, which fails the health check.
+**Solution:**
+```bash
+# Find your existing proxy port
+lsof -i -P | grep claude-code-proxy | grep LISTEN
+
+# Set in .env to reuse it (no subprocess spawn)
+echo "ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765" >> .env
+```
+
+### Kimi agents returning errors or falling back to OpenAI
+
+**Cause:** Kimi proxy rate-limited (429) or proxy not running.
+**Solution:**
+```bash
+# Check proxy health
+curl -s ${ENDIORBOT_KIMI_PROXY_URL}/healthz
+
+# Check rate-limit stats
+endiorbot cost report --provider kimi
+
+# If 429 rate > 30%, consider adding KIMI_API_KEY for direct API fallback
+```
 
 ### Zalo commands limited
 
@@ -997,6 +1149,9 @@ Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI pat
 | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | No | `false` | Per-query context refresh kill switch | Sprint 133 |
 | `ENDIORBOT_GATEWAY_TOKEN` | For non-localhost Web API mutations | — | Auth token | Sprint 135 |
 | `ENDIORBOT_WEBHOOK_SECRET` | For webhook ingress | — | Shared secret (fail-closed) | Sprint 134 |
+| `ENDIORBOT_KIMI_PROXY_URL` | No | — | Reuse external `claude-code-proxy` (skip subprocess spawn) | Sprint 141 |
+| `ENDIORBOT_DISABLE_KIMI_PROXY` | No | `false` | Skip kimi-proxy entirely | Sprint 140 |
+| `FF_OLLAMA_AUTO_ESCALATE` | No | `false` | Auto-escalate low-confidence Ollama responses to Kimi | Sprint 141 |
 
 ---
 
@@ -1007,8 +1162,12 @@ User Input → Channel Adapter → GatewayIngress
   ├── /command → CommandDispatcher → Handler → Response
   └── @agent  → ChannelRouter → AI Provider → Response
 
-AI Routing Fallback:
-  Claude Code Bridge (tmux) → Cloud API (Gemini/OpenAI/Claude) → Remote Ollama
+AI Routing (ADR-052, Sprint 140):
+  @agent → AGENT_PROVIDER_MODEL_MAP → Primary Provider
+    ├── Tier 1: claude-code (Opus) — @architect, @cso, @ceo
+    ├── Tier 2: kimi (k2.6)       — @coder, @reviewer, @tester + 7 more
+    └── Tier 3: ollama (Qwen)     — @assistant
+  Fallback: tier-specific chain (e.g. kimi → claude-code → ollama)
 ```
 
 ### State Files
@@ -1038,4 +1197,4 @@ AI Routing Fallback:
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.1 | Updated Sprint 135*
+*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.1 | Updated Sprint 141 (2026-04-24)*

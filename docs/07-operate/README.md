@@ -126,7 +126,10 @@ endiorbot plan "add user authentication with JWT"
 # Gateway health
 curl http://localhost:18790/health
 
-# Cost tracking
+# Cost tracking (Sprint 141)
+endiorbot cost report                # Per-agent, per-provider cost breakdown
+endiorbot cost report --today        # Today's costs
+endiorbot cost report --agent coder  # Single agent cost
 /cost                               # OTT: token usage & cost
 endiorbot chat → /status            # Per-session cost in chat
 
@@ -134,6 +137,21 @@ endiorbot chat → /status            # Per-session cost in chat
 endiorbot chat --resume chat-abc123  # Resume saved chat
 /sessions                            # List active tmux sessions
 ```
+
+### Kimi Provider Monitoring (Sprint 140–141)
+
+```bash
+# Kimi proxy health check
+curl -s ${ENDIORBOT_KIMI_PROXY_URL:-http://127.0.0.1:18765}/healthz
+
+# Cost report filtered by provider
+endiorbot cost report --provider kimi   # Kimi usage + rate-limit stats
+
+# Check if proxy is responding (Tier-2 agents depend on this)
+# If proxy is down, agents auto-fallback to kimi-api → openai
+```
+
+**Rate-limit decision gate:** If Kimi proxy 429 rate > 30%, promote `kimi-api` to co-primary. Monitor via `endiorbot cost report --provider kimi`.
 
 ## Autonomous Execution Monitoring (Sprint 132+)
 
@@ -193,6 +211,18 @@ export ENDIORBOT_AUTO_HANDOFF=true
 
 Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-046 6-cell matrix](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md).
 
+### Ollama Confidence Monitoring (Sprint 141)
+
+`@assistant` (Tier 3, Ollama primary) has a heuristic confidence scorer. Responses below threshold auto-escalate to Kimi.
+
+| Confidence | Action |
+|-----------|--------|
+| >= 0.7 | Accept Ollama response |
+| 0.5 – 0.69 | Accept + log warning |
+| < 0.5 | Auto-escalate to Kimi |
+
+**Feature flag:** `FF_OLLAMA_AUTO_ESCALATE` — defaults to `false` (data collection mode). Enable after 3-day observation confirms < 20% escalation rate.
+
 ## Monitoring Surface Summary
 
 | Log / Metric | Path | What it tells you |
@@ -200,20 +230,27 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 | Gateway health | `GET /health` on port 18790 | Service is up |
 | Exec-policy audit | `~/.endiorbot/audit-logs/exec-policy.log` | What commands were allowed/denied/prompted |
 | SSRF blocks | `~/.endiorbot/audit-logs/ssrf-blocks.log` | Outbound fetch attempts to private IPs |
-| Token cost | `/cost` (OTT) or `/status` (chat) | Budget consumption |
+| Token cost | `endiorbot cost report` or `/cost` (OTT) | Per-agent, per-provider cost |
+| Kimi proxy health | `curl $ENDIORBOT_KIMI_PROXY_URL/healthz` | Proxy availability for Tier-2 agents |
+| Kimi 429 rate | `endiorbot cost report --provider kimi` | Rate-limit frequency |
+| Ollama confidence | Server logs (confidence scorer) | Escalation rate for Tier-3 |
 | Active Memory | Feature flag + circuit breaker state | Context enrichment health |
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| Port 18790 in use | `ENDIORBOT_GATEWAY_PORT=3000 endiorbot serve` |
-| Telegram not responding | Check `ENDIORBOT_TELEGRAM_BOT_TOKEN` in `.env` |
+| Port 18790 in use | `ENDIORBOT_GATEWAY_PORT=18800 endiorbot serve` — check `lsof -i :18790` for conflicts (Claude Code extension may occupy nearby ports) |
+| Telegram not responding | Check `ENDIORBOT_TELEGRAM_BOT_TOKEN` in `.env`; verify gateway fully started (look for "Telegram adapter started" in logs) |
+| Kimi proxy health check timeout (10s) | An external `claude-code-proxy` may already be running. Set `ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:<port>` to reuse it instead of spawning a new one. Check `ps aux \| grep claude-code-proxy` |
+| Kimi proxy dual-instance conflict | `claude-code-proxy` installed globally (for `claude-kimi` alias) conflicts with EndiorBot's auto-spawn. Fix: set `ENDIORBOT_KIMI_PROXY_URL` to the existing proxy URL, or `ENDIORBOT_DISABLE_KIMI_PROXY=true` to skip entirely |
+| Server stuck at "Initializing ChannelRouter" | Kimi proxy health check blocking startup. Same fix: `ENDIORBOT_KIMI_PROXY_URL` or `ENDIORBOT_DISABLE_KIMI_PROXY=true` |
 | Agent says "no Bash tool" | Agent is in READ mode; use `--risk patch` |
 | Chat: "Provider not available" | Check API key for selected provider |
 | Bootstrap: "Toolchain not found" | Install ecosystem toolchain first |
 | Exec-policy blocking agent commands | `endiorbot exec-policy preset open` (temporary); review audit log for false positives |
 | Active Memory latency spike | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false` (immediate kill switch) |
+| SSRF blocking kimi-proxy on localhost | Set `ENDIORBOT_KIMI_PROXY_URL` in `.env` — the SSRF allowlist trusts configured local provider URLs (Sprint 141 fix) |
 | SSRF blocking legitimate API call | Check `~/.endiorbot/audit-logs/ssrf-blocks.log` for the blocked URL; if false positive, file a bug against `src/security/http-validator.ts` |
 | Auto-handoff chain stuck | Check if depth ≥ 3 (MAX_HANDOFF_DEPTH cap); reduce @mention chain depth |
 
@@ -224,9 +261,9 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 - **Upstream:** [06-deploy](../06-deploy/) (what was shipped), [03-integrate](../03-integrate/) (live integrations)
 - **Downstream:** [09-govern](../09-govern/) (retros, RFCs), [04-build](../04-build/) (fixes)
 - **ADRs:** [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
-- **Sprints:** [Sprint 132](../04-build/sprints/sprint-132-openclaw-backport.md), [Sprint 133](../04-build/sprints/sprint-133-active-memory-ssrf.md)
+- **Sprints:** [Sprint 132](../04-build/sprints/sprint-132-openclaw-backport.md), [Sprint 133](../04-build/sprints/sprint-133-active-memory-ssrf.md), [Sprint 140](../04-build/sprints/sprint-140-plan.md), [Sprint 141](../04-build/sprints/sprint-141-plan.md)
 - **Spine:** [stage-command-workflow-spine.md](../00-foundation/stage-command-workflow-spine.md)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 07: Operate*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 07: Operate — Updated Sprint 141 (2026-04-24)*

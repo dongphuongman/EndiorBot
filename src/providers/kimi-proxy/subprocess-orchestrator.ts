@@ -115,10 +115,29 @@ async function waitForHealth(url: string, timeoutMs: number): Promise<boolean> {
  *   5. Auth pre-check
  */
 export async function startKimiProxy(): Promise<SubprocessOrchestratorState | null> {
+  // Singleton guard — return cached state if already called
+  if (globalState) {
+    log.debug("Returning cached kimi-proxy state (already started)");
+    return globalState;
+  }
+
   // Kill switch (CTO Condition 6)
   if (process.env.ENDIORBOT_DISABLE_KIMI_PROXY === "true") {
     log.info("Kimi proxy disabled via ENDIORBOT_DISABLE_KIMI_PROXY");
     return null;
+  }
+
+  // External proxy detection — reuse an already-running proxy (e.g. claude-kimi alias)
+  // Set ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765 to skip subprocess spawn.
+  const externalUrl = process.env.ENDIORBOT_KIMI_PROXY_URL;
+  if (externalUrl) {
+    const healthy = await waitForHealth(externalUrl, HEALTH_CHECK_TIMEOUT_MS);
+    if (healthy) {
+      log.info(`Using external kimi-proxy at ${externalUrl} (ENDIORBOT_KIMI_PROXY_URL)`);
+      globalState = { process: null, port: 0, url: externalUrl, healthy: true };
+      return globalState;
+    }
+    log.warn(`ENDIORBOT_KIMI_PROXY_URL=${externalUrl} not healthy — falling back to subprocess spawn`);
   }
 
   // Find binary

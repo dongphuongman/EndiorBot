@@ -81,16 +81,34 @@ function getConfiguredOllamaOrigins(): Set<string> {
 }
 
 /**
- * Check if a URL targets a configured Ollama endpoint.
+ * Collect all configured local provider URLs that should bypass SSRF checks.
+ * Includes Ollama endpoints AND kimi-proxy (ENDIORBOT_KIMI_PROXY_URL).
+ * All configured URLs are explicit CEO/DevOps configuration, not user input.
+ */
+function getConfiguredLocalProviderOrigins(): Set<string> {
+  const origins = getConfiguredOllamaOrigins();
+  // Kimi proxy — local claude-code-proxy or externally managed proxy
+  const kimiProxyUrl = process.env.ENDIORBOT_KIMI_PROXY_URL;
+  if (kimiProxyUrl) {
+    try {
+      const parsed = new URL(kimiProxyUrl);
+      origins.add(`${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`);
+    } catch { /* skip invalid URLs */ }
+  }
+  return origins;
+}
+
+/**
+ * Check if a URL targets a configured local provider endpoint.
  * Returns true if the URL's host:port matches any configured Ollama URL from env,
- * or the default localhost:11434.
+ * the default localhost:11434, or ENDIORBOT_KIMI_PROXY_URL.
  */
 function isConfiguredOllamaEndpoint(url: string): boolean {
   try {
     const parsed = new URL(url);
     const port = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
     const hostPort = `${parsed.hostname}:${port}`;
-    return getConfiguredOllamaOrigins().has(hostPort);
+    return getConfiguredLocalProviderOrigins().has(hostPort);
   } catch {
     return false;
   }
@@ -244,6 +262,10 @@ export function validateFetchUrl(rawUrl: string): void {
   if (ipv4 !== null) {
     for (const [network, prefix] of BLOCKED_IPV4_CIDRS) {
       if (inIPv4Cidr(ipv4, network, prefix)) {
+        // Allow configured local providers (Ollama, kimi-proxy) on private IPs
+        if (isConfiguredOllamaEndpoint(rawUrl)) {
+          return; // allowed — CEO/DevOps configured local provider
+        }
         throw new SSRFBlockedError(scrubUrl(parsed), `blocked-private-ipv4:${network}/${prefix}`);
       }
     }

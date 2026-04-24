@@ -79,7 +79,9 @@ Secrets live in `.env` (git-ignored). `.env.example` is the template.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `KIMI_API_KEY` | Optional (fallback) | Moonshot Kimi API — primary fallback |
+| `KIMI_API_KEY` | Optional (fallback) | Moonshot Kimi API — direct API fallback |
+| `ENDIORBOT_KIMI_PROXY_URL` | Optional | Reuse an externally-managed `claude-code-proxy` (e.g. `http://127.0.0.1:18765`). Skips subprocess spawn. Sprint 141. |
+| `ENDIORBOT_DISABLE_KIMI_PROXY` | Optional | Set `true` to skip kimi-proxy entirely |
 | `GOOGLE_API_KEY` | Optional | Gemini provider + `/consult` multi-model (legacy) |
 | `OPENAI_API_KEY` | Optional | OpenAI provider + `/consult` multi-model |
 | `OLLAMA_URL` | Optional | Local Ollama fallback |
@@ -207,13 +209,46 @@ Per [ADR-046](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md), exec
 
 All audit files created with `0o600` permissions (owner read/write only). Sprint 133 Task 1.
 
+## Kimi Proxy Deployment (Sprint 140–141)
+
+EndiorBot supports Kimi k2.6 as a Tier-2 primary provider for 10 of 14 agents (ADR-052). Two modes:
+
+### Mode 1: External Proxy (Recommended)
+
+If `claude-code-proxy` is already running (e.g. via `claude-kimi` alias for Claude Code CLI):
+
+```bash
+# Add to .env — EndiorBot reuses the existing proxy, no subprocess spawn
+ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765
+```
+
+This avoids dual-instance conflicts and 10s health-check timeouts.
+
+### Mode 2: Auto-Managed Subprocess (ADR-051)
+
+Without `ENDIORBOT_KIMI_PROXY_URL`, EndiorBot auto-detects `claude-code-proxy` in PATH, verifies Kimi OAuth, spawns on a dynamic port, and health-checks within 10s. Cleanup via SIGTERM on shutdown.
+
+### Agent-Model Tier Mapping (ADR-052)
+
+| Tier | Provider | Agents |
+|------|----------|--------|
+| 1 (Critical) | Claude Opus | `@architect`, `@cso`, `@ceo` |
+| 2 (Standard) | Kimi k2.6 | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` |
+| 3 (Free) | Ollama | `@assistant` |
+
+Fallback chain: `kimi-proxy → kimi-api → openai → ollama`.
+
+### Port Conflict Note
+
+`ENDIORBOT_GATEWAY_PORT` must not conflict with other services on localhost. Claude Code extension (VSCode) may occupy ports in the 18790+ range. Check with `lsof -i :18791` before starting. Default: 18790.
+
 ## Pre-Deploy Checklist
 
 ```bash
 # 1. Build clean
 pnpm build
 
-# 2. All tests pass (7921+ expected)
+# 2. All tests pass (8111+ expected)
 pnpm test
 
 # 3. Type check
@@ -227,6 +262,9 @@ endiorbot gate status
 
 # 6. Exec-policy verification
 endiorbot exec-policy show
+
+# 7. Kimi proxy health (if using external)
+curl -s ${ENDIORBOT_KIMI_PROXY_URL}/healthz
 ```
 
 ---
@@ -249,4 +287,4 @@ endiorbot exec-policy show
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 06: Deploy*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 06: Deploy — Updated Sprint 141 (2026-04-24)*
