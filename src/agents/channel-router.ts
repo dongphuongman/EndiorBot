@@ -341,12 +341,17 @@ export class ChannelRouter {
 
       // OpenMythos #7: Expert routing — record outcome for historical scoring.
       // Always records regardless of FF state (Phase 1 data collection).
-      const agentModel = getAgentProviderModel(agent);
+      // CPO fix: use actual runtime provider (from result or telemetry param),
+      // not the agent's configured model — fallback scenarios change the
+      // actual provider/model and the scoring must reflect reality.
+      const configuredModel = getAgentProviderModel(agent);
       recordRoutingOutcome({
         agent,
-        provider,
-        model: agentModel?.model ?? "unknown",
-        taskType: "chat", // simplified; could be enriched with classifyPatchIntent
+        provider, // actual provider that served this call (from recordTelemetry param)
+        model: configuredModel?.provider === provider
+          ? (configuredModel.model ?? "unknown") // primary matched → use config model
+          : `${provider}-fallback`,              // fallback → mark explicitly
+        taskType: "chat",
         success,
         durationMs: metric.durationMs ?? 0,
         tokenCount: (result?.tokenUsage?.inputTokens ?? 0) + (result?.tokenUsage?.outputTokens ?? 0),
