@@ -50,6 +50,10 @@ import {
   buildTaskContext,
   estimateCostFromTokens,
 } from "./task-agent-mapper.js";
+import {
+  checkStability,
+  type SessionStabilityState,
+} from "./stability-policy.js";
 import { callCloudFallback, type ProviderDeps } from "../../agents/router/providers.js";
 import { checkCommand } from "../../security/exec-approvals/check.js";
 import { selectPromptFn } from "../../security/exec-approvals/prompt.js";
@@ -134,6 +138,11 @@ export class AutonomousSessionManager {
   private startTime: Date;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
+
+  // OpenMythos #6: Stability guard tracking
+  private riskyOpTimestamps: number[] = [];
+  private tasksSinceLastCheckpoint: number = 0;
+  private lastCheckpointAt: number = 0;
 
   constructor(config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string }, providerDeps?: ProviderDeps) {
     this.log = createLogger("AutonomousSessionManager");
@@ -420,6 +429,31 @@ export class AutonomousSessionManager {
     });
 
     while (this.isRunning && !this.isPaused) {
+      // OpenMythos #6: Stability guard — check composite invariants
+      // atomically before each task execution.
+      const stabilityState: SessionStabilityState = {
+        pendingEscalations: this.pendingEscalations.length,
+        riskyOpTimestamps: this.riskyOpTimestamps,
+        tasksSinceLastCheckpoint: this.tasksSinceLastCheckpoint,
+        lastCheckpointAt: this.lastCheckpointAt,
+      };
+      const stabilityCheck = checkStability(stabilityState);
+      if (!stabilityCheck.stable) {
+        this.log.warn("Stability guard BLOCKED — session paused", {
+          violations: stabilityCheck.violations.map((v) => v.guard),
+        });
+        this.emitEvent("stability_violation", {
+          violations: stabilityCheck.violations,
+        });
+        break;
+      }
+      // Log warnings (non-blocking)
+      for (const v of stabilityCheck.violations) {
+        if (v.severity === "warning") {
+          this.log.warn(`Stability warning: ${v.guard}`, { message: v.message });
+        }
+      }
+
       // Check budget
       if (!this.checkBudgetAvailable()) {
         this.log.warn("Budget exhausted, stopping loop");

@@ -379,7 +379,9 @@ export type AutonomousEventType =
   | "phase_recurrent_start"
   | "phase_recurrent_end"
   | "phase_coda_start"
-  | "phase_coda_end";
+  | "phase_coda_end"
+  // OpenMythos #6: Stability guard violation
+  | "stability_violation";
 
 /**
  * Autonomous session event.
