@@ -40,13 +40,13 @@ describe("ADR-052: Agent-Model Tier Mapping", () => {
       expect(AGENT_PROVIDER_MODEL_MAP.ceo.tier).toBe(1);
     });
 
-    it("Tier 2 agents use kimi/k2-6", () => {
+    it("Tier 2 agents use claude-code/sonnet (CEO 2026-04-26: CC first, Kimi fallback)", () => {
       const tier2Agents = ["coder", "reviewer", "tester", "pm", "cpo", "cto", "fullstack", "pjm", "researcher", "devops"];
       for (const agent of tier2Agents) {
         const config = AGENT_PROVIDER_MODEL_MAP[agent as keyof typeof AGENT_PROVIDER_MODEL_MAP];
         expect(config).toBeDefined();
-        expect(config.provider).toBe("kimi");
-        expect(config.model).toBe("kimi-k2-6");
+        expect(config.provider).toBe("claude-code");
+        expect(config.model).toBe("sonnet");
         expect(config.tier).toBe(2);
       }
     });
@@ -63,8 +63,8 @@ describe("ADR-052: Agent-Model Tier Mapping", () => {
       expect(TIER_FALLBACK_CHAIN[1]).toEqual(["claude-code", "kimi", "ollama"]);
     });
 
-    it("Tier 2: kimi → claude-code → ollama", () => {
-      expect(TIER_FALLBACK_CHAIN[2]).toEqual(["kimi", "claude-code", "ollama"]);
+    it("Tier 2: claude-code → kimi → ollama (CEO 2026-04-26: CC first)", () => {
+      expect(TIER_FALLBACK_CHAIN[2]).toEqual(["claude-code", "kimi", "ollama"]);
     });
 
     it("Tier 3: ollama → kimi → claude-code", () => {
@@ -74,7 +74,7 @@ describe("ADR-052: Agent-Model Tier Mapping", () => {
 
   describe("getAgentProviderModel", () => {
     it("returns config for known agents", () => {
-      expect(getAgentProviderModel("coder")?.provider).toBe("kimi");
+      expect(getAgentProviderModel("coder")?.provider).toBe("claude-code");
       expect(getAgentProviderModel("architect")?.provider).toBe("claude-code");
       expect(getAgentProviderModel("assistant")?.provider).toBe("ollama");
     });
@@ -86,7 +86,7 @@ describe("ADR-052: Agent-Model Tier Mapping", () => {
 
   describe("Backward compatibility", () => {
     it("getAgentModel still works and returns model name", () => {
-      expect(getAgentModel("coder")).toBe("kimi-k2-6");
+      expect(getAgentModel("coder")).toBe("sonnet");
       expect(getAgentModel("architect")).toBe("claude-opus-4");
       expect(getAgentModel("assistant")).toBe("qwen3.5:9b");
     });

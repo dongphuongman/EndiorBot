@@ -51,6 +51,13 @@ export {
   isGateConfirmed,
   getGateConfirmation,
   type GateConfirmation,
+  // Gate Item Mark Store (Sprint 143 A3)
+  loadGateMarks,
+  saveGateItemMark,
+  isItemMarked,
+  getItemMark,
+  removeGateItemMark,
+  type GateItemMark,
 } from "./gates/index.js";
 
 // Vibecoding

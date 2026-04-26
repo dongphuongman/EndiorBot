@@ -63,17 +63,19 @@ export const AGENT_PROVIDER_MODEL_MAP: Record<AgentName, AgentModelConfig> = {
   cso:         { provider: "claude-code", model: "claude-opus-4",     tier: 1, rationale: "Security review, threat modeling, ASVS L2 — must not compromise" },
   ceo:         { provider: "claude-code", model: "claude-opus-4",     tier: 1, rationale: "Strategic decisions, Go/No-Go, resource allocation" },
 
-  // ─── Tier 2: Kimi k2.6 — Primary Workhorse ───
-  coder:       { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Code generation, TDD, implementation — Kimi coding ≈ Sonnet" },
-  reviewer:    { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Code review, blast-radius — Kimi sufficient, cost reduction" },
-  tester:      { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Test plans, E2E, coverage verification" },
-  pm:          { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "PRDs, requirements, backlog — 256K context fits" },
-  cpo:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Product-market fit, requirements validation" },
-  cto:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Architecture oversight, tech debt (advisory, not ADR writer)" },
-  fullstack:   { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Solo loop — Kimi primary reduces cost significantly" },
-  pjm:         { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Sprint planning, velocity tracking, blocker escalation" },
-  researcher:  { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Evidence gathering, market analysis, feasibility" },
-  devops:      { provider: "kimi",        model: "kimi-k2-6",         tier: 2, rationale: "Deploy scripts, runbooks, pipeline config" },
+  // ─── Tier 2: CC primary, Kimi fallback — CEO directive 2026-04-26 ───
+  // All agents use CC bridge first (codebase access). Kimi only when CC rate-limited.
+  // ADR-052 Amendment: reversed from kimi-primary to claude-code-primary.
+  coder:       { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  reviewer:    { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  tester:      { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  pm:          { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  cpo:         { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  cto:         { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  fullstack:   { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  pjm:         { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  researcher:  { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
+  devops:      { provider: "claude-code", model: "sonnet",             tier: 2, rationale: "CC first for codebase access; Kimi fallback on rate-limit" },
 
   // ─── Tier 3: AI-Platform / Ollama — Free Tier ───
   assistant:   { provider: "ollama",      model: "qwen3.5:9b",        tier: 3, rationale: "Routing, delegation tracking — qwen3.5:9b router model sufficient" },
@@ -85,8 +87,8 @@ export const AGENT_PROVIDER_MODEL_MAP: Record<AgentName, AgentModelConfig> = {
  */
 export const TIER_FALLBACK_CHAIN: Record<1 | 2 | 3, AgentProviderId[]> = {
   1: ["claude-code", "kimi", "ollama"],   // Tier 1: Opus → Kimi → Ollama
-  2: ["kimi", "claude-code", "ollama"],   // Tier 2: Kimi → Opus → Ollama
-  3: ["ollama", "kimi", "claude-code"],   // Tier 3: Ollama → Kimi → Opus
+  2: ["claude-code", "kimi", "ollama"],   // Tier 2: CC Sonnet → Kimi → Ollama (CEO 2026-04-26: CC first)
+  3: ["ollama", "kimi", "claude-code"],   // Tier 3: Ollama → Kimi → CC
 };
 
 // ============================================================================

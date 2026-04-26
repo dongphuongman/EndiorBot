@@ -541,6 +541,19 @@ export class TelegramChannel implements BidirectionalChannel {
     const args = parts.slice(1);
 
     switch (command) {
+      case "/start":
+        return {
+          success: true,
+          response: "👋 EndiorBot — CEO Power Tool\n\n"
+            + "AI agents for solo developers. <30s answers.\n\n"
+            + "Quick start:\n"
+            + "• /help — all commands\n"
+            + "• /agents — list 14 AI agents\n"
+            + "• @pm plan next sprint — talk to agents\n"
+            + "• /launch claude --as coder — tmux bridge\n\n"
+            + "Type /help for the full command list.",
+        };
+
       case "/approve":
         return this.handleApprove(args);
 
