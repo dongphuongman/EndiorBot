@@ -14,7 +14,7 @@ import type { AgentRole } from "../types/handoff.js";
 import { createLogger } from "../../utils/logger.js";
 
 const log = createLogger("agents.router.providers");
-import { classifyPatchIntent } from "../intelligence/patch-intent-classifier.js";
+import { classifyPatchIntent, type PatchIntentResult } from "../intelligence/patch-intent-classifier.js";
 import { getBridgeAuditLogger } from "../../bridge/security/bridge-audit.js";
 import type { ChannelSendFn } from "../../bus/types.js";
 import { getPromptEnrichment, formatEnrichmentForPrompt } from "../../rl/prompt-enrichment.js";
@@ -48,6 +48,61 @@ export interface ProviderDeps {
 }
 
 // ============================================================================
+// Enriched Prompt Builder — UNIVERSAL (vendor-agnostic)
+//
+// Sprint 142: Extract from 5 provider functions to eliminate duplication.
+// CEO directive: "dù dùng CC hay Kimi thì vẫn phải đọc codebase."
+// All agents get workspace context regardless of intent (PATCH or READ).
+// Provider functions are pure API transport — no context-building logic.
+//
+// Content complementarity (PM C1 resolution — Option B accepted):
+//   formatWorkspaceContext() = git DATA (branch, commits, diff stats)
+//   Layer 1.25 WORKSPACE_AWARENESS = INSTRUCTION (discovery protocol)
+//   Both injected for Claude Bridge; only this layer for cloud/Kimi/Ollama.
+// ============================================================================
+
+export interface EnrichedPrompt {
+  systemPrompt: string;
+  intent: PatchIntentResult;
+  workspace: string;
+}
+
+/**
+ * Build an enriched system prompt with SOUL + workspace + RL context.
+ * Called ONCE per request — result passed to any provider (CC, Kimi, OpenAI, Ollama).
+ *
+ * @since Sprint 142 — vendor-agnostic enrichment layer
+ */
+export function buildEnrichedPrompt(
+  agent: string,
+  task: string,
+  config: { projectRoot: string },
+  history?: Array<{ role: string; content: string }>,
+  workspace?: string,
+): EnrichedPrompt {
+  const ws = workspace ?? config.projectRoot;
+  const intent = classifyPatchIntent(task);
+  const parts: string[] = [];
+
+  // Workspace context — ALWAYS inject (CEO fix: not PATCH-only)
+  // Kill switch: ENDIORBOT_DISABLE_WORKSPACE_CONTEXT=true to suppress
+  if (!process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
+    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
+    if (wsCtx) parts.push(wsCtx);
+  }
+
+  // RL enrichment (confidence-gated)
+  const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
+  if (enrichment) parts.push(enrichment);
+
+  const systemPrompt = getAgentSoul(agent)
+    + formatHistoryContext(history ?? [])
+    + (parts.length > 0 ? "\n\n" + parts.join("\n") : "");
+
+  return { systemPrompt, intent, workspace: ws };
+}
+
+// ============================================================================
 // Claude Bridge Provider
 // ============================================================================
 
@@ -62,27 +117,14 @@ export async function callClaudeBridge(
   history?: Array<{ role: string; content: string }>,
   workspace?: string,
   notifyFn?: ChannelSendFn,
+  prebuiltPrompt?: EnrichedPrompt,
 ): Promise<AIResult | null> {
   if (!deps.claudeAvailable || !deps.bridge) return null;
 
-  const ws = workspace ?? deps.config.projectRoot;
-
-  // Sprint 105 (ADR-031 GAP-003): Classify intent — PATCH for explicit write requests
-  const intent = classifyPatchIntent(task);
-
-  // Sprint 115 (T1+T2): Build system prompt with optional enrichment + workspace context
-  const contextParts: string[] = [];
-  // T2: Workspace context — PATCH/INTERACTIVE only (skip READ to avoid noise)
-  if (intent.intent === "PATCH" && intent.confidence >= 0.8
-      && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
-    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
-    if (wsCtx) contextParts.push(wsCtx);
-  }
-  // T1: RL enrichment (confidence-gated)
-  const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
-  if (enrichment) contextParts.push(enrichment);
-  const contextSuffix = contextParts.length > 0 ? "\n" + contextParts.join("\n") : "";
-  const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? []) + contextSuffix;
+  // Sprint 142: Use prebuilt prompt if provided (avoids double-building when
+  // called from callClaudeBridgeClassified), otherwise build fresh.
+  const { systemPrompt, intent, workspace: ws } = prebuiltPrompt
+    ?? buildEnrichedPrompt(agent, task, deps.config, history, workspace);
   const tier = resolveWorkspaceTier(ws);
   const resolvedModel = getAgentModel(agent, tier);
   if (!resolvedModel) {
@@ -183,34 +225,16 @@ export async function callClaudeBridgeClassified(
     };
   }
 
-  // Delegate to the classic function for the happy path + re-do the invocation
-  // here when we need the raw response to classify. To avoid double-calling the
-  // bridge, we duplicate the invocation preamble (prompt, tier, model) and
-  // capture the low-level response directly.
-  const ws = workspace ?? deps.config.projectRoot;
-  const intent = classifyPatchIntent(task);
-
-  const contextParts: string[] = [];
-  if (
-    intent.intent === "PATCH" &&
-    intent.confidence >= 0.8 &&
-    !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT
-  ) {
-    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
-    if (wsCtx) contextParts.push(wsCtx);
-  }
-  const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
-  if (enrichment) contextParts.push(enrichment);
-  const contextSuffix = contextParts.length > 0 ? "\n" + contextParts.join("\n") : "";
-  const systemPrompt =
-    getAgentSoul(agent) + formatHistoryContext(history ?? []) + contextSuffix;
+  // Sprint 142: Build enriched prompt ONCE, pass to callClaudeBridge if needed.
+  const enriched = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
+  const { systemPrompt, intent, workspace: ws } = enriched;
   const tier = resolveWorkspaceTier(ws);
   const resolvedModel = getAgentModel(agent, tier);
   const model = resolvedModel ?? "sonnet";
 
-  // PATCH flow short-circuits classification — re-use the classic path for now.
+  // PATCH flow short-circuits classification — pass prebuilt prompt to avoid double-building.
   if (intent.intent === "PATCH" && intent.confidence >= 0.8) {
-    const result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+    const result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn, enriched);
     return { result, failure: result ? null : { kind: "OTHER", reason: "PATCH flow failed or declined" } };
   }
 
@@ -321,22 +345,12 @@ export async function callCloudFallback(
     return null;
   }
 
-  const ws = workspace ?? deps.config.projectRoot;
+  // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
+  const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
+  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
   // CTO F2: Log tier for cloud fallback observability
   const tier = resolveWorkspaceTier(ws);
   log.info(`Cloud fallback for @${agent} (workspace tier: ${tier}, model: ${modelOverride ?? provider.models[0]?.id ?? "unknown"})`);
-  // Sprint 115 (T1+T2): Enrich cloud fallback prompt (mirrors callClaudeBridge pattern)
-  const cloudParts: string[] = [`[Workspace: ${ws}]`];
-  const cloudIntent = classifyPatchIntent(task);
-  if (cloudIntent.intent === "PATCH" && cloudIntent.confidence >= 0.8
-      && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
-    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
-    if (wsCtx) cloudParts.push(wsCtx);
-  }
-  const cloudEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
-  if (cloudEnrichment) cloudParts.push(cloudEnrichment);
-  const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
-    + "\n\n" + cloudParts.join("\n");
   const modelId = modelOverride ?? provider.models[0]?.id;
   if (!modelId) return null;
 
@@ -397,18 +411,9 @@ export async function callKimiProvider(
     return null;
   }
 
-  const ws = workspace ?? deps.config.projectRoot;
-  const kimiParts: string[] = [`[Workspace: ${ws}]`];
-  const kimiIntent = classifyPatchIntent(task);
-  if (kimiIntent.intent === "PATCH" && kimiIntent.confidence >= 0.8
-      && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
-    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
-    if (wsCtx) kimiParts.push(wsCtx);
-  }
-  const kimiEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
-  if (kimiEnrichment) kimiParts.push(kimiEnrichment);
-  const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
-    + "\n\n" + kimiParts.join("\n");
+  // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
+  const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
+  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
 
   // Use agent's configured Kimi model or override
   const agentConfig = getAgentProviderModel(agent);
@@ -511,19 +516,9 @@ export async function callRemoteOllama(
 ): Promise<AIResult | null> {
   if (!deps.config.ollamaRemoteUrl) return null;
 
-  const ws = workspace ?? deps.config.projectRoot;
-  // Sprint 115 (T1+T2): Enrich remote Ollama prompt (mirrors callClaudeBridge pattern)
-  const ollamaParts: string[] = [`[Workspace: ${ws}]`];
-  const ollamaIntent = classifyPatchIntent(task);
-  if (ollamaIntent.intent === "PATCH" && ollamaIntent.confidence >= 0.8
-      && !process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
-    const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
-    if (wsCtx) ollamaParts.push(wsCtx);
-  }
-  const ollamaEnrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
-  if (ollamaEnrichment) ollamaParts.push(ollamaEnrichment);
-  const systemPrompt = getAgentSoul(agent) + formatHistoryContext(history ?? [])
-    + "\n\n" + ollamaParts.join("\n");
+  // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
+  const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
+  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (deps.config.ollamaRemoteApiKey) {
     headers["X-API-Key"] = deps.config.ollamaRemoteApiKey;
