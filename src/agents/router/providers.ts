@@ -15,6 +15,9 @@ import { createLogger } from "../../utils/logger.js";
 
 const log = createLogger("agents.router.providers");
 import { classifyPatchIntent, type PatchIntentResult } from "../intelligence/patch-intent-classifier.js";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { WORKSPACE_AWARENESS_SECTION } from "../context/workspace-awareness.js";
 import { getBridgeAuditLogger } from "../../bridge/security/bridge-audit.js";
 import type { ChannelSendFn } from "../../bus/types.js";
 import { getPromptEnrichment, formatEnrichmentForPrompt } from "../../rl/prompt-enrichment.js";
@@ -45,6 +48,20 @@ export interface ProviderDeps {
   bridge: ClaudeCodeBridge | null;
   claudeAvailable: boolean;
   config: ChannelRouterConfig;
+}
+
+/**
+ * Read a project file with truncation. Returns null if file doesn't exist.
+ * Sprint 142 P0-2: lightweight file content injection for cloud providers.
+ */
+function readProjectFile(workspace: string, filename: string, maxChars: number): string | null {
+  try {
+    const content = readFileSync(join(workspace, filename), "utf-8");
+    if (content.length <= maxChars) return content.trim();
+    return content.slice(0, maxChars).trim() + "\n[...truncated]";
+  } catch {
+    return null;
+  }
 }
 
 // ============================================================================
@@ -89,7 +106,19 @@ export function buildEnrichedPrompt(
   if (!process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT) {
     const wsCtx = formatWorkspaceContext(getWorkspaceContext(ws));
     if (wsCtx) parts.push(wsCtx);
+
+    // Sprint 142 P0-2: Inject project identity for ALL providers.
+    // CC bridge reads files via CLI; cloud providers need it in prompt.
+    // CTO C1 resolved: Layer 1.25 is bridge-only, so inject here for universality.
+    // Cap: 500 tokens (~2000 chars) to prevent prompt bloat.
+    const identityContent = readProjectFile(ws, "IDENTITY.md", 2000);
+    if (identityContent) parts.push(`[Project Identity]\n${identityContent}`);
   }
+
+  // Workspace Awareness directive — instruct agent to read codebase files.
+  // Sprint 142 P0-2: Previously bridge-only (Layer 1.25 via ContextInjector).
+  // Now universal — cloud/Kimi/Ollama agents also get the discovery protocol.
+  parts.push(WORKSPACE_AWARENESS_SECTION);
 
   // RL enrichment (confidence-gated)
   const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));

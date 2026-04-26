@@ -436,7 +436,16 @@ export async function applyActiveMemoryHook(
   config?: Partial<ActiveMemoryConfig>,
 ): Promise<void> {
   // Kill switch: check env override first (CEO-owned)
-  if (!getFeatureFlagWithEnvOverride("ACTIVE_MEMORY_ENABLED")) return;
+  // Sprint 142 P0-3: Log latency data even when FF off — CEO needs data to decide enable.
+  const ffEnabled = getFeatureFlagWithEnvOverride("ACTIVE_MEMORY_ENABLED");
+  if (!ffEnabled) {
+    // Dry-run: measure what latency WOULD be without actually injecting
+    const dryStart = Date.now();
+    const cacheCheck = getFromCache(session.id, buildActiveMemoryConfig(config).cacheTtlMs);
+    const dryLatencyMs = Date.now() - dryStart;
+    console.log(`[ActiveMemory] FF-off dry-run: ${cacheCheck.hit ? "cache-hit" : "cache-miss"} latency=${dryLatencyMs}ms session=${session.id}`);
+    return;
+  }
 
   const cfg = buildActiveMemoryConfig(config);
   if (!cfg.enabled) return;

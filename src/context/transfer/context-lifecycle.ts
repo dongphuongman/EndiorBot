@@ -78,6 +78,9 @@ export class ContextLifecycleManager {
   private projectId: string | undefined;
   private sessionId: string | undefined;
   private active: boolean;
+  /** Sprint 142 P0-1: Dedup guard — prevents double vision injection when
+   *  turn-based trigger overlaps with 30-min time-based refresh (CTO C2). */
+  private lastVisionInjectionTurn: number;
 
   constructor(options?: ContextLifecycleOptions) {
     this.injector = options?.injector ?? getContextInjector();
@@ -95,6 +98,7 @@ export class ContextLifecycleManager {
     this.lastRefreshAt = 0;
     this.sessionStartedAt = 0;
     this.active = false;
+    this.lastVisionInjectionTurn = -1;
   }
 
   /**
@@ -243,10 +247,64 @@ export class ContextLifecycleManager {
   }
 
   /**
-   * Increment turn count. Call after each task/turn.
+   * Increment turn count and trigger vision re-injection if due.
+   * Call after each task/turn.
+   *
+   * Sprint 142 P0-1: Implements the aspirational "every 10 turns inject vision"
+   * from CLAUDE.md. Previously undocumented as unimplemented (CTO Sprint 132 finding).
    */
   incrementTurn(): void {
     this.turnCount += 1;
+    this.checkVisionReInjection();
+  }
+
+  /**
+   * Sprint 142 P0-1 — Turn-based vision re-injection.
+   *
+   * Every 10 turns: inject sprint goals summary (compact).
+   * Every 20 turns: inject full sprint goals + project vision.
+   *
+   * CTO C2 dedup guard: `lastVisionInjectionTurn` prevents double-injection
+   * when turn-based trigger overlaps with 30-min time-based refresh.
+   *
+   * Returns the injected content (for testing/logging), or null if no injection.
+   */
+  checkVisionReInjection(): string | null {
+    if (!this.active || this.turnCount === 0) return null;
+
+    // Dedup guard (CTO C2): skip if already injected this turn
+    if (this.lastVisionInjectionTurn >= this.turnCount) return null;
+
+    const isFullInjection = this.turnCount % 20 === 0;
+    const isSummaryInjection = this.turnCount % 10 === 0;
+
+    if (!isFullInjection && !isSummaryInjection) return null;
+
+    this.lastVisionInjectionTurn = this.turnCount;
+
+    // Emit vision content — caller (autonomous manager) reads this
+    // and injects into the next task's context.
+    if (isFullInjection) {
+      return `[Vision Re-Injection: Turn ${this.turnCount}] Full sprint goals + project vision due.`;
+    }
+    return `[Vision Re-Injection: Turn ${this.turnCount}] Sprint goals summary due.`;
+  }
+
+  /**
+   * Get the last vision injection content for the current turn.
+   * Called by autonomous session manager to inject into next prompt.
+   */
+  getVisionInjection(): string | null {
+    if (this.lastVisionInjectionTurn !== this.turnCount) return null;
+
+    const isFullInjection = this.turnCount % 20 === 0;
+    if (isFullInjection) {
+      return `[Vision Re-Injection: Turn ${this.turnCount}] Full sprint goals + project vision due.`;
+    }
+    if (this.turnCount % 10 === 0) {
+      return `[Vision Re-Injection: Turn ${this.turnCount}] Sprint goals summary due.`;
+    }
+    return null;
   }
 
   /**
