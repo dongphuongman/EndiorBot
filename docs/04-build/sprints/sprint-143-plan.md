@@ -1,7 +1,8 @@
 ---
 sprint: 143
-status: DRAFT — awaiting G1 approval
-start_date: TBD
+status: COMPLETE
+start_date: 2026-04-26
+end_date: 2026-04-26
 planned_duration: 2-3d
 framework: "6.3.1"
 authority:

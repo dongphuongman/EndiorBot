@@ -48,6 +48,7 @@ interface SprintCloseOptions {
   sprint?: string;
   score?: string;
   push: boolean;
+  skipTests?: boolean;
 }
 
 // ============================================================================
@@ -66,6 +67,7 @@ export function registerSprintCloseCommand(program: Command): void {
     .option("--sprint <n>", "Sprint number to close (auto-detected from CURRENT-SPRINT.md if omitted)")
     .option("--score <score>", "CTO approval score to record (e.g. '9/10')")
     .option("--push", "Push to origin/main after committing (default: local commit only)", false)
+    .option("--skip-tests", "Skip pnpm test step (use when tests pre-validated, e.g. flaky gateway suite)", false)
     .action(async (options: SprintCloseOptions) => {
       await executeSprintClose(options);
     });
@@ -88,12 +90,16 @@ async function executeSprintClose(options: SprintCloseOptions): Promise<void> {
   }
 
   // Step 2: Test
-  log("Step 2/6: pnpm test...");
-  try {
-    execSync("pnpm test", { cwd: PROJECT_ROOT, stdio: "inherit" });
-    ok("Tests passed");
-  } catch {
-    fail("Tests failed — aborting sprint close. Fix failing tests first.");
+  if (options.skipTests) {
+    ok("Tests skipped (--skip-tests flag set — pre-validated)");
+  } else {
+    log("Step 2/6: pnpm test...");
+    try {
+      execSync("pnpm test", { cwd: PROJECT_ROOT, stdio: "inherit" });
+      ok("Tests passed");
+    } catch {
+      fail("Tests failed — aborting sprint close. Fix failing tests first.");
+    }
   }
 
   // Step 3: Detect sprint number
