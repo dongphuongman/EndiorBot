@@ -12,6 +12,8 @@
  */
 
 import { createLogger, type Logger } from "../../logging/index.js";
+import { getPatternsByType } from "../../brain/layers/patterns.js";
+import type { PatternEntry } from "../../brain/types.js";
 import {
   FailureClassifier,
   FailureType,
@@ -50,6 +52,13 @@ export interface RecoveryResult {
   rolledBackTo?: string;
   /** Escalation details */
   escalation?: EscalationDetails;
+  /**
+   * Sprint 143 A1: Brain L2 pattern hint for retry/fix prompts.
+   * When a matching error pattern is found in Brain L2, the fixHint is
+   * included so the retry prompt can reference prior solutions.
+   * Caller injects this into the agent's context for the next attempt.
+   */
+  patternHint?: string;
 }
 
 /**
@@ -157,6 +166,44 @@ export class RecoveryEngine {
   }
 
   // ============================================================================
+  // Sprint 143 A1: Brain L2 Pattern Matching
+  // ============================================================================
+
+  /**
+   * Find a matching Brain L2 error pattern for the given error.
+   * Returns the pattern's fixHint if match found and count ≥ 2 (conservative).
+   *
+   * CTO condition: similarity threshold must be conservative to avoid
+   * false-positive pattern injection into retry prompts.
+   *
+   * Match strategy: substring match on error message against pattern signatures.
+   * Only returns patterns seen ≥ 2 times (not one-off errors).
+   */
+  private findMatchingPattern(error: Error): PatternEntry | null {
+    try {
+      const errorPatterns = getPatternsByType("error");
+      const errorMsg = error.message.toLowerCase();
+
+      for (const pattern of errorPatterns) {
+        // Conservative match: pattern signature must appear in error message
+        // AND pattern must have been seen ≥ 2 times (not a one-off)
+        if (pattern.count >= 2 && errorMsg.includes(pattern.signature.toLowerCase())) {
+          this.log.info("Brain L2 pattern match found", {
+            patternId: pattern.id,
+            signature: pattern.signature,
+            count: pattern.count,
+            fixHint: pattern.fixHint,
+          });
+          return pattern;
+        }
+      }
+    } catch {
+      // Brain L2 read failure is non-fatal — continue without pattern
+    }
+    return null;
+  }
+
+  // ============================================================================
   // Main Recovery Handler
   // ============================================================================
 
@@ -233,18 +280,26 @@ export class RecoveryEngine {
       this.config.maxDelay
     );
 
+    // Sprint 143 A1: Check Brain L2 for matching error pattern
+    const matchedPattern = this.findMatchingPattern(error);
+
     this.log.info("Scheduling retry after transient failure", {
       taskId: context.taskId,
       attempt: attempts + 1,
       delayMs: delay,
+      brainL2Match: matchedPattern?.signature,
     });
 
-    return {
+    const result: RecoveryResult = {
       recovered: true,
       action: "RETRY",
       reason: `Transient failure, retry ${attempts + 1}/${this.config.maxRetries} after ${delay}ms`,
       nextAttempt: attempts + 1,
     };
+    if (matchedPattern?.fixHint) {
+      result.patternHint = `[Brain L2] Prior pattern "${matchedPattern.signature}" (seen ${matchedPattern.count}×): ${matchedPattern.fixHint}`;
+    }
+    return result;
   }
 
   /**
@@ -277,17 +332,25 @@ export class RecoveryEngine {
       return this.escalate(error, context, "MAX_FIX_ATTEMPTS");
     }
 
+    // Sprint 143 A1: Check Brain L2 for matching error pattern
+    const matchedPattern = this.findMatchingPattern(error);
+
     this.log.info("Attempting fix", {
       taskId: context.taskId,
       attempt: attempts + 1,
+      brainL2Match: matchedPattern?.signature,
     });
 
-    return {
+    const result: RecoveryResult = {
       recovered: true,
       action: "FIX",
       reason: `Fixable error, fix attempt ${attempts + 1}/${this.config.maxFixAttempts}`,
       nextAttempt: attempts + 1,
     };
+    if (matchedPattern?.fixHint) {
+      result.patternHint = `[Brain L2] Prior pattern "${matchedPattern.signature}" (seen ${matchedPattern.count}×): ${matchedPattern.fixHint}`;
+    }
+    return result;
   }
 
   /**

@@ -441,7 +441,17 @@ describe('CEOProfile', () => {
 - Git object model (content-addressed storage)
 - SQLite virtual tables (layer abstraction)
 
+### Amendment: 17th Anti-Drift Mechanism — SOUL Workspace Awareness (Sprint 143 A2)
+
+**CTO correction (Sprint 142 review):** The runtime anti-drift inventory (16 systems) missed a 17th mechanism: **SOUL-level Workspace Awareness directives**.
+
+5 executor SOULs (`SOUL-coder.md`, `SOUL-architect.md`, `SOUL-reviewer.md`, `SOUL-tester.md`, `SOUL-fullstack.md`) carry a `## Workspace Awareness (MANDATORY)` section (Sprint 135 P1) that instructs agents to discover workspace content before answering. This is the **documentation layer** complement to the runtime Layer 1.25 injection (`src/agents/context/workspace-awareness.ts`).
+
+Without this SOUL-level directive, an agent launched via direct Claude Code CLI invocation (bypassing the context-injector pipeline) would not know to read CLAUDE.md/AGENTS.md. The SOUL section ensures workspace discovery is agent-intrinsic, not pipeline-dependent.
+
+**Brain relationship:** This is not a Brain layer — it's a static SOUL template directive. But it serves the same anti-drift purpose as Brain L4 mental models: persist knowledge across sessions without runtime state.
+
 ---
 
 *ADR-009 created for EndiorBot Brain Architecture*
-*SDLC Framework v6.1.1*
+*SDLC Framework v6.3.1 — amended Sprint 143*
