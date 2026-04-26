@@ -143,6 +143,8 @@ export class AutonomousSessionManager {
   private riskyOpTimestamps: number[] = [];
   private tasksSinceLastCheckpoint: number = 0;
   private lastCheckpointAt: number = 0;
+  /** Sprint 143 A1: Brain L2 pattern hint for next retry/fix attempt. */
+  private pendingPatternHint: string | null = null;
 
   constructor(config: Partial<AutonomousSessionConfig> & { projectRoot: string; projectId: string }, providerDeps?: ProviderDeps) {
     this.log = createLogger("AutonomousSessionManager");
@@ -670,6 +672,9 @@ export class AutonomousSessionManager {
           if (recoveryResult.recovered) {
             // Retry with higher-tier model if needed
             if (recoveryResult.action === "RETRY" || recoveryResult.action === "FIX") {
+              // Sprint 143 A1: Store Brain L2 pattern hint for next attempt.
+              // executeTaskWork() reads pendingPatternHint and injects into prompt.
+              this.pendingPatternHint = recoveryResult.patternHint ?? null;
               retryCount++;
               continue;
             }
@@ -860,12 +865,23 @@ export class AutonomousSessionManager {
     }
 
     const agent = taskTypeToAgent(task.type);
-    const context = buildTaskContext(task, {
+    let context = buildTaskContext(task, {
       sprintGoal: this.config.sprintGoal,
       projectRoot: this.config.projectRoot,
       tier: tier.toString(),
       completedTasks: this.completedTasks,
     });
+
+    // Sprint 143 A1: Inject Brain L2 pattern hint into retry prompt.
+    // CPO requirement: patternHint must reach the actual prompt, not just RecoveryResult.
+    if (this.pendingPatternHint) {
+      context = `${context}\n\n${this.pendingPatternHint}`;
+      this.log.info("Brain L2 pattern hint injected into retry prompt", {
+        taskId: task.id,
+        hint: this.pendingPatternHint.slice(0, 100),
+      });
+      this.pendingPatternHint = null; // Consumed — don't inject again
+    }
 
     const result = await callCloudFallback(
       this.providerDeps,
