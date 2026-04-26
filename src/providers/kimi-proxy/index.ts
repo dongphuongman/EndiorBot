@@ -68,11 +68,30 @@ export class KimiProxyProvider implements AIProvider {
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    return this.inner.chat(request);
+    // Sprint 143 fix: Force model to a Kimi-compatible name.
+    // The inner AnthropicProvider validates model against its own model list
+    // (claude-*) and rejects kimi-k2.6. But the proxy binary routes by model
+    // name — it accepts kimi-k2.6, kimi-for-coding, etc. We normalize here
+    // so callers can pass any model name and it reaches the proxy correctly.
+    const kimiModel = this.resolveKimiModel(request.model);
+    return this.inner.chat({ ...request, model: kimiModel });
   }
 
   async *chatStream(request: ChatRequest): AsyncIterable<ChatChunk> {
-    yield* this.inner.chatStream(request);
+    const kimiModel = this.resolveKimiModel(request.model);
+    yield* this.inner.chatStream({ ...request, model: kimiModel });
+  }
+
+  /**
+   * Resolve any model name to one the proxy accepts.
+   * If the model is already a Kimi model, pass through.
+   * If it's a Claude/OpenAI model (from agent config), map to default Kimi model.
+   */
+  private resolveKimiModel(model: string): string {
+    const kimiModelIds = KIMI_MODELS.map(m => m.id);
+    if (kimiModelIds.includes(model)) return model;
+    // Non-Kimi model name (e.g. "sonnet", "gpt-4o") → use default Kimi model
+    return KIMI_MODELS[0]?.id ?? "kimi-k2.6";
   }
 
   async healthCheck(): Promise<ProviderHealth> {

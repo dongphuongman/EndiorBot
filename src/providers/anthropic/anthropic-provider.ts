@@ -70,6 +70,23 @@ const ANTHROPIC_MODELS: ModelDefinition[] = [
     maxOutputTokens: 4096,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
+  // Sprint 143: Proxy-passthrough models — when AnthropicProvider is used as
+  // inner delegate by KimiProxyProvider, the proxy binary routes these model
+  // names to Kimi. They must pass validateModel() to reach the HTTP call.
+  {
+    id: "kimi-k2.6",
+    name: "Kimi K2.6 (via proxy)",
+    contextWindow: 256000,
+    maxOutputTokens: 16384,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
+  {
+    id: "kimi-for-coding",
+    name: "Kimi for Coding (via proxy)",
+    contextWindow: 256000,
+    maxOutputTokens: 16384,
+    supportedFeatures: ["chat", "vision", "tools", "streaming"],
+  },
 ];
 
 /** Default rate limit for Anthropic API (50 req/min for most tiers) */
