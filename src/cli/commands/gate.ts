@@ -31,11 +31,15 @@ import { loadActiveProject } from "../../config/paths.js";
 import {
   GateEngine,
   getGatesInOrder,
+  getChecklist,
   isGateConfirmed,
   saveGateConfirmation,
+  saveGateItemMark,
+  removeGateItemMark,
   type GateId,
   type ProjectTier,
   type ChecklistItem,
+  type GateItemMark,
 } from "../../sdlc/index.js";
 
 // ============================================================================
@@ -443,9 +447,47 @@ async function gateConfirmAction(
       project.id,
     );
 
+    // Sprint 143 A3 follow-up (OGA team feedback): When CEO runs --confirm,
+    // manual items (autoCheck: false) should auto-pass. CEO's explicit --confirm
+    // IS the approval — they shouldn't need --force for items like "CEO approves"
+    // or "stakeholder sign-off" when they are the one confirming.
+    if (evaluation.result !== "PASS") {
+      const blockingManualItems = evaluation.checklist.filter(
+        (i) => i.required && !i.autoCheck && (i.status === "pending" || i.status === "manual"),
+      );
+      const blockingAutoItems = evaluation.checklist.filter(
+        (i) => i.required && i.autoCheck && i.status !== "pass" && i.status !== "skipped",
+      );
+
+      if (blockingAutoItems.length === 0 && blockingManualItems.length > 0) {
+        // All auto-checks passed; only manual items block. CEO --confirm auto-resolves them.
+        for (const item of blockingManualItems) {
+          saveGateItemMark(project.id, {
+            gateId: gateId as GateId,
+            itemId: item.id,
+            status: "pass",
+            evidence: `Auto-approved by CEO via 'gate confirm ${gateId} --confirm'`,
+            markedAt: new Date().toISOString(),
+            markedBy: "CEO",
+          });
+          item.status = "pass";
+        }
+        // Re-determine result after marking
+        evaluation.result = evaluation.checklist.filter((i) => i.required).every(
+          (i) => i.status === "pass" || i.status === "skipped",
+        ) ? "PASS" : "FAIL";
+        if (blockingManualItems.length > 0) {
+          console.log(`  ✅ ${blockingManualItems.length} manual item(s) auto-approved by CEO confirm:`);
+          for (const item of blockingManualItems) {
+            console.log(`     • ${item.id} — ${item.description}`);
+          }
+        }
+      }
+    }
+
     if (evaluation.result !== "PASS" && !options.force) {
       console.log("");
-      console.log("❌ Cannot confirm - gate evaluation failed.");
+      console.log("❌ Cannot confirm - gate evaluation failed (auto-check items not passing).");
       console.log("   Use --force to override (CEO only).");
       console.log("");
       process.exit(1);
@@ -495,6 +537,104 @@ async function gateConfirmAction(
 }
 
 // ============================================================================
+// Gate Mark Action (Sprint 143 A3)
+// ============================================================================
+
+/**
+ * Gate mark action — team marks a manual checklist item as complete.
+ *
+ * CEO bug report: "đã confirm mà phải dùng force luôn luôn là không đúng".
+ * This lets teams mark `autoCheck: false` items with evidence so
+ * `gate confirm` works without --force for routine gate progression.
+ */
+async function gateMarkAction(
+  gateId: string,
+  itemId: string,
+  options: { pass?: boolean; reset?: boolean; evidence?: string; project?: string },
+): Promise<void> {
+  const project = getCurrentProject(options.project);
+
+  if (!project) {
+    console.log("⚠️  No project resolvable from --project, cwd, or active project.");
+    return;
+  }
+
+  const tier = (project.tier as ProjectTier) ?? "STANDARD";
+
+  // Validate gateId
+  const validGates = getGatesInOrder();
+  if (!validGates.includes(gateId as GateId)) {
+    console.log(`❌ Unknown gate: "${gateId}". Valid: ${validGates.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Validate itemId exists in checklist AND is autoCheck: false
+  const checklist = getChecklist(gateId as GateId, tier);
+  const item = checklist.items.find((i) => i.id === itemId);
+
+  if (!item) {
+    console.log(`❌ Item "${itemId}" not found in ${gateId} checklist.`);
+    console.log("");
+    console.log("Available items:");
+    for (const i of checklist.items) {
+      const tag = i.autoCheck ? "[auto]" : "[manual]";
+      console.log(`  ${i.id} — ${i.description} ${tag}`);
+    }
+    process.exit(1);
+  }
+
+  if (item.autoCheck) {
+    console.log(`❌ Item "${itemId}" is auto-checkable. It passes when the artifact exists — no manual mark needed.`);
+    console.log(`   Checker: ${item.checker ?? "none"}`);
+    process.exit(1);
+  }
+
+  // Handle --reset
+  if (options.reset) {
+    const removed = removeGateItemMark(project.id, gateId as GateId, itemId);
+    if (removed) {
+      console.log(`✅ Mark removed: ${gateId} / ${itemId} reset to pending.`);
+    } else {
+      console.log(`ℹ️  No mark found for ${gateId} / ${itemId} — already pending.`);
+    }
+    return;
+  }
+
+  // Handle --pass (requires --evidence)
+  if (!options.pass) {
+    console.log(`❌ Specify --pass to mark the item, or --reset to clear it.`);
+    console.log(`   Usage: endiorbot gate mark ${gateId} ${itemId} --pass --evidence "..."`);
+    process.exit(1);
+  }
+
+  if (!options.evidence || options.evidence.trim().length === 0) {
+    console.log(`❌ --evidence is required. Provide a reason for the audit trail.`);
+    console.log(`   Usage: endiorbot gate mark ${gateId} ${itemId} --pass --evidence "CEO approved via Telegram"`);
+    process.exit(1);
+  }
+
+  const mark: GateItemMark = {
+    gateId: gateId as GateId,
+    itemId,
+    status: "pass",
+    evidence: options.evidence.trim(),
+    markedAt: new Date().toISOString(),
+    markedBy: "team",
+  };
+
+  saveGateItemMark(project.id, mark);
+
+  console.log("");
+  console.log(`✅ Marked: ${gateId} / ${itemId}`);
+  console.log(`   Item: ${item.description}`);
+  console.log(`   Evidence: ${mark.evidence}`);
+  console.log(`   Project: ${project.id}`);
+  console.log("");
+  console.log(`   Next: endiorbot gate confirm ${gateId} --confirm`);
+  console.log("");
+}
+
+// ============================================================================
 // Command Registration
 // ============================================================================
 
@@ -521,6 +661,15 @@ export function registerGateCommand(program: Command): void {
     .option("--run-checks", "Run command checks (build/lint/test) — slower but complete")
     .option("--project <path>", "Override resolved project (defaults to cwd, then active project)")
     .action(gateRecommendAction);
+
+  gate
+    .command("mark <gateId> <itemId>")
+    .description("Mark a manual checklist item as complete (team action, no CEO --force needed)")
+    .option("--pass", "Mark item as passed")
+    .option("--reset", "Reset item back to pending")
+    .option("--evidence <text>", "Evidence/reason for audit trail (required with --pass)")
+    .option("--project <path>", "Override resolved project")
+    .action(gateMarkAction);
 
   gate
     .command("confirm <gateId>")

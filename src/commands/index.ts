@@ -103,6 +103,25 @@ export function createCommandDispatcher(): CommandDispatcher {
 
   // ── OTT info commands (no auth needed) ──
 
+  // Sprint 143 R01: /start is the first message Telegram sends when a user opens the bot.
+  // Without this handler, CEO sees "Unknown command" on first interaction.
+  d.register("start", async () => ({
+    success: true,
+    response: [
+      "👋 **Welcome to EndiorBot** — CEO Power Tool",
+      "",
+      "Get answers in <30s instead of 30-60 min.",
+      "",
+      "Quick start:",
+      "  /help — see all commands",
+      "  /link — bind your identity (required for bridge commands)",
+      "  /commands — full command catalog across all channels",
+      "  @pm, @coder, @cto — talk to AI agents",
+      "",
+      "Type /help to begin.",
+    ].join("\n"),
+  }));
+
   d.register("agents", async () => handleAgentsCommand());
 
   d.register("teams", async () => handleTeamsCommand());

@@ -254,10 +254,27 @@ export class ChannelRouter {
             `Claude Code is rate-limited (${failure.reason}) and no fallback provider responded. Please wait for the rate-limit window to reset.`,
           );
         }
-        case "TIMEOUT":
-          throw new Error(
-            `⚠️ Claude Code timed out — the CLI did not respond in time. This is NOT a rate-limit. Please retry; if it keeps happening, the Claude Code CLI process may be hung (try 'claude --version' to verify).`,
+        case "TIMEOUT": {
+          // Sprint 143: Timeout → try cloud fallback (same as RATE_LIMITED).
+          // CEO observed @cto hung on Telegram — CC CLI waited for permission
+          // input that can't arrive from OTT. Fallback to Kimi/cloud ensures
+          // CEO gets a response instead of silent timeout.
+          console.log(
+            `[Router] Claude Code timed out — falling back for @${agent}...`,
           );
+          progressFn?.(
+            `⏱️ Claude Code timed out — switching to fallback for @${agent}…`,
+          );
+          const timeoutFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+          if (timeoutFallback) {
+            this.recordTelemetry(agent, task, callStartTime, true, timeoutFallback.provider ?? "fallback", true, timeoutFallback);
+            return timeoutFallback;
+          }
+
+          throw new Error(
+            `⚠️ Claude Code timed out and no fallback provider responded. The CLI did not respond in time — it may be waiting for permission input. Try 'claude --version' to verify the CLI is healthy.`,
+          );
+        }
         case "AUTH":
           throw new Error(
             `🔑 Claude Code authentication failed — your OAuth session may have expired. Please run 'claude login' and retry.`,

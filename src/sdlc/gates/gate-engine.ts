@@ -35,6 +35,7 @@ import {
   getPreviousGate,
 } from "./gate-checklist.js";
 import { isGateConfirmed } from "./gate-store.js";
+import { isItemMarked } from "./gate-mark-store.js";
 import {
   StageContractEngine,
   type SDLCStage,
@@ -193,6 +194,12 @@ export class GateEngine {
         item.status = result.status;
         if (result.evidence) {
           evidence.push(result.evidence);
+        }
+      } else if (!item.autoCheck) {
+        // Sprint 143 A3: Check persisted marks for manual items.
+        // Team can mark items via `endiorbot gate mark` without CEO --force.
+        if (isItemMarked(projectId, gateId, item.id)) {
+          item.status = "pass";
         }
       }
     }

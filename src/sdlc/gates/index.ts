@@ -53,3 +53,13 @@ export {
   getGateConfirmation,
   type GateConfirmation,
 } from "./gate-store.js";
+
+// Gate Mark Store (Sprint 143 A3 — team-level manual item marks)
+export {
+  loadGateMarks,
+  saveGateItemMark,
+  isItemMarked,
+  getItemMark,
+  removeGateItemMark,
+  type GateItemMark,
+} from "./gate-mark-store.js";
