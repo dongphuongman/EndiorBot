@@ -156,7 +156,7 @@ export function getRecommendation(
     sampleCount: best.sampleCount,
     confidence,
     ffEnabled,
-    phase: ffEnabled ? "ACTIVE (Phase 2 — would influence routing)" : "READ-ONLY (Phase 1 — logging only)",
+    phase: ffEnabled ? "ACTIVE (Phase 2 — influencing routing when confidence ≥ 60%)" : "READ-ONLY (Phase 1 — logging only)",
   });
 
   return recommendation;

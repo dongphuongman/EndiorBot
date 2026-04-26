@@ -374,5 +374,5 @@ export const DEFAULT_REFRESH_CONFIG: ContextRefreshConfig = {
   turnInterval: 30,                    // Every 30 turns
   timeIntervalMs: 30 * 60 * 1000,     // Every 30 minutes
   minRefreshIntervalMs: 5 * 60 * 1000, // At least 5 min apart
-  swapThreshold: 0.1,                  // CTO F3: ≥0.1 improvement required
+  swapThreshold: parseFloat(process.env.ENDIORBOT_CONTEXT_TRANSFER_THRESHOLD ?? "0.1"),  // CTO F3: configurable, default ≥0.1
 };

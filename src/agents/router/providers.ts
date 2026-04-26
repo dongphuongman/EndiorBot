@@ -628,10 +628,25 @@ export async function dispatchAgentPrimary(
   workspace?: string,
   notifyFn?: ChannelSendFn,
 ): Promise<AIResult | null> {
-  const config = getAgentProviderModel(agent);
+  let config = getAgentProviderModel(agent);
   if (!config) {
     log.warn(`No provider config for @${agent} — falling back to Claude Code`);
     return callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
+  }
+
+  // Sprint 142 P1-1: Expert Routing Phase 2 — active influence.
+  // When FF enabled + sufficient historical data, override the static
+  // ADR-052 tier mapping with the best-performing provider for this agent.
+  if (process.env.ENDIORBOT_FF_EXPERT_ROUTING_ENABLED === "true") {
+    const { getRecommendation } = await import("../../providers/expert-routing.js");
+    const rec = getRecommendation(agent, "chat");
+    if (rec && rec.confidence >= 0.6) {
+      const overrideProvider = rec.recommended.provider as "claude-code" | "kimi" | "ollama";
+      if (overrideProvider !== config.provider) {
+        log.info(`Expert routing override: @${agent} ${config.provider} → ${overrideProvider} (confidence ${(rec.confidence * 100).toFixed(0)}%, success ${(rec.recommended.successRate * 100).toFixed(0)}%)`);
+        config = { ...config, provider: overrideProvider, model: rec.recommended.model };
+      }
+    }
   }
 
   log.info(`ADR-052 dispatch: @${agent} → ${config.provider} (${config.model}) [tier ${config.tier}]`);

@@ -129,6 +129,22 @@ export const FEATURE_FLAGS = {
    * @default false
    */
   ACTIVE_MEMORY_ENABLED: false,
+
+  // =========================================================================
+  // Expert Routing (Sprint 142 P1-1)
+  // =========================================================================
+
+  /**
+   * Enable Expert Routing Phase 2 — historical performance scoring
+   * actively influences provider selection when confidence ≥ 60%.
+   * When disabled (default): data collected + logged but routing unchanged.
+   *
+   * Env override: ENDIORBOT_FF_EXPERT_ROUTING_ENABLED=true|false
+   *
+   * @sprint 142
+   * @default false
+   */
+  EXPERT_ROUTING_ENABLED: false,
 } as const;
 
 // ============================================================================
