@@ -48,10 +48,36 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-## Documentation index
+## Test Suite Stats (Sprint 143)
 
-All stages (00–09): [`../README.md`](../README.md).
+```
+Test Files  364 passed (364)
+Tests       8,111 passed | 10 skipped (8,121)
+Duration    50.10s
+TypeScript  0 errors (pnpm build clean)
+Gitleaks    0 findings
+```
+
+## Test Categories
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Evaluator (OpenMythos) | 297 | Convergence, dynamic budget, frozen input, loop-index |
+| Agent Router | 73 | buildEnrichedPrompt, ADR-052 dispatch, Ollama confidence |
+| Context/Transfer | 218 | Vision re-injection, context lifecycle, anchor CRUD |
+| Sessions/Recovery | 23+ | Brain L2 pattern match, failure classification, recovery |
+| Provider | 470+ | Kimi proxy, OpenAI, Gemini, Ollama, SSRF boundary |
+| SDLC/Compliance | 200+ | Scaffold, contracts, gates, dashboard |
+
+## Running Tests
+
+```bash
+pnpm test                           # Full suite (8,111+ tests)
+npx vitest run tests/agents/router/ # Router tests only
+npx vitest run tests/evaluator/     # Evaluator tests only
+npx vitest run --reporter=verbose   # Verbose output
+```
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 05: Test*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 05: Test — Updated Sprint 143 (2026-04-26)*

@@ -49,10 +49,28 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-## Documentation index
+## Development Commands
 
-All stages (00–09): [`../README.md`](../README.md).
+```bash
+pnpm install        # Install dependencies
+pnpm build          # Build TypeScript
+pnpm dev            # Watch mode
+pnpm test           # Run tests (8,111+ expected)
+pnpm lint           # Check code style
+```
+
+## Recent Sprints
+
+| Sprint | Commits | Key Deliverables |
+|--------|---------|-----------------|
+| 139 | 7 | OpenMythos evaluator: convergence guard, dynamic budget, frozen input, loop-index |
+| 140 | 1 (53 files) | Kimi k2.6: ADR-051 proxy orchestrator, ADR-052 tier mapping |
+| 141 | 7 | Cost telemetry, Ollama confidence, Kimi rate-limit monitoring |
+| 142 | 4 | `buildEnrichedPrompt()`, kill switch fix, vision re-injection, expert routing Phase 2 |
+| 143 | 3 | Brain L2 pattern activation, 17th mechanism docs, OGA handoff |
+
+Sprint plans: [`sprints/`](sprints/)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 04: Build*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 04: Build — Updated Sprint 143 (2026-04-26)*

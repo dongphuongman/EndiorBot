@@ -37,10 +37,25 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-## Documentation index
+## Sprint History (Recent)
 
-All stages (00–09): [`../README.md`](../README.md).
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| 139 | OpenMythos evaluator optimization (#1-4) | CLOSED |
+| 140 | Kimi k2.6 integration + ADR-052 tier mapping | CLOSED |
+| 141 | Cost telemetry + Ollama confidence + Kimi resilience | CLOSED |
+| 142 | Anti-drift improvements + vendor-agnostic provider refactor | CLOSED |
+| 143 | Brain L2 activation + 17th mechanism docs + OGA handoff | CLOSED (Track A) |
+
+Full sprint index: [`../04-build/sprints/SPRINT-INDEX.md`](../04-build/sprints/SPRINT-INDEX.md)
+
+## Current Stats
+
+- **8,111+ tests** passing (8,121 total, 10 skipped)
+- **35+ CLI commands**, 30+ OTT commands
+- **14 SOUL agents** across 3 tiers
+- **6 providers** (Claude Code, Kimi proxy, Kimi API, OpenAI, Gemini, Ollama)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 01: Planning*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 01: Planning — Updated Sprint 143 (2026-04-26)*

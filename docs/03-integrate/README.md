@@ -73,12 +73,39 @@ CLI      → Commander → ChatHandler → AI Router → Response
 
 All stages (00–09): [`../README.md`](../README.md).
 
+## Integration Points (Sprint 142-143)
+
+### Provider Enrichment Pipeline
+
+```
+buildEnrichedPrompt() → 5 provider functions (pure transport)
+    ├── callClaudeBridge (CC CLI + tmux)
+    ├── callKimiProvider (kimi-proxy/kimi-api)
+    ├── callCloudFallback (OpenAI)
+    ├── callRemoteOllama (AI-Platform)
+    └── [future provider] — register + done
+```
+
+### Kimi Proxy Integration (Sprint 140-141)
+
+- `ENDIORBOT_KIMI_PROXY_URL` → reuse external `claude-code-proxy`
+- SSRF allowlist for configured local providers
+- Rate-limit monitoring: 429 auto-fallback kimi-proxy → kimi-api
+
+### Brain L2 → Recovery Engine (Sprint 143)
+
+- `RecoveryEngine.findMatchingPattern()` queries Brain L2 error patterns
+- `patternHint` injected into retry prompt via `AutonomousSessionManager`
+- Conservative threshold: pattern count ≥ 2 (no one-off false positives)
+
 ## References
 
 - [Stage & command spine](../00-foundation/stage-command-workflow-spine.md)
 - [OTT Channels](../04-build/ott-channels.md)
 - [ADR-029 Per-Chat Workspace](../02-design/01-ADRs/ADR-029-Per-Chat-Workspace.md)
+- [ADR-052 Agent-Model Tier Mapping](../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)
+- [Sprint 139 Integration Spec](sprint-139-integration-spec.md)
 
 ---
 
-*CEO Power Tool | SDLC Framework **6.3.1** — Stage 03: Integration*
+*CEO Power Tool | SDLC Framework **6.3.1** — Stage 03: Integration — Updated Sprint 143 (2026-04-26)*

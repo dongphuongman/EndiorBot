@@ -46,4 +46,38 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 00: Foundation*
+## Identity (LOCKED 2026-04-19)
+
+> **EndiorBot is a CEO Power Tool** — not a platform, not an SDLC enforcer.
+> Help CEO get answers in <30s instead of 30-60 min.
+>
+> **Scope:** local MacBook repos + general CEO support only.
+> Remote infrastructure belongs to MTClaw / SDLC Orchestrator.
+
+## Key Architecture Decisions (as of Sprint 143)
+
+| ADR | Decision | Sprint |
+|-----|----------|--------|
+| ADR-050 | OpenMythos evaluator patterns (convergence, dynamic budget, frozen input, loop-index, phase behavior, stability, expert routing) | 139 |
+| ADR-051 | Kimi proxy subprocess orchestrator | 140 |
+| ADR-052 | Agent-model tier mapping (3 Opus, 10 Kimi, 1 Ollama) + vendor-agnostic enrichment | 140+142 |
+
+## Anti-Drift Architecture (17 mechanisms, Sprint 142-143)
+
+All triggers wired and operational:
+
+| Trigger | Wired | Sprint |
+|---------|-------|--------|
+| Session start: SOUL + L1.25 + Brain L4 | ✅ | 55 |
+| Every turn: buildEnrichedPrompt (workspace + RL) | ✅ | 142 |
+| Every 10 turns: sprint goals summary | ✅ | 142 |
+| Every 20 turns: full vision | ✅ | 142 |
+| Every 30 turns: hard reset (token budget) | ✅ | 54 |
+| Every 30 min: context refresh | ✅ | 97 |
+| Every 5 patches: checkpoint | ✅ | 69 |
+| Per-query: Active Memory (FF-gated, CEO decides) | ✅ | 133 |
+| Brain L2: error pattern → retry hint | ✅ | 143 |
+
+---
+
+*EndiorBot | SDLC Framework **6.3.1** — Stage 00: Foundation — Updated Sprint 143 (2026-04-26)*

@@ -50,10 +50,40 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-## Documentation index
+## Key ADRs (Recent)
 
-All stages (00–09): [`../README.md`](../README.md).
+| ADR | Title | Sprint | Status |
+|-----|-------|--------|--------|
+| ADR-009 | Brain Architecture (Iceberg 4-layer) | 45 | Approved + Sprint 143 amendment (17th mechanism) |
+| ADR-046 | Autonomous Execution Policy | 131-132 | Approved |
+| ADR-050 | OpenMythos Evaluator Optimization Patterns | 139 | Approved |
+| ADR-051 | Kimi Proxy Subprocess Orchestrator | 140 | Approved |
+| ADR-052 | Agent-Model Tier Mapping | 140 | Approved + Sprint 142 amendment (vendor-agnostic enrichment) |
+
+## Architecture Highlights (Sprint 142-143)
+
+### Vendor-Agnostic Enrichment Layer
+
+```
+buildEnrichedPrompt(agent, task, history, workspace)  ← UNIVERSAL
+    ├── SOUL identity
+    ├── Workspace context (ALWAYS — not PATCH-only)
+    ├── IDENTITY.md content (500 token cap)
+    ├── Workspace Awareness directive (L1.25)
+    ├── RL enrichment
+    └── History context
+    │
+    ▼
+Provider function  ← JUST API transport
+    ├── claude-code: invokeRead/invokePatch
+    ├── kimi: provider.chat()
+    ├── openai: provider.chat()
+    ├── ollama: fetch()
+    └── [new-model]: register + ~20 LoC
+```
+
+Adding a new LLM provider = register endpoint + zero context code.
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.0** — Stage 02: Design*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 02: Design — Updated Sprint 143 (2026-04-26)*
