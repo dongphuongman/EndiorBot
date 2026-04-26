@@ -347,7 +347,9 @@ export async function callCloudFallback(
 
   // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
   const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
-  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
+  const systemPrompt = process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT
+    ? basePrompt
+    : `[Workspace: ${ws}]\n${basePrompt}`;
   // CTO F2: Log tier for cloud fallback observability
   const tier = resolveWorkspaceTier(ws);
   log.info(`Cloud fallback for @${agent} (workspace tier: ${tier}, model: ${modelOverride ?? provider.models[0]?.id ?? "unknown"})`);
@@ -413,7 +415,9 @@ export async function callKimiProvider(
 
   // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
   const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
-  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
+  const systemPrompt = process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT
+    ? basePrompt
+    : `[Workspace: ${ws}]\n${basePrompt}`;
 
   // Use agent's configured Kimi model or override
   const agentConfig = getAgentProviderModel(agent);
@@ -518,7 +522,9 @@ export async function callRemoteOllama(
 
   // Sprint 142: Vendor-agnostic enrichment — build once, transport only.
   const { systemPrompt: basePrompt, workspace: ws } = buildEnrichedPrompt(agent, task, deps.config, history, workspace);
-  const systemPrompt = `[Workspace: ${ws}]\n${basePrompt}`;
+  const systemPrompt = process.env.ENDIORBOT_DISABLE_WORKSPACE_CONTEXT
+    ? basePrompt
+    : `[Workspace: ${ws}]\n${basePrompt}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (deps.config.ollamaRemoteApiKey) {
     headers["X-API-Key"] = deps.config.ollamaRemoteApiKey;
