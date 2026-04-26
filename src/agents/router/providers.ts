@@ -730,6 +730,17 @@ export async function dispatchAgentFallback(
     }
   }
 
-  log.warn(`ADR-052 fallback exhausted for @${agent} — no provider responded`);
+  // Sprint 143: If tier-specific chain exhausted, try generic cloud fallback
+  // (OpenAI/Gemini/Anthropic). These providers are registered but not in the
+  // ADR-052 tier chains — they're the last-resort safety net so CEO always
+  // gets a response even when Kimi + Ollama are both down.
+  log.info(`ADR-052 tier chain exhausted for @${agent} — trying generic cloud fallback`);
+  const cloudResult = await callCloudFallback(deps, agent, task, history, workspace);
+  if (cloudResult) {
+    log.info(`ADR-052 generic cloud fallback success: @${agent} via ${cloudResult.provider}`);
+    return cloudResult;
+  }
+
+  log.warn(`ADR-052 fallback fully exhausted for @${agent} — no provider responded (including cloud)`);
   return null;
 }
