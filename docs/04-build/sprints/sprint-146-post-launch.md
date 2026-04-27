@@ -2,76 +2,74 @@
 sprint: 146
 status: DRAFT — blocked by Sprint 145 exit
 start_date: TBD
-planned_duration: 2-3d
+planned_duration: 3-4d
 framework: "6.3.1"
 authority:
   proposer: "@pm"
-  countersigners: []
-  trigger: "Sprint 145 dual-launch complete (both repos public, npm published)"
+  countersigners: ["@cto — gap analysis endorsed 2026-04-27"]
+  trigger: "Sprint 145 dual-launch complete + SDLC audit + gap analysis"
 previous_sprint: "Sprint 145 — Dual-Launch: SDLC Framework + EndiorBot"
 references:
   - docs/04-build/sprints/sprint-145-dual-launch.md
 ---
 
-# Sprint 146 — Post-Launch: Community Growth + Tech Debt
+# Sprint 146 — Post-Launch: Quality Hardening + Gap Closure
 
 ## Context
 
-Sprint 145 launched both SDLC Framework 6.3.1 (sdlcframework.org) and EndiorBot (endior.net) as open-source. This sprint focuses on community experience, tech debt from CSO audit, and documentation site.
+Sprint 145 launched both repos. Three audits during Sprint 145 identified quality gaps:
 
-**No new features.** Community quality + developer experience only.
+1. **SDLC 6.3.1 Compliance Audit** — 92% → 94% (target 95%)
+2. **Code-Design Gap Analysis** — 2 missing ADRs, 4 modules without ADR
+3. **Frontend-Backend Gap Analysis** — 3 P0 blockers fixed, 8 backend features with no UI
 
----
+**P0 items already fixed in Sprint 145:**
+- F1: Checkpoints + FixStats pages (IPC crash) — FIXED
+- F2: `registerAllMethods()` gap (Desktop Chat → 39 commands) — FIXED
+- F3: Dashboard hardcoded stats → real IPC data — FIXED
+- H1: HSTS security header — FIXED
 
-## P0 — Community Experience (blocks adoption)
-
-### T1: Documentation Site — endior.net (~3h)
-
-**Options (pick one at sprint start):**
-- **A. GitHub Pages** — Static site from `docs/` with nav
-- **B. Docusaurus** — Full docs site with search, versioning
-- **C. Simple redirect** — endior.net → GitHub repo README (5min, defer real site)
-
-Recommended: Option C for immediate, upgrade to B in Sprint 147.
-
-**Also:**
-- sdlcframework.org → SDLC Framework GitHub repo
-- sdlcframework.dev → "SDLC Orchestrator — Coming Soon" placeholder
-
-**Owner:** @devops + CEO (DNS)
+This sprint closes remaining gaps for OSS quality.
 
 ---
 
-### T2: Community README Enhancements (~2h)
+## P0 — Missing ADR Documents (blocks design traceability)
 
-- Record 30s GIF demo: `endiorbot init` → `endiorbot serve` → Telegram chat
-- Add "Why EndiorBot?" comparison section
-- Add "Star History" badge
-- Add "Contributors" section with Contributing quick-start
+### T1: Write ADR-003 — CLI-Desktop Protocol (~1h)
 
-**Owner:** @pm
+**Gap:** 21+ code files cite `@authority ADR-003` but document doesn't exist.
 
----
+**What:** Document the IPC protocol between `endiorbot.mjs` CLI and Electron Desktop app:
+- IPC channel naming convention
+- Security model (nodeIntegration + contextIsolation trade-offs)
+- Gateway subprocess lifecycle
+- Channel list and data contracts
 
-### T3: CHANGELOG Sprint 139-144 Entries (~30min)
-
-EndiorBot CHANGELOG.md currently stops at Sprint 135. Add entries for:
-- Sprint 139: OpenMythos evaluator optimization
-- Sprint 140: Kimi k2.6 integration + ADR-052
-- Sprint 141: Cost telemetry + Ollama confidence
-- Sprint 142: Anti-drift improvements + vendor-agnostic enrichment
-- Sprint 143: Brain L2 + gate mark + CC-first routing + 7 hotfixes
-- Sprint 144: Gateway hardening + community publish cleanup
-
-**Owner:** @pm
+**Files:** `docs/02-design/01-ADRs/ADR-003-CLI-Desktop-Protocol.md` (NEW)
+**Evidence:** `apps/desktop/electron/main/ipc-handlers.ts`, `apps/desktop/electron/main/index.ts`
+**Owner:** @architect
 
 ---
 
-## P1 — Tech Debt (CSO audit items)
+### T2: Write ADR-006 — Checkpoint State Model (~1h)
 
-### T4: God Class Refactoring — Top 3 (~4h)
+**Gap:** CLI entry point and checkpoint module cite `@authority ADR-006` but document doesn't exist.
 
-CSO audit finding: 11 files >900 lines.
+**What:** Document checkpoint architecture:
+- State machine (9 resilience states)
+- Checkpoint triggers (time/event/patch_count)
+- Storage format and recovery
+- Failure classification (TRANSIENT/FIXABLE/DESIGN_ISSUE)
+
+**Files:** `docs/02-design/01-ADRs/ADR-006-Checkpoint-State-Model.md` (NEW — note: `approved/ADR-006-Checkpoint-State-Model.md` exists as an early draft; consolidate)
+**Evidence:** `src/sessions/checkpoint/`, `src/sessions/failure/`, `src/sessions/recovery/`
+**Owner:** @architect
+
+---
+
+## P1 — Tech Debt (CSO audit + god classes)
+
+### T3: God Class Refactoring — Top 3 (~4h)
 
 | File | Lines | Extract |
 |------|-------|---------|
@@ -80,59 +78,129 @@ CSO audit finding: 11 files >900 lines.
 | `src/budget/budget-tracker.ts` | 1,104 | `BudgetAlertService`, `BudgetReporter` |
 
 **Constraint:** Extract only. No behavior change. All tests pass unchanged.
-
 **Owner:** @coder
 
 ---
 
-### T5: Circular Dependency Fix — Approval Module (~1h)
+### T4: Circular Dependency Fix — Approval Module (~1h)
 
-CSO audit: `src/agents/router/patch-flow.ts` imports from `src/gateway/methods/approval.ts`.
-
-**Fix:** Extract to `src/approval/queue.ts`. Both `agents/` and `gateway/` import from neutral module.
-
+**CSO audit:** `src/agents/router/patch-flow.ts` imports from `src/gateway/methods/approval.ts`.
+**Fix:** Extract to `src/approval/queue.ts`. Both agents/ and gateway/ import from neutral module.
 **Owner:** @architect + @coder
 
 ---
 
-### T6: Desktop Release Build (~2h)
+### T5: Triage 10 Production TODOs (~1h)
 
-Build distributable binaries:
-- `EndiorBot-1.0.0-arm64.dmg` (macOS Apple Silicon)
-- `EndiorBot-1.0.0-x64.dmg` (macOS Intel)
-- Attach to GitHub Release as assets
+CSO audit found 10 `// TODO` markers in production code. For each:
+- If feature deferred → convert to GitHub Issue + remove TODO
+- If trivially fixable → fix inline
+- If obsolete → remove
 
-Windows/Linux deferred to Sprint 147 (needs CI matrix).
+Key files: `evaluator/loop.ts:907`, `gateway/methods/chat.ts:454`, `cli/commands/status.ts:169`
+**Owner:** @coder
 
+---
+
+## P1 — Community Experience
+
+### T6: endior.net Landing Page Deploy (~30min)
+
+- GitHub Pages: Settings → Pages → Source `main` branch, `/site` folder
+- CNAME: `endior.net` DNS → GitHub Pages IP
+- Verify: `curl -I https://endior.net`
+
+**Owner:** CEO + @devops
+
+---
+
+### T7: CHANGELOG Sprint 139-145 Entries (~30min)
+
+CHANGELOG.md currently stops at Sprint 135. Add entries for Sprints 139-145.
+**Owner:** @pm
+
+---
+
+### T8: Desktop Release Build — macOS DMG (~2h)
+
+```bash
+cd apps/desktop && pnpm build
+# → release/EndiorBot-1.0.0-arm64.dmg
+```
+
+Attach to GitHub Release as downloadable asset.
 **Owner:** @devops
 
 ---
 
-## P2 — Backlog (Sprint 147+)
+## P2 — Desktop UI Gaps (from frontend-backend analysis)
 
-| Task | Sprint | Notes |
-|------|--------|-------|
-| Docusaurus full docs site on endior.net | 147 | Replace redirect with real docs |
-| Windows/Linux desktop builds | 147 | CI matrix for electron-builder |
-| `endiorbot create-app` scaffolding | 147 | Create projects from templates |
-| Dev.to article | 147 | "Building an AI Agent Orchestrator" |
-| Semantic versioning automation | 148 | `semantic-release` + conventional commits |
-| Plugin system for custom SOUL agents | 148 | Community extensibility |
-| ADR status cleanup (5 PROPOSED → ACCEPTED) | 146 or 147 | CSO finding: shipped code with draft ADRs |
+### T9: Desktop Pages for Backend Features (~4h)
+
+Backend features with NO desktop UI (from gap analysis):
+
+| Feature | Backend Module | Desktop Action |
+|---------|---------------|----------------|
+| Budget tracker | `src/budget/` | Add Budget page (read IPC `budget:get`) |
+| Audit logs | `~/.endiorbot/audit-logs/` | Add Audit page (read last 50 entries) |
+| Approval queue | `src/gateway/methods/approval.ts` | Show pending approvals on Dashboard |
+
+**NOT in scope:** RL feedback, Brain layers, Active Memory toggle (advanced features, defer to Sprint 147+)
+**Owner:** @coder
 
 ---
 
-## Success Metrics (end of Sprint 146)
+### T10: OTT Command Fallthrough Verification (~1h)
+
+Verify that Telegram and Zalo local command handlers correctly fall through to CommandDispatcher for the 20+ commands not handled locally:
+- `/plan`, `/link`, `/launch`, `/sessions`, `/switch`, `/repos`, `/focus`, `/exec-policy`, `/commands`, etc.
+- Test each on Telegram: verify response comes from Dispatcher, not "Unknown command"
+
+**Owner:** @tester
+
+---
+
+## P2 — Documentation Debt
+
+### T11: Stale Framework Version Refs in docs/05-test/ (~30min)
+
+13 test reports have `6.1.1`/`6.2.0` footers. Add header note: "Historical test report — framework version at time of writing."
+**Owner:** @pm
+
+---
+
+## Sequencing
+
+```
+Day 1: T1 (ADR-003) + T2 (ADR-006) + T5 (TODO triage) + T6 (deploy landing page)
+Day 2: T3 (god classes, 4h) + T4 (circular dep, 1h)
+Day 3: T7 (CHANGELOG) + T8 (Desktop build) + T9 (Desktop pages) + T10 (OTT verify)
+Day 4: Buffer + T11 (test report footers)
+```
+
+---
+
+## Exit Criteria
+
+- [ ] ADR-003 and ADR-006 exist (T1, T2)
+- [ ] No file >1,000 lines in top 3 god classes (T3)
+- [ ] `grep "from.*gateway/methods/approval" src/agents/` returns 0 (T4)
+- [ ] 0 production TODOs remaining or all tracked as Issues (T5)
+- [ ] endior.net resolves with landing page (T6)
+- [ ] CHANGELOG updated through Sprint 145 (T7)
+- [ ] All 8,124+ tests pass, build clean
+
+---
+
+## Success Metrics
 
 | Metric | Target |
 |--------|--------|
-| GitHub stars (EndiorBot) | 50+ |
-| GitHub stars (Framework) | 100+ |
-| npm weekly installs | 50+ |
-| First community Issue | ✅ (within 1 week of launch) |
-| CI green on both repos | ✅ |
-| All 3 domains resolving | ✅ |
-| God classes: top 3 below 1,000 lines | ✅ |
+| SDLC compliance | ≥95% (currently 94%) |
+| Code-design gaps | 0 missing ADRs for cited authorities |
+| Frontend-backend gaps | 0 P0 blockers (already fixed) |
+| God classes >1000 LOC | 0 (from 3) |
+| Production TODOs | 0 (from 10) |
 
 ---
 
