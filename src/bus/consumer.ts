@@ -138,11 +138,13 @@ export class BusConsumer {
     // Sprint 147 T2: Content dedup — same sender + same agent + similar text within 5min → skip
     // Prevents CEO sending @pm 3 times → 3 identical agent calls.
     // Transport dedup (above) only catches webhook retries (same messageId).
+    // CPO fix: key is cleared on failure so retries work after upstream errors.
+    let contentDedupKey: string | undefined;
     const agentMentionMatch = msg.content.match(/^@([\w.]+)/);
     if (agentMentionMatch) {
-      const contentKey = `${msg.senderId}:${agentMentionMatch[1]}:${msg.content.toLowerCase().trim().replace(/\s+/g, " ")}`;
+      contentDedupKey = `${msg.senderId}:${agentMentionMatch[1]}:${msg.content.toLowerCase().trim().replace(/\s+/g, " ")}`;
       const now = Date.now();
-      const prev = this.contentDedupMap.get(contentKey);
+      const prev = this.contentDedupMap.get(contentDedupKey);
       if (prev && now - prev < CONTENT_DEDUP_WINDOW_MS) {
         // Duplicate intent — skip with notice
         void msg.replyFn(
@@ -151,7 +153,7 @@ export class BusConsumer {
         ).catch(() => {});
         return;
       }
-      this.contentDedupMap.set(contentKey, now);
+      this.contentDedupMap.set(contentDedupKey, now);
       // Evict expired entries (prevent memory leak)
       if (this.contentDedupMap.size > 100) {
         for (const [k, ts] of this.contentDedupMap) {
@@ -296,6 +298,9 @@ export class BusConsumer {
     } catch (err) {
       // Sprint 136 A6: stop progress ticker before reporting error.
       cancelTicker();
+      // Sprint 147 CPO fix: clear content dedup key on failure so CEO can retry
+      // the same request after an upstream error (CC timeout, provider down, etc.)
+      if (contentDedupKey) this.contentDedupMap.delete(contentDedupKey);
       // CTO C1 (BLOCKER, RESOLVED): Guard replyFn() — Telegram may be down,
       // bot may be blocked, or channel adapter may have disconnected.
       // Inner try-catch prevents unhandledRejection from crashing Node.js ≥ v15.

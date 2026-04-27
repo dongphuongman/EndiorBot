@@ -90,7 +90,8 @@ describe("Security Headers (Sprint 117 B1)", () => {
 
 describe("HTTP Rate Limiting (Sprint 117 B2)", () => {
   let server: GatewayServer;
-  const port = 19818;
+  // Sprint 147: dynamic port to avoid EADDRINUSE flake when serve is running
+  const port = 19818 + Math.floor(Math.random() * 1000);
 
   beforeAll(async () => {
     server = createGatewayServer({ port, host: "127.0.0.1" });

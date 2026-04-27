@@ -50,13 +50,19 @@ export function Dashboard() {
     let cancelled = false;
 
     async function loadStats() {
-      const [repos, gates, providers] = await Promise.all([
-        safeIpcInvoke<{ id: string }[]>("repos:list"),
-        safeIpcInvoke<{ result: string }[]>("gates:status"),
-        safeIpcInvoke<{ name: string }[]>("experts:providers"),
+      // Sprint 147 fix (CPO finding): IPC handlers return wrapped objects
+      // { repos: [...] }, { gates: [...] }, { providers: [...] }
+      const [reposResult, gatesResult, providersResult] = await Promise.all([
+        safeIpcInvoke<{ repos: { id: string }[] }>("repos:list"),
+        safeIpcInvoke<{ gates: { result: string }[] }>("gates:status"),
+        safeIpcInvoke<{ providers: { name: string }[] }>("experts:providers"),
       ]);
 
       if (cancelled) return;
+
+      const repos = reposResult?.repos;
+      const gates = gatesResult?.gates;
+      const providers = providersResult?.providers;
 
       setStats({
         projectCount: repos != null ? String(repos.length) : "—",
