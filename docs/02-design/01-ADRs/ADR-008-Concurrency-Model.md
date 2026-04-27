@@ -2,7 +2,7 @@
 
 | Metadata | Value |
 |----------|-------|
-| **Status** | Proposed |
+| **Status** | ACCEPTED |
 | **Date** | 2026-02-22 |
 | **Authors** | PM, Architect |
 | **Reviewers** | CTO, CPO |
@@ -1139,4 +1139,4 @@ describe('DependencyScheduler', () => {
 ---
 
 *ADR-008 created for EndiorBot Concurrency Model*
-*SDLC Framework v6.1.1*
+*SDLC Framework v6.3.1*

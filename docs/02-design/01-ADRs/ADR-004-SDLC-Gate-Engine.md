@@ -278,4 +278,4 @@ interface GateConfirmationFile {
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 02: Design*
+*SDLC Framework v6.3.1 - Stage 02: Design*

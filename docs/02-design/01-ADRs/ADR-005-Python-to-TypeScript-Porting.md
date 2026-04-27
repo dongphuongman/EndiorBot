@@ -1,6 +1,6 @@
 # ADR-005: Python-to-TypeScript Porting Strategy
 
-**Status:** Proposed
+**Status:** ACCEPTED
 **Date:** 2026-02-22
 **Author:** Architect
 **SDLC Stage:** 02-DESIGN
@@ -199,4 +199,4 @@ describe('InputSanitizer', () => {
 
 ---
 
-*SDLC Framework v6.1.1 - Stage 02: Design*
+*SDLC Framework v6.3.1 - Stage 02: Design*

@@ -994,4 +994,4 @@ describe('NotificationRateLimiter', () => {
 ---
 
 *ADR-007 created for EndiorBot Autonomous Execution Budget*
-*SDLC Framework v6.1.1*
+*SDLC Framework v6.3.1*

@@ -1,5 +1,5 @@
 ---
-status: Proposed
+status: ACCEPTED
 authority:
   proposer: "@pm"
   countersigners:

@@ -1,4 +1,4 @@
-# ADR-043: Chat Mode — Interactive Agent Session
+# ADR-047: Chat Mode — Interactive Agent Session
 
 **Status:** ACCEPTED
 **Date:** 2026-04-03

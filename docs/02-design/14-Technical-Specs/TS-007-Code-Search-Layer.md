@@ -4,7 +4,7 @@
 spec_id: TS-007
 spec_name: "Code Search Layer"
 spec_version: "1.0.0"
-status: draft
+status: IMPLEMENTED
 tier: ALL
 stage: "02"
 category: technical

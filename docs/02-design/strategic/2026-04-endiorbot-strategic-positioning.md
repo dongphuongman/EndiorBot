@@ -1,13 +1,13 @@
 ---
 document_type: "Strategic Decision Memo"
 stage: "02 - DESIGN"
-status: "DRAFT — Awaiting CEO Decision"
+status: "ACCEPTED"
 owner: "PM"
 authors: ["@pm"]
 reviewers: ["@cto (9/10 Approved for sprint execution)", "@cpo (Approved with 5 refinements, applied)"]
 created: "2026-04-10"
 source: "Sau Sheong (GovTech Singapore) — From Vibe Coding to Agentic Engineering (Abridged), Apr 2026"
-sdlc_framework: "6.3.0"
+sdlc_framework: "6.3.1"
 ---
 
 # EndiorBot Strategic Positioning — Post Sau Sheong Article

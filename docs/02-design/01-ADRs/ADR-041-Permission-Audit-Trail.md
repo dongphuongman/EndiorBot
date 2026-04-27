@@ -1,6 +1,6 @@
 # ADR-041: Permission Audit Trail + Decision Logging
 
-**Status:** PROPOSED
+**Status:** ACCEPTED
 **Date:** 2026-04-01
 **Sprint:** 125
 **Authority:** PM + Architect
