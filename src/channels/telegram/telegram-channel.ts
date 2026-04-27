@@ -544,7 +544,7 @@ export class TelegramChannel implements BidirectionalChannel {
       case "/start":
         return {
           success: true,
-          response: "👋 EndiorBot — CEO Power Tool\n\n"
+          response: "👋 EndiorBot — Solo Developer Power Tool\n\n"
             + "AI agents for solo developers. <30s answers.\n\n"
             + "Quick start:\n"
             + "• /help — all commands\n"
@@ -881,6 +881,27 @@ export class TelegramChannel implements BidirectionalChannel {
     }
 
     const response = await this.apiCall("sendMessage", "POST", body);
+
+    // Sprint 143 R03: Telegram rejects messages with invalid Markdown
+    // (unclosed *, unmatched `, table pipes, etc.). When parse fails,
+    // retry WITHOUT parse_mode so CEO always sees the response (plain text
+    // is better than no response).
+    if (!response.ok && useMarkdown) {
+      this.log.warn("Markdown parse failed — retrying as plain text");
+      const plainBody: Record<string, unknown> = {
+        chat_id: this.config.chatId,
+        text,
+      };
+      if (this.config.disableNotification) {
+        plainBody.disable_notification = true;
+      }
+      if (replyMarkup) {
+        plainBody.reply_markup = replyMarkup;
+      }
+      const plainResponse = await this.apiCall("sendMessage", "POST", plainBody);
+      return plainResponse.ok;
+    }
+
     return response.ok;
   }
 
@@ -917,6 +938,21 @@ export class TelegramChannel implements BidirectionalChannel {
     }
 
     const response = await this.apiCall<{ message_id: number }>("sendMessage", "POST", body);
+
+    // Sprint 143 R03: same plain-text fallback as sendMessage()
+    if (!response.ok && useMarkdown) {
+      this.log.warn("Markdown parse failed in sendMessageWithId — retrying as plain text");
+      const plainBody: Record<string, unknown> = {
+        chat_id: this.config.chatId,
+        text,
+      };
+      if (this.config.disableNotification) plainBody.disable_notification = true;
+      if (replyMarkup) plainBody.reply_markup = replyMarkup;
+      const plainResponse = await this.apiCall<{ message_id: number }>("sendMessage", "POST", plainBody);
+      if (!plainResponse.ok || !plainResponse.result?.message_id) return null;
+      return plainResponse.result.message_id;
+    }
+
     if (!response.ok || !response.result?.message_id) return null;
     return response.result.message_id;
   }
