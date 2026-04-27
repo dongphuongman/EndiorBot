@@ -22,27 +22,9 @@ import type { TelegramChannelConfig } from "./telegram-config.js";
 import { loadTelegramConfig, isValidBotToken, isValidChatId } from "./telegram-config.js";
 import { createLogger, type Logger } from "../../logging/index.js";
 import { getInputSanitizer } from "../../security/input-sanitizer.js";
-import {
-  handleAgentsCommand,
-  handleTeamsCommand,
-  handleGateCommand,
-  handleComplianceCommand,
-  handleFixCommand,
-  handleConsultCommand,
-  handleConfigCommand,
-  handleInitCommand,
-  handleModeCommand,
-  handleWebhookCommand,
-  handleEvalCommand,
-  handleComplexityGateCallback,
-  handleTeamCostCallback,
-  generateHelpMessage,
-  type CommandResult,
-} from "../../commands/handlers.js";
-import { parseCallbackData } from "./keyboards.js";
-import { getConversationStore } from "../conversation/store.js";
+import { type CommandResult } from "../../commands/handlers.js";
 import type { RLFeedbackService } from "../../rl/index.js";
-import type { FeedbackLabel } from "../../rl/types.js";
+import { TelegramCommandRouter } from "./command-router.js";
 
 // ============================================================================
 // Types
@@ -167,10 +149,26 @@ export class TelegramChannel implements BidirectionalChannel {
   private currentMode: string = "READ";
   /** Sprint 110: RL feedback service (optional — set via setFeedbackService()) */
   private feedbackService: RLFeedbackService | null = null;
+  /** Extracted command routing logic */
+  private commandRouter: TelegramCommandRouter;
 
   constructor(config?: TelegramChannelConfig) {
     this.config = config ?? loadTelegramConfig();
     this.log = createLogger("telegram-channel");
+
+    this.commandRouter = new TelegramCommandRouter({
+      log: this.log,
+      isPollingActive: () => this.pollingActive,
+      getMode: () => this.currentMode,
+      setMode: (mode: string) => { this.currentMode = mode; },
+      getChatId: () => this.config?.chatId,
+      getApprovalQueue: () => this.approvalQueue,
+      getFeedbackService: () => this.feedbackService,
+      sendMessage: (text, useMarkdown, replyMarkup) =>
+        this.sendMessage(text, useMarkdown, replyMarkup),
+      apiCall: (method, httpMethod, body) =>
+        this.apiCall(method, httpMethod, body),
+    });
 
     if (this.config) {
       this.log.info("TelegramChannel initialized", {
@@ -533,178 +531,10 @@ export class TelegramChannel implements BidirectionalChannel {
 
   /**
    * Handle a command message.
+   * Delegates to TelegramCommandRouter.
    */
   async handleCommand(text: string): Promise<CommandResult | null> {
-    const parts = text.trim().split(/\s+/);
-    // Strip @botname suffix (Telegram sends "/link@Endior_bot" in group chats)
-    const command = parts[0]?.toLowerCase().split("@")[0];
-    const args = parts.slice(1);
-
-    switch (command) {
-      case "/start":
-        return {
-          success: true,
-          response: "👋 EndiorBot — Solo Developer Power Tool\n\n"
-            + "AI agents for solo developers. <30s answers.\n\n"
-            + "Quick start:\n"
-            + "• /help — all commands\n"
-            + "• /agents — list 14 AI agents\n"
-            + "• @pm plan next sprint — talk to agents\n"
-            + "• /launch claude --as coder — tmux bridge\n\n"
-            + "Type /help for the full command list.",
-        };
-
-      case "/approve":
-        return this.handleApprove(args);
-
-      case "/reject":
-        return this.handleReject(args);
-
-      // Sprint 144: /status now handled by CommandDispatcher (shows project context).
-      // Legacy approval-queue status moved to /approval-status if needed.
-
-      case "/help":
-        return this.handleHelp();
-
-      // Sprint 76: Extended OTT commands
-      case "/agents":
-        return handleAgentsCommand();
-
-      case "/teams":
-        return handleTeamsCommand();
-
-      case "/gate":
-        return handleGateCommand(args);
-
-      case "/compliance":
-        return handleComplianceCommand(args);
-
-      case "/fix":
-        return handleFixCommand(args);
-
-      case "/consult":
-        return handleConsultCommand(args);
-
-      case "/config":
-        return handleConfigCommand();
-
-      case "/init":
-        return handleInitCommand(args);
-
-      case "/mode": {
-        const modeResult = handleModeCommand(args, this.currentMode);
-        // B2 fix: persist mode state when command succeeds
-        const requestedMode = args[0]?.toLowerCase();
-        if (modeResult.success && (requestedMode === "read" || requestedMode === "patch")) {
-          this.currentMode = requestedMode.toUpperCase();
-        }
-        return modeResult;
-      }
-
-      case "/webhook":
-        return handleWebhookCommand(args, this.pollingActive);
-
-      case "/clear": {
-        // B3: Clear conversation history for the configured CEO chat
-        if (this.config?.chatId) {
-          getConversationStore().clear(this.config.chatId);
-        }
-        return { success: true, response: "🗑 Conversation cleared." };
-      }
-
-      // Sprint 88: Evaluator command
-      case "/eval":
-        return handleEvalCommand(args, this.config?.chatId ?? "telegram");
-
-      default:
-        // Unknown command — return null to let onMessage handler process it
-        // (bridge commands like /link, /launch, /sessions are handled by telegram-poll.mjs)
-        return null;
-    }
-  }
-
-  /**
-   * Handle /approve command.
-   */
-  private async handleApprove(args: string[]): Promise<CommandResult> {
-    if (!this.approvalQueue) {
-      return {
-        success: false,
-        response: "ApprovalQueue not available.",
-      };
-    }
-
-    const id = args[0];
-    if (!id) {
-      return {
-        success: false,
-        response: "Usage: /approve <id>",
-      };
-    }
-
-    try {
-      const result = await this.approvalQueue.approve(id);
-      if (result) {
-        this.log.info("Approved via Telegram", { id });
-        return {
-          success: true,
-          response: `✅ Approved: \`${id}\`\nSession will continue.`,
-        };
-      } else {
-        return {
-          success: false,
-          response: `⚠️ Approval failed: \`${id}\` not found or already processed.`,
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        response: `❌ Error: ${(error as Error).message}`,
-      };
-    }
-  }
-
-  /**
-   * Handle /reject command.
-   */
-  private async handleReject(args: string[]): Promise<CommandResult> {
-    if (!this.approvalQueue) {
-      return {
-        success: false,
-        response: "ApprovalQueue not available.",
-      };
-    }
-
-    const id = args[0];
-    if (!id) {
-      return {
-        success: false,
-        response: "Usage: /reject <id> [reason]",
-      };
-    }
-
-    const reason = args.slice(1).join(" ") || "Rejected by CEO";
-
-    try {
-      const result = await this.approvalQueue.reject(id, reason);
-      if (result) {
-        this.log.info("Rejected via Telegram", { id, reason });
-        return {
-          success: true,
-          response: `❌ Rejected: \`${id}\`\nReason: ${reason}`,
-        };
-      } else {
-        return {
-          success: false,
-          response: `⚠️ Rejection failed: \`${id}\` not found or already processed.`,
-        };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        response: `❌ Error: ${(error as Error).message}`,
-      };
-    }
+    return this.commandRouter.handleCommand(text);
   }
 
   // Sprint 144: Legacy handleStatus() removed — /status now handled by CommandDispatcher
@@ -712,86 +542,11 @@ export class TelegramChannel implements BidirectionalChannel {
   // Approval queue pending list available via /approve (lists pending if no ID given).
 
   /**
-   * Handle /help command.
-   */
-  private handleHelp(): CommandResult {
-    return {
-      success: true,
-      response: generateHelpMessage(),
-    };
-  }
-
-  /**
    * Handle callback_query from inline keyboard (Sprint 90).
+   * Delegates to TelegramCommandRouter.
    */
   private async handleCallbackQuery(query: NonNullable<TelegramUpdate["callback_query"]>): Promise<void> {
-    const data = query.data;
-    if (!data) return;
-
-    // Sprint 110: RL feedback callback — handled BEFORE parseCallbackData()
-    // Format: "rl_fb:{label}:{correlationId}"
-    // correlationId may contain ":" (channel-senderId-timestamp), so split at most 2 times.
-    if (data.startsWith(`${RL_FB_PREFIX}:`)) {
-      const firstColon = data.indexOf(":");
-      const secondColon = data.indexOf(":", firstColon + 1);
-      if (secondColon !== -1) {
-        const label = data.slice(firstColon + 1, secondColon) as FeedbackLabel;
-        const correlationId = data.slice(secondColon + 1);
-
-        // Validate label (guard against corrupt callback data)
-        if (label === "good" || label === "partial" || label === "bad") {
-          if (this.feedbackService) {
-            this.feedbackService.onFeedback(correlationId, label);
-          } else {
-            // Orphan: feedbackService not wired — log + drop silently
-            this.log.debug("RL feedback received but feedbackService not set", { correlationId, label });
-          }
-        }
-      }
-      // Answer callback query to dismiss loading indicator (no text shown)
-      await this.apiCall("answerCallbackQuery", "POST", {
-        callback_query_id: query.id,
-      });
-      return;
-    }
-
-    const parsed = parseCallbackData(data);
-    const actorId = this.config?.chatId ?? "telegram";
-
-    let result: CommandResult | null = null;
-
-    switch (parsed.action) {
-      case "complexity_gate":
-        result = await handleComplexityGateCallback(
-          parsed.target, // "team" or "solo"
-          parsed.data ?? "",
-          actorId,
-        );
-        break;
-      case "team_cost":
-        result = await handleTeamCostCallback(
-          parsed.target, // "extend" or "stop"
-          parsed.data ?? "",
-          actorId,
-        );
-        break;
-      default:
-        // Unknown callback — ignore
-        break;
-    }
-
-    // Answer callback query to dismiss loading indicator
-    await this.apiCall("answerCallbackQuery", "POST", {
-      callback_query_id: query.id,
-    });
-
-    if (result) {
-      await this.sendMessage(
-        result.response,
-        false,
-        result.replyMarkup as Record<string, unknown> | undefined,
-      );
-    }
+    return this.commandRouter.handleCallbackQuery(query);
   }
 
   // ==========================================================================

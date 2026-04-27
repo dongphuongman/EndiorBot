@@ -2,7 +2,7 @@
 sprint: 146
 status: DRAFT — blocked by Sprint 145 exit
 start_date: TBD
-planned_duration: 3-4d
+planned_duration: 5d
 framework: "6.3.1"
 authority:
   proposer: "@pm"
@@ -169,13 +169,95 @@ Verify that Telegram and Zalo local command handlers correctly fall through to C
 
 ---
 
+## P1 — UI/UX Upgrade (Design Mockup → Production)
+
+**Source:** Claude Design handoff bundle at `landing/` — 3 design prototypes:
+- `landing/endiorbot-landing/` — OSS landing page (endior.net)
+- `landing/endiorbot-app/` — Desktop + WebUI mockup (production UI target)
+- `landing/sdlc-framework/` — SDLC Framework landing (sdlcframework.org)
+
+### T12: Desktop UI Upgrade — Align with Design Mockup (~6h)
+
+**Gap:** Current Desktop app (`apps/desktop/`) uses basic inline styles. Design mockup shows:
+- Amber/dark theme with Fraunces + Inter Tight + JetBrains Mono typography
+- 3-pane layout: sidebar → main content → context panel
+- Polished agent cards, gate status visualization, sprint board
+- macOS-native window chrome
+
+**What:** Apply design system from `landing/endiorbot-app/app-styles.css` to production Desktop pages:
+
+| Page | Current state | Target from mockup |
+|------|--------------|-------------------|
+| Dashboard | Basic stats cards (hardcoded → real IPC, Sprint 145 F3) | Agent activity feed, gate donut chart, sprint progress bar |
+| Chat | Simple message list | Agent mention highlighting, typing indicator, provider badge |
+| Settings | Functional but unstyled cards | Design-aligned cards, grouped sections |
+| Gates | Basic gate list | Visual gate pipeline (G0→G4 flow), color-coded status |
+| Projects | List from repos.json | Card grid with last-activity, tech stack badge |
+| Experts | Provider status table | Provider health cards with latency + circuit breaker status |
+
+**Files:**
+- `apps/desktop/src/styles/` — NEW shared style module (extract from `app-styles.css`)
+- `apps/desktop/src/pages/*.tsx` — Apply design tokens + layout from mockup
+- `apps/desktop/src/components/` — Extract reusable components (AgentCard, GateChip, ProviderBadge)
+
+**Constraint:** Visual upgrade only. IPC data contracts unchanged. All existing functionality preserved.
+
+**Owner:** @coder
+**Reference:** `landing/endiorbot-app/app-pages.jsx` (target visual)
+
+---
+
+### T13: WebUI Upgrade — Match Desktop Design System (~3h)
+
+**Gap:** Web UI at `localhost:18790` is a minimal HTML page with basic chat. Design mockup shows a polished browser-native dashboard with:
+- Sidebar navigation matching Desktop
+- Chat with agent avatars + model badges
+- System status bar (provider health, Active Memory, exec-policy)
+
+**What:** Rebuild the static HTML served by `src/gateway/web-server.ts` (reads from inline `htmlContent`) with design-aligned markup + shared CSS variables from `app-styles.css`.
+
+**Approach: Option A (static HTML rebuild)** — CPO decision 2026-04-27.
+- Regenerate inline HTML with design tokens (colors, typography, layout) from mockup.
+- No React in gateway — stays static HTML served by `web-server.ts`.
+- Shared design tokens via CSS variables (same source as Desktop `app-styles.css`).
+- Sprint 147 follow-up: extract `@endiorbot/ui` shared package (Option B).
+
+**Owner:** @coder + @architect (for option B scoping)
+**Reference:** `landing/endiorbot-app/webui-app.jsx` (target visual)
+
+---
+
+### T14: Landing Page Production Build (~2h)
+
+**Gap:** Landing page at `landing/endiorbot-landing/` uses Babel in-browser JSX compilation (dev-only). Production needs:
+- Pre-compiled JS bundle (no Babel CDN dependency)
+- Minified CSS
+- Deployable as static files for GitHub Pages
+
+**What:**
+1. Add Vite config for landing page build
+2. `pnpm build:landing` → `dist/landing/` (static HTML + JS + CSS)
+3. GitHub Pages deploy from `dist/landing/`
+4. CNAME file for `endior.net`
+
+**Files:**
+- `landing/endiorbot-landing/vite.config.ts` (NEW)
+- `landing/endiorbot-landing/package.json` (NEW — build scripts)
+- GitHub Actions workflow for Pages deploy (if CI exists)
+
+**Owner:** @devops
+**Depends on:** T6 (DNS setup)
+
+---
+
 ## Sequencing
 
 ```
 Day 1: T1 (ADR-003) + T2 (ADR-006) + T5 (TODO triage) + T6 (deploy landing page)
 Day 2: T3 (god classes, 4h) + T4 (circular dep, 1h)
-Day 3: T7 (CHANGELOG) + T8 (Desktop build) + T9 (Desktop pages) + T10 (OTT verify)
-Day 4: Buffer + T11 (test report footers)
+Day 3: T7 (CHANGELOG) + T8 (Desktop build) + T12 (Desktop UI upgrade, start)
+Day 4: T12 (Desktop UI, continue) + T13 (WebUI) + T14 (landing build)
+Day 5: T9 (Desktop pages) + T10 (OTT verify) + T11 (test report footers)
 ```
 
 ---
@@ -188,6 +270,9 @@ Day 4: Buffer + T11 (test report footers)
 - [ ] 0 production TODOs remaining or all tracked as Issues (T5)
 - [ ] endior.net resolves with landing page (T6)
 - [ ] CHANGELOG updated through Sprint 145 (T7)
+- [ ] Desktop UI matches design mockup on all 7 pages (T12)
+- [ ] WebUI upgraded with design system (T13)
+- [ ] Landing page builds to static files, deployable (T14)
 - [ ] All 8,124+ tests pass, build clean
 
 ---

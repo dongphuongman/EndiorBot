@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Endiorbot — App Mocks (Desktop + Web UI)
+   Editorial dark · warm amber accent · terminal green
+   ========================================================================== */
+
+:root {
+  /* Default: warm-amber on near-black (matches landing page) */
+  --bg: #0b0b0c;
+  --bg-1: #111113;
+  --bg-2: #161618;
+  --bg-3: #1d1d20;
+  --bg-4: #232327;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --line-3: rgba(255, 255, 255, 0.22);
+  --ink: #f4f1ea;
+  --ink-2: #b9b4a8;
+  --ink-3: #7a766c;
+  --ink-4: #4a4842;
+
+  --accent: #f5a524;            /* warm amber */
+  --accent-2: #ffc36b;
+  --accent-soft: rgba(245, 165, 36, 0.12);
+  --accent-line: rgba(245, 165, 36, 0.32);
+
+  --term: #6ee787;              /* terminal green */
+  --term-soft: rgba(110, 231, 135, 0.12);
+
+  --rust: #c4541a;              /* rust */
+  --rust-2: #e0712f;
+  --rust-soft: rgba(196, 84, 26, 0.14);
+
+  --violet: #b59cff;
+  --violet-soft: rgba(181, 156, 255, 0.12);
+
+  --danger: #ff6b6b;
+  --warn: #f5b14a;
+  --info: #6ea8ff;
+
+  --font-sans: "Inter Tight", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Fraunces", "Inter Tight", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+/* ===== Tier badge ===== */
+.tier-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px; border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+  background: var(--bg-2);
+}
+.tier-pill.t1 { color: var(--term); border-color: rgba(110,231,135,.32); background: var(--term-soft); }
+.tier-pill.t2 { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.tier-pill.t3 { color: var(--violet); border-color: rgba(181,156,255,.32); background: var(--violet-soft); }
+.tier-pill.lite { color: var(--ink-3); }
+
+/* ===== Status dot ===== */
+.dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ink-3);
+  flex-shrink: 0;
+}
+.dot.ok    { background: var(--term); box-shadow: 0 0 8px rgba(110,231,135,.5); }
+.dot.warn  { background: var(--warn); }
+.dot.fail  { background: var(--danger); }
+.dot.idle  { background: var(--ink-3); }
+.dot.live  { background: var(--term); animation: pulse 1.6s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ===== Mono code chip ===== */
+.kbd, .chip-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--bg-4); }
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--ink);
+  font-size: 12.5px; font-weight: 500;
+  font-family: inherit;
+  transition: all .12s ease;
+}
+.btn:hover { border-color: var(--line-3); background: var(--bg-3); }
+.btn.primary {
+  background: var(--accent); color: #1a1408; border-color: var(--accent);
+  font-weight: 600;
+}
+.btn.primary:hover { background: var(--accent-2); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); border-color: rgba(255,107,107,.32); }
+
+/* ===== Card surface ===== */
+.surface {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}

@@ -44,19 +44,14 @@ import {
 import type { ContextLifecycleManager } from "../../context/transfer/context-lifecycle.js";
 import type { SubtaskStatus } from "../../autonomy/types.js";
 import {
-  taskTypeToAgent,
-  isEfficiencyTask,
-  requiresGateC,
-  buildTaskContext,
-  estimateCostFromTokens,
-} from "./task-agent-mapper.js";
-import {
   checkStability,
   type SessionStabilityState,
 } from "./stability-policy.js";
-import { callCloudFallback, type ProviderDeps } from "../../agents/router/providers.js";
-import { checkCommand } from "../../security/exec-approvals/check.js";
-import { selectPromptFn } from "../../security/exec-approvals/prompt.js";
+import type { ProviderDeps } from "../../agents/router/providers.js";
+import { TaskQueue } from "./task-queue.js";
+import { AutonomyGateManager } from "./gate-manager.js";
+import type { AutonomousEventEmitter } from "./event-emitter.js";
+import { TaskWorkExecutor } from "./task-work-executor.js";
 
 // ============================================================================
 // Autonomous Session Manager
@@ -107,20 +102,10 @@ export class AutonomousSessionManager {
   private readonly failureClassifier: FailureClassifier;
   private readonly recoveryEngine: RecoveryEngine;
 
-  // Task management
-  private taskQueue: AutonomousTask[] = [];
-  private completedTasks: Map<string, TaskExecutionResult> = new Map();
-  private currentTask: AutonomousTask | null = null;
-  private taskIdCounter: number = 0;
-
-  // Sprint 131 (Multica ADOPT 2): Per-task state machine for CEO visibility.
-  // CTO C3: Read-only — states update from existing execution flow,
-  // no separate scheduler, no auto-progression.
-  private taskStates: Map<string, SubtaskStatus> = new Map();
-
-  // Escalation management
-  private escalations: EscalationRequest[] = [];
-  private pendingEscalations: EscalationRequest[] = [];
+  // Extracted sub-modules
+  private readonly tasks: TaskQueue;
+  private readonly gateManager: AutonomyGateManager;
+  private readonly taskWorkExecutor: TaskWorkExecutor;
 
   // Decision tracking
   private decisions: DecisionPoint[] = [];
@@ -138,6 +123,7 @@ export class AutonomousSessionManager {
   private startTime: Date;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
+  private currentTask: AutonomousTask | null = null;
 
   // OpenMythos #6: Stability guard tracking
   private riskyOpTimestamps: number[] = [];
@@ -192,14 +178,35 @@ export class AutonomousSessionManager {
       this.providerDeps = providerDeps;
     }
 
+    // Build the event emitter shim used by sub-modules
+    const emitter: AutonomousEventEmitter = {
+      emit: (type, data) => this.emitEvent(type, data),
+    };
+
+    // Initialize extracted sub-modules
+    this.tasks = new TaskQueue({ maxTaskRetries: this.config.maxTaskRetries }, emitter);
+    this.gateManager = new AutonomyGateManager(
+      {
+        gate: this.config.gate,
+        nonBlockingEscalation: this.config.nonBlockingEscalation,
+        conservativeFallback: this.config.conservativeFallback,
+        sessionId: this.config.sessionId,
+      },
+      this.budget,
+      this.startTime,
+      emitter,
+    );
+    this.taskWorkExecutor = new TaskWorkExecutor();
+
     // Subscribe to budget events
     this.budget.addEventListener((event) => {
+      const currentState = this.resilience.getStatus().state;
       if (event.type === "warning_threshold_reached") {
-        this.handleBudgetWarning(event.details);
+        this.gateManager.handleBudgetWarning(event.details);
       } else if (event.type === "budget_exceeded") {
-        this.handleBudgetExceeded(event.details);
+        this.gateManager.handleBudgetExceeded(event.details, String(currentState));
       } else if (event.type === "opus_cap_reached") {
-        this.handleOpusCapReached(event.details);
+        this.gateManager.handleOpusCapReached(event.details);
       }
     });
 
@@ -211,13 +218,7 @@ export class AutonomousSessionManager {
     });
   }
 
-  // ============================================================================
-  // Session Lifecycle
-  // ============================================================================
-
-  /**
-   * Start the autonomous session.
-   */
+  /** Start the autonomous session. */
   async start(): Promise<void> {
     await this.resilience.start();
     this.startTime = new Date();
@@ -235,9 +236,7 @@ export class AutonomousSessionManager {
     });
   }
 
-  /**
-   * Pause the session.
-   */
+  /** Pause the session. */
   async pause(reason?: string): Promise<string> {
     this.isPaused = true;
     const checkpointId = await this.resilience.pause(reason);
@@ -245,16 +244,14 @@ export class AutonomousSessionManager {
     this.emitEvent("session_paused", {
       reason,
       checkpointId,
-      tasksCompleted: this.completedTasks.size,
-      tasksPending: this.taskQueue.length,
+      tasksCompleted: this.tasks.getCompletedTasks().length,
+      tasksPending: this.tasks.length,
     });
 
     return checkpointId;
   }
 
-  /**
-   * Resume the session.
-   */
+  /** Resume the session. */
   async resume(checkpointId?: string): Promise<void> {
     if (checkpointId) {
       await this.resilience.resume(checkpointId);
@@ -267,118 +264,53 @@ export class AutonomousSessionManager {
     });
   }
 
-  /**
-   * Complete the session.
-   */
+  /** Complete the session. */
   async complete(): Promise<void> {
     this.isRunning = false;
     await this.resilience.complete();
 
+    const completedTasks = this.tasks.getCompletedTasks();
     this.emitEvent("session_completed", {
-      tasksCompleted: this.completedTasks.size,
-      tasksFailed: Array.from(this.completedTasks.values()).filter((t) => !t.success).length,
+      tasksCompleted: completedTasks.length,
+      tasksFailed: completedTasks.filter((t) => !t.success).length,
       totalCost: this.budget.getTotalSpent(),
       durationMs: Date.now() - this.startTime.getTime(),
     });
 
     this.log.info("Autonomous session completed", {
       sessionId: this.config.sessionId,
-      tasksCompleted: this.completedTasks.size,
+      tasksCompleted: completedTasks.length,
       totalCost: this.budget.getTotalSpent(),
     });
   }
 
-  // ============================================================================
-  // Task Management
-  // ============================================================================
-
-  /**
-   * Add a task to the queue.
-   */
+  /** Add a task to the queue. */
   addTask(
     task: Omit<AutonomousTask, "id" | "createdAt" | "maxRetries" | "dependencies"> &
       Partial<Pick<AutonomousTask, "maxRetries" | "dependencies">>
   ): string {
-    const taskId = `task-${++this.taskIdCounter}`;
-    const fullTask: AutonomousTask = {
-      id: taskId,
-      createdAt: new Date().toISOString(),
-      maxRetries: task.maxRetries ?? this.config.maxTaskRetries,
-      dependencies: task.dependencies ?? [],
-      ...task,
-    };
-
-    this.taskQueue.push(fullTask);
-    this.sortTaskQueue();
-
-    // Sprint 131: track lifecycle
-    this.transitionTaskState(taskId, fullTask.dependencies.length > 0 ? "pending" : "queued");
-
-    this.log.debug("Task added", {
-      taskId,
-      type: task.type,
-      stage: task.stage,
-    });
-
-    return taskId;
+    return this.tasks.add(task);
   }
 
   /**
-   * Get next task from queue.
-   */
-  private getNextTask(): AutonomousTask | null {
-    // Find task with satisfied dependencies
-    for (const task of this.taskQueue) {
-      const dependenciesSatisfied = task.dependencies.every((dep) =>
-        this.completedTasks.has(dep)
-      );
-      if (dependenciesSatisfied) {
-        return task;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Sort task queue by priority.
-   */
-  private sortTaskQueue(): void {
-    this.taskQueue.sort((a, b) => a.priority - b.priority);
-  }
-
-  // ============================================================================
-  // Main Loop
-  // ============================================================================
-
-  /**
-   * Run the autonomous loop.
-   */
-  /**
-   * Run the full autonomous session loop.
-   *
-   * OpenMythos Prelude/Recurrent/Coda pattern (Sprint 139 adoption #5):
-   *   prelude()       — run once: context injection, session setup
-   *   recurrentLoop() — loop: budget/time checks, task execution, context refresh
-   *   coda()          — run once: context extraction, metrics summary
-   *
-   * This refactor extracts the 3 phases into named methods without changing
-   * any behavior. CTO condition: refactor-first commit (no behavior change),
-   * then feature commit (add phase hooks/events).
+   * Run the full autonomous session loop (Prelude → Recurrent → Coda).
+   * OpenMythos pattern: Sprint 139 adoption #5.
    */
   async runLoop(): Promise<void> {
     this.log.info("Starting autonomous loop", {
       sessionId: this.config.sessionId,
-      tasksInQueue: this.taskQueue.length,
+      tasksInQueue: this.tasks.length,
     });
 
     await this.prelude();
     await this.recurrentLoop();
     await this.coda();
 
+    const completedTasks = this.tasks.getCompletedTasks();
     this.log.info("Autonomous loop finished", {
       sessionId: this.config.sessionId,
-      tasksCompleted: this.completedTasks.size,
-      tasksFailed: Array.from(this.completedTasks.values()).filter((t) => !t.success).length,
+      tasksCompleted: completedTasks.length,
+      tasksFailed: completedTasks.filter((t) => !t.success).length,
       budgetSpent: this.budget.getTotalSpent(),
     });
   }
@@ -389,16 +321,12 @@ export class AutonomousSessionManager {
 
   /**
    * Prelude phase — run once before the task loop.
-   * Context injection, session initialization, workspace discovery.
-   * OpenMythos analog: Prelude layers (1-6 fixed transformer blocks).
    */
   private async prelude(): Promise<void> {
     this.emitEvent("phase_prelude_start", {
-      tasksInQueue: this.taskQueue.length,
+      tasksInQueue: this.tasks.length,
     });
 
-    // Sprint 97: Inject prior context before first task (CTO F5: additive hook)
-    // CTO B1 fix: track actual success, not just lifecycle existence.
     let contextInjected = false;
     if (this.contextLifecycle) {
       try {
@@ -412,32 +340,26 @@ export class AutonomousSessionManager {
         );
         contextInjected = true;
       } catch {
-        // Non-critical — session continues without prior context
         this.log.warn("Context injection failed, continuing without prior context");
       }
     }
 
-    this.emitEvent("phase_prelude_end", {
-      contextInjected,
-    });
+    this.emitEvent("phase_prelude_end", { contextInjected });
   }
 
   /**
    * Recurrent phase — the main task execution loop.
-   * Budget checks, time limits, task dispatch, context refresh.
-   * OpenMythos analog: Recurrent block looped T times.
    */
   private async recurrentLoop(): Promise<void> {
     this.emitEvent("phase_recurrent_start", {
-      tasksInQueue: this.taskQueue.length,
+      tasksInQueue: this.tasks.length,
       budgetRemaining: this.budget.getRemaining(),
     });
 
     while (this.isRunning && !this.isPaused) {
-      // OpenMythos #6: Stability guard — check composite invariants
-      // atomically before each task execution.
+      // OpenMythos #6: Stability guard
       const stabilityState: SessionStabilityState = {
-        pendingEscalations: this.pendingEscalations.length,
+        pendingEscalations: this.gateManager.pendingEscalationCount,
         riskyOpTimestamps: this.riskyOpTimestamps,
         tasksSinceLastCheckpoint: this.tasksSinceLastCheckpoint,
         lastCheckpointAt: this.lastCheckpointAt,
@@ -447,44 +369,36 @@ export class AutonomousSessionManager {
         this.log.warn("Stability guard BLOCKED — session paused", {
           violations: stabilityCheck.violations.map((v) => v.guard),
         });
-        // W1 fix: set isPaused so getStatus() reflects the pause.
         this.isPaused = true;
-        this.emitEvent("stability_violation", {
-          violations: stabilityCheck.violations,
-        });
+        this.emitEvent("stability_violation", { violations: stabilityCheck.violations });
         break;
       }
-      // Log warnings (non-blocking)
       for (const v of stabilityCheck.violations) {
         if (v.severity === "warning") {
           this.log.warn(`Stability warning: ${v.guard}`, { message: v.message });
         }
       }
 
-      // Check budget
-      if (!this.checkBudgetAvailable()) {
+      if (!this.gateManager.isBudgetAvailable()) {
         this.log.warn("Budget exhausted, stopping loop");
         break;
       }
 
-      // Check time limit
-      if (this.isTimeLimitReached()) {
+      if (this.gateManager.isTimeLimitReached()) {
         this.log.warn("Time limit reached, stopping loop");
         break;
       }
 
-      // Handle pending escalations (non-blocking if configured)
-      if (!this.config.nonBlockingEscalation && this.pendingEscalations.length > 0) {
+      if (this.gateManager.hasBlockingEscalations()) {
         this.log.info("Waiting for escalation resolution", {
-          pendingCount: this.pendingEscalations.length,
+          pendingCount: this.gateManager.pendingEscalationCount,
         });
         break;
       }
 
-      // Sprint 97: Mid-session context refresh (CTO F5: inside loop condition check)
+      // Sprint 97: Mid-session context refresh
       if (this.contextLifecycle) {
         this.contextLifecycle.incrementTurn();
-
         if (this.contextLifecycle.shouldRefresh()) {
           try {
             const sdlcStage = stateToSDLCStage(this.resilience.getStatus().state);
@@ -499,51 +413,43 @@ export class AutonomousSessionManager {
         }
       }
 
-      // Get next task
-      const task = this.getNextTask();
+      const task = this.tasks.dequeue();
       if (!task) {
-        if (this.taskQueue.length === 0) {
+        if (this.tasks.length === 0) {
           this.log.info("All tasks completed");
           break;
         }
-        // Tasks have unsatisfied dependencies
         this.log.warn("No executable tasks (dependencies not satisfied)", {
-          pendingTasks: this.taskQueue.length,
+          pendingTasks: this.tasks.length,
         });
         break;
       }
 
-      // Execute task
       await this.executeTask(task);
 
-      // Sprint 97: Increment turn count for refresh tracking
       if (this.contextLifecycle) {
         this.contextLifecycle.incrementTurn();
       }
     }
 
     this.emitEvent("phase_recurrent_end", {
-      tasksCompleted: this.completedTasks.size,
+      tasksCompleted: this.tasks.getCompletedTasks().length,
       budgetSpent: this.budget.getTotalSpent(),
     });
   }
 
   /**
    * Coda phase — run once after the task loop exits.
-   * Context extraction, evidence synthesis, metrics capture.
-   * OpenMythos analog: Coda layers (1-6 fixed transformer blocks).
    */
   private async coda(): Promise<void> {
     this.emitEvent("phase_coda_start", {
-      tasksCompleted: this.completedTasks.size,
+      tasksCompleted: this.tasks.getCompletedTasks().length,
     });
 
-    // Sprint 97: Extract context after loop exits (CTO F5: additive hook)
-    // CTO B1 fix: track actual extraction success, not lifecycle existence.
     let contextExtracted = false;
     if (this.contextLifecycle) {
       try {
-        const results = Array.from(this.completedTasks.values()).map((r) => ({
+        const results = this.tasks.getCompletedTasks().map((r) => ({
           agent: "autonomous",
           success: r.success,
           output: r.output ?? "",
@@ -552,14 +458,13 @@ export class AutonomousSessionManager {
         await this.contextLifecycle.onSessionEnd(results, undefined, sdlcStage ?? undefined);
         contextExtracted = true;
       } catch {
-        // Non-critical — context extraction failure doesn't affect session result
         this.log.warn("Context extraction failed at session end");
       }
     }
 
     this.emitEvent("phase_coda_end", {
       contextExtracted,
-      tasksCompleted: this.completedTasks.size,
+      tasksCompleted: this.tasks.getCompletedTasks().length,
     });
   }
 
@@ -570,12 +475,9 @@ export class AutonomousSessionManager {
     this.currentTask = task;
     const startTime = Date.now();
 
-    // Remove from queue
-    this.taskQueue = this.taskQueue.filter((t) => t.id !== task.id);
-
-    // Sprint 131 (Multica ADOPT 2): state transitions for visibility
-    this.transitionTaskState(task.id, "dispatched");
-    this.transitionTaskState(task.id, "running");
+    this.tasks.remove(task.id);
+    this.tasks.transitionState(task.id, "dispatched");
+    this.tasks.transitionState(task.id, "running");
 
     this.emitEvent("task_started", {
       taskId: task.id,
@@ -583,7 +485,6 @@ export class AutonomousSessionManager {
       stage: task.stage,
     });
 
-    // Select model
     const modelSelection = this.modelSelector.selectModel(task.type, 0);
 
     this.emitEvent("model_selected", {
@@ -603,38 +504,18 @@ export class AutonomousSessionManager {
       });
     }
 
-    // Record decision
     this.recordDecision({
       type: "model_selection",
       context: `Task: ${task.description}`,
       options: [
-        {
-          id: "elite",
-          label: "Opus (ELITE)",
-          risk: "low",
-          isConservative: false,
-          impact: "Highest quality, highest cost",
-        },
-        {
-          id: "standard",
-          label: "Sonnet (STANDARD)",
-          risk: "low",
-          isConservative: true,
-          impact: "Good quality, moderate cost",
-        },
-        {
-          id: "efficiency",
-          label: "Haiku (EFFICIENCY)",
-          risk: "medium",
-          isConservative: true,
-          impact: "Fast, low cost",
-        },
+        { id: "elite", label: "Opus (ELITE)", risk: "low", isConservative: false, impact: "Highest quality, highest cost" },
+        { id: "standard", label: "Sonnet (STANDARD)", risk: "low", isConservative: true, impact: "Good quality, moderate cost" },
+        { id: "efficiency", label: "Haiku (EFFICIENCY)", risk: "medium", isConservative: true, impact: "Fast, low cost" },
       ],
       autoSelected: modelSelection.config.tier,
       requiresEscalation: false,
     });
 
-    // Execute with retry logic
     let retryCount = 0;
     let lastError: Error | null = null;
     let success = false;
@@ -644,36 +525,36 @@ export class AutonomousSessionManager {
 
     while (retryCount <= task.maxRetries && !success) {
       try {
-        // Simulate task execution (in real impl, this would call the model)
-        const result = await this.executeTaskWork(task, modelSelection.config.tier, modelSelection.config.model);
+        const workResult = await this.taskWorkExecutor.execute(task, modelSelection.config.tier, {
+          sessionId: this.config.sessionId,
+          gate: this.config.gate,
+          originChannel: this.config.originChannel ?? "cli",
+          sprintGoal: this.config.sprintGoal,
+          projectRoot: this.config.projectRoot,
+          promptFn: this.config.promptFn,
+          providerDeps: this.providerDeps,
+          completedTasks: this.tasks.getCompletedTaskMap(),
+          pendingPatternHint: this.pendingPatternHint,
+        }, modelSelection.config.model);
+        this.pendingPatternHint = workResult.pendingPatternHint;
+        if (workResult.recordedRiskyOp) this.riskyOpTimestamps.push(Date.now());
         success = true;
-        actualCost = result.cost;
-        filesModified.push(...(result.filesModified ?? []));
-        filesCreated.push(...(result.filesCreated ?? []));
+        actualCost = workResult.cost;
+        filesModified.push(...(workResult.filesModified ?? []));
+        filesCreated.push(...(workResult.filesCreated ?? []));
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Classify failure
         const classification = this.failureClassifier.classify(lastError, {
           taskId: task.id,
           taskType: task.type,
           stage: task.stage.toString(),
         });
 
-        // Attempt recovery
         if (classification.type !== FailureType.DESIGN_ISSUE) {
-          const recoveryResult = await this.attemptRecovery(
-            task,
-            lastError,
-            classification.type,
-            retryCount
-          );
-
+          const recoveryResult = await this.attemptRecovery(task, lastError, classification.type, retryCount);
           if (recoveryResult.recovered) {
-            // Retry with higher-tier model if needed
             if (recoveryResult.action === "RETRY" || recoveryResult.action === "FIX") {
-              // Sprint 143 A1: Store Brain L2 pattern hint for next attempt.
-              // executeTaskWork() reads pendingPatternHint and injects into prompt.
               this.pendingPatternHint = recoveryResult.patternHint ?? null;
               retryCount++;
               continue;
@@ -681,18 +562,14 @@ export class AutonomousSessionManager {
           }
         }
 
-        // If recovery failed or design issue, escalate
         if (classification.type === FailureType.DESIGN_ISSUE) {
-          await this.createEscalation({
+          await this.gateManager.createEscalation({
             severity: "critical",
             reason: `Design issue detected: ${lastError.message}`,
             taskId: task.id,
             blocking: !this.config.nonBlockingEscalation,
-            suggestions: [
-              "Review the task requirements",
-              "Consult with architect",
-              "Break down into smaller tasks",
-            ],
+            suggestions: ["Review the task requirements", "Consult with architect", "Break down into smaller tasks"],
+            currentState: String(this.resilience.getStatus().state),
           });
         }
 
@@ -700,14 +577,13 @@ export class AutonomousSessionManager {
       }
     }
 
-    // Record cost
     if (actualCost > 0) {
       const callRecord: ModelCallRecord = {
         tier: modelSelection.config.tier,
         model: modelSelection.config.model,
         cost: actualCost,
         durationSeconds: (Date.now() - startTime) / 1000,
-        inputTokens: 0, // Would be set by actual model call
+        inputTokens: 0,
         outputTokens: 0,
         timestamp: new Date().toISOString(),
       };
@@ -718,7 +594,6 @@ export class AutonomousSessionManager {
 
     const durationMs = Date.now() - startTime;
 
-    // Build result
     const result: TaskExecutionResult = {
       taskId: task.id,
       success,
@@ -739,16 +614,12 @@ export class AutonomousSessionManager {
       };
     }
 
-    // Sprint 131 (Multica ADOPT 2): state → verifying (briefly, while recording result)
-    this.transitionTaskState(task.id, "verifying");
-
-    // Store result
-    this.completedTasks.set(task.id, result);
+    this.tasks.transitionState(task.id, "verifying");
+    this.tasks.recordResult(result);
     this.currentTask = null;
 
-    // Emit event + final state transition
     if (success) {
-      this.transitionTaskState(task.id, "completed");
+      this.tasks.transitionState(task.id, "completed");
       this.emitEvent("task_completed", {
         taskId: task.id,
         durationMs,
@@ -757,7 +628,7 @@ export class AutonomousSessionManager {
         filesCreated: filesCreated.length,
       });
     } else {
-      this.transitionTaskState(task.id, "failed");
+      this.tasks.transitionState(task.id, "failed");
       this.emitEvent("task_failed", {
         taskId: task.id,
         durationMs,
@@ -766,141 +637,15 @@ export class AutonomousSessionManager {
       });
     }
 
-    // OpenMythos #6 fix (CTO B1): update stability guard tracking fields.
     this.tasksSinceLastCheckpoint++;
 
-    // Checkpoint after task if configured
     if (this.config.autoCheckpoint && success) {
       await this.resilience.createCheckpoint("milestone", `Task ${task.id} completed`);
-      // Reset checkpoint tracking on successful checkpoint
       this.lastCheckpointAt = Date.now();
       this.tasksSinceLastCheckpoint = 0;
     }
 
     return result;
-  }
-
-  /**
-   * Execute task work — wired to cloud providers (Sprint 124b, ADR-042).
-   *
-   * C1: Uses callCloudFallback directly with explicit model tier
-   * C4: Gate B = READ only, PATCH tasks blocked
-   */
-  private async executeTaskWork(
-    task: AutonomousTask,
-    tier: ModelTier,
-    modelId?: string,
-  ): Promise<{ cost: number; output?: string; filesModified?: string[]; filesCreated?: string[] }> {
-    // -------------------------------------------------------------------------
-    // Sprint 132 M1 — Exec-Policy Hook (fires BEFORE Gate A/B/C)
-    //
-    // ADR-046 composition rule: exec-policy → Gate A/B/C → PATCH/risk gate → execute
-    //
-    // COARSE HOOK (CEO decision #2, 2026-04-11):
-    //   task.type + task.description is used as the candidate-command proxy because
-    //   executeTaskWork() does not emit Bash today — it calls callCloudFallback.
-    //   When a fine-grained tool-use dispatcher lands, it must call checkCommand()
-    //   directly per-invocation (not via this coarse hook).
-    //   See: docs/02-design/14-Technical-Specs/M1-exec-policy-design.md §9.1
-    // -------------------------------------------------------------------------
-    const candidateCommand = `${task.type} ${task.description}`;
-    const originChannel = this.config.originChannel ?? "cli";
-    const execCtx = {
-      sessionId: this.config.sessionId,
-      taskId: task.id,
-      agent: taskTypeToAgent(task.type),
-      gate: this.config.gate,
-      autoHandoff: process.env["ENDIORBOT_AUTO_HANDOFF"] === "true",
-      originChannel,
-    };
-    const policyResult = checkCommand(candidateCommand, execCtx);
-
-    if (policyResult.decision === "deny") {
-      throw new Error(`exec-policy denied command: ${policyResult.reason}`);
-    }
-
-    if (policyResult.decision === "prompt") {
-      // Resolve the prompt function: CLI → interactive, non-CLI → fail-closed (ADR-046 Amendment 1)
-      const promptFn = this.config.promptFn ?? selectPromptFn(originChannel);
-      const approved = await promptFn(
-        `exec-policy requires CEO approval (preset: ${policyResult.reason})`,
-        candidateCommand,
-      );
-      if (!approved) {
-        throw new Error(`exec-policy denied command: CEO declined prompt for "${candidateCommand}"`);
-      }
-    }
-    // policyResult.decision === "allow" → fall through to Gate A/B/C checks below
-
-    // OpenMythos #6 fix (CTO B1): track risky ops for stability guard.
-    // Any task that would require Gate C (PATCH capability) is a risky op.
-    if (requiresGateC(task.type)) {
-      this.riskyOpTimestamps.push(Date.now());
-    }
-
-    // C4: Gate B = READ only — block PATCH-requiring tasks
-    if (requiresGateC(task.type)) {
-      throw new Error(
-        `Task type "${task.type}" requires Gate C (autonomous PATCH). Current session is Gate B (read-only).`
-      );
-    }
-
-    // EFFICIENCY tasks — no agent call needed
-    if (isEfficiencyTask(task.type)) {
-      return { cost: 0, output: `EFFICIENCY task "${task.type}" completed (no agent call).` };
-    }
-
-    // Test-only: deterministic cost (no provider calls in test)
-    if (process.env.NODE_ENV === "test" && !this.providerDeps) {
-      const baseCost =
-        tier === ModelTier.ELITE ? 0.15 : tier === ModelTier.STANDARD ? 0.03 : 0.005;
-      return { cost: baseCost, output: `[test] Task "${task.description}" executed at tier ${tier}` };
-    }
-
-    // C1: Use callCloudFallback directly with explicit tier
-    if (!this.providerDeps) {
-      throw new Error(
-        "Provider deps not injected. Pass ProviderDeps to AutonomousSessionManager constructor."
-      );
-    }
-
-    const agent = taskTypeToAgent(task.type);
-    let context = buildTaskContext(task, {
-      sprintGoal: this.config.sprintGoal,
-      projectRoot: this.config.projectRoot,
-      tier: tier.toString(),
-      completedTasks: this.completedTasks,
-    });
-
-    // Sprint 143 A1: Inject Brain L2 pattern hint into retry prompt.
-    // CPO requirement: patternHint must reach the actual prompt, not just RecoveryResult.
-    if (this.pendingPatternHint) {
-      context = `${context}\n\n${this.pendingPatternHint}`;
-      this.log.info("Brain L2 pattern hint injected into retry prompt", {
-        taskId: task.id,
-        hint: this.pendingPatternHint.slice(0, 100),
-      });
-      this.pendingPatternHint = null; // Consumed — don't inject again
-    }
-
-    const result = await callCloudFallback(
-      this.providerDeps,
-      agent,
-      context,
-      [],
-      this.config.projectRoot,
-      modelId, // C1: Forward tier-selected model to provider
-    );
-
-    if (!result) {
-      throw new Error(`No cloud provider available for agent @${agent}`);
-    }
-
-    const cost = result.tokenUsage
-      ? estimateCostFromTokens(result.tokenUsage, tier.toString())
-      : 0;
-
-    return { cost, output: result.content };
   }
 
   /**
@@ -927,100 +672,10 @@ export class AutonomousSessionManager {
     return result;
   }
 
-  // ============================================================================
-  // Escalation Management
-  // ============================================================================
-
-  /**
-   * Create an escalation request.
-   */
-  private async createEscalation(
-    params: Omit<EscalationRequest, "id" | "timestamp" | "context"> & { taskId?: string }
-  ): Promise<string> {
-    const escalation: EscalationRequest = {
-      id: `esc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      timestamp: new Date().toISOString(),
-      context: {
-        sessionId: this.config.sessionId,
-        currentState: this.resilience.getStatus().state,
-        budgetRemaining: this.budget.getRemaining(),
-        taskId: params.taskId,
-      },
-      ...params,
-    };
-
-    this.escalations.push(escalation);
-    if (escalation.blocking || !this.config.nonBlockingEscalation) {
-      this.pendingEscalations.push(escalation);
-    }
-
-    this.emitEvent("escalation_created", {
-      escalationId: escalation.id,
-      severity: escalation.severity,
-      reason: escalation.reason,
-      blocking: escalation.blocking,
-    });
-
-    this.log.warn("Escalation created", {
-      escalationId: escalation.id,
-      severity: escalation.severity,
-      reason: escalation.reason,
-    });
-
-    return escalation.id;
-  }
-
-  /**
-   * Resolve an escalation.
-   */
+  /** Resolve an escalation (delegated to GateManager). */
   resolveEscalation(response: EscalationResponse): void {
-    this.pendingEscalations = this.pendingEscalations.filter(
-      (e) => e.id !== response.escalationId
-    );
-
-    this.emitEvent("escalation_resolved", {
-      escalationId: response.escalationId,
-      action: response.action,
-    });
-
-    this.log.info("Escalation resolved", {
-      escalationId: response.escalationId,
-      action: response.action,
-    });
+    this.gateManager.resolveEscalation(response);
   }
-
-  // ============================================================================
-  // Budget Handlers
-  // ============================================================================
-
-  private handleBudgetWarning(details: Record<string, unknown>): void {
-    this.emitEvent("budget_warning", details);
-
-    if (this.config.conservativeFallback) {
-      this.log.info("Budget warning - switching to conservative mode");
-      // Prefer cheaper models for remaining tasks
-    }
-  }
-
-  private handleBudgetExceeded(details: Record<string, unknown>): void {
-    this.emitEvent("budget_exceeded", details);
-
-    this.createEscalation({
-      severity: "critical",
-      reason: `Budget exceeded: spent $${(details.spent as number).toFixed(2)} of $${details.budget}`,
-      blocking: true,
-      suggestions: ["Review spending", "Increase budget", "Complete essential tasks only"],
-    });
-  }
-
-  private handleOpusCapReached(details: Record<string, unknown>): void {
-    this.log.info("Opus cap reached, downgrading to Sonnet", details);
-    // Model selector will automatically downgrade
-  }
-
-  // ============================================================================
-  // Status
-  // ============================================================================
 
   /**
    * Get current session status.
@@ -1029,6 +684,7 @@ export class AutonomousSessionManager {
     const resilienceStatus = this.resilience.getStatus();
     const remaining = this.budget.getRemaining();
     const opusSpending = this.budget.getTierSpending(ModelTier.ELITE);
+    const completedTasks = this.tasks.getCompletedTasks();
 
     const status: AutonomousSessionStatus = {
       sessionId: this.config.sessionId,
@@ -1037,14 +693,14 @@ export class AutonomousSessionManager {
       autonomyLevel: AUTONOMY_GATE_CONFIG[this.config.gate].level,
       gate: this.config.gate,
       durationMs: Date.now() - this.startTime.getTime(),
-      tasksCompleted: Array.from(this.completedTasks.values()).filter((t) => t.success).length,
-      tasksFailed: Array.from(this.completedTasks.values()).filter((t) => !t.success).length,
-      tasksPending: this.taskQueue.length,
+      tasksCompleted: completedTasks.filter((t) => t.success).length,
+      tasksFailed: completedTasks.filter((t) => !t.success).length,
+      tasksPending: this.tasks.length,
       budgetSpent: this.budget.getTotalSpent(),
       budgetRemaining: remaining.total,
       opusTimeUsed: opusSpending.seconds / 60,
-      escalationCount: this.escalations.length,
-      pendingEscalations: this.pendingEscalations,
+      escalationCount: this.gateManager.getEscalations().length,
+      pendingEscalations: this.gateManager.getPendingEscalations(),
       isActive: this.isRunning && !this.isPaused,
       lastActivity: new Date().toISOString(),
     };
@@ -1052,119 +708,53 @@ export class AutonomousSessionManager {
     return status;
   }
 
-  /**
-   * Get completed task results.
-   */
-  getCompletedTasks(): TaskExecutionResult[] {
-    return Array.from(this.completedTasks.values());
-  }
+  /** Get completed task results. */
+  getCompletedTasks(): TaskExecutionResult[] { return this.tasks.getCompletedTasks(); }
 
-  /**
-   * Get pending tasks.
-   */
-  getPendingTasks(): AutonomousTask[] {
-    return [...this.taskQueue];
-  }
+  /** Get pending tasks. */
+  getPendingTasks(): AutonomousTask[] { return this.tasks.getPendingTasks(); }
 
-  /**
-   * Get decisions made.
-   */
-  getDecisions(): DecisionPoint[] {
-    return [...this.decisions];
-  }
+  /** Get decisions made. */
+  getDecisions(): DecisionPoint[] { return [...this.decisions]; }
 
-  /**
-   * Get escalation history.
-   */
-  getEscalations(): EscalationRequest[] {
-    return [...this.escalations];
-  }
+  /** Get escalation history. */
+  getEscalations(): EscalationRequest[] { return this.gateManager.getEscalations(); }
 
-  /**
-   * Get model selector.
-   */
-  getModelSelector(): ModelSelector {
-    return this.modelSelector;
-  }
+  /** Get model selector. */
+  getModelSelector(): ModelSelector { return this.modelSelector; }
 
-  /**
-   * Get session budget.
-   */
-  getBudget(): SessionBudget {
-    return this.budget;
-  }
+  /** Get session budget. */
+  getBudget(): SessionBudget { return this.budget; }
 
-  /**
-   * Get resilience manager.
-   */
-  getResilienceManager(): SessionResilienceManager {
-    return this.resilience;
-  }
+  /** Get resilience manager. */
+  getResilienceManager(): SessionResilienceManager { return this.resilience; }
 
-  // ============================================================================
-  // Event System
-  // ============================================================================
-
-  /**
-   * Add event listener.
-   */
+  /** Add event listener. */
   addEventListener(listener: AutonomousEventListener): void {
     this.listeners.push(listener);
   }
 
-  /**
-   * Remove event listener.
-   */
+  /** Remove event listener. */
   removeEventListener(listener: AutonomousEventListener): void {
     this.listeners = this.listeners.filter((l) => l !== listener);
   }
 
-  /**
-   * Set context lifecycle manager for T3 cross-session context.
-   * Sprint 97: Additive hook — does not restructure runLoop() (CTO F5).
-   */
+  /** Set context lifecycle manager. Sprint 97: additive hook (CTO F5). */
   setContextLifecycle(lifecycle: ContextLifecycleManager): void {
     this.contextLifecycle = lifecycle;
   }
 
-  /**
-   * Sprint 131 (Multica ADOPT 2): Transition a task to a new state and emit event.
-   *
-   * CTO C3: Read-only visibility — this updates from existing execution flow only,
-   * never auto-progresses tasks. The state map is a projection, not a scheduler.
-   */
-  private transitionTaskState(taskId: string, to: SubtaskStatus): void {
-    const from = this.taskStates.get(taskId) ?? "pending";
-    if (from === to) return;
-    this.taskStates.set(taskId, to);
-    this.emitEvent("task_state_changed", {
-      taskId,
-      from,
-      to,
-    });
-  }
-
-  /**
-   * Sprint 131: Get current state of a task (for /status display).
-   */
+  /** Sprint 131: Get current state of a task (for /status display). */
   getTaskState(taskId: string): SubtaskStatus | undefined {
-    return this.taskStates.get(taskId);
+    return this.tasks.getTaskState(taskId);
   }
 
-  /**
-   * Sprint 131: Get all task states (snapshot for UI).
-   */
+  /** Sprint 131: Get all task states (snapshot for UI). */
   getAllTaskStates(): ReadonlyMap<string, SubtaskStatus> {
-    return new Map(this.taskStates);
+    return this.tasks.getAllTaskStates();
   }
 
-  /**
-   * Emit event.
-   */
-  private emitEvent(
-    type: AutonomousEvent["type"],
-    data: Record<string, unknown>
-  ): void {
+  private emitEvent(type: AutonomousEvent["type"], data: Record<string, unknown>): void {
     const event: AutonomousEvent = {
       type,
       sessionId: this.config.sessionId,
@@ -1183,42 +773,13 @@ export class AutonomousSessionManager {
     }
   }
 
-  // ============================================================================
-  // Private Helpers
-  // ============================================================================
-
-  /**
-   * Generate session ID.
-   */
   private generateSessionId(): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
     return `auto-${timestamp}-${random}`;
   }
 
-  /**
-   * Check if budget is available.
-   */
-  private checkBudgetAvailable(): boolean {
-    const remaining = this.budget.getRemaining();
-    return remaining.total > 0;
-  }
-
-  /**
-   * Check if time limit is reached.
-   */
-  private isTimeLimitReached(): boolean {
-    const elapsed = Date.now() - this.startTime.getTime();
-    const maxDuration = AUTONOMY_GATE_CONFIG[this.config.gate].maxDurationMs;
-    return elapsed >= maxDuration;
-  }
-
-  /**
-   * Record a decision point.
-   */
-  private recordDecision(
-    params: Omit<DecisionPoint, "id" | "timestamp">
-  ): void {
+  private recordDecision(params: Omit<DecisionPoint, "id" | "timestamp">): void {
     const decision: DecisionPoint = {
       id: `dec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString(),
@@ -1226,7 +787,6 @@ export class AutonomousSessionManager {
     };
     this.decisions.push(decision);
   }
-
 }
 
 // ============================================================================

@@ -31,13 +31,17 @@ import {
   needsDailyReset,
   calculateBudgetPercentage,
   isAtWarningThreshold,
-  isLimitReached,
   createEmptyTaskMetrics,
 } from "./types.js";
 import {
   CircuitBreaker,
   NotificationRateLimiter,
 } from "./circuit-breaker.js";
+import { AlertService, type BudgetEventEmitter } from "./alert-service.js";
+import { BudgetReporter } from "./reporter.js";
+
+// Re-export types from reporter so existing consumers keep working
+export type { BudgetScope, BudgetStatus } from "./reporter.js";
 
 // ============================================================================
 // Constants
@@ -106,32 +110,6 @@ const DEFAULT_PRICING: Record<string, ModelPricing> = {
 };
 
 // ============================================================================
-// Budget Status
-// ============================================================================
-
-/**
- * Budget status for a single scope (session, daily, track).
- */
-export interface BudgetScope {
-  used: number;
-  limit: number;
-  remaining: number;
-  percentage: number;
-  thresholdLevel: "normal" | "warning" | "critical" | "limit";
-}
-
-/**
- * Complete budget status.
- */
-export interface BudgetStatus {
-  session: BudgetScope;
-  daily: BudgetScope;
-  tracks: Record<string, BudgetScope>;
-  canProceed: boolean;
-  warnings: string[];
-}
-
-// ============================================================================
 // Budget Tracker
 // ============================================================================
 
@@ -155,6 +133,10 @@ export class BudgetTracker {
   private pricing: Map<string, ModelPricing>;
   private eventListeners: Array<(event: BudgetEvent) => void> = [];
   private taskMetrics: Map<string, TaskMetrics> = new Map();
+
+  // Extracted sub-services
+  private alertService: AlertService;
+  private reporter: BudgetReporter;
 
   constructor(config: BudgetConfig = DEFAULT_BUDGET_CONFIG) {
     this.config = config;
@@ -182,6 +164,23 @@ export class BudgetTracker {
       undefined,
       this.notificationRateLimiter,
     );
+
+    // Build event emitter shim used by sub-services
+    const emitter: BudgetEventEmitter = {
+      emit: (event) => this.emitEvent(event),
+    };
+
+    // Initialize extracted sub-services
+    this.alertService = new AlertService(
+      config,
+      this.sessionCircuitBreaker,
+      this.dailyCircuitBreaker,
+      emitter,
+    );
+    this.reporter = new BudgetReporter(
+      this.sessionCircuitBreaker,
+      this.dailyCircuitBreaker,
+    );
   }
 
   // ==========================================================================
@@ -206,10 +205,7 @@ export class BudgetTracker {
         : this.calculateCost(usage.model, usage.inputTokens, usage.outputTokens);
 
     // Update usage record with calculated cost
-    const recordWithCost: TokenUsageRecord = {
-      ...usage,
-      cost,
-    };
+    const recordWithCost: TokenUsageRecord = { ...usage, cost };
 
     // Update session budget
     this.state.session.costSoFar += cost;
@@ -244,14 +240,10 @@ export class BudgetTracker {
       eventData.sessionId = usage.taskId;
       eventData.taskId = usage.taskId;
     }
-    this.emitEvent({
-      type: "cost_recorded",
-      timestamp: new Date(),
-      data: eventData,
-    });
+    this.emitEvent({ type: "cost_recorded", timestamp: new Date(), data: eventData });
 
     // Check limits and return action
-    return this.evaluateBudgetAction();
+    return this.alertService.evaluate(this.state);
   }
 
   /**
@@ -261,42 +253,25 @@ export class BudgetTracker {
     context: TaskContext,
     model: string = "claude-sonnet-4",
   ): Promise<CostEstimate> {
-    // Estimate input tokens
     const inputTokens = this.estimateInputTokens(context);
-
-    // Estimate output tokens based on task type
     const taskType = context.taskType ?? "general";
     const outputTokens = await this.estimateOutputTokens(taskType, model);
-
-    // Get model pricing
     const pricing = this.pricing.get(model) ?? FALLBACK_PRICING;
 
-    // Calculate estimated cost
     const estimatedCost =
       (inputTokens / 1000) * pricing.input_per_1k +
       (outputTokens / 1000) * pricing.output_per_1k;
 
-    // Calculate confidence based on historical data
     const historicalAvg = this.state.historical.avgCostPerTask[taskType];
     const confidence = this.calculateConfidence(estimatedCost, historicalAvg);
-
-    // Generate recommendation
-    const recommendation = this.generateRecommendation(
-      taskType,
-      estimatedCost,
-      model,
-    );
+    const recommendation = this.generateRecommendation(taskType, estimatedCost, model);
 
     const estimate: CostEstimate = {
       estimated_cost: estimatedCost,
       estimated_tokens: { input: inputTokens, output: outputTokens },
       confidence: confidence.level,
       confidence_score: confidence.score,
-      breakdown: {
-        model_cost: estimatedCost,
-        tool_cost: 0,
-        api_overhead: 0,
-      },
+      breakdown: { model_cost: estimatedCost, tool_cost: 0, api_overhead: 0 },
     };
     if (historicalAvg !== undefined) {
       estimate.historical_avg = historicalAvg;
@@ -315,29 +290,18 @@ export class BudgetTracker {
    * Check if a request can proceed based on budget and circuit breakers.
    */
   async canProceed(estimatedCost: number = 0): Promise<boolean> {
-    // Check daily reset
     if (needsDailyReset(this.state)) {
       this.resetDaily();
     }
 
-    // Check circuit breakers
-    if (!this.sessionCircuitBreaker.canProceed()) {
-      return false;
-    }
-    if (!this.dailyCircuitBreaker.canProceed()) {
-      return false;
-    }
+    if (!this.sessionCircuitBreaker.canProceed()) return false;
+    if (!this.dailyCircuitBreaker.canProceed()) return false;
 
-    // Check if estimated cost would exceed limits
     const projectedSession = this.state.session.costSoFar + estimatedCost;
     const projectedDaily = this.state.daily.costSoFar + estimatedCost;
 
-    if (projectedSession >= this.state.session.limit) {
-      return false;
-    }
-    if (projectedDaily >= this.state.daily.limit) {
-      return false;
-    }
+    if (projectedSession >= this.state.session.limit) return false;
+    if (projectedDaily >= this.state.daily.limit) return false;
 
     return true;
   }
@@ -345,60 +309,11 @@ export class BudgetTracker {
   /**
    * Get current budget status.
    */
-  async getStatus(): Promise<BudgetStatus> {
-    // Check daily reset
+  async getStatus() {
     if (needsDailyReset(this.state)) {
       this.resetDaily();
     }
-
-    const sessionScope = this.createBudgetScope(
-      this.state.session.costSoFar,
-      this.state.session.limit,
-    );
-    const dailyScope = this.createBudgetScope(
-      this.state.daily.costSoFar,
-      this.state.daily.limit,
-    );
-
-    const tracks: Record<string, BudgetScope> = {};
-    if (this.state.tracks) {
-      for (const [trackId, track] of Object.entries(this.state.tracks)) {
-        tracks[trackId] = this.createBudgetScope(track.costSoFar, track.limit);
-      }
-    }
-
-    // Collect warnings
-    const warnings: string[] = [];
-    if (sessionScope.thresholdLevel === "warning") {
-      warnings.push(
-        `Session budget at ${sessionScope.percentage.toFixed(0)}%`,
-      );
-    } else if (sessionScope.thresholdLevel === "critical") {
-      warnings.push(
-        `Session budget at ${sessionScope.percentage.toFixed(0)}% (critical)`,
-      );
-    }
-    if (dailyScope.thresholdLevel === "warning") {
-      warnings.push(`Daily budget at ${dailyScope.percentage.toFixed(0)}%`);
-    } else if (dailyScope.thresholdLevel === "critical") {
-      warnings.push(
-        `Daily budget at ${dailyScope.percentage.toFixed(0)}% (critical)`,
-      );
-    }
-
-    const canProceed =
-      sessionScope.thresholdLevel !== "limit" &&
-      dailyScope.thresholdLevel !== "limit" &&
-      this.sessionCircuitBreaker.canProceed() &&
-      this.dailyCircuitBreaker.canProceed();
-
-    return {
-      session: sessionScope,
-      daily: dailyScope,
-      tracks,
-      canProceed,
-      warnings,
-    };
+    return this.reporter.buildStatus(this.state);
   }
 
   // ==========================================================================
@@ -417,8 +332,6 @@ export class BudgetTracker {
    */
   async restoreState(state: BudgetState): Promise<void> {
     this.state = { ...state };
-
-    // Check if daily reset is needed after restore
     if (needsDailyReset(this.state)) {
       this.resetDaily();
     }
@@ -432,12 +345,9 @@ export class BudgetTracker {
    * - A session that spent $1.80 cannot spend another $2.00 after resume
    */
   restoreFromCheckpoint(costState: CostState): void {
-    // Restore session cost from checkpoint
     this.state.session.costSoFar = costState.sessionCostSoFar;
 
-    // Restore token usage records if available
     if (costState.tokenUsage && costState.tokenUsage.length > 0) {
-      // Convert checkpoint TokenUsageRecord to budget TokenUsageRecord
       for (const usage of costState.tokenUsage) {
         this.state.tokenUsage.push({
           timestamp: new Date(),
@@ -450,7 +360,6 @@ export class BudgetTracker {
       }
     }
 
-    // Emit restore event
     this.emitEvent({
       type: "budget_restored",
       timestamp: new Date(),
@@ -464,7 +373,6 @@ export class BudgetTracker {
       },
     });
 
-    // Check thresholds after restore
     if (
       isAtWarningThreshold(
         this.state.session.costSoFar,
@@ -499,7 +407,6 @@ export class BudgetTracker {
         cost: usage.cost,
       })),
     };
-    // timeBudgetRemaining not tracked yet - omit from result
     return costState;
   }
 
@@ -524,7 +431,6 @@ export class BudgetTracker {
   updateConfig(config: Partial<BudgetConfig>): void {
     this.config = { ...this.config, ...config };
 
-    // Update limits in state
     if (config.per_session_limit !== undefined) {
       this.state.session.limit = config.per_session_limit;
     }
@@ -570,11 +476,7 @@ export class BudgetTracker {
   getTaskMetrics(taskId: string): TaskMetrics | undefined {
     const metrics = this.taskMetrics.get(taskId);
     if (metrics) {
-      // Update duration
-      return {
-        ...metrics,
-        durationMs: Date.now() - metrics.startTime.getTime(),
-      };
+      return { ...metrics, durationMs: Date.now() - metrics.startTime.getTime() };
     }
     return undefined;
   }
@@ -634,8 +536,6 @@ export class BudgetTracker {
       this.state.daily.costSoFar,
       this.state.daily.limit,
     );
-
-    // Switch if at or above critical threshold (80%)
     return sessionPercent >= 80 || dailyPercent >= 80;
   }
 
@@ -685,30 +585,22 @@ export class BudgetTracker {
   // Circuit Breakers
   // ==========================================================================
 
-  /**
-   * Get session circuit breaker.
-   */
+  /** Get session circuit breaker. */
   getSessionCircuitBreaker(): CircuitBreaker {
     return this.sessionCircuitBreaker;
   }
 
-  /**
-   * Get daily circuit breaker.
-   */
+  /** Get daily circuit breaker. */
   getDailyCircuitBreaker(): CircuitBreaker {
     return this.dailyCircuitBreaker;
   }
 
-  /**
-   * Get task circuit breaker.
-   */
+  /** Get task circuit breaker. */
   getTaskCircuitBreaker(): CircuitBreaker {
     return this.taskCircuitBreaker;
   }
 
-  /**
-   * Reset all circuit breakers.
-   */
+  /** Reset all circuit breakers. */
   resetCircuitBreakers(): void {
     this.sessionCircuitBreaker.reset();
     this.dailyCircuitBreaker.reset();
@@ -719,16 +611,12 @@ export class BudgetTracker {
   // Pricing
   // ==========================================================================
 
-  /**
-   * Set model pricing.
-   */
+  /** Set model pricing. */
   setPricing(model: string, pricing: ModelPricing): void {
     this.pricing.set(model, pricing);
   }
 
-  /**
-   * Get model pricing.
-   */
+  /** Get model pricing. */
   getPricing(model: string): ModelPricing | undefined {
     return this.pricing.get(model);
   }
@@ -737,83 +625,43 @@ export class BudgetTracker {
   // Private Methods
   // ==========================================================================
 
-  /**
-   * Calculate cost based on model and tokens.
-   */
-  private calculateCost(
-    model: string,
-    inputTokens: number,
-    outputTokens: number,
-  ): number {
+  private calculateCost(model: string, inputTokens: number, outputTokens: number): number {
     const pricing = this.pricing.get(model);
     if (!pricing) {
-      // Default to sonnet pricing if unknown model
       return (
         (inputTokens / 1000) * FALLBACK_PRICING.input_per_1k +
         (outputTokens / 1000) * FALLBACK_PRICING.output_per_1k
       );
     }
-
     return (
       (inputTokens / 1000) * pricing.input_per_1k +
       (outputTokens / 1000) * pricing.output_per_1k
     );
   }
 
-  /**
-   * Estimate input tokens from context.
-   */
   private estimateInputTokens(context: TaskContext): number {
-    let tokens = 0;
-
-    // Base system prompt
-    tokens += 500;
-
-    // User prompt
+    let tokens = 500; // Base system prompt
     tokens += this.countTokens(context.prompt);
-
-    // File context
     for (const file of context.files ?? []) {
       tokens += this.countTokens(file.content);
     }
-
-    // Conversation history
     tokens += this.countTokens(context.conversationHistory ?? "");
-
-    // Add 10% buffer
     return Math.ceil(tokens * 1.1);
   }
 
-  /**
-   * Estimate output tokens based on task type.
-   */
-  private async estimateOutputTokens(
-    taskType: TaskType,
-    model: string,
-  ): Promise<number> {
+  private async estimateOutputTokens(taskType: TaskType, model: string): Promise<number> {
     const base = BASE_OUTPUT_ESTIMATES[taskType] ?? 1000;
-
-    // Adjust by historical data if available
-    const historicalAvg =
-      this.state.historical.avgCostPerModel[model];
+    const historicalAvg = this.state.historical.avgCostPerModel[model];
     if (historicalAvg !== undefined) {
-      // Use average of base and historical
       return Math.ceil((base + historicalAvg) / 2);
     }
-
     return base;
   }
 
-  /**
-   * Count tokens in text (simple estimation: ~4 chars per token).
-   */
   private countTokens(text: string): number {
     return Math.ceil(text.length / 4);
   }
 
-  /**
-   * Calculate confidence based on historical data.
-   */
   private calculateConfidence(
     estimated: number,
     historical?: number,
@@ -821,63 +669,37 @@ export class BudgetTracker {
     if (historical === undefined) {
       return { level: "low", score: 0.3 };
     }
-
     const variance = Math.abs(estimated - historical) / historical;
-
-    if (variance < 0.2) {
-      return { level: "high", score: 0.9 };
-    } else if (variance < 0.5) {
-      return { level: "medium", score: 0.7 };
-    } else {
-      return { level: "low", score: 0.4 };
-    }
+    if (variance < 0.2) return { level: "high", score: 0.9 };
+    if (variance < 0.5) return { level: "medium", score: 0.7 };
+    return { level: "low", score: 0.4 };
   }
 
-  /**
-   * Generate recommendation for cost savings.
-   */
   private generateRecommendation(
     taskType: TaskType,
     cost: number,
     model: string,
   ): string | undefined {
-    // Suggest cheaper alternatives for expensive tasks
     if (cost > 0.1 && model.includes("opus")) {
       return `Consider using Sonnet for this task (potentially 80% cheaper)`;
     }
-
-    // Suggest Ollama for simple tasks
     if (taskType === "documentation" || taskType === "general") {
       return "Consider using Self-Hosted Ollama (free) for this simple task";
     }
-
     return undefined;
   }
 
-  /**
-   * Update historical data with new usage.
-   */
   private updateHistoricalData(usage: TokenUsageRecord): void {
     const taskType = usage.taskType ?? "general";
-
-    // Update average cost per task type
     const currentAvg = this.state.historical.avgCostPerTask[taskType] ?? usage.cost;
-    this.state.historical.avgCostPerTask[taskType] =
-      (currentAvg + usage.cost) / 2;
+    this.state.historical.avgCostPerTask[taskType] = (currentAvg + usage.cost) / 2;
 
-    // Update average cost per model
-    const modelAvg =
-      this.state.historical.avgCostPerModel[usage.model] ?? usage.cost;
-    this.state.historical.avgCostPerModel[usage.model] =
-      (modelAvg + usage.cost) / 2;
+    const modelAvg = this.state.historical.avgCostPerModel[usage.model] ?? usage.cost;
+    this.state.historical.avgCostPerModel[usage.model] = (modelAvg + usage.cost) / 2;
 
-    // Update total spent
     this.state.historical.totalSpent += usage.cost;
   }
 
-  /**
-   * Reset daily budget.
-   */
   private resetDaily(): void {
     const now = new Date();
     const isoStr = now.toISOString();
@@ -889,171 +711,10 @@ export class BudgetTracker {
     this.state.daily.date = todayStr;
     this.state.daily.resetAt = midnight;
 
-    // Reset daily circuit breaker
     this.dailyCircuitBreaker.reset();
-
-    // Emit event
-    this.emitEvent({
-      type: "daily_reset",
-      timestamp: now,
-      data: {},
-    });
+    this.emitEvent({ type: "daily_reset", timestamp: now, data: {} });
   }
 
-  /**
-   * Evaluate current budget and return appropriate action.
-   */
-  private evaluateBudgetAction(): BudgetAction {
-    // Check session limit
-    if (isLimitReached(this.state.session.costSoFar, this.state.session.limit)) {
-      this.sessionCircuitBreaker.trip("max_cost_exceeded");
-
-      this.emitEvent({
-        type: "limit_reached",
-        timestamp: new Date(),
-        data: {
-          budgetType: "session",
-          percentUsed: 100,
-        },
-      });
-
-      return this.createLimitReachedAction("session");
-    }
-
-    // Check daily limit
-    if (isLimitReached(this.state.daily.costSoFar, this.state.daily.limit)) {
-      this.dailyCircuitBreaker.trip("max_cost_exceeded");
-
-      this.emitEvent({
-        type: "limit_reached",
-        timestamp: new Date(),
-        data: {
-          budgetType: "daily",
-          percentUsed: 100,
-        },
-      });
-
-      return this.createLimitReachedAction("daily");
-    }
-
-    // Check warning thresholds
-    const sessionWarning = isAtWarningThreshold(
-      this.state.session.costSoFar,
-      this.state.session.limit,
-      this.config.warning_threshold,
-    );
-    const dailyWarning = isAtWarningThreshold(
-      this.state.daily.costSoFar,
-      this.state.daily.limit,
-      this.config.warning_threshold,
-    );
-
-    if (sessionWarning || dailyWarning) {
-      const budgetType = sessionWarning ? "session" : "daily";
-      const percentUsed = sessionWarning
-        ? calculateBudgetPercentage(
-            this.state.session.costSoFar,
-            this.state.session.limit,
-          )
-        : calculateBudgetPercentage(
-            this.state.daily.costSoFar,
-            this.state.daily.limit,
-          );
-
-      this.emitEvent({
-        type: "warning_triggered",
-        timestamp: new Date(),
-        data: {
-          budgetType,
-          percentUsed,
-        },
-      });
-    }
-
-    // Normal operation
-    return {
-      action: "continue",
-      remainingBudget: {
-        session: this.state.session.limit - this.state.session.costSoFar,
-        daily: this.state.daily.limit - this.state.daily.costSoFar,
-      },
-    };
-  }
-
-  /**
-   * Create action for limit reached.
-   */
-  private createLimitReachedAction(
-    budgetType: "session" | "daily" | "track",
-  ): BudgetAction {
-    const action = this.config.on_limit_reached;
-
-    switch (action.action) {
-      case "pause_and_notify":
-        return {
-          action: "pause",
-          reason: `${budgetType}_limit_reached`,
-          remainingBudget: {
-            session: Math.max(
-              0,
-              this.state.session.limit - this.state.session.costSoFar,
-            ),
-            daily: Math.max(
-              0,
-              this.state.daily.limit - this.state.daily.costSoFar,
-            ),
-          },
-        };
-
-      case "switch_to_self_hosted":
-        return {
-          action: "switch_model",
-          model: action.fallback_model ?? "self-hosted/qwen3-coder",
-          reason: `${budgetType}_limit_reached`,
-          remainingBudget: {
-            session: Math.max(
-              0,
-              this.state.session.limit - this.state.session.costSoFar,
-            ),
-            daily: Math.max(
-              0,
-              this.state.daily.limit - this.state.daily.costSoFar,
-            ),
-          },
-        };
-
-      case "fail_fast":
-        return {
-          action: "fail",
-          reason: `${budgetType}_limit_reached`,
-        };
-    }
-  }
-
-  /**
-   * Create budget scope from cost and limit.
-   */
-  private createBudgetScope(used: number, limit: number): BudgetScope {
-    const percentage = calculateBudgetPercentage(used, limit);
-    const remaining = Math.max(0, limit - used);
-
-    let thresholdLevel: "normal" | "warning" | "critical" | "limit";
-    if (percentage >= 100) {
-      thresholdLevel = "limit";
-    } else if (percentage >= 80) {
-      thresholdLevel = "critical";
-    } else if (percentage >= 50) {
-      thresholdLevel = "warning";
-    } else {
-      thresholdLevel = "normal";
-    }
-
-    return { used, limit, remaining, percentage, thresholdLevel };
-  }
-
-  /**
-   * Emit a budget event.
-   */
   private emitEvent(event: BudgetEvent): void {
     for (const listener of this.eventListeners) {
       try {
@@ -1072,23 +733,15 @@ export class BudgetTracker {
 /**
  * Create a budget tracker with default config.
  */
-export function createBudgetTracker(
-  config?: Partial<BudgetConfig>,
-): BudgetTracker {
-  const fullConfig: BudgetConfig = {
-    ...DEFAULT_BUDGET_CONFIG,
-    ...config,
-  };
-
+export function createBudgetTracker(config?: Partial<BudgetConfig>): BudgetTracker {
+  const fullConfig: BudgetConfig = { ...DEFAULT_BUDGET_CONFIG, ...config };
   return new BudgetTracker(fullConfig);
 }
 
 /**
  * Get budget status from tracker.
  */
-export async function getBudgetStatus(
-  tracker: BudgetTracker,
-): Promise<BudgetStatus> {
+export async function getBudgetStatus(tracker: BudgetTracker) {
   return tracker.getStatus();
 }
 
