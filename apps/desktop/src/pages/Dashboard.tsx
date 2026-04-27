@@ -96,65 +96,49 @@ export function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">📊 Dashboard</h1>
-        <p className="text-gray-400">Overview of your EndiorBot activity</p>
+    <div>
+      {/* Header — Sprint 147 T4: design-tokens.css */}
+      <div className="page-header">
+        <h1>Dashboard</h1>
+        <p className="subtitle">Overview of your EndiorBot activity</p>
       </div>
 
-      {/* Project Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🚀 Current Project</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-white">{projectStats.name}</p>
-                <p className="text-sm text-gray-400">{projectStats.status} • v{projectStats.version}</p>
-              </div>
-              <Badge variant="info">{projectStats.tier}</Badge>
-            </div>
+      {/* Quick Stats — design-aligned stat cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-value"><span className="accent">{stats.projectCount}</span></div>
+          <div className="stat-label">Projects</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value"><span className="term">{stats.gatePassCount}</span></div>
+          <div className="stat-label">Gates Passed</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{stats.providerCount}</div>
+          <div className="stat-label">Providers</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{projectStats.tier}</div>
+          <div className="stat-label">Project Tier</div>
+        </div>
+      </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-blue-400">{stats.projectCount}</p>
-                <p className="text-xs text-gray-400">Projects</p>
-              </div>
-              <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">{stats.gatePassCount}</p>
-                <p className="text-xs text-gray-400">Gates Passed</p>
-              </div>
-              <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-purple-400">{stats.providerCount}</p>
-                <p className="text-xs text-gray-400">Providers</p>
-              </div>
+      {/* System Status — design-aligned card */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">
+          <span className="card-title">System Status</span>
+          <span className={`dot ${isConnected ? "ok" : "warn"}`} />
+        </div>
+        <div>
+          {systemStatus.map((item, index) => (
+            <div key={index} className="list-row">
+              <span className={`dot ${item.status === "operational" ? "ok" : "warn"}`} />
+              <span style={{ flex: 1, fontSize: 14 }}>{item.label}</span>
+              <span className="eyebrow">{item.status}</span>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* System Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>✅ System Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {systemStatus.map((item, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
-                <span className="text-gray-300">{item.label}</span>
-                <Badge variant={getStatusBadge(item.status)}>
-                  {item.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      </div>
 
       {/* Settings & Gateway Info */}
       <div className="grid grid-cols-2 gap-6">

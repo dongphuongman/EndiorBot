@@ -14,7 +14,7 @@ import { ExpertsPage } from "./pages/Experts";
 import { JuniorHubPage } from "./pages/JuniorHub";
 import { Settings as SettingsPage } from "./pages/Settings";
 
-// Simple Layout with Sidebar
+// Sprint 147 T4: Design-aligned layout using design-tokens.css
 function SimpleLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,49 +30,25 @@ function SimpleLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      background: '#1a1a2e',
-      color: 'white',
-    }}>
-      {/* Sidebar */}
-      <div style={{
-        width: '240px',
-        background: '#16213e',
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-      }}>
-        <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>EndiorBot</h2>
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            style={{
-              padding: '12px 16px',
-              background: location.pathname === item.path ? '#0f3460' : 'transparent',
-              border: 'none',
-              borderRadius: '8px',
-              color: 'white',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: '16px',
-              transition: 'background 0.2s',
-            }}
-          >
-            {item.icon} {item.label}
-          </button>
-        ))}
+    <div className="app-shell">
+      <div className="sidebar">
+        <div className="sidebar-brand">
+          Endior<span className="dot-accent">bot</span>
+        </div>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`nav-item${location.pathname === item.path ? ' active' : ''}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
       </div>
-
-      {/* Main Content */}
-      <div style={{
-        flex: 1,
-        overflow: 'auto',
-        background: '#1a1a2e',
-      }}>
+      <div className="main-content">
         {children}
       </div>
     </div>
