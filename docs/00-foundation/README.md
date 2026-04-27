@@ -4,7 +4,15 @@
 
 **Key question:** **WHY** should EndiorBot exist, for whom, and under what constraints?
 
-This stage anchors **CEO vision**, problem statement, and business case before any **WHAT** (planning) or **HOW** (design).
+This stage anchors vision, problem statement, and business case before any **WHAT** (planning) or **HOW** (design).
+
+---
+
+## Alignment
+
+- **Downstream:** [`../01-planning/`](../01-planning/) (requirements, user stories, roadmap)
+- **Gates:** G0 (discovery), G0.1 (problem validation)
+- **Stage index:** [`../README.md`](../README.md)
 
 ---
 

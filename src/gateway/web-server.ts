@@ -473,6 +473,7 @@ export class WebGatewayServer {
       "Content-Type": "text/html; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     });
     res.end(this.htmlContent);
   }
