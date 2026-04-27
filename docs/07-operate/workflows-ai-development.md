@@ -2,7 +2,7 @@
 
 **Phân tích use cases, workflows khi phát triển ứng dụng với AI Agents**
 **Tham chiếu:** Sau Sheong, "From vibe coding to agentic engineering" (Apr 2026)
-**Framework:** SDLC 6.3.1 · EndiorBot Sprint 135
+**Framework:** SDLC 6.3.1 · EndiorBot Sprint 144
 
 ---
 
@@ -370,18 +370,144 @@ Sau Sheong viết: "Active knowledge decays without practice. We need to design 
 
 Sprint 134 externalized all hardcoded timeouts into `src/config/timeouts.ts` (SSOT, env-overridable) and shipped webhooks ingress (Zapier/email forward support).
 
-Sprint 135 achieved **surface parity** — every Sprint 131-134 backend feature is now accessible from all 4 channels:
+Sprint 135 achieved **surface parity** — every Sprint 131-134 backend feature is now accessible from all channels.
 
-| Feature | CLI | Telegram/Zalo | Web API |
-|---------|-----|---------------|---------|
-| Exec-policy management | `endiorbot exec-policy *` | `/exec-policy show\|preset\|audit` | `POST /api/config/exec-policy/preset` |
-| Active Memory toggle | env var | `/config active-memory on\|off` | `POST /api/config/active-memory` |
-| Auto-handoff toggle | env var | `/config auto-handoff on\|off` | — |
-| Audit log viewer | `tail ~/.endiorbot/audit-logs/*` | `/audit exec-policy\|ssrf\|webhooks` | `GET /api/audit/:type` |
-| Config viewer | env vars | `/config` | `GET /api/config` |
-| Webhook management | — | `/webhooks list\|test` | `POST /api/webhooks/:triggerId` |
+---
 
-**OTT mutations require 2-step confirm** (C-HARD-1): user sends command → bot asks "Reply YES within 30s" → user confirms → execute + audit log.
+## Sprint 140-141: CC-First Routing + Kimi Fallback
+
+Sprint 140 introduced 3-tier agent-model mapping (ADR-052). Sprint 141 added cost telemetry + Kimi resilience. Sprint 143 amended ADR-052: **Claude Code primary for all Tier 2 agents** (was Kimi primary).
+
+### Current Provider Routing (Sprint 143+)
+
+```
+@agent message
+  → Claude Code (Sonnet) — primary, native codebase access
+      ↓ on timeout / rate-limit
+  → Kimi (k2.6 via OAuth proxy) — free fallback
+      ↓ on failure
+  → OpenAI / Ollama — last resort
+```
+
+| Tier | Provider | Model | Agents | Rationale |
+|------|----------|-------|--------|-----------|
+| 1 | Claude Code | claude-opus-4 | @architect, @cso, @ceo | Critical reasoning |
+| 2 | Claude Code | sonnet | @coder, @pm, @reviewer + 7 more | CC first — codebase access; Kimi fallback |
+| 3 | Ollama | qwen3.5:9b | @assistant | Free, local, routing |
+
+### Kimi as Fallback (not primary)
+
+```
+Kimi access paths:
+  kimi-proxy (OAuth, free) → kimi-api (Moonshot, paid) → cloud fallback (OpenAI)
+
+Setup: ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765 in .env
+  → Reuses existing claude-code-proxy instance
+  → No subprocess spawn (Sprint 144: deprecated)
+```
+
+---
+
+## Sprint 143: Gateway Resilience Hotfixes
+
+CEO 2-hour Telegram testing session exposed 7 production issues. All hotfixed same-day:
+
+| Issue | Root cause | Fix |
+|-------|-----------|-----|
+| `/start` → Unknown command | No handler | Added to CommandDispatcher |
+| CC timeout → error (no fallback) | TIMEOUT threw instead of falling back | Fallback chain wired |
+| Kimi model rejected | Provider validated "sonnet" against Anthropic list | Model name resolution |
+| Telegram swallows response | Markdown parse error → 400 | Plain-text retry |
+| Duplicate messages | Multiple serve processes | Session lock + PID lockfile (Sprint 144) |
+
+---
+
+## Sprint 144: Gateway Hardening + 5-Channel Parity
+
+### Provider Circuit Breaker
+
+```
+CC fails twice → circuit OPEN → skip CC → instant Kimi (60s cooldown)
+  → 60s later → HALF-OPEN → try CC once
+  → success → CLOSED (recovered)
+  → failure → re-open (120s, max 5min)
+```
+
+### OTT-Aware Timeout
+
+| Channel | CC Timeout | Then |
+|---------|-----------|------|
+| Telegram / Zalo / Web / Desktop | **60s** | Kimi fallback |
+| CLI | **180s** | Kimi fallback |
+
+### 5 Channels, 39 Commands
+
+All channels route through the same GatewayIngress → CommandDispatcher:
+
+| Channel | Access | Commands |
+|---------|--------|----------|
+| CLI | `endiorbot <cmd>` | 39 |
+| Web UI | `http://localhost:18790` | 39 |
+| Telegram | `@Endior_bot` | 39 |
+| Zalo | Bot Endior | 39 |
+| Desktop | Electron app (gateway auto-start) | 39 |
+
+### Desktop App (Sprint 144)
+
+Electron wrapper around Web UI with native OS features:
+- 9 pages: Dashboard, Chat, Projects, Gates, Experts, Settings, Junior Hub, Checkpoints, Fix Stats
+- Gateway auto-starts as subprocess (no manual `endiorbot serve` needed)
+- API key management directly in Settings UI
+
+### Immediate Acknowledgement
+
+All OTT channels send `⚡ @agent` immediately when routing — no more silent waiting during long AI calls.
+
+---
+
+## Tổng kết: Workflow Map (Sprint 144)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Developer Day — 5 Channels                 │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  📱 Telegram/Zalo (on the go) — 39 commands                  │
+│  ├─ /status → project + workspace context                    │
+│  ├─ /gate status → approve/reject gates                      │
+│  ├─ @pm plan feature → structured plan                       │
+│  ├─ @coder fix bug → CC primary, Kimi fallback               │
+│  ├─ /exec-policy show|preset|audit → security from phone     │
+│  └─ ⚡ immediate ack before long AI calls                    │
+│                                                               │
+│  💻 CLI (at the desk)                                         │
+│  ├─ endiorbot chat → multi-turn (CC/Kimi/OpenAI/Ollama)     │
+│  ├─ endiorbot @coder "task" → Claude Code in tmux            │
+│  ├─ endiorbot consult "question" → 3-model analysis          │
+│  ├─ endiorbot serve → gateway + all channels                 │
+│  └─ endiorbot serve --force → kill existing + takeover       │
+│                                                               │
+│  🖥️ Desktop (Electron)                                       │
+│  ├─ Auto-starts gateway — Chat works immediately             │
+│  ├─ Projects page → registered repos from repos.json         │
+│  ├─ Settings → API key management (save to .env)             │
+│  └─ Gates → 7 SDLC gate statuses at a glance                │
+│                                                               │
+│  🌐 Web UI (localhost:18790)                                  │
+│  ├─ 39 commands via WebSocket gateway                        │
+│  ├─ @agent chat with streaming responses                     │
+│  └─ REST API for external integrations                        │
+│                                                               │
+│  🔒 Governance (automatic, embedded)                         │
+│  ├─ Circuit breaker → skip failing providers automatically   │
+│  ├─ PID lockfile → no duplicate serve processes              │
+│  ├─ exec-policy → command allowlist BEFORE Gates             │
+│  ├─ safeFetch → SSRF protection on outbound HTTP             │
+│  ├─ Gate Engine → programmatic G0-G4 evaluation              │
+│  └─ Audit logs → JSONL, every decision recorded              │
+│                                                               │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -389,14 +515,15 @@ Sprint 135 achieved **surface parity** — every Sprint 131-134 backend feature 
 
 - Sau Sheong, "From vibe coding to agentic engineering (abridged)", Apr 2026
 - Dan Shapiro, Five Levels of AI Engineering
-- [EndiorBot Usage Guide](USAGE-GUIDE.md)
-- [CLI Reference](../04-build/cli-reference.md)
+- [EndiorBot Usage Guide](USAGE-GUIDE.md) — 20 workflows
+- [CLI Reference](../04-build/cli-reference.md) — Full command reference
 - [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
+- [ADR-052 Agent-Model Tier Mapping](../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md) — CC-first routing
 - [SOUL-pm.md v1.2.0](../reference/templates/souls/SOUL-pm.md) — Ground-Truth Verification rules
 - [Product Vision](../00-foundation/product-vision.md)
-- [Deploy Guide](../06-deploy/README.md) — Environment variables, webhook setup
-- [openclaw-backport PRD](../01-planning/openclaw-backport/PRD.md)
+- [Deploy Guide](../06-deploy/README.md) — Docker, npm, Desktop, Kimi proxy setup
+- [Gateway Architecture Review](../02-design/14-Technical-Specs/gateway-architecture-review-sprint-143.md)
 
 ---
 
-*EndiorBot | Solo Developer Power Tool | SDLC 6.3.1 | AI Development Workflows v1.1 — Sprint 135*
+*EndiorBot | Solo Developer Power Tool | SDLC 6.3.1 | AI Development Workflows v2.0 — Sprint 144 (2026-04-27)*

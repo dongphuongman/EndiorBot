@@ -194,6 +194,8 @@ Primary provider is **Claude Code via OAuth subscription** — no API key needed
 | `KIMI_API_KEY` | Optional | Direct Kimi API (paid, Moonshot) — alternative to proxy |
 | `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | Telegram bot token from @BotFather |
 | `ENDIORBOT_ZALO_ACCESS_TOKEN` | For Zalo | Zalo OA access token |
+| `ENDIORBOT_ZALO_USER_ID` | For Zalo | Zalo user ID (recipient) |
+| `ENDIORBOT_ZALO_OA_ID` | For Zalo | Zalo OA ID |
 
 ### Step 4: Connect from Telegram
 
@@ -256,7 +258,7 @@ endiorbot @pm "list sprint tasks"
 
 ## Workflow 3: Agent Orchestration
 
-EndiorBot provides 13 SOUL-based AI agents:
+EndiorBot provides 14 SOUL-based AI agents:
 
 ### Executor Agents (do work)
 
@@ -279,6 +281,7 @@ EndiorBot provides 13 SOUL-based AI agents:
 | `@ceo` | Strategic decisions | `@ceo should we pivot?` |
 | `@cto` | Technical review | `@cto review architecture` |
 | `@cpo` | Product review | `@cpo review feature roadmap` |
+| `@cso` | Security audit, OWASP, threat modeling | `@cso review our auth implementation` |
 
 ### Router Agent
 
@@ -619,7 +622,7 @@ Enable agents to chain automatically — PM → Architect → Coder → Reviewer
 # Agents auto-route @mention handoffs (default: false)
 export ENDIORBOT_AUTO_HANDOFF=true
 
-# Safety cap: MAX_HANDOFF_DEPTH=3 (hardcoded, not configurable)
+# Safety cap: MAX_HANDOFF_DEPTH=3 (default; overridable via HandoffGuardsConfig)
 # Destructive actions (merge, deploy, PATCH) still require CEO approval
 ```
 
@@ -878,7 +881,7 @@ EndiorBot uses a 3-tier model routing strategy (ADR-052) to optimize cost while 
 | Tier | Provider | Model | Agents | Rationale |
 |------|----------|-------|--------|-----------|
 | 1 | claude-code | claude-opus-4 | `@architect`, `@cso`, `@ceo` (3 agents) | Critical reasoning — ADR, security, CEO strategy |
-| 2 | claude-code | sonnet | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` (10 agents) | Primary workhorse — coding quality via Sonnet (Sprint 143 amendment) |
+| 2 | claude-code | sonnet | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` (10 agents) | CC first for codebase access; Kimi fallback on rate-limit |
 | 3 | ollama | qwen3.5:9b | `@assistant` (1 agent) | Free tier — routing, delegation, lightweight tasks |
 
 ### Kimi Access Paths
@@ -926,7 +929,7 @@ kimi-proxy 429 → immediate retry via kimi-api → if both fail → claude-code
 
 ```
 ollama response → confidence scorer → if score < 0.5 AND FF enabled → escalate to kimi
-                                       (FF_OLLAMA_AUTO_ESCALATE = false currently, 3-day data)
+                                       (ENDIORBOT_FF_OLLAMA_AUTO_ESCALATE = false currently, 3-day data)
 ```
 
 ### Source Files
@@ -1006,6 +1009,8 @@ cd apps/desktop && pnpm build   # Production build (DMG/NSIS/AppImage)
 | Experts | Environment variables | Provider status (5 providers) |
 | Settings | `.env` file | API key management, theme, gateway port |
 | Junior Hub | — | Coming soon |
+| Checkpoints | Session state | Session checkpoint browser |
+| Fix Stats | Cross-session data | Cross-session fix history |
 
 ### Gateway Auto-Start
 
@@ -1121,6 +1126,8 @@ All OTT channels now send `⚡ @agent` immediately when routing, before the AI c
 | `/eval <code>` | Evaluate code in session |
 | `/mode <read\|patch>` | Set session risk mode |
 
+**Note:** Bridge commands are registered in the unified CommandDispatcher and work on any channel where the user has run `/link`. The 'Telegram only' label reflects the most common usage pattern, not a technical restriction.
+
 ### Remote Commands (auth required, Telegram only)
 
 | Command | Description |
@@ -1144,8 +1151,8 @@ All OTT channels now send `⚡ @agent` immediately when routing, before the AI c
 
 | Command | Description | Channels |
 |---------|-------------|----------|
-| `/approve` | Approve pending request | Telegram |
-| `/reject` | Reject pending request | Telegram |
+| `/approve` | Approve pending request | All (requires /link) |
+| `/reject` | Reject pending request | All (requires /link) |
 
 ---
 
@@ -1233,10 +1240,13 @@ endiorbot cost report --provider kimi
 # If 429 rate > 30%, consider adding KIMI_API_KEY for direct API fallback
 ```
 
-### Zalo commands limited
+### Zalo command not responding
 
-**Cause:** Zalo channel supports only 14 of 31 commands by design.
-**Solution:** Use Telegram for bridge commands (`/launch`, `/sessions`, `/capture`, etc.) and the channel-from-phone commands (`/repos`, `/focus`, `/sh`, etc. — all execute on the CEO's local MacBook where the gateway runs).
+**Cause:** Zalo OA access token may be expired (tokens have limited TTL).
+**Solution:**
+1. Refresh token at Zalo Developer portal
+2. Update `ENDIORBOT_ZALO_ACCESS_TOKEN` in `.env`
+3. Restart `endiorbot serve`
 
 ---
 
@@ -1251,8 +1261,9 @@ Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI pat
 | `OPENAI_API_KEY` | Optional | — | OpenAI provider + `/consult` | — |
 | `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | — | Telegram bot token | — |
 | `ENDIORBOT_TELEGRAM_CHAT_ID` | Optional | — | CEO's private chat id | — |
-| `ZALO_APP_ID` | For Zalo | — | Zalo mini app | — |
-| `ZALO_APP_SECRET` | For Zalo | — | Zalo authentication | — |
+| `ENDIORBOT_ZALO_ACCESS_TOKEN` | For Zalo | — | Zalo OA access token | — |
+| `ENDIORBOT_ZALO_USER_ID` | For Zalo | — | Zalo user ID (recipient) | — |
+| `ENDIORBOT_ZALO_OA_ID` | For Zalo | — | Zalo OA ID | — |
 | `ENDIORBOT_STATE_DIR` | No | `~/.endiorbot/` | State directory | — |
 | `ENDIORBOT_DEBUG` | No | `false` | Debug mode (allows localhost fetch) | — |
 | `ENDIORBOT_AUTO_HANDOFF` | No | `false` | Auto-route @mention handoffs | Sprint 131 |
@@ -1262,7 +1273,7 @@ Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI pat
 | `ENDIORBOT_WEBHOOK_SECRET` | For webhook ingress | — | Shared secret (fail-closed) | Sprint 134 |
 | `ENDIORBOT_KIMI_PROXY_URL` | No | — | Reuse external `claude-code-proxy` (skip subprocess spawn) | Sprint 141 |
 | `ENDIORBOT_DISABLE_KIMI_PROXY` | No | `false` | Skip kimi-proxy entirely | Sprint 140 |
-| `FF_OLLAMA_AUTO_ESCALATE` | No | `false` | Auto-escalate low-confidence Ollama responses to Kimi | Sprint 141 |
+| `ENDIORBOT_FF_OLLAMA_AUTO_ESCALATE` | No | `false` | Auto-escalate low-confidence Ollama responses to Kimi | Sprint 141 |
 
 ---
 
