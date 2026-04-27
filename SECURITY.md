@@ -11,7 +11,7 @@
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: **security@endiorbot.dev**
+Instead, please report them via email to: **dttai@endior.net**
 
 Include:
 - Description of the vulnerability
@@ -64,6 +64,13 @@ During Sprint 138 P3-01, a git-history credential leak was identified. Pre-Sprin
 
 - Pre-rewrite SHAs may survive briefly in GitHub's internal GC cycle (hours to days). Keys are rotated-dead, so this is forensic exposure only.
 - A local bundle mirror of the pre-rewrite repository exists on one maintainer machine for rollback safety; not shared, scheduled for deletion after the 7-day window.
+
+**Pre-publish key rotation (2026-04-27, Sprint 145):**
+
+All API keys rotated immediately before repository goes public:
+- OpenAI, Google/Gemini, GitHub PAT, Telegram bot token, Zalo bot tokens, Ollama remote, MCP Gateway, Gateway token
+- Old keys confirmed dead; new keys verified working via `endiorbot serve` + Telegram test message
+- This rotation is independent of the 2026-04-19 incident; it is a belt-and-suspenders measure before public visibility.
 
 **Preventive controls (Sprint 138 follow-up):**
 
