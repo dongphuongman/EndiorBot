@@ -209,94 +209,43 @@ export function ChatSimple() {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      padding: '20px',
-    }}>
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '32px', marginBottom: '8px' }}>💬 Chat</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: isConnected ? '#10b981' : '#ef4444',
-            }} />
-            <span style={{ fontSize: '14px', color: '#9ca3af' }}>
-              {status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting...' : 'Offline'}
-            </span>
-          </div>
-          {currentStreamId && (
-            <span style={{ fontSize: '12px', color: '#6b7280' }}>
-              Streaming...
-            </span>
-          )}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Sprint 147 T4: design-token aligned chat */}
+      <div className="page-header" style={{ flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <h1>Chat</h1>
+          <span className={`dot ${isConnected ? "live" : "fail"}`} />
+          <span className="dim" style={{ fontSize: 13 }}>
+            {status === "connected" ? "Connected" : status === "connecting" ? "Connecting..." : "Offline"}
+          </span>
+          {currentStreamId && <span className="eyebrow">Streaming...</span>}
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        marginBottom: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-      }}>
+      <div style={{ flex: 1, overflowY: "auto", marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         {messages.map((message) => (
-          <div
-            key={message.id}
-            style={{
-              display: 'flex',
-              justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-            }}
-          >
+          <div key={message.id} style={{ display: "flex", justifyContent: message.role === "user" ? "flex-end" : "flex-start" }}>
             <div style={{
-              maxWidth: '70%',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              background: message.role === 'user' ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-              color: 'white',
+              maxWidth: "70%",
+              padding: "12px 16px",
+              borderRadius: "var(--radius-lg)",
+              background: message.role === "user" ? "var(--accent)" : "var(--bg-2)",
+              color: message.role === "user" ? "#1a1306" : "var(--ink)",
+              border: message.role === "user" ? "none" : "1px solid var(--line)",
             }}>
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>
                 {message.content}
                 {message.isStreaming && (
-                  <span style={{
-                    display: 'inline-block',
-                    width: '2px',
-                    height: '16px',
-                    marginLeft: '4px',
-                    background: 'currentColor',
-                    animation: 'blink 1s infinite',
-                  }} />
+                  <span style={{ display: "inline-block", width: 2, height: 16, marginLeft: 4, background: "currentColor", animation: "blink 1s infinite" }} />
                 )}
               </p>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '4px',
-                gap: '8px',
-              }}>
-                <p style={{
-                  margin: 0,
-                  fontSize: '12px',
-                  opacity: 0.7,
-                }}>
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, gap: 8 }}>
+                <span className="dim" style={{ fontSize: 11 }}>{message.timestamp.toLocaleTimeString()}</span>
                 {message.usage && (
-                  <p style={{
-                    margin: 0,
-                    fontSize: '11px',
-                    opacity: 0.6,
-                  }}>
-                    {message.usage.input + message.usage.output} tokens • {formatCost(message.usage.cost)}
-                  </p>
+                  <span className="mono dim" style={{ fontSize: 10 }}>
+                    {message.usage.input + message.usage.output} tok · {formatCost(message.usage.cost)}
+                  </span>
                 )}
               </div>
             </div>
@@ -304,35 +253,11 @@ export function ChatSimple() {
         ))}
 
         {isLoading && !currentStreamId && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '12px',
-              background: 'rgba(255,255,255,0.1)',
-              display: 'flex',
-              gap: '4px',
-            }}>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#9ca3af',
-                animation: 'bounce 1s infinite',
-              }} />
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#9ca3af',
-                animation: 'bounce 1s infinite 0.1s',
-              }} />
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#9ca3af',
-                animation: 'bounce 1s infinite 0.2s',
-              }} />
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ padding: "12px 16px", borderRadius: "var(--radius-lg)", background: "var(--bg-2)", display: "flex", gap: 4 }}>
+              <span className="dot live" />
+              <span className="dot live" style={{ animationDelay: "0.2s" }} />
+              <span className="dot live" style={{ animationDelay: "0.4s" }} />
             </div>
           </div>
         )}
@@ -341,42 +266,23 @@ export function ChatSimple() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} style={{
-        display: 'flex',
-        gap: '8px',
-      }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         <input
+          className="input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={isConnected ? "Type your message..." : "Waiting for Gateway..."}
+          placeholder={isConnected ? "Type your message or @agent task..." : "Waiting for Gateway..."}
           disabled={isLoading || !isConnected}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            fontSize: '14px',
-            outline: 'none',
-          }}
+          style={{ flex: 1, padding: "12px 16px", fontSize: 14 }}
         />
         <button
           type="submit"
           disabled={!input.trim() || isLoading || !isConnected}
-          style={{
-            padding: '12px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            background: (!input.trim() || isLoading || !isConnected) ? '#6b7280' : '#3b82f6',
-            color: 'white',
-            fontSize: '14px',
-            cursor: (!input.trim() || isLoading || !isConnected) ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-          }}
+          className={`btn ${!input.trim() || isLoading || !isConnected ? "btn-ghost" : "btn-primary"}`}
+          style={{ padding: "12px 24px" }}
         >
-          {isLoading ? "Sending..." : "Send"}
+          {isLoading ? "..." : "Send"}
         </button>
       </form>
 
