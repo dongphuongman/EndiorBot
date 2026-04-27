@@ -194,7 +194,7 @@ export class GatewayIngress {
       return {
         text: this.router.formatResponse(`mtclaw.${routeResult.crossSystem.agent}`, result),
         format: "markdown" as const,
-        metadata: { agent: `mtclaw.${routeResult.crossSystem.agent}`, model: "mtclaw-mcp", latencyMs: Date.now() - startMs },
+        metadata: { agent: `mtclaw.${routeResult.crossSystem.agent}`, model: "mcp-gateway", latencyMs: Date.now() - startMs },
       };
     }
 
@@ -241,7 +241,9 @@ export class GatewayIngress {
       : undefined;
     // Use sanitized text for AI call (defense-in-depth against prompt injection)
     const sanitizedTask = violations.length > 0 ? sanitizedText : routeResult.task;
-    const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn, progressFn);
+    // Sprint 144 T3: Pass origin channel for OTT-aware timeout selection
+    const originChannel = (msg.channel ?? "cli") as "telegram" | "zalo" | "web" | "cli";
+    const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn, progressFn, originChannel);
     const responseText = this.router.formatResponse(agent, result);
 
     // Store assistant turn

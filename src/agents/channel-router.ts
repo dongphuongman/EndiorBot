@@ -27,6 +27,11 @@ import {
   dispatchAgentPrimary,
   dispatchAgentFallback,
 } from "./router/providers.js";
+import {
+  isProviderAvailable,
+  recordProviderSuccess,
+  recordProviderFailure,
+} from "./router/provider-circuit-breaker.js";
 
 // Re-export constants from agent-constants (preserve public API)
 export {
@@ -219,6 +224,12 @@ export class ChannelRouter {
      * prefixed so channel adapters can recognize it as user-facing).
      */
     progressFn?: (text: string) => void,
+    /**
+     * Sprint 144 T3: Origin channel for timeout selection.
+     * OTT (telegram/zalo/web) → 60s CC timeout (chat-like responsiveness).
+     * CLI → 180s (user at terminal, more patient).
+     */
+    originChannel?: "telegram" | "zalo" | "web" | "cli",
   ): Promise<AIResult> {
     // Sprint 143: Per-agent session lock — prevent duplicate concurrent calls.
     // CEO may tap @coder 3 times; only the first spawns a bridge, rest get notice.
@@ -236,7 +247,12 @@ export class ChannelRouter {
 
     try {
     const ws = workspace ?? this.config.projectRoot;
-    const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
+    // Sprint 144 T3: OTT-aware timeout — 60s for chat channels, 180s for CLI
+    const isOtt = originChannel && originChannel !== "cli";
+    const ottConfig = isOtt
+      ? { ...this.config, claudeTimeout: 60 } // 60 seconds for OTT
+      : this.config;
+    const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: ottConfig };
     const callStartTime = Date.now();
 
     // ADR-052 (Sprint 140): Agent-aware provider dispatch.
@@ -246,6 +262,18 @@ export class ChannelRouter {
     const isClaudePrimary = !agentConfig || agentConfig.provider === "claude-code";
 
     if (isClaudePrimary) {
+      // Sprint 144 T2: Circuit breaker — skip CC if it's been failing consecutively
+      if (!isProviderAvailable("claude-code")) {
+        console.log(`[Router] Circuit OPEN for claude-code — skipping to fallback for @${agent}`);
+        progressFn?.(`⚡ Claude Code circuit open (recent failures) — using fallback for @${agent}…`);
+        const cbFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+        if (cbFallback) {
+          this.recordTelemetry(agent, task, callStartTime, true, cbFallback.provider ?? "fallback", true, cbFallback);
+          return cbFallback;
+        }
+        throw new Error(`Circuit open for Claude Code and fallback chain exhausted for @${agent}.`);
+      }
+
       // ─── Tier 1: Claude Code Bridge (legacy behavior with failure classification) ───
       const { result: bridgeResult, failure } = await callClaudeBridgeClassified(
         deps,
@@ -256,6 +284,7 @@ export class ChannelRouter {
         notifyFn,
       );
       if (bridgeResult) {
+        recordProviderSuccess("claude-code");
         this.recordTelemetry(agent, task, callStartTime, true, bridgeResult.provider ?? "claude-code", false, bridgeResult);
         return bridgeResult;
       }
@@ -265,6 +294,9 @@ export class ChannelRouter {
           "Claude Code request failed without a classification. Please retry; if the problem persists, run `claude --version` to verify the CLI is healthy.",
         );
       }
+
+      // Sprint 144 T2: Record failure for circuit breaker
+      recordProviderFailure("claude-code");
 
       switch (failure.kind) {
         case "RATE_LIMITED": {
@@ -285,10 +317,6 @@ export class ChannelRouter {
           );
         }
         case "TIMEOUT": {
-          // Sprint 143: Timeout → try cloud fallback (same as RATE_LIMITED).
-          // CEO observed @cto hung on Telegram — CC CLI waited for permission
-          // input that can't arrive from OTT. Fallback to Kimi/cloud ensures
-          // CEO gets a response instead of silent timeout.
           console.log(
             `[Router] Claude Code timed out — falling back for @${agent}...`,
           );

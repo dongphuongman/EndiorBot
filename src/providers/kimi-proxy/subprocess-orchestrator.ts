@@ -129,6 +129,12 @@ export async function startKimiProxy(): Promise<SubprocessOrchestratorState | nu
 
   // External proxy detection — reuse an already-running proxy (e.g. claude-kimi alias)
   // Set ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765 to skip subprocess spawn.
+  //
+  // Sprint 144 T4: DEPRECATED subprocess spawner.
+  // Recommended setup: CEO runs `claude-code-proxy serve` externally + sets
+  // ENDIORBOT_KIMI_PROXY_URL. Subprocess spawn is unreliable (health check
+  // races, stale processes, short-lived auth tokens). If no URL is set AND
+  // no binary found, log a notice instead of failing silently.
   const externalUrl = process.env.ENDIORBOT_KIMI_PROXY_URL;
   if (externalUrl) {
     const healthy = await waitForHealth(externalUrl, HEALTH_CHECK_TIMEOUT_MS);
@@ -139,6 +145,11 @@ export async function startKimiProxy(): Promise<SubprocessOrchestratorState | nu
     }
     log.warn(`ENDIORBOT_KIMI_PROXY_URL=${externalUrl} not healthy — falling back to subprocess spawn`);
   }
+
+  // Sprint 144 T4: Deprecation notice for subprocess spawner
+  console.warn("⚠️  [kimi-proxy] Subprocess spawner is DEPRECATED (Sprint 144).");
+  console.warn("   Recommended: run 'claude-code-proxy serve' externally + set ENDIORBOT_KIMI_PROXY_URL.");
+  console.warn("   Subprocess spawn is unreliable. See docs/06-deploy/README.md.");
 
   // Find binary
   const binaryPath = await findBinaryAsync();

@@ -20,6 +20,9 @@
  */
 
 import type { Command } from "commander";
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, dirname } from "node:path";
 import {
   createGatewayServer,
   setGatewayServer,
@@ -45,9 +48,9 @@ import { BusDebounce } from "../../bus/debounce.js";
 import { BusDedup } from "../../bus/dedup.js";
 // Sprint 110.5 (ADR-033): RL Feedback Service — CEO 👍/🔄/👎 keyboard
 import { RLFeedbackService } from "../../rl/feedback-service.js";
-// Sprint 113 (ADR-034): Cross-System Agent Communication — EndiorBot ↔ MTClaw
-import { MTClawBridge } from "../../mtclaw/bridge.js";
-import { loadMTClawConfig } from "../../mtclaw/config.js";
+// Sprint 113 (ADR-034): Cross-System Agent Communication — EndiorBot ↔ MCP Gateway
+import { McpGatewayBridge } from "../../mcp-gateway/bridge.js";
+import { loadMcpGatewayConfig } from "../../mcp-gateway/config.js";
 // Sprint 116 T4: Env validation at startup
 import { validateServeEnv, checkProviderKeys } from "../../config/env-schema.js";
 
@@ -93,11 +96,76 @@ export interface ServeOptions {
   port?: string;
   noTelegram?: boolean;
   noZalo?: boolean;
+  force?: boolean;
 }
 
 interface Component {
   name: string;
   stop: () => Promise<void>;
+}
+
+// ============================================================================
+// PID Lockfile (Sprint 144 T1)
+// ============================================================================
+
+function getPidLockPath(): string {
+  const base = process.env["ENDIORBOT_STATE_DIR"] ?? join(homedir(), ".endiorbot");
+  return join(base, "serve.pid");
+}
+
+/**
+ * Check if another serve process is running. If so, exit or force-kill.
+ * Returns true if lock was acquired, false if should exit.
+ */
+function acquirePidLock(force: boolean): boolean {
+  const lockPath = getPidLockPath();
+  const dir = dirname(lockPath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  if (existsSync(lockPath)) {
+    const existingPid = parseInt(readFileSync(lockPath, "utf-8").trim(), 10);
+    if (!isNaN(existingPid)) {
+      // Check if process is alive
+      try {
+        process.kill(existingPid, 0); // signal 0 = check existence
+        // Process alive
+        if (force) {
+          console.log(yellow(`  ⚠️  Killing existing serve process (PID ${existingPid})...`));
+          try { process.kill(existingPid, "SIGTERM"); } catch { /* already dead */ }
+          // Give it 2s to exit gracefully
+          const start = Date.now();
+          while (Date.now() - start < 2000) {
+            try { process.kill(existingPid, 0); } catch { break; }
+          }
+        } else {
+          console.error(red(`\n  ❌ EndiorBot already running (PID ${existingPid}).`));
+          console.error(red(`     Use --force to kill existing + take over.\n`));
+          return false;
+        }
+      } catch {
+        // Process dead — stale lockfile, clean up
+      }
+    }
+    // Remove stale/killed lockfile
+    try { unlinkSync(lockPath); } catch { /* ignore */ }
+  }
+
+  // Write our PID
+  writeFileSync(lockPath, String(process.pid), { encoding: "utf-8", mode: 0o600 });
+  return true;
+}
+
+function releasePidLock(): void {
+  const lockPath = getPidLockPath();
+  try {
+    // Only delete if it's OUR pid (avoid race)
+    if (existsSync(lockPath)) {
+      const stored = parseInt(readFileSync(lockPath, "utf-8").trim(), 10);
+      if (stored === process.pid) {
+        unlinkSync(lockPath);
+      }
+    }
+  } catch { /* best-effort */ }
 }
 
 // ============================================================================
@@ -108,15 +176,26 @@ interface Component {
  * Serve action — start all components in a single process.
  *
  * Startup order (Fix #3: session-dependent components last):
- * 1. AI providers (needed by ChannelRouter)
- * 2. ChannelRouter (AI routing SSOT)
- * 3. CommandDispatcher (central command registry)
- * 4. GatewayIngress (single entry point — wires dispatcher + router)
- * 5. Gateway Server (WebSocket + HTTP — registers all methods)
- * 6. OTT Adapters (Telegram, Zalo — each with error boundary)
+ * 1. PID lockfile (Sprint 144: singleton enforcement)
+ * 2. AI providers (needed by ChannelRouter)
+ * 3. ChannelRouter (AI routing SSOT)
+ * 4. CommandDispatcher (central command registry)
+ * 5. GatewayIngress (single entry point — wires dispatcher + router)
+ * 6. Gateway Server (WebSocket + HTTP — registers all methods)
+ * 7. OTT Adapters (Telegram, Zalo — each with error boundary)
  */
 async function serveAction(options: ServeOptions): Promise<void> {
   const components: Component[] = [];
+
+  // Sprint 144 T1: Singleton serve enforcement via PID lockfile
+  if (!acquirePidLock(!!options.force)) {
+    process.exit(1);
+  }
+  // Release on exit (normal, SIGTERM, SIGINT)
+  const cleanupLock = (): void => { releasePidLock(); };
+  process.on("exit", cleanupLock);
+  process.on("SIGTERM", () => { cleanupLock(); process.exit(0); });
+  process.on("SIGINT", () => { cleanupLock(); process.exit(0); });
 
   // Sprint 116 T4: Validate env vars at startup (fail-fast)
   try {
@@ -153,27 +232,27 @@ async function serveAction(options: ServeOptions): Promise<void> {
       console.log(green(`  ${providerCount} AI provider(s) ready`));
     }
 
-    // 1.5 MTClaw Bridge — optional cross-system agent communication (Sprint 113, ADR-034)
-    let mtclawBridge: MTClawBridge | undefined;
+    // 1.5 MCP Gateway Bridge — optional cross-system agent communication (Sprint 113, ADR-034)
+    let mcpGatewayBridge: McpGatewayBridge | undefined;
     try {
-      const mcpConfig = loadMTClawConfig();
+      const mcpConfig = loadMcpGatewayConfig();
       if (mcpConfig) {
-        mtclawBridge = new MTClawBridge(mcpConfig);
-        await mtclawBridge.connect();
-        components.push({ name: "MTClawBridge", stop: async () => { await mtclawBridge!.disconnect(); } });
-        console.log(green("  MTClaw Bridge ready"));
+        mcpGatewayBridge = new McpGatewayBridge(mcpConfig);
+        await mcpGatewayBridge.connect();
+        components.push({ name: "McpGatewayBridge", stop: async () => { await mcpGatewayBridge!.disconnect(); } });
+        console.log(green("  MCP Gateway Bridge ready"));
       } else {
-        console.log(dim("  MTClaw Bridge: not configured (skipped)"));
+        console.log(dim("  MCP Gateway Bridge: not configured (skipped)"));
       }
     } catch (e) {
-      console.log(yellow(`  MTClaw Bridge: ${(e as Error).message} (skipped)`));
+      console.log(yellow(`  MCP Gateway Bridge: ${(e as Error).message} (skipped)`));
     }
 
     // 2. ChannelRouter (AI routing SSOT)
     console.log(dim("  Initializing ChannelRouter..."));
-    // CTO C4: exactOptionalPropertyTypes — only pass mtclawBridge if defined
+    // CTO C4: exactOptionalPropertyTypes — only pass mcpGatewayBridge if defined
     const routerConfig: Partial<import("../../agents/channel-router.js").ChannelRouterConfig> = {};
-    if (mtclawBridge) routerConfig.mtclawBridge = mtclawBridge;
+    if (mcpGatewayBridge) routerConfig.mcpGatewayBridge = mcpGatewayBridge;
     const router = createChannelRouter(routerConfig);
     await router.initialize();
     console.log(green("  ChannelRouter ready"));
@@ -383,5 +462,6 @@ export function registerServeCommand(program: Command): void {
     .option("-p, --port <port>", "Gateway port (default: 18790)")
     .option("--no-telegram", "Skip Telegram OTT adapter")
     .option("--no-zalo", "Skip Zalo OTT adapter")
+    .option("--force", "Kill existing serve process and take over")
     .action(serveAction);
 }
