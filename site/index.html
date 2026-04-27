@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EndiorBot — Solo Developer AI Orchestration Tool</title>
+  <meta name="description" content="14 AI agents across 5 channels. Get answers in 30 seconds instead of 30 minutes. Open-source, built on SDLC Framework 6.3.1.">
+  <meta name="keywords" content="AI agents, developer tools, SDLC, Claude Code, solo developer, orchestration">
+  <meta property="og:title" content="EndiorBot — Solo Developer AI Orchestration Tool">
+  <meta property="og:description" content="14 AI agents across 5 channels. Get answers in 30s instead of 30min.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://endior.net">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #12121a;
+      --bg3: #1a1a2e;
+      --text: #e4e4e7;
+      --text2: #a1a1aa;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --green: #22c55e;
+      --border: rgba(255,255,255,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+
+    /* Layout */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 80px 0; }
+
+    /* Nav */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10,10,15,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    nav .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    nav .logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    nav .logo span { color: var(--accent2); }
+    nav .links { display: flex; gap: 24px; align-items: center; }
+    nav .links a { color: var(--text2); font-size: 14px; font-weight: 500; }
+    nav .links a:hover { color: var(--text); text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); text-decoration: none; }
+    .btn-outline { border: 1px solid var(--border); color: var(--text2); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+
+    /* Hero */
+    .hero { padding: 140px 0 80px; text-align: center; background: radial-gradient(ellipse at top, rgba(99,102,241,0.08) 0%, transparent 60%); }
+    .hero .badge { display: inline-block; padding: 4px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--accent2); font-size: 13px; font-weight: 500; margin-bottom: 20px; border: 1px solid rgba(99,102,241,0.2); }
+    .hero h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+    .hero h1 span { background: linear-gradient(135deg, var(--accent2), #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 18px; color: var(--text2); max-width: 600px; margin: 0 auto 32px; }
+    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-stats { display: flex; gap: 40px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
+    .hero-stats .stat { text-align: center; }
+    .hero-stats .stat-value { font-size: 28px; font-weight: 800; color: var(--text); }
+    .hero-stats .stat-label { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+    /* Terminal */
+    .terminal { max-width: 640px; margin: 48px auto 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; text-align: left; }
+    .terminal-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg3); border-bottom: 1px solid var(--border); }
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .terminal-body { padding: 16px 20px; font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.8; color: var(--text2); }
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .comment { color: #6b7280; }
+    .terminal-body .output { color: var(--accent2); }
+
+    /* Features */
+    .features { background: var(--bg2); }
+    .features h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .features .subtitle { text-align: center; color: var(--text2); margin-bottom: 48px; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .feature-card { padding: 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.2s; }
+    .feature-card:hover { border-color: rgba(99,102,241,0.3); }
+    .feature-card .icon { font-size: 28px; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .feature-card p { font-size: 14px; color: var(--text2); }
+
+    /* Architecture */
+    .architecture h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .architecture .subtitle { text-align: center; color: var(--text2); margin-bottom: 48px; }
+    .arch-diagram { max-width: 800px; margin: 0 auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 32px; font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--text2); white-space: pre; overflow-x: auto; }
+
+    /* Channels */
+    .channels h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .channels .subtitle { text-align: center; color: var(--text2); margin-bottom: 48px; }
+    .channels-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; max-width: 700px; margin: 0 auto; }
+    .channel-card { text-align: center; padding: 24px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; }
+    .channel-card .icon { font-size: 32px; margin-bottom: 8px; }
+    .channel-card h3 { font-size: 15px; font-weight: 600; }
+    .channel-card p { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+    /* Agents */
+    .agents { background: var(--bg2); }
+    .agents h2 { text-align: center; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .agents .subtitle { text-align: center; color: var(--text2); margin-bottom: 48px; }
+    .agents-table { max-width: 800px; margin: 0 auto; }
+    .agents-table table { width: 100%; border-collapse: collapse; }
+    .agents-table th { text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); border-bottom: 1px solid var(--border); }
+    .agents-table td { padding: 10px 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
+    .agents-table tr:hover { background: rgba(255,255,255,0.02); }
+    .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .tier-1 { background: rgba(168,85,247,0.15); color: #c084fc; }
+    .tier-2 { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .tier-3 { background: rgba(107,114,128,0.15); color: #9ca3af; }
+
+    /* Methodology */
+    .methodology { text-align: center; }
+    .methodology h2 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .methodology .subtitle { color: var(--text2); margin-bottom: 32px; }
+    .methodology .pillars { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 700px; margin: 0 auto 32px; }
+    .methodology .pillar { padding: 8px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+
+    /* CTA */
+    .cta { text-align: center; background: radial-gradient(ellipse at bottom, rgba(99,102,241,0.08) 0%, transparent 60%); }
+    .cta h2 { font-size: 36px; font-weight: 800; margin-bottom: 12px; }
+    .cta p { color: var(--text2); margin-bottom: 32px; font-size: 18px; }
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* Footer */
+    footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text2); font-size: 13px; }
+    footer a { color: var(--text2); }
+    footer .links { display: flex; gap: 24px; justify-content: center; margin-bottom: 12px; }
+
+    @media (max-width: 640px) {
+      .hero-stats { gap: 24px; }
+      .arch-diagram { font-size: 11px; padding: 16px; }
+      nav .links a:not(.btn) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <div class="logo">Endior<span>Bot</span></div>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#agents">Agents</a>
+      <a href="#methodology">Methodology</a>
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot" class="btn btn-outline">GitHub</a>
+      <a href="https://www.npmjs.com/package/endiorbot" class="btn btn-primary">npm install</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">v0.1.0-beta.1 — Open Source (MIT)</div>
+    <h1>AI agents for<br><span>solo developers</span></h1>
+    <p>14 SOUL agents across 5 channels. Get answers in 30 seconds instead of 30 minutes. Built on SDLC Framework 6.3.1.</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot" class="btn btn-primary">View on GitHub</a>
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot/blob/main/docs/07-operate/USAGE-GUIDE.md" class="btn btn-outline">Usage Guide</a>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="terminal-dot" style="background:#ff5f57"></div>
+        <div class="terminal-dot" style="background:#febc2e"></div>
+        <div class="terminal-dot" style="background:#28c840"></div>
+      </div>
+      <div class="terminal-body">
+<span class="comment"># Initialize SDLC structure in your project</span>
+<span class="prompt">$</span> <span class="cmd">npx endiorbot init --tier STANDARD</span>
+<span class="output">  Created: CLAUDE.md, IDENTITY.md, AGENTS.md, docs/</span>
+
+<span class="comment"># Start all channels (Web + Telegram + Zalo)</span>
+<span class="prompt">$</span> <span class="cmd">npx endiorbot serve</span>
+<span class="output">  Gateway listening on ws://127.0.0.1:18790</span>
+<span class="output">  Telegram adapter started</span>
+
+<span class="comment"># Talk to AI agents</span>
+<span class="prompt">$</span> <span class="cmd">endiorbot @pm "plan payment gateway"</span>
+<span class="output">  @pm Sprint plan created with 4 tasks...</span>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-value">14</div><div class="stat-label">AI Agents</div></div>
+      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Channels</div></div>
+      <div class="stat"><div class="stat-value">39</div><div class="stat-label">Commands</div></div>
+      <div class="stat"><div class="stat-value">8,124+</div><div class="stat-label">Tests</div></div>
+      <div class="stat"><div class="stat-value">49</div><div class="stat-label">ADRs</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="container">
+    <h2>Everything a solo developer needs</h2>
+    <p class="subtitle">Enterprise-grade AI orchestration without the enterprise overhead</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="icon">🤖</div>
+        <h3>14 SOUL Agents</h3>
+        <p>PM, Architect, Coder, Reviewer, Tester, DevOps, and 8 more — each with specialized prompts and SDLC-aware behavior.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📱</div>
+        <h3>5 Channels</h3>
+        <p>CLI, Web UI, Telegram, Zalo, Desktop (Electron). Same 39 commands work everywhere.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔄</div>
+        <h3>Multi-Model Consultation</h3>
+        <p>Query Claude, GPT, Gemini, Kimi in parallel. Get consolidated expert opinions in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🚦</div>
+        <h3>SDLC Quality Gates</h3>
+        <p>G0 through G4 quality gates with automated evidence collection and compliance scoring.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔗</div>
+        <h3>Claude Code Bridge</h3>
+        <p>Launch Claude Code sessions via tmux from any channel. Control agent runs from your phone.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>Gateway Resilience</h3>
+        <p>PID lockfile, provider circuit breaker, OTT 60s timeout. Built to survive real-world usage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="architecture">
+  <div class="container">
+    <h2>Architecture</h2>
+    <p class="subtitle">Unified serve — one process, all channels, SDLC governance</p>
+    <div class="arch-diagram">User Input ──▶ Channel Adapter ──▶ MessageBus ──▶ GatewayIngress
+                                                          │
+                                              ┌───────────┴───────────┐
+                                              │                       │
+                                         /command              @agent mention
+                                              │                       │
+                                    CommandDispatcher          ChannelRouter
+                                     (39 commands)          (tier-aware dispatch)
+                                                                  │
+                                              ┌───────────┬───────┴───────┐
+                                              │           │               │
+                                        Claude Code     Kimi         Ollama
+                                        (Primary)    (Fallback)    (Local LLM)
+
+Channels: CLI · Web · Telegram · Zalo · Desktop
+Agents:   14 SOULs × 3-tier model selection (Opus / Sonnet / Qwen)
+Guard:    PID lockfile · Circuit breaker · Session lock</div>
+  </div>
+</section>
+
+<!-- Channels -->
+<section class="channels">
+  <div class="container">
+    <h2>Works where you work</h2>
+    <p class="subtitle">Same agents, same commands — any channel</p>
+    <div class="channels-grid">
+      <div class="channel-card">
+        <div class="icon">💻</div>
+        <h3>CLI</h3>
+        <p>Terminal power users</p>
+      </div>
+      <div class="channel-card">
+        <div class="icon">🌐</div>
+        <h3>Web UI</h3>
+        <p>Browser chat at :18790</p>
+      </div>
+      <div class="channel-card">
+        <div class="icon">✈️</div>
+        <h3>Telegram</h3>
+        <p>Full OTT + bridge</p>
+      </div>
+      <div class="channel-card">
+        <div class="icon">💬</div>
+        <h3>Zalo</h3>
+        <p>Vietnam market</p>
+      </div>
+      <div class="channel-card">
+        <div class="icon">🖥️</div>
+        <h3>Desktop</h3>
+        <p>Electron native app</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Agents -->
+<section class="agents" id="agents">
+  <div class="container">
+    <h2>14 SOUL Agents</h2>
+    <p class="subtitle">Specialized AI personas with tier-aware model selection</p>
+    <div class="agents-table">
+      <table>
+        <thead>
+          <tr><th>Agent</th><th>Role</th><th>Tier</th><th>Use Case</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>@architect</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-1">Tier 1 Opus</span></td><td>ADRs, system design, G2 gate</td></tr>
+          <tr><td><code>@cso</code></td><td>SE4H Advisor</td><td><span class="tier-badge tier-1">Tier 1 Opus</span></td><td>Security review, threat modeling</td></tr>
+          <tr><td><code>@ceo</code></td><td>SE4H Advisor</td><td><span class="tier-badge tier-1">Tier 1 Opus</span></td><td>Strategic decisions, Go/No-Go</td></tr>
+          <tr><td><code>@coder</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Code generation, bug fixes</td></tr>
+          <tr><td><code>@reviewer</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Code review, quality checks</td></tr>
+          <tr><td><code>@pm</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Sprint planning, requirements</td></tr>
+          <tr><td><code>@tester</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Test strategy, E2E coverage</td></tr>
+          <tr><td><code>@devops</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>CI/CD, deployment, infra</td></tr>
+          <tr><td><code>@fullstack</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>End-to-end features</td></tr>
+          <tr><td><code>@researcher</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Technology research</td></tr>
+          <tr><td><code>@cto</code></td><td>SE4H Advisor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Architecture review</td></tr>
+          <tr><td><code>@cpo</code></td><td>SE4H Advisor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Product vision</td></tr>
+          <tr><td><code>@pjm</code></td><td>SE4A Executor</td><td><span class="tier-badge tier-2">Tier 2 Sonnet</span></td><td>Project tracking, velocity</td></tr>
+          <tr><td><code>@assistant</code></td><td>Router</td><td><span class="tier-badge tier-3">Tier 3 Ollama</span></td><td>General queries, routing</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Methodology -->
+<section class="methodology" id="methodology">
+  <div class="container">
+    <h2>Built on SDLC Framework 6.3.1</h2>
+    <p class="subtitle">A proven 7-Pillar, 10-Stage AI+Human development methodology</p>
+    <div class="pillars">
+      <div class="pillar">Design Thinking Foundation</div>
+      <div class="pillar">10 Lifecycle Stages</div>
+      <div class="pillar">Sprint Governance</div>
+      <div class="pillar">4-Tier Classification</div>
+      <div class="pillar">Quality Gates (G0-G4)</div>
+      <div class="pillar">SASE Integration</div>
+      <div class="pillar">Documentation Permanence</div>
+    </div>
+    <p style="margin-bottom: 24px">
+      <a href="https://sdlcframework.org">sdlcframework.org</a> — 503 methodology documents, 11 training modules (39 hours), 17 SOUL templates
+    </p>
+    <a href="https://github.com/Minh-Tam-Solution/SDLC-Enterprise-Framework" class="btn btn-outline">View Framework on GitHub</a>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <h2>Start building with AI agents</h2>
+    <p>Free, open-source, MIT licensed. One command to get started.</p>
+    <div class="cta-buttons">
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot" class="btn btn-primary">⭐ Star on GitHub</a>
+      <a href="https://www.npmjs.com/package/endiorbot" class="btn btn-outline">npm install endiorbot</a>
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot/blob/main/docs/07-operate/USAGE-GUIDE.md" class="btn btn-outline">Read the Guide</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://github.com/Minh-Tam-Solution/EndiorBot">GitHub</a>
+      <a href="https://www.npmjs.com/package/endiorbot">npm</a>
+      <a href="https://sdlcframework.org">SDLC Framework</a>
+      <a href="https://sdlcframework.dev">SDLC Orchestrator</a>
+      <a href="mailto:dttai@endior.net">Contact</a>
+    </div>
+    <p>MIT License — Minh-Tam-Solution &amp; Contributors</p>
+  </div>
+</footer>
+
+</body>
+</html>
