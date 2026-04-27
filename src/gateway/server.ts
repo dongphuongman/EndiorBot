@@ -27,11 +27,17 @@ import type {
   GatewayEvent,
   IGatewayServer,
 } from "./types.js";
+import { homedir } from "os";
 import { collectHealthReport } from "../monitoring/index.js";
 import { getMessageBus } from "../bus/message-bus.js";
 import { RateLimiter } from "../security/rate-limiter.js";
 import { VERSION } from "../index.js";
 import { resolveGatewayConfig, validateGatewayConfig } from "./config.js";
+// Sprint 135 T4 routes (relocated from web-server.ts → here, Sprint 144 E2E fix)
+import { TIMEOUTS } from "../config/timeouts.js";
+import { getPreset, setPreset, getEffectivePolicy, readAuditTail } from "../security/exec-approvals/index.js";
+import { isFeatureEnabled } from "../config/feature-flags.js";
+import type { Preset } from "../security/exec-approvals/types.js";
 import {
   type JsonRpcRequest,
   type JsonRpcResponse,
@@ -616,6 +622,103 @@ export class GatewayServer implements IGatewayServer {
     } else if (isHealthEndpoint) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }));
+
+    // ── Sprint 135 T4 Web API (relocated from web-server.ts, Sprint 144 E2E fix) ──
+
+    } else if (url === "/api/config" && req.method === "GET") {
+      const config = {
+        execPolicy: { preset: getPreset(), policy: getEffectivePolicy() },
+        activeMemory: { enabled: isFeatureEnabled("ACTIVE_MEMORY_ENABLED") },
+        autoHandoff: { enabled: process.env["ENDIORBOT_AUTO_HANDOFF"] === "true" },
+        timeouts: TIMEOUTS,
+      };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(config, null, 2));
+
+    } else if (url.match(/^\/api\/audit\/([a-z-]+)/) && req.method === "GET") {
+      const auditMatch = url.match(/^\/api\/audit\/([a-z-]+)/)!;
+      const type = auditMatch[1]!;
+      const limitParam = new URL(url, `http://${req.headers.host ?? "localhost"}`).searchParams.get("limit");
+      const limit = Math.min(parseInt(limitParam ?? "10", 10) || 10, 100);
+
+      if (type === "exec-policy") {
+        const entries = readAuditTail(limit);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ type, entries, count: entries.length }));
+      } else {
+        const logFiles: Record<string, string> = { ssrf: "ssrf-blocks.log", webhooks: "webhooks.log" };
+        const logFile = logFiles[type];
+        if (logFile) {
+          const logPath = join(homedir(), ".endiorbot", "audit-logs", logFile);
+          let entries: unknown[] = [];
+          if (existsSync(logPath)) {
+            const lines = readFileSync(logPath, "utf-8").trim().split("\n").filter(l => l.length > 0);
+            entries = lines.slice(-limit).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).reverse();
+          }
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ type, entries, count: entries.length }));
+        } else {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: `Unknown audit type: ${type}. Valid: exec-policy, ssrf, webhooks` }));
+        }
+      }
+
+    } else if (url === "/api/config/exec-policy/preset" && req.method === "POST") {
+      const token = this._config.authToken ?? process.env["ENDIORBOT_GATEWAY_TOKEN"];
+      const provided = (req.headers.authorization ?? "").replace("Bearer ", "");
+      if (!token || provided !== token) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized — set ENDIORBOT_GATEWAY_TOKEN" }));
+        return;
+      }
+      const bodyChunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => bodyChunks.push(c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(bodyChunks).toString("utf-8")) as { preset?: string };
+          const validPresets = new Set(["open", "balanced", "strict"]);
+          if (!body.preset || !validPresets.has(body.preset)) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Invalid preset. Valid: open, balanced, strict" }));
+            return;
+          }
+          const old = getPreset();
+          setPreset(body.preset as Preset);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, old, new: body.preset }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON body" }));
+        }
+      });
+
+    } else if (url === "/api/config/active-memory" && req.method === "POST") {
+      const token = this._config.authToken ?? process.env["ENDIORBOT_GATEWAY_TOKEN"];
+      const provided = (req.headers.authorization ?? "").replace("Bearer ", "");
+      if (!token || provided !== token) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized" }));
+        return;
+      }
+      const bodyChunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => bodyChunks.push(c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(Buffer.concat(bodyChunks).toString("utf-8")) as { enabled?: boolean };
+          if (typeof body.enabled !== "boolean") {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: 'Body must have { "enabled": true|false }' }));
+            return;
+          }
+          process.env["ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED"] = body.enabled ? "true" : "false";
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, activeMemory: body.enabled }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON body" }));
+        }
+      });
+
     } else {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not Found");
