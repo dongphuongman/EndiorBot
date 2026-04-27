@@ -49,92 +49,48 @@ export function ProjectsPage() {
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1 style={{ fontSize: "32px", marginBottom: "8px" }}>📁 Projects</h1>
-      <p style={{ color: "#9ca3af", marginBottom: "24px" }}>
-        Registered project workspaces ({repos.length} projects)
-      </p>
+    <div>
+      {/* Sprint 147 T4: design-token aligned */}
+      <div className="page-header">
+        <h1>Projects</h1>
+        <p className="subtitle">Registered project workspaces ({repos.length} projects)</p>
+      </div>
 
-      {loading && (
-        <p style={{ color: "#9ca3af" }}>Loading projects...</p>
-      )}
+      {loading && <p className="muted">Loading projects...</p>}
 
       {error && (
-        <div style={{
-          padding: "12px 16px",
-          background: "rgba(239, 68, 68, 0.1)",
-          border: "1px solid rgba(239, 68, 68, 0.3)",
-          borderRadius: "8px",
-          color: "#fca5a5",
-          marginBottom: "16px",
-        }}>
-          {error}
+        <div className="card" style={{ borderColor: "var(--danger)", marginBottom: 16 }}>
+          <span style={{ color: "var(--danger)" }}>{error}</span>
         </div>
       )}
 
       {!loading && repos.length === 0 && !error && (
-        <div style={{
-          padding: "40px",
-          background: "rgba(255, 255, 255, 0.05)",
-          borderRadius: "12px",
-          textAlign: "center",
-        }}>
-          <p style={{ fontSize: "48px", marginBottom: "16px" }}>📭</p>
-          <h2 style={{ fontSize: "20px", marginBottom: "8px", color: "#e5e7eb" }}>No projects registered</h2>
-          <p style={{ color: "#9ca3af", fontSize: "14px" }}>
+        <div className="card" style={{ padding: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 48, marginBottom: 16 }}>📭</p>
+          <h2 style={{ fontSize: 20, marginBottom: 8 }}>No projects registered</h2>
+          <p className="muted" style={{ fontSize: 14 }}>
             Register a project via CLI:{" "}
-            <code style={{ background: "rgba(255,255,255,0.1)", padding: "2px 6px", borderRadius: "4px" }}>
+            <code className="mono" style={{ background: "var(--bg-2)", padding: "2px 6px", borderRadius: 4 }}>
               endiorbot repos add &lt;name&gt; /path/to/project
             </code>
           </p>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {repos.map((repo) => (
-          <div
-            key={repo.name}
-            style={{
-              padding: "16px 20px",
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <div key={repo.name} className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                <span style={{
-                  display: "inline-block",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: repo.exists ? "#22c55e" : "#ef4444",
-                }} />
-                <span style={{ fontSize: "18px", fontWeight: 600, color: "#f3f4f6" }}>
-                  {repo.name}
-                </span>
-                <span style={{
-                  fontSize: "11px",
-                  padding: "2px 8px",
-                  borderRadius: "9999px",
-                  background: "rgba(99, 102, 241, 0.15)",
-                  color: "#a5b4fc",
-                }}>
-                  {repo.defaultBranch}
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <span className={`dot ${repo.exists ? "ok" : "fail"}`} />
+                <span style={{ fontSize: 18, fontWeight: 600 }}>{repo.name}</span>
+                <span className="tier-pill t3">{repo.defaultBranch}</span>
               </div>
-              <p style={{ fontSize: "13px", color: "#6b7280", fontFamily: "monospace" }}>
-                {repo.path}
-              </p>
+              <p className="mono dim" style={{ fontSize: 13, margin: 0 }}>{repo.path}</p>
             </div>
-            <div style={{ textAlign: "right", fontSize: "12px", color: "#6b7280" }}>
-              {repo.registeredAt
-                ? new Date(repo.registeredAt).toLocaleDateString()
-                : "—"}
-            </div>
+            <span className="dim" style={{ fontSize: 12 }}>
+              {repo.registeredAt ? new Date(repo.registeredAt).toLocaleDateString() : "—"}
+            </span>
           </div>
         ))}
       </div>
