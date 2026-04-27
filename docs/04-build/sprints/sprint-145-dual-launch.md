@@ -1,7 +1,7 @@
 ---
 sprint: 145
-status: DRAFT — awaiting CEO kickoff
-start_date: TBD
+status: IN PROGRESS
+start_date: 2026-04-27
 planned_duration: 3-4d
 framework: "6.3.1"
 authority:

@@ -13,11 +13,19 @@ It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocat
 
 **Identity**: Solo Developer Power Tool — not a platform, not an SDLC enforcer.
 
+## Methodology
+
+EndiorBot implements **[SDLC Framework 6.3.1](https://github.com/Minh-Tam-Solution/SDLC-Enterprise-Framework)** — a 7-Pillar, 10-Stage AI+Human development methodology with 11 training modules (39h).
+
+- **[sdlcframework.org](https://sdlcframework.org)** — Framework documentation
+- **[endior.net](https://endior.net)** — EndiorBot documentation
+
 ## Documentation
 
 - **[SDLC stage index (00→09)](docs/README.md)** — per-stage READMEs and extended lifecycle (06–09)
 - **[Product vision](docs/00-foundation/product-vision.md)** — north star and autonomy levels (L1–L4)
 - **[Stage × command spine](docs/00-foundation/stage-command-workflow-spine.md)** — stage alignment, atomic CLI/OTT/Web vs workflows, design→build→test traceability
+- **[Usage Guide](docs/07-operate/USAGE-GUIDE.md)** — 20 workflows from setup to advanced
 
 Application development documentation under `docs/` is written in **English** (SDLC 6.3.1); see the *Documentation language* note in [docs/README.md](docs/README.md).
 
