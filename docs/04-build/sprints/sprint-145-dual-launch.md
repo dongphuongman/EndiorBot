@@ -122,6 +122,14 @@ npm pack --dry-run   # Check what gets published
 
 ### C1: Request Cross-Link from Orchestrator Team (~30min)
 
+**Submodule delta request (CTO C1):**
+
+Framework submodule is currently pinned at `cac8cdd` (v6.3.1, 2026-04-17).
+EndiorBot needs:
+1. **Cross-link in README** — add "Reference Implementations" section (EndiorBot + Orchestrator)
+2. **No code/content changes needed** — EndiorBot uses 6.3.1 as-is (all 7 pillars, 10 stages, SASE)
+3. **Submodule pin stays at `cac8cdd`** — update only after Orchestrator team merges the README change
+
 **Handoff to SDLC Orchestrator PM:**
 
 Request adding to SDLC Framework README.md:
