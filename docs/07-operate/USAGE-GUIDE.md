@@ -96,19 +96,22 @@ open http://localhost:18790
 | Channel | Access | Commands | AI Chat | Best For |
 |---------|--------|----------|---------|----------|
 | **CLI** | `endiorbot <cmd>` | 39 commands | Via `@agent` | Automation, scripting |
-| **Web UI** | `http://localhost:18790` | Not supported | Yes (`@agent`) | Quick AI conversations |
+| **Web UI** | `http://localhost:18790` | 39 commands | Yes (`@agent`) | Browser chat interface |
 | **Telegram** | `@Endior_bot` | 39 commands | Yes (`@agent`) | Mobile, full features |
-| **Zalo** | Bot Endior | 14 commands | Yes (`@agent`) | Vietnam market |
+| **Zalo** | Bot Endior | 39 commands | Yes (`@agent`) | Vietnam market |
 | **Desktop** | Electron app | 39 commands | Yes (`@agent`) | Visual dashboard, settings |
 
 ### Channel Feature Comparison
 
 ```
-CLI ........... Full commands + agent shortcuts + all features
-Telegram ...... Full commands + agent mentions + inline keyboards
-Desktop ....... Visual dashboard + AI chat + settings UI (auto-starts gateway)
-Web UI ........ AI chat only (no slash commands)
-Zalo .......... Basic commands + agent mentions (no bridge commands)
+CLI ........... 39 commands + agent shortcuts + interactive chat mode
+Web UI ........ 39 commands + @agent chat via WebSocket gateway
+Telegram ...... 39 commands + agent mentions + inline keyboards
+Zalo .......... 39 commands + agent mentions via unified dispatcher
+Desktop ....... 39 commands + visual dashboard + settings UI (auto-starts gateway)
+
+All 5 channels route through the same GatewayIngress → CommandDispatcher (39 commands).
+Desktop is an Electron wrapper around the Web UI with native OS integration.
 ```
 
 ---
