@@ -22,7 +22,7 @@ Comprehensive test plan covering all 4 channels (CLI, Web, Telegram/Zalo, Deskto
 |---|------|---------|----------|----------|
 | C01 | Help display | `endiorbot --help` | Shows all commands, no crash | P0 |
 | C02 | Version | `endiorbot --version` | Shows 0.1.0-beta.1 | P0 |
-| C03 | Commands list | `endiorbot commands` | Lists 36+ commands, all categories | P0 |
+| C03 | Commands list | `endiorbot commands` | Lists 39 commands, all categories | P0 |
 | C04 | Commands JSON | `endiorbot commands --json` | Valid JSON envelope | P1 |
 
 ### 1.2 SDLC Commands
@@ -206,7 +206,7 @@ Comprehensive test plan covering all 4 channels (CLI, Web, Telegram/Zalo, Deskto
 ## 8. Execution Plan
 
 ### Automated (CI/existing tests)
-- **8,131 unit/integration tests** (`pnpm test`)
+- **8,124+ unit/integration tests** (`pnpm test`)
 - **SSRF boundary test** (`tests/architecture/fetch-boundary.test.ts`)
 - **Router tests** (73 tests, `tests/agents/router/`)
 - **Vision re-injection** (8 tests, `tests/context/transfer/vision-reinjection.test.ts`)
@@ -220,7 +220,7 @@ Comprehensive test plan covering all 4 channels (CLI, Web, Telegram/Zalo, Deskto
 
 ### Test Execution Order
 1. `pnpm build` — TypeScript clean
-2. `pnpm test` — 8,131+ automated tests
+2. `pnpm test` — 8,124++ automated tests
 3. CLI smoke tests (C01-C09)
 4. Start `endiorbot serve` → Telegram tests (T01-T18)
 5. Web API tests via curl (W01-W08)
@@ -231,7 +231,7 @@ Comprehensive test plan covering all 4 channels (CLI, Web, Telegram/Zalo, Deskto
 
 ## 9. Pass Criteria
 
-- **Automated:** 8,131+ tests pass, 0 failures
+- **Automated:** 8,124++ tests pass, 0 failures
 - **CLI:** C01-C09 all pass
 - **Telegram:** T01-T08 all pass (P0 items)
 - **Web:** W01 passes
@@ -241,4 +241,4 @@ Comprehensive test plan covering all 4 channels (CLI, Web, Telegram/Zalo, Deskto
 
 ---
 
-*EndiorBot | SDLC Framework v6.3.1 | E2E Test Plan — Sprint 143*
+*EndiorBot | SDLC Framework v6.3.1 | E2E Test Plan — Sprint 144*

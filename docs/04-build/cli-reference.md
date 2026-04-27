@@ -1,7 +1,7 @@
 # EndiorBot CLI Reference
 
-**Last Updated**: Sprint 133 (2026-04-11)
-**Framework**: SDLC 6.3.0
+**Last Updated**: Sprint 144 (2026-04-27)
+**Framework**: SDLC 6.3.1
 
 ## Quick Reference
 
@@ -223,9 +223,13 @@ endiorbot commands                    # Human-readable table
 endiorbot commands --json             # JSON envelope { commands, meta }
 endiorbot commands --surface cli      # Filter by surface
 endiorbot commands --category sdlc    # Filter by category
+endiorbot status                      # System + session status summary
+endiorbot clear                       # Clear active session context
 ```
 
-From OTT (Telegram / Zalo): `/commands` — returns the same list automatically via `GatewayIngress`.
+From OTT (Telegram / Zalo): `/commands`, `/status`, `/clear` — return the same result automatically via `GatewayIngress`.
+
+**Note:** As of Sprint 144, EndiorBot registers 39 total commands across CLI, Web, Telegram, Zalo, and Desktop surfaces.
 
 **Five-equal-numbers invariant:** CLI, Web RPC (`cmd.list`), Telegram `/commands`, Zalo `/commands`, and dispatcher registry all return the same count.
 
@@ -282,7 +286,7 @@ When `true`: agents auto-route handoff proposals (e.g., `@pm` → `@architect` �
 
 ---
 
-## Active Memory (Sprint 133 S1 — in progress)
+## Active Memory (Sprint 133 S1)
 
 Per-query context refresh with cache-first pattern. Augments Brain L4 (session-start only) with per-query context injection.
 
@@ -403,4 +407,4 @@ endiorbot gateway status
 
 ---
 
-*EndiorBot CLI Reference v2.0 | Sprint 133 | SDLC Framework 6.3.0*
+*EndiorBot CLI Reference v2.0 | Sprint 144 | SDLC Framework 6.3.1 | 39 total commands*

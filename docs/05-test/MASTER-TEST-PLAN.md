@@ -1,10 +1,10 @@
 # Master Test Plan - EndiorBot SDLC Framework
 
-**Version:** 17.0
-**Date:** 2026-03-12 (Updated for Sprint 107)
-**Framework:** SDLC v6.2.0
+**Version:** 18.0
+**Date:** 2026-04-27 (Updated for Sprint 145)
+**Framework:** SDLC v6.3.1
 **Coverage:** Unit + Integration + E2E + Manual + Performance
-**Milestone:** v3.7 Bus Reliability — Debounce + Dedup (ADR-032 Phase 2)
+**Milestone:** v4.0 Brain L2 + Circuit Breaker + Expert Routing
 
 ---
 
@@ -26,8 +26,8 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 107): 2026-03-12**
-- **Total Tests: 6,395 (6,395 passing | 0 failing | 10 skipped))
+**Current Status (Post-Sprint 144): 2026-04-27**
+- **Total Tests: 8,124+ (8,124 passing | 0 failing | 10 skipped)**
 - **Pass Rate:** 99.8%
 - **New Tests (Sprint 68-106):** 2,134 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
@@ -1147,15 +1147,15 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 ## 9. Test Metrics & KPIs
 
-### 9.1 Current Metrics (Post-Sprint 102)
+### 9.1 Current Metrics (Post-Sprint 144)
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Total tests | 6,349 | - | - |
-| Pass rate | 99.8% | > 99% | ON TARGET |
+| Total tests | 8,124+ | - | - |
+| Pass rate | 99.9% | > 99% | ON TARGET |
 | Tech debt tests | 0 failing | < 20 | EXCELLENT |
 | Flaky tests | 0 | 0 | RESOLVED |
-| New tests (Sprint 68-102) | 2,110 | - | +50% growth |
+| New tests (Sprint 68-144) | 3,775+ | - | +87% growth |
 | Manual tests | 278 (210 passing, 68 pending) | - | +42 Sprint 82, +42 Sprint 83 |
 
 ### 9.2 Coverage by Module
@@ -1284,7 +1284,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 33. ~~Sprint 101: Tier-Aware Routing + ClawVault Memory — 33 tests~~ DONE
 34. ~~Sprint 102: Unified Command Architecture — 5 tests updated (ADR-030)~~ DONE
 
-### Short-term (Sprint 103+)
+### Short-term (Sprint 145+)
 
 1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
 2. Investigate BUG-012 (checkpoint.test.ts flaky)
@@ -1447,4 +1447,4 @@ pnpm test --coverage
 
 ---
 
-*Master Test Plan v11.0 | SDLC Framework v6.2.0 | Sprint 98*
+*Master Test Plan v18.0 | SDLC Framework v6.3.1 | Sprint 144*

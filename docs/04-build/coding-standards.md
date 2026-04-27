@@ -3,7 +3,7 @@
 EndiorBot TypeScript coding standards and policies.
 
 **Date**: 2026-02-22
-**Status**: ACTIVE - Sprint 34
+**Status**: ACTIVE - Sprint 34 (content current as of Sprint 144)
 **Authority**: ADR-001, ADR-002
 
 ---
@@ -237,5 +237,5 @@ See `src/logging/redaction.ts` for full pattern list.
 
 ---
 
-*SDLC Framework v6.2.0*
+*SDLC Framework v6.3.1*
 *Sprint 34 Day 7-8*

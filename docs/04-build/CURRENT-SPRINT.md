@@ -4,6 +4,24 @@
 
 ## Active / Most Recent
 
+- **Sprint 146** — DRAFT (not yet kicked off)
+
+- **Sprint 145** — IN PROGRESS
+
+- **Sprint 144** — Desktop UX + Circuit Breaker + OTT Ack — **COMPLETE** (2026-04-27)
+  - Delivered: OTT immediate ack before AI call, circuit breaker (2-failure OPEN), channel-aware CC Bridge timeouts (60s OTT / 180s CLI), Markdown→plain-text retry (R03 gate-mark parity), `endiorbot status` / `endiorbot clear` CLI commands
+  - Tests: 8,124+ pass, 10 skipped. 0 failures.
+
+- **Sprint 143** — Brain L2 + 17th Mechanism + OGA Handoff — **COMPLETE** (2026-04-26, CTO + CPO approved)
+  - Plan: [sprint-143-plan.md](sprints/sprint-143-plan.md)
+  - Delivered: Brain L2 pattern activation wiring, 17th mechanism docs update, OGA handoff protocol, Telegram plain-text retry (R03), Kimi model-name fix, cloud fallback last-resort
+  - Tests: 8,111 pass, 10 skipped. 3 commits.
+
+- **Sprint 142** — Enriched Prompt + Kill Switch + Vision Re-injection + Expert Routing Phase 2 — **COMPLETE** (2026-04-25, CTO + CPO approved)
+  - Plan: [sprint-142-plan.md](sprints/sprint-142-plan.md)
+  - Delivered: `buildEnrichedPrompt()` (vendor-agnostic, eliminates 50+ dup lines), kill switch fix (CPO finding), vision re-injection on context loss, expert routing Phase 2 (read-write)
+  - Tests: +13 tests. 4 commits.
+
 - **Sprint 141** — Cost Telemetry + Ollama Confidence + Kimi Resilience — **CLOSED** (2026-04-24, CTO + CPO approved with fixes)
   - Plan: [sprint-141-plan.md](sprints/sprint-141-plan.md)
   - Delivered: P0-1 cost telemetry dashboard (`endiorbot cost report`), P0-2 Ollama confidence auto-escalation (FF-gated, English v1), P0-3 Kimi rate-limit monitoring + 429 auto-fallback, P1-1 @consult registry cleanup
@@ -91,4 +109,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-24*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-27*

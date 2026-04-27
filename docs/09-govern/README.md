@@ -44,6 +44,7 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 | 142 | Vendor-agnostic enrichment — `buildEnrichedPrompt()` eliminates 50+ duplicate lines | Future providers = 0 context code |
 | 142 | Kill switch consistency — CPO finding → immediate fix | Cross-role review catches real bugs |
 | 143 | Brain L2 wiring — CPO "produce data ≠ activate behavior" finding → E2E fix | Behavioral completeness standard |
+| 144 | Circuit breaker + OTT ack — CEO UX gap identified → channel-aware timeouts + immediate feedback | Resilience pattern codified |
 
 ## Governance Principles
 
@@ -55,4 +56,4 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 09: Govern & improve — Updated Sprint 143 (2026-04-26)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 09: Govern & improve — Updated Sprint 144 (2026-04-27)*

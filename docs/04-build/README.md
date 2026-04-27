@@ -55,7 +55,7 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 pnpm install        # Install dependencies
 pnpm build          # Build TypeScript
 pnpm dev            # Watch mode
-pnpm test           # Run tests (8,111+ expected)
+pnpm test           # Run tests (8,124+ expected)
 pnpm lint           # Check code style
 ```
 
@@ -68,9 +68,10 @@ pnpm lint           # Check code style
 | 141 | 7 | Cost telemetry, Ollama confidence, Kimi rate-limit monitoring |
 | 142 | 4 | `buildEnrichedPrompt()`, kill switch fix, vision re-injection, expert routing Phase 2 |
 | 143 | 3 | Brain L2 pattern activation, 17th mechanism docs, OGA handoff |
+| 144 | — | OTT ack, circuit breaker, channel-aware timeouts, `/status` + `/clear` commands |
 
 Sprint plans: [`sprints/`](sprints/)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 04: Build — Updated Sprint 143 (2026-04-26)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 04: Build — Updated Sprint 144 (2026-04-27)*

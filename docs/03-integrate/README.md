@@ -128,7 +128,7 @@ Telegram: /gate mark G1 g1-stakeholder-signoff --pass    ← same CommandDispatc
     → gate confirm G1 --confirm → PASS (no --force needed)
 ```
 
-4-channel parity: CLI, Web, Telegram, Zalo all route through unified `CommandDispatcher`.
+5-channel parity: CLI, Web, Telegram, Zalo, Desktop all route through unified `CommandDispatcher`.
 
 ### E2E Channel Test Results (Sprint 144)
 

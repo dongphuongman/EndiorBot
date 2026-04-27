@@ -12,11 +12,11 @@ For current documentation, see the [stage index](../README.md).
 
 | Directory / File | Description |
 |-----------------|-------------|
-| `sprints-legacy/` | Sprint 29–55 plans, status, and implementation guides. Superseded by Sprint 56+ era. Also includes `sprint-50-validation-plan.md` from the integrate stage. |
+| `sprints-legacy/` | Sprint 29–125 plans, status, and implementation guides. Sprint 29–55 archived in Sprint 144 cleanup; Sprint 56–125 archived in Sprint 146 cleanup (CEO directive: last 20 active sprints only). |
 | `autonomy-epic/` | Autonomy epic design and integration artifacts (problem statement, business case, system architecture, API specs, integration overview). Consolidated into `product-vision.md` v2.2 and `master-plan.md` v3.2 as of Sprint 72. |
 | `E2E-API-REPORT-2026-02-27.md` | E2E API test report from 2026-02-27. Superseded by reports generated from Sprint 72 onward. |
 | `sprints-legacy/` (also contains) | Legacy sprint summary `autonomy-epic-sprint-35-40-summary.md` and related artifacts. |
 
 ---
 
-*Updated 2026-04-27 (Sprint 144 docs cleanup)*
+*Updated 2026-04-27 (Sprint 146 docs cleanup — Sprint 56–125 consolidated to sprints-legacy/)*

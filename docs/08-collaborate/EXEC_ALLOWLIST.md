@@ -50,6 +50,7 @@ These pass a variable to `execSync()`. Data flow traced to confirm safety.
 | `src/self-correction/verifier.ts` | 190 | `execSync(command, ...)` | `command` from `verification.command` field (internal config) | **LOW** — internal verification config, not user-facing |
 | `src/self-correction/verifier.ts` | 324 | `execSync(command, ...)` | Same as above | **LOW** — internal config |
 | `src/cli/commands/gate.ts` | 115 | `execSync(cmd, ...)` | `cmd` from gate config `evidence.command` | **LOW** — defined in `.sdlc-config.json`, project-local |
+| `src/agents/orchestrator/subprocess-orchestrator.ts` | 64 | `execSync("which claude-code-proxy")` | Kimi proxy binary detection | **Safe** — Hardcoded string, no user input |
 
 ## Removed (Sprint 118)
 
