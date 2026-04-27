@@ -11,12 +11,12 @@
 
 ## Executive Summary
 
-> **EndiorBot is a PERSONAL AI POWER TOOL for CEO**
+> **EndiorBot is a Solo Developer Power Tool**
 > Not a platform. Not an SDLC enforcer. Not an enterprise product.
 
-**One Sentence**: Help CEO get AI-assisted answers in <30s instead of 30-60 min.
+**One Sentence**: Help developers get AI-assisted answers in <30s instead of 30-60 min.
 
-EndiorBot addresses the inefficiency of solo developers managing enterprise-scale projects (~1M LOC) by eliminating copy/paste between AI apps through automated 2-model consultation.
+EndiorBot addresses the inefficiency of solo developers managing enterprise-scale projects (~1M LOC) by eliminating copy/paste between AI apps through automated multi-model consultation (5 providers: Anthropic, OpenAI, Gemini, Kimi, Ollama).
 
 ---
 
@@ -26,7 +26,7 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     CEO's Current Workflow                          │
+│                 Solo Developer's Current Workflow                    │
 │                                                                     │
 │   ┌──────────────┐                                                  │
 │   │ Claude Code  │ ◄── PRIMARY: Development, coding                │
@@ -88,11 +88,11 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 
 ## Target Users
 
-### Primary User: Solo Developer (CEO)
+### Primary User: Solo Developer
 
 **Profile:**
 - Single developer managing enterprise-scale codebases
-- Projects: Bflow (~1M LOC), NQH-Bot (~200K LOC), MTEP (~500K LOC)
+- Multiple local projects of varying sizes (~200K–1M+ LOC)
 - Uses multiple AI tools daily
 - Needs to maintain SDLC compliance across all projects
 
@@ -123,7 +123,7 @@ EndiorBot addresses the inefficiency of solo developers managing enterprise-scal
 | Solo developer focus | Not enterprise team features |
 | Lightweight infrastructure | No heavy DB, Redis, MinIO |
 | TypeScript ecosystem | Must integrate with Claude Code |
-| SDLC Framework v6.2.0 | Must be compliant |
+| SDLC Framework v6.3.1 | Must be compliant |
 
 ---
 
@@ -153,9 +153,9 @@ endiorbot switch <project>      # Minimal context
 ## References
 
 - [Master Plan v2.0](./master-plan.md) - Identity & roadmap
-- [SDLC Framework v6.2.0](/.sdlc-framework)
+- [SDLC Framework v6.3.1](/.sdlc-framework)
 
 ---
 
-*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 00: Foundation*
-*Identity: LOCKED (2026-02-28)*
+*Solo Developer Power Tool | SDLC Framework v6.3.1 - Stage 00: Foundation*
+*Identity: LOCKED (2026-02-28) — Updated Sprint 144 (2026-04-27)*

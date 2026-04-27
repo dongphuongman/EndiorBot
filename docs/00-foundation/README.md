@@ -49,12 +49,12 @@ All stages (00–09): [`../README.md`](../README.md).
 ## Identity (LOCKED 2026-04-19)
 
 > **EndiorBot is a Solo Developer Power Tool** — not a platform, not an SDLC enforcer.
-> Help CEO get answers in <30s instead of 30-60 min.
+> Help developers get answers in <30s instead of 30-60 min.
 >
-> **Scope:** local MacBook repos + general CEO support only.
-> Remote infrastructure belongs to MTClaw / SDLC Orchestrator.
+> **Scope:** local repos + general developer support only.
+> Remote product-org infrastructure belongs to the target team's orchestrator.
 
-## Key Architecture Decisions (as of Sprint 143)
+## Key Architecture Decisions (as of Sprint 144)
 
 | ADR | Decision | Sprint |
 |-----|----------|--------|
@@ -80,4 +80,4 @@ All triggers wired and operational:
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 00: Foundation — Updated Sprint 143 (2026-04-26)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 00: Foundation — Updated Sprint 144 (2026-04-27)*

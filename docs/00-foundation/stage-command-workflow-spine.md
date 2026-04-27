@@ -1,9 +1,9 @@
 # Stage × Command × Workflow Spine (CPO / CTO)
 
 **Status:** APPROVED (living document)  
-**Framework:** SDLC **6.3.0**  
-**Audience:** Solo developer shipping **enterprise-grade** behavior; **CEO vision** in [`product-vision.md`](./product-vision.md) (autonomous SDLC, design→build→test continuity, escalate only on critical issues).  
-**Technical SSOT:** Commands implement in `./endiorbot.mjs` core; CLI, **OTT** (Telegram/Zalo), and **Web** share [`CommandDispatcher`](../../src/commands/command-dispatcher.ts) + gateway ingress where applicable — *thin client everywhere*.
+**Framework:** SDLC **6.3.1**  
+**Audience:** Solo developer shipping **enterprise-grade** behavior; vision in [`product-vision.md`](./product-vision.md) (autonomous SDLC, design→build→test continuity, escalate only on critical issues).  
+**Technical SSOT:** Commands implement in `./endiorbot.mjs` core; CLI, **OTT** (Telegram/Zalo), **Web**, and **Desktop** share [`CommandDispatcher`](../../src/commands/command-dispatcher.ts) + gateway ingress where applicable — *thin client everywhere*. 39 commands across 5 channels as of Sprint 144.
 
 **Language:** Application development documentation under `docs/` is authored in **English** (SDLC 6.3.0). See [`docs/README.md`](../README.md) (section *Documentation language*).
 
@@ -54,7 +54,7 @@ Same governance model: **atomic** commands vs **workflows**; docs live under `do
 
 | Stage focus | CLI (examples) | OTT (examples) | Notes |
 |-------------|----------------|------------------|--------|
-| 00–01 | `consult`, `plan` (draft), `init --analyze` | `/consult`, `/plan` | Plan is **display-only** until execution engine (124b+) is approved; drafts under `docs/04-build/sprints/drafts/`. |
+| 00–01 | `consult`, `plan`, `init --analyze` | `/consult`, `/plan` | Plan shipped with execution engine (Sprint 124+); drafts under `docs/04-build/sprints/drafts/`. |
 | 02 | `gate check G2`, `compliance check` | `/gate`, `/compliance` | Evidence before declaring design done. |
 | 03 | `compliance check`, `config`, bridge status | `/config` | Integration artifacts live under `docs/03-integrate/`. |
 | 04 | `ops build`, `ops run`, `bootstrap`, `fix` (dry-run default) | — (mostly CLI); AI via `@coder` | Polyglot **ops**; **bootstrap** = clone → detect → init SDLC. |
@@ -69,10 +69,10 @@ Same governance model: **atomic** commands vs **workflows**; docs live under `do
 | Workflow | Steps (conceptual) | Primary entry today | Maturity |
 |----------|-------------------|---------------------|----------|
 | **Try OSS repo** | clone → detect ecosystem → init SDLC → optional build | `endiorbot bootstrap <url> …` | Shipped (Sprint 123). |
-| **Idea → structured plan** | decompose → assign agents → save draft | `endiorbot plan "…"` / `/plan` | Shipped (124a); **no auto-execute** until 124b. |
+| **Idea → structured plan** | decompose → assign agents → save draft | `endiorbot plan "…"` / `/plan` | Shipped (124a+). |
 | **Sprint closure** | test → build → docs → commit discipline | `endiorbot sprint close` (OTT `/sprint-close` → same handler) | Shipped. |
 | **Compliance loop** | check → optional fix (dry-run) → re-check | `compliance check`, `fix` | Shipped. |
-| **Autonomous stage session** | long-running design/build/test with checkpoints | Vision in `product-vision.md` (Gate A/B/C); wiring **124b+** | Partially stubbed — do not market as full until CTO sign-off. |
+| **Autonomous stage session** | long-running design/build/test with checkpoints | Vision in `product-vision.md` (Gate A/B/C); wired Sprint 72+ | Shipped (L2–L4 autonomy operational). |
 
 Workflows **reuse** the same core modules as atomic commands (no duplicate business logic in `.md` files).
 
@@ -106,4 +106,4 @@ Workflows **reuse** the same core modules as atomic commands (no duplicate busin
 
 ---
 
-*EndiorBot — Solo Developer Power Tool + enterprise SDLC discipline for solo dev | SDLC 6.3.0*
+*EndiorBot — Solo Developer Power Tool + enterprise SDLC discipline for solo dev | SDLC 6.3.1 — Updated Sprint 144 (2026-04-27)*
