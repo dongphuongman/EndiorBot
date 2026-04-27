@@ -1,360 +1,184 @@
 # EndiorBot Product Vision
 
 ---
-version: 2.2
+version: 3.0
 status: APPROVED
-updated: 2026-03-01
-author: CEO + Expert Panel + CTO
+updated: 2026-04-27
+author: CEO + CTO + CPO
+sprint: 144
 ---
 
 ## Vision Statement
 
-```
-EndiorBot v2.0 transforms from a "Solo Developer Power Tool" to an "Autonomous SDLC Agent"
-that can run 120+ minute sessions without human intervention while maintaining
-full SDLC compliance and self-healing capabilities.
-```
+> EndiorBot is a **Solo Developer Power Tool** — an AI agent orchestrator that helps developers
+> get answers in <30 seconds instead of 30-60 minutes, with full SDLC governance.
 
-### Operational spine (stages & commands)
+EndiorBot is NOT a platform, NOT an SDLC enforcer. It is a personal tool that runs locally on
+the developer's machine, orchestrating 14 AI agents across 5 channels with enterprise-grade
+discipline but solo-developer simplicity.
 
-For **stage alignment (00→05)**, **design–build–test traceability**, and the split between **atomic** CLI/OTT/Web commands and **seamless workflows**, see [`stage-command-workflow-spine.md`](./stage-command-workflow-spine.md). **Full stage index (00→09):** [`docs/README.md`](../README.md).
+### Operational spine
 
----
-
-## CEO Vision
-
-```
-EndiorBot runs continuously for 1–2+ hours to:
-├── Complete each SDLC stage
-├── Design → implement in a steady loop
-├── Test / fix until done
-└── Escalate ONLY on critical issues
-```
+For **stage alignment (00→09)**, **design-build-test traceability**, and the split between
+**atomic** CLI/OTT/Web commands and **seamless workflows**, see
+[`stage-command-workflow-spine.md`](./stage-command-workflow-spine.md).
+Full stage index: [`docs/README.md`](../README.md).
 
 ---
 
-## Autonomy Levels
+## Autonomy Levels — What's Implemented (Sprint 144)
 
-| Level | Name | Version | Description |
-|-------|------|---------|-------------|
-| **L1** | Assisted | v1.0 | CEO confirms each step |
-| **L2** | Supervised | v1.5 | Context anchoring, checkpoints |
-| **L3** | Semi-Autonomous | v1.8 | Stage contracts, patch discipline |
-| **L4** | Autonomous | v2.0 | Full 120min+ sessions |
-
----
-
-## Key Features by Version
-
-### v1.5 - Foundation
-
-| Feature | Description |
-|---------|-------------|
-| **Context Anchoring** | Prevent context drift via structured injection |
-| **Git Time-Travel** | Session state recovery from git |
-| **SESSION-PROGRESS.md** | Human-readable progress log |
-| **Checkpoint System** | Recoverable checkpoints |
-| **Spec Snapshot** | Drift detection (ADR-011) |
-
-```yaml
-# anchoring_config.yaml
-anchoring_schedule:
-  triggers:
-    - on_session_start
-    - every_15_min
-    - on_task_completion
-    - on_stage_transition
-    - on_escalation
-    - on_rollback
-
-anchor_templates:
-  identity: "EndiorBot is {identity}. Current sprint: {sprint}. Focus: {focus}"
-  sprint_goals: "Sprint {sprint_number} Goals:\n{goals_list}"
-  north_star: "North Star: {goal}. Non-negotiables: {constraints}"
-```
-
-### v1.8 - Compliance
-
-| Feature | Description |
-|---------|-------------|
-| **Stage Contracts** | Pre-flight validation before transitions |
-| **Patch Discipline** | Incremental, reviewable patches |
-| **Risk Scoring** | Heuristic-based risk assessment |
-| **Decision Packets** | Blast radius reports for CEO |
-| **Event Log** | Append-only audit trail |
-
-```yaml
-# stage_contracts.yaml
-contracts:
-  "02-design → 04-build":
-    required_artifacts:
-      - path: "docs/02-design/api-spec.yaml"
-        checks: [file_exists, valid_openapi_3]
-      - path: "docs/02-design/architecture.md"
-        checks: [has_sections: ["## Overview", "## Components"]]
-      - ADR for major decisions
-
-    auto_checks:
-      - lint_design_docs
-      - validate_adr_format
-      - spec_snapshot_id_matches
-
-    gate: "G2"
-```
-
-```yaml
-# Patch discipline rules
-patch_rules:
-  max_lines_per_patch: 100
-  one_logical_change: true
-  auto_git_commit: true
-  rollback_on_test_failure: true
-  human_checkpoint_every_n: 5
-
-  write_new_limits:
-    max_files_per_stage: 10
-    overflow: "BATCH_CONFIRM"
-```
-
-### v2.0 - Autonomy
-
-| Feature | Description |
-|---------|-------------|
-| **Operation-Based Autonomy** | Granular permissions |
-| **Non-Blocking Escalation** | Reversible only, parallel work |
-| **Dynamic Model Tiering** | Task-appropriate model selection |
-| **Autonomous Session Manager** | 120min+ unattended |
-| **Test/Fix Loop** | With failure classification |
-
-```yaml
-# autonomy_policy.yaml
-operations:
-  READ:
-    autonomy: FULL
-
-  code_generation:
-    autonomy: FULL
-    constraints: [max_100_loc, require_tests]
-
-  WRITE_NEW:
-    autonomy: FULL
-    limits:
-      max_files_per_stage: 10
-      overflow: BATCH_CONFIRM
-
-  WRITE_MODIFY:
-    autonomy: BATCH
-
-  file_deletion:
-    autonomy: CONFIRM
-    escalation_timeout: 5m
-
-  architecture_changes:
-    autonomy: ESCALATE
-    notify: [@architect, @cto]
-
-  schema_change:
-    autonomy: CONFIRM
-    irreversibility: HIGH
-
-  deploy_to_production:
-    autonomy: NEVER
-
-risk_thresholds:
-  auto: 0.3
-  batch: 0.6
-  confirm: 0.8
-  escalate: 1.0
-```
-
-```yaml
-# model_tiering.yaml
-tiers:
-  ROUTINE:
-    tasks: [lint, format, simple_edits, verify]
-    budget: $0.01/task
-    models: ["qwen2.5:7b", "claude-haiku"]
-
-  STANDARD:
-    tasks: [code_generation, refactoring, tests, bug_fix]
-    budget: $0.10/task
-    models: ["claude-sonnet-4", "deepseek-r1:32b"]
-
-  COMPLEX:
-    tasks: [architecture, multi_file_refactor, debugging, design]
-    budget: $0.50/task
-    models: ["claude-opus-4"]
-
-escalation_rules:
-  - "3 failed attempts → escalate tier"
-  - "Security-related → minimum STANDARD"
-  - "Architecture decision → COMPLEX only"
-
-session_budget:
-  total_usd: 10.00
-  per_stage:
-    planning: 15%
-    design: 25%
-    build: 40%
-    test_fix: 20%
-```
+| Level | Name | Status | How It Works |
+|-------|------|--------|-------------|
+| **L1** | Assisted | **SHIPPED** | CEO invokes @agent, reviews output, decides next step |
+| **L2** | Supervised | **SHIPPED** | Context anchoring, checkpoints, session persistence, per-chat workspace |
+| **L3** | Semi-Autonomous | **SHIPPED** | `ENDIORBOT_AUTO_HANDOFF=true` + exec-policy presets. PM→Architect→Coder→Reviewer→Tester chain. CEO approves at gate boundaries only |
+| **L4** | Autonomous | **PARTIAL** | AutonomousSessionManager exists (Sprint 72). Gate A/B/C scaffolded. Full 120min+ unattended sessions not yet production-tested |
 
 ---
 
-## Safety Guards
+## What's Built (Sprint 144 — verified against code)
 
-### 6 P0 Fixes Applied
+### AI Agent Orchestration
 
-| # | Fix | Description |
-|---|-----|-------------|
-| 1 | Gate A = Plan-Only | applyPatch() disabled in v1.5 |
-| 2 | WRITE_NEW Limits | max 10 files/stage, 25/session |
-| 3 | Non-Blocking = Reversible Only | Core arch → MUST BLOCK |
-| 4 | Spec Snapshot | SHA256, drift → PAUSE |
-| 5 | Risk Scoring | Heuristic formula with thresholds |
-| 6 | Decision Packets | Blast radius for CEO |
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| 14 SOUL agents (9 executors + 4 advisors + 1 router) | SHIPPED | `src/agents/router/agent-constants.ts` — `VALID_AGENTS` |
+| 3-tier model routing (Opus / Sonnet / Ollama) | SHIPPED | ADR-052, `AGENT_PROVIDER_MODEL_MAP` |
+| CC-first, Kimi-fallback (Sprint 143 amendment) | SHIPPED | `TIER_FALLBACK_CHAIN[2] = ["claude-code", "kimi", "ollama"]` |
+| Provider circuit breaker (Sprint 144) | SHIPPED | `src/agents/router/provider-circuit-breaker.ts` — 2 failures → skip → 60s cooldown |
+| Multi-model consultation (@consult) | SHIPPED | `src/cli/commands/consult.ts` — OpenAI + Gemini + Kimi in parallel |
+| Claude Code Bridge (tmux sessions) | SHIPPED | `src/agents/invoke/claude-code-bridge.ts` |
+| Team agents (6 teams: dev, planning, design, qa, ops, executive) | SHIPPED | `src/agents/orchestrator/team-registry.ts` |
+| Auto-handoff chain | SHIPPED | `ENDIORBOT_AUTO_HANDOFF=true`, `maxDepth: 3` |
 
-### 6 CTO P0 Additions
+### 5-Channel Unified Architecture
 
-| # | Fix | Description |
-|---|-----|-------------|
-| 1 | Gate A Path Policy | `docs/**` only, no `src/**` |
-| 2 | Stage 03 Mandatory | 01→02→**03**→04→05 |
-| 3 | 2-Tier Verify | patch_small vs patch_build |
-| 4 | Event-Based Anchoring | time/event triggers, not turns |
-| 5 | Model Tiering Cap | Opus ≤20min/$3 per session |
-| 6 | Failure Evidence | DESIGN_ISSUE needs ≥2 evidence |
+| Channel | Commands | Status | Evidence |
+|---------|----------|--------|----------|
+| CLI | 39 | SHIPPED | `endiorbot <cmd>`, `endiorbot chat` |
+| Web UI | 39 | SHIPPED | `ws://localhost:18790/ws` → GatewayIngress |
+| Telegram | 39 | SHIPPED | `@Endior_bot`, polling + OTT adapter |
+| Zalo | 39 | SHIPPED | Bot Endior, OTT adapter |
+| Desktop | 39 | SHIPPED | Electron app, gateway auto-start, 9 pages |
 
-### 4 Hard Guards
+All channels route through `GatewayIngress → CommandDispatcher` (39 commands).
 
-| Guard | Description |
-|-------|-------------|
-| **Spec Snapshot** | Drift detection via SHA256 |
-| **Risk Scoring** | Measurable, not "idea" |
-| **Blast Radius** | CEO sees impact before confirm |
-| **Per-Stage Budget** | Prevent runaway costs |
+### SDLC Governance
 
----
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| 10-stage docs structure (00-09) | SHIPPED | `docs/` — all 10 stages with READMEs |
+| Gate Engine (G0-G4 + G-Sprint) | SHIPPED | `src/sdlc/gates/gate-engine.ts` |
+| Gate Mark (manual item completion) | SHIPPED | `endiorbot gate mark <id> <item> --pass --evidence "..."` |
+| Compliance check/fix/score | SHIPPED | `endiorbot compliance check` |
+| Vibecoding Index | SHIPPED | `src/sdlc/vibecoding/vibecoding-index.ts` |
+| 4-tier classification (LITE→ENTERPRISE) | SHIPPED | `endiorbot init --tier STANDARD` |
+| Smart init (codebase analysis) | SHIPPED | ADR-022, `collectProjectContext()` |
+| Exec-policy (3 presets: strict/balanced/open) | SHIPPED | ADR-046, 9-module security cluster |
+| SSRF protection | SHIPPED | `src/security/http-validator.ts` |
+| Audit trail (JSONL, 10MB rotation) | SHIPPED | `~/.endiorbot/audit-logs/` |
 
-## Golden Scenarios
+### Session & Context
 
-### Gate A: Design Only
-```bash
-endiorbot autopilot "Design user authentication" \
-  --gate A --duration 30m --budget 2
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| Context anchoring (Brain L4 injection) | SHIPPED | `src/agents/context/context-injector.ts` |
+| Per-chat workspace (/repos + /focus) | SHIPPED | ADR-029, `src/bridge/repo/` |
+| Session persistence (chat mode) | SHIPPED | `~/.endiorbot/sessions/`, auto-save every 5 turns |
+| Checkpoint system | SHIPPED | `src/sessions/checkpoint/` |
+| Brain L2 pattern matching | SHIPPED | `src/sessions/recovery/engine.ts` — `findMatchingPattern()` |
+| Active Memory (FF-gated) | SHIPPED | `src/agents/intelligence/active-memory.ts` |
+| Workspace Awareness (17th mechanism) | SHIPPED | `src/agents/context/workspace-awareness.ts` |
 
-# ✅ Creates planning + design artifacts
-# ✅ Validates specs
-# ✅ Updates SESSION-PROGRESS.md
-# ❌ NO code writes
-```
+### Gateway Resilience (Sprint 144)
 
-### Gate B: Limited Writes
-```bash
-endiorbot autopilot "Implement user model" \
-  --gate B --duration 30m --budget 3 --max-files 10
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| PID lockfile (singleton serve) | SHIPPED | `~/.endiorbot/serve.pid`, `--force` flag |
+| Provider circuit breaker | SHIPPED | 2 failures → OPEN → 60s cooldown → HALF_OPEN |
+| OTT-aware timeout (60s OTT, 180s CLI) | SHIPPED | `originChannel` threaded bus→ingress→router |
+| Immediate OTT acknowledgement | SHIPPED | `⚡ @agent` sent before AI call |
+| Kimi subprocess deprecation notice | SHIPPED | `ENDIORBOT_KIMI_PROXY_URL` recommended |
 
-# ✅ Max 10 new files
-# ✅ Patch discipline enforced
-# ✅ Decision packets generated
-# ✅ Checkpoint commits
-```
+### Cost & Monitoring
 
-### Gate C: Full Autonomy
-```bash
-endiorbot autopilot "Build complete auth system" \
-  --gate C --duration 2h --budget 10
-
-# ✅ Full SDLC loop (01→02→03→04→05)
-# ✅ 120+ min session
-# ✅ < 3 escalations
-# ✅ AER > 30 min/escalation
-```
-
----
-
-## Success Metrics
-
-| Metric | v1.0 | v1.5 | v1.8 | v2.0 |
-|--------|------|------|------|------|
-| **Session duration** | 30 min | 60 min | 60 min | 120+ min |
-| **Context retention** | 50% | 85% | 90% | 95% |
-| **Recovery success** | 0% | 90% | 95% | 98% |
-| **SDLC compliance** | Reactive | Reactive | Proactive | Proactive |
-| **Patch reviewability** | N/A | N/A | 100% | 100% |
-| **Human interventions** | Frequent | Moderate | Minimal | Rare |
-| **Cost efficiency** | Baseline | -10% | -25% | -40% |
-| **AER** | N/A | 10 min | 15 min | 30 min |
-| **Hallucination recovery** | 0% | 50% | 70% | 80% |
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| Budget tracker | SHIPPED | `src/budget/budget-tracker.ts` |
+| Cost reporting (per agent, per provider) | SHIPPED | `endiorbot cost report` |
+| Pricing registry (5 providers) | SHIPPED | `src/budget/pricing-registry.ts` |
 
 ---
 
-## Roadmap
+## What's NOT Built Yet
 
-| Version | Sprint | Hours | Focus |
-|---------|--------|-------|-------|
-| v1.0 | 61-62 | 34h | Init, Compliance, Solo Developer Power Tool |
-| v1.5 | 65 | 34h | Foundation: Context + Recovery |
-| v1.8 | 68 | 40h | Compliance: Contracts + Patch |
-| v2.0 | 72 | 80h | Autonomy: Full SDLC loop |
-
-**Total Post-v1.0: ~154h**
-
----
-
-## Source Directories
-
-```
-src/
-├── anchoring/              # v1.5
-│   ├── injection-engine.ts
-│   └── templates/
-├── state/                  # v1.5
-│   ├── git-recovery.ts
-│   └── checkpoint.ts
-├── progress/               # v1.5
-│   └── session-progress.ts
-├── contracts/              # v1.8
-│   ├── stage-contract-engine.ts
-│   └── preflight-validator.ts
-├── patch/                  # v1.8
-│   ├── patch-manager.ts
-│   ├── risk-scorer.ts
-│   └── decision-packet.ts
-├── autonomy/               # v2.0
-│   ├── operation-policy.ts
-│   └── escalation-queue.ts
-├── models/                 # v2.0
-│   └── tiering.ts
-└── session/                # v2.0
-    └── autonomous-manager.ts
-```
+| Feature | Original Version | Status | Notes |
+|---------|-----------------|--------|-------|
+| `endiorbot autopilot` command | v2.0 | NOT IMPLEMENTED | AutonomousSessionManager exists but no CLI command wraps it |
+| 120min+ unattended sessions | v2.0 | SCAFFOLDED | Gate A/B/C exist in tests but not production-validated |
+| Operation-based autonomy (YAML policies) | v2.0 | NOT IMPLEMENTED | exec-policy presets cover 80% of use cases |
+| Dynamic model tiering (cost-based) | v2.0 | PARTIAL | `ModelSelector` exists (Sprint 72) but not wired to live routing |
+| Non-blocking escalation queue | v2.0 | PARTIAL | `src/autonomy/` exists but not connected to serve pipeline |
+| Ollama auto-escalation | Sprint 141 | FF-GATED OFF | `ENDIORBOT_FF_OLLAMA_AUTO_ESCALATE=false`, awaiting data soak |
+| Plugin/extension system | Future | NOT STARTED | Community can't add custom SOUL agents yet |
 
 ---
 
-## ADR List
+## Safety Guards (implemented)
 
-| ADR | Title | Sprint |
-|-----|-------|--------|
-| ADR-006 | Checkpoint Architecture | 65 |
-| ADR-007 | Patch Discipline | 65 |
-| ADR-008 | Concurrency Model | 68 |
-| ADR-009 | Model Tiering Strategy | 72 |
-| ADR-010 | Escalation Queue | 72 |
-| ADR-011 | Spec Snapshot & Drift Policy | 65 |
-
----
-
-## Approval Status
-
-| Stakeholder | Status |
-|-------------|--------|
-| CEO | ✅ Vision Approved |
-| Expert #1 (Architecture) | ✅ A+++ Rating |
-| Expert #2 (Pragmatic) | ✅ Approved with P0 fixes |
-| CTO | ✅ Signed Off |
+| Guard | Status | Evidence |
+|-------|--------|----------|
+| Exec-policy (strict/balanced/open) | SHIPPED | 9-module cluster, hard-deny list |
+| SSRF protection (safeFetch) | SHIPPED | Blocks private IPs, cloud metadata |
+| Gate Engine (programmatic G0-G4) | SHIPPED | `evaluateGate()` with evidence check |
+| Rate limiting (100 req/min) | SHIPPED | Gateway middleware |
+| Security headers (CSP, HSTS, etc.) | SHIPPED | `setSecurityHeaders()` |
+| Input sanitization | SHIPPED | `src/security/input-sanitizer.ts` |
+| Output scrubbing (key redaction) | SHIPPED | `src/bridge/security/output-redactor.ts` |
+| PID lockfile (no duplicate serve) | SHIPPED | Sprint 144 |
+| gitleaks pre-commit hook | SHIPPED | `.gitleaks.toml` + `.githooks/` |
+| Handoff depth limit (default 3) | SHIPPED | `HandoffGuardsConfig.maxDepth` |
 
 ---
 
-*EndiorBot Product Vision*
-*SDLC Framework v6.2.0 compliant*
+## Current Stats (Sprint 144, 2026-04-27)
+
+| Metric | Value |
+|--------|-------|
+| Tests | 8,124+ passing |
+| Commands | 39 unified (all 5 channels) |
+| SOUL agents | 14 |
+| Channels | 5 (CLI, Web, Telegram, Zalo, Desktop) |
+| Active providers | 5 (Claude Code, Kimi, OpenAI, Ollama, MCP Gateway) |
+| ADRs | 49 |
+| Sprint plans | 90+ (Sprint 56-144) |
+| Framework | SDLC 6.3.1 |
+| License | MIT |
+| Domain | endior.net |
+
+---
+
+## Roadmap (Sprint 145+)
+
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| 145 | Dual-launch: SDLC Framework + EndiorBot OSS | DRAFT |
+| 146 | Post-launch: community growth + tech debt (god classes, circular dep) | DRAFT |
+| 147 | Docs site (endior.net Docusaurus), Desktop release builds | PLANNED |
+| 148 | Plugin system for custom SOUL agents, semantic versioning | PLANNED |
+| Future | `endiorbot autopilot` — production-grade 120min+ sessions | BACKLOG |
+
+---
+
+## Approval
+
+| Stakeholder | Status | Date |
+|-------------|--------|------|
+| CEO | APPROVED | 2026-04-27 |
+| CTO | APPROVED (G2 9/10) | 2026-04-27 |
+| CPO | APPROVED (GO) | 2026-04-27 |
+
+---
+
+*EndiorBot Product Vision v3.0 | SDLC Framework 6.3.1 | Sprint 144 (2026-04-27)*
