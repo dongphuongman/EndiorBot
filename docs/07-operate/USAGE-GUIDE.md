@@ -68,7 +68,29 @@ pnpm install && pnpm build
 
 - Node.js >= 20
 - pnpm (via corepack: `corepack enable`)
-- At least one AI API key (Kimi, Google Gemini, or OpenAI) — or Claude Code OAuth subscription
+- Claude Code subscription (OAuth — primary provider, no API key needed)
+
+### AI Provider Routing (Sprint 143+)
+
+EndiorBot uses a **CC-first, Kimi-fallback** routing strategy:
+
+```
+@agent message → Claude Code (Sonnet, primary)
+                    ↓ on timeout/rate-limit
+                 Kimi (k2.6, fallback — free via OAuth proxy)
+                    ↓ on failure
+                 OpenAI / Ollama (last resort)
+```
+
+| Provider | Role | Cost | Setup |
+|----------|------|------|-------|
+| **Claude Code** | Primary (Tier 1 Opus + Tier 2 Sonnet) | Subscription | Claude Code Max or Pro subscription |
+| **Kimi** | Fallback (Tier 2) | Free via OAuth proxy | `claude-code-proxy serve` + `ENDIORBOT_KIMI_PROXY_URL` |
+| **OpenAI** | Cloud fallback + `/consult` | API key | `OPENAI_API_KEY` in `.env` |
+| **Ollama** | Local/free tier (Tier 3 router) | Free | Local `ollama serve` or remote URL |
+| **Gemini** | `/consult` only (removed from fallback chain) | API key | `GOOGLE_API_KEY` in `.env` |
+
+**Minimum setup:** Claude Code subscription only. Kimi + OpenAI are optional fallbacks.
 
 ---
 
@@ -159,17 +181,19 @@ endiorbot serve --no-zalo          # Skip Zalo
 endiorbot serve -p 3000            # Custom port
 ```
 
-**Environment variables needed** (file: `.env`, git-ignored):
+**Environment variables** (file: `.env`, git-ignored):
 
-Default AI path is **Claude Code CLI via OAuth** (e.g. Claude Max 200). No API key required for the primary chat provider. API keys below are only for non-default providers or `/consult` multi-model routing.
+Primary provider is **Claude Code via OAuth subscription** — no API key needed. Kimi fallback is also free via OAuth proxy. API keys are only needed for optional providers.
 
-| Variable | Required For |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Optional fallback — only if not using Claude Code OAuth |
-| `GOOGLE_API_KEY` | Gemini provider + `/consult` |
-| `OPENAI_API_KEY` | OpenAI provider + `/consult` |
-| `ENDIORBOT_TELEGRAM_BOT_TOKEN` | Telegram channel |
-| `ZALO_APP_ID` + `ZALO_APP_SECRET` | Zalo channel |
+| Variable | Required? | Purpose |
+|----------|-----------|---------|
+| (none — Claude Code OAuth) | **Primary** | Claude Code subscription handles Tier 1+2 |
+| `ENDIORBOT_KIMI_PROXY_URL` | Recommended | Kimi fallback via `claude-code-proxy` (free OAuth) |
+| `OPENAI_API_KEY` | Optional | OpenAI cloud fallback + `/consult` |
+| `GOOGLE_API_KEY` | Optional | Gemini for `/consult` only |
+| `KIMI_API_KEY` | Optional | Direct Kimi API (paid, Moonshot) — alternative to proxy |
+| `ENDIORBOT_TELEGRAM_BOT_TOKEN` | For Telegram | Telegram bot token from @BotFather |
+| `ENDIORBOT_ZALO_ACCESS_TOKEN` | For Zalo | Zalo OA access token |
 
 ### Step 4: Connect from Telegram
 
@@ -472,7 +496,9 @@ Start a continuous AI conversation with project context, multi-provider switchin
 ### Start a Chat
 
 ```bash
-endiorbot chat                    # Default: OpenAI GPT-5.4
+endiorbot chat                    # Default: Claude Code (Sonnet)
+endiorbot chat --model kimi       # Use Kimi (free via OAuth proxy)
+endiorbot chat --model openai     # Use OpenAI GPT
 endiorbot chat --model gemini     # Use Gemini
 endiorbot chat --model ollama     # Use local Ollama (free, private)
 ```
@@ -481,7 +507,7 @@ endiorbot chat --model ollama     # Use local Ollama (free, private)
 
 | Command | Description |
 |---------|-------------|
-| `/model <provider>` | Switch provider mid-session (openai, gemini, ollama) |
+| `/model <provider>` | Switch provider mid-session (kimi, openai, gemini, ollama) |
 | `/clear` | Clear conversation history |
 | `/status` | Show session info (turns, tokens, cost) |
 | `/resume` | List saved sessions |
@@ -1244,15 +1270,19 @@ Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI pat
 
 ```
 User Input → Channel Adapter → GatewayIngress
-  ├── /command → CommandDispatcher → Handler → Response
+  ├── /command → CommandDispatcher (39 commands) → Handler → Response
   └── @agent  → ChannelRouter → AI Provider → Response
 
-AI Routing (ADR-052, Sprint 140-143):
+AI Routing (ADR-052, Sprint 143 CC-first amendment):
   @agent → AGENT_PROVIDER_MODEL_MAP → Primary Provider
-    ├── Tier 1: claude-code (Opus)   — @architect, @cso, @ceo
-    ├── Tier 2: claude-code (Sonnet) — @coder, @reviewer, @tester + 7 more
-    └── Tier 3: ollama (Qwen)        — @assistant
-  Fallback: circuit check → tier-specific chain (e.g. claude-code → kimi → ollama)
+    ├── Tier 1: Claude Code (Opus)   — @architect, @cso, @ceo
+    ├── Tier 2: Claude Code (Sonnet) — @coder, @reviewer, @tester + 7 more
+    └── Tier 3: Ollama (Qwen)        — @assistant
+
+  Fallback chain (all tiers): Claude Code → Kimi → OpenAI → Ollama
+    ├── Circuit breaker: 2 CC failures → skip CC → instant Kimi (60s cooldown)
+    ├── Kimi access: OAuth proxy (free) → Kimi API (paid) → cloud fallback
+    └── OTT timeout: 60s CC then Kimi; CLI: 180s CC then Kimi
 ```
 
 ### State Files
