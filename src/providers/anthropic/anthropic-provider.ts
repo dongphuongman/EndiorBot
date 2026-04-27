@@ -174,6 +174,10 @@ export class AnthropicProvider extends BaseProvider {
       model: request.model,
       max_tokens: request.maxTokens ?? 4096,
       temperature: request.temperature ?? 0.7,
+      // Sprint 143: explicit stream:false prevents Kimi proxy from returning SSE.
+      // Without this, proxy defaults to streaming → response.json() fails with
+      // "Unexpected token 'e', 'event: mes...' is not valid JSON".
+      stream: false,
       system: systemParam,
       messages: anthropicMessages,
     };

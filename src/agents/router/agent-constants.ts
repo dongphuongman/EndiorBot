@@ -236,7 +236,11 @@ export const AGENT_TIMEOUT_CLASS: Record<AgentName, AgentTimeoutClass> = {
 };
 
 const DEFAULT_AGENT_TIMEOUT_MS_BY_CLASS: Record<AgentTimeoutClass, number> = {
-  executor: 60_000,
+  // Sprint 143: bumped executor from 60s to 180s. CEO feedback: @coder
+  // timeout "quá nhanh" — codebase reading takes 60-90s under load.
+  // Advisory agents already at 180s; executors should match since they
+  // also read before acting. Override per-agent via ENDIORBOT_AGENT_TIMEOUT_CODER_MS.
+  executor: 180_000,
   advisory: 180_000,
   "adr-writer": 600_000,
 };
