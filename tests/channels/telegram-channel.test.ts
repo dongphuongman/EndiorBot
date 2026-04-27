@@ -354,28 +354,19 @@ describe("TelegramChannel", () => {
   // ==========================================================================
 
   describe("Command Handling", () => {
-    it("should handle /approve command", async () => {
+    it("should return null for /approve (falls through to CommandDispatcher — BUG-3 fix)", async () => {
+      // Sprint 145: /approve handled by CommandDispatcher (executeApprovedRun).
+      // Local handler removed to prevent stale approve-without-execute behavior.
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
-
       const result = await channel.handleCommand("/approve apr-123");
-
-      expect(result?.success).toBe(true);
-      expect(result?.response).toContain("Approved");
-      expect(queue.approve).toHaveBeenCalledWith("apr-123");
+      expect(result).toBeNull();
     });
 
-    it("should handle /reject command", async () => {
+    it("should return null for /reject (falls through to CommandDispatcher — BUG-3 fix)", async () => {
+      // Sprint 145: /reject handled by CommandDispatcher.
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
-
       const result = await channel.handleCommand("/reject apr-123 Not needed");
-
-      expect(result?.success).toBe(true);
-      expect(result?.response).toContain("Rejected");
-      expect(queue.reject).toHaveBeenCalledWith("apr-123", "Not needed");
+      expect(result).toBeNull();
     });
 
     it("should return null for /status (handled by CommandDispatcher, not local handler)", async () => {
@@ -386,16 +377,20 @@ describe("TelegramChannel", () => {
       expect(result).toBeNull();
     });
 
-    it("should handle /help command", async () => {
+    it("should return null for /help (falls through to CommandDispatcher — BUG-2 fix)", async () => {
+      // Sprint 145: /help handled by CommandDispatcher (canonical implementation).
+      // Local generateHelpMessage() handler removed.
       const channel = createTelegramChannel(createTestConfig());
-
       const result = await channel.handleCommand("/help");
+      expect(result).toBeNull();
+    });
 
+    it("should handle /start command with Telegram-specific welcome message", async () => {
+      // /start is the only command handled locally (Telegram-specific onboarding).
+      const channel = createTelegramChannel(createTestConfig());
+      const result = await channel.handleCommand("/start");
       expect(result?.success).toBe(true);
-      expect(result?.response).toContain("Commands");
-      expect(result?.response).toContain("/approve");
-      expect(result?.response).toContain("/reject");
-      expect(result?.response).toContain("/status");
+      expect(result?.response).toContain("EndiorBot");
     });
 
     it("should return null for unknown commands (forwarded to onMessage handler)", async () => {
@@ -406,48 +401,33 @@ describe("TelegramChannel", () => {
       expect(result).toBeNull();
     });
 
-    it("should strip @botname suffix from commands", async () => {
+    it("should strip @botname suffix from /start command", async () => {
+      // @botname suffix is stripped before dispatch — verify for the only locally-handled command.
       const channel = createTelegramChannel(createTestConfig());
-
-      const result = await channel.handleCommand("/help@Endior_bot");
-
+      const result = await channel.handleCommand("/start@Endior_bot");
       expect(result?.success).toBe(true);
-      expect(result?.response).toContain("Commands");
+      expect(result?.response).toContain("EndiorBot");
     });
 
-    it("should require approval ID for /approve", async () => {
+    it("should return null for /approve with no args (falls through to Dispatcher)", async () => {
+      // All /approve variants fall through to CommandDispatcher.
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
-
       const result = await channel.handleCommand("/approve");
-
-      expect(result?.success).toBe(false);
-      expect(result?.response).toContain("Usage");
+      expect(result).toBeNull();
     });
 
-    it("should handle approval failure", async () => {
+    it("should return null for /config (falls through to CommandDispatcher — BUG-2 fix)", async () => {
+      // Sprint 145: /config handled by CommandDispatcher (handleConfigOttCommand with Sprint 135 features).
       const channel = createTelegramChannel(createTestConfig());
-      const queue: ApprovalQueueLike = {
-        approve: vi.fn(async () => false),
-        reject: vi.fn(async () => false),
-        listPending: vi.fn(async () => []),
-      };
-      channel.setApprovalQueue(queue);
-
-      const result = await channel.handleCommand("/approve invalid-id");
-
-      expect(result?.success).toBe(false);
-      expect(result?.response).toContain("failed");
+      const result = await channel.handleCommand("/config");
+      expect(result).toBeNull();
     });
 
-    it("should handle missing approval queue", async () => {
+    it("should return null for /fix (falls through to CommandDispatcher — BUG-1 fix)", async () => {
+      // Sprint 145: /fix handled by CommandDispatcher (executeFixCommand with workspace context).
       const channel = createTelegramChannel(createTestConfig());
-
-      const result = await channel.handleCommand("/approve apr-123");
-
-      expect(result?.success).toBe(false);
-      expect(result?.response).toContain("not available");
+      const result = await channel.handleCommand("/fix some error");
+      expect(result).toBeNull();
     });
   });
 
@@ -459,21 +439,18 @@ describe("TelegramChannel", () => {
     it("should process update from authorized chat", async () => {
       const config = createTestConfig();
       const channel = createTelegramChannel(config);
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
 
-      // Mock sendMessage for the response
+      // Mock sendMessage response for /start reply
       mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 1 }));
 
-      // Use /help instead of /status (which now falls through to Dispatcher)
-      mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 2 }));
+      // Use /start — the only locally-handled command that sends a reply via fetch
       await channel.handleUpdate({
         update_id: 1,
         message: {
           message_id: 1,
           chat: { id: parseInt(config.chatId), type: "private" },
           date: Date.now(),
-          text: "/help",
+          text: "/start",
         },
       });
 
@@ -483,8 +460,10 @@ describe("TelegramChannel", () => {
 
     it("should ignore update from unauthorized chat", async () => {
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
+
+      // Messages from unknown chat IDs should be silently dropped
+      const handler = vi.fn(async (_msg: IncomingMessage) => {});
+      channel.onMessage(handler);
 
       await channel.handleUpdate({
         update_id: 1,
@@ -496,13 +475,12 @@ describe("TelegramChannel", () => {
         },
       });
 
-      expect(queue.listPending).not.toHaveBeenCalled();
+      // Handler not called for messages from unauthorized chats
+      expect(handler).not.toHaveBeenCalled();
     });
 
     it("should ignore non-command messages", async () => {
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
 
       await channel.handleUpdate({
         update_id: 1,
@@ -514,7 +492,8 @@ describe("TelegramChannel", () => {
         },
       });
 
-      expect(queue.listPending).not.toHaveBeenCalled();
+      // No fetch calls (no command to respond to)
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
@@ -544,8 +523,6 @@ describe("TelegramChannel", () => {
 
     it("should dispose resources", () => {
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
 
       channel.dispose();
 
@@ -584,19 +561,14 @@ describe("TelegramChannel", () => {
       expect(result).toBe(false);
     });
 
-    it("should handle queue errors in commands", async () => {
+    it("should return null for /approve (queue errors now handled by CommandDispatcher)", async () => {
+      // Sprint 145: /approve falls through to CommandDispatcher — local queue errors
+      // are no longer relevant to TelegramChannel.
       const channel = createTelegramChannel(createTestConfig());
-      const queue: ApprovalQueueLike = {
-        approve: vi.fn(async () => { throw new Error("Queue error"); }),
-        reject: vi.fn(async () => false),
-        listPending: vi.fn(async () => []),
-      };
-      channel.setApprovalQueue(queue);
 
       const result = await channel.handleCommand("/approve apr-123");
 
-      expect(result?.success).toBe(false);
-      expect(result?.response).toContain("Error");
+      expect(result).toBeNull();
     });
   });
 
@@ -693,13 +665,14 @@ describe("TelegramChannel", () => {
       expect(handler.mock.calls[0][0].content).toContain("Not a command");
     });
 
-    it("should NOT call message handler for commands", async () => {
+    it("should NOT call message handler for /start (locally handled command)", async () => {
+      // /start is handled locally and produces a direct reply — message handler NOT invoked.
       const config = createTestConfig();
       const channel = createTelegramChannel(config);
       const handler = vi.fn(async (_msg: IncomingMessage) => {});
       channel.onMessage(handler);
 
-      // Mock the sendMessage response for command reply
+      // Mock the sendMessage response for /start reply
       mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 1 }));
 
       await channel.handleUpdate({
@@ -708,16 +681,17 @@ describe("TelegramChannel", () => {
           message_id: 789,
           chat: { id: parseInt(config.chatId), type: "private" },
           date: Math.floor(Date.now() / 1000),
-          text: "/help",
+          text: "/start",
         },
       });
 
-      // Commands still get queued (raw text for command processing)
+      // /start is queued as raw text (for audit / Dispatcher passthrough) but
+      // since the local handler returned a result, the onMessage handler is NOT called.
       const messages = await channel.receive();
       expect(messages).toHaveLength(1);
-      expect(messages[0].content).toContain("/help");
+      expect(messages[0].content).toContain("/start");
 
-      // Handler is NOT called for commands - they're processed by command handler
+      // Handler is NOT called — /start was resolved locally
       expect(handler).not.toHaveBeenCalled();
     });
 

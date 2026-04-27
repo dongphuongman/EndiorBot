@@ -1,5 +1,7 @@
 # *-CyEyes-* E2E Sprint 72 Test Report
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 **Generated**: 2026-03-02 20:25:00
 **Project**: EndiorBot
 **Environment**: Development (Node.js 20+)

@@ -1,5 +1,7 @@
 # Code Search Benchmark - Scenario #5: Refactor & Anti-Pattern Detection
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 ---
 **Status**: PROPOSED
 **Date**: 2026-03-01

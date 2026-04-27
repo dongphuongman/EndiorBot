@@ -1,5 +1,7 @@
 # BUG-011: Compliance Checker False Positive on Placeholder Docs
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 **Status:** OPEN
 **Priority:** P1
 **Found:** 2026-03-03 (E2E Testing Phase, Tier 1)

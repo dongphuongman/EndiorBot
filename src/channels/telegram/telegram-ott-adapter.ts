@@ -260,14 +260,9 @@ export function createTelegramOttAdapter(
         if (msg.messageId) metadata.dedupKey = `telegram-${msg.messageId}`;
         busMsg.metadata = metadata;
 
-        // CTO C2 (non-blocking): best-effort progress message — don't block enqueue
-        // Sprint 113: [\w.]+ to capture cross-system mentions like @mtclaw.bod
-        const agentMatchBus = rawText.match(/^@([\w.]+)/);
-        if (agentMatchBus) {
-          const agentName = agentMatchBus[1] ?? "agent";
-          const model = agentName.startsWith("mtclaw.") ? "mtclaw-mcp" : (getAgentModel(agentName) ?? "sonnet");
-          channel.send(`⏳ @${agentName} đang xử lý... (${model})`).catch(() => {});
-        }
+        // Sprint 147 T1: Removed eager "đang xử lý" progress message.
+        // Previously sent here BEFORE session lock → caused duplicate progress messages.
+        // Now sent from callAI() AFTER lock acquired (channel-router.ts).
 
         // Sprint 107: debounce path — last-message-wins within windowMs
         if (debounce) {
@@ -280,14 +275,10 @@ export function createTelegramOttAdapter(
 
       // Sync fallback (bus=undefined — existing behavior, all current tests pass)
 
-      // UX: Send progress status for AI chat (agent mentions take 30-60s)
-      // Sprint 113: [\w.]+ to capture cross-system mentions like @mtclaw.bod
+      // Sprint 147 T1: Removed eager "đang xử lý" from sync path too (same fix as bus path).
+      // Progress sent from callAI() after lock acquired.
       const agentMatch = rawText.match(/^@([\w.]+)/);
       if (agentMatch) {
-        const agentName = agentMatch[1] ?? "agent";
-        // OTT adapter: no workspace context → ENTERPRISE default (CTO F1: cosmetic, same behavior)
-        const model = agentName.startsWith("mtclaw.") ? "mtclaw-mcp" : (getAgentModel(agentName) ?? "sonnet");
-        await channel.send(`⏳ @${agentName} đang xử lý... (${model})`);
         // Keep "typing..." indicator alive every 4s while waiting
         typingInterval = setInterval(() => {
           void channel.sendChatAction().catch(() => {});

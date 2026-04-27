@@ -1,5 +1,7 @@
 # TP-062: Restructure & Compliance Test Plan
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 | Metadata | Value |
 |----------|-------|
 | **Test Plan ID** | TP-062 |

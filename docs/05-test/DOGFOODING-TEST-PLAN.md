@@ -1,5 +1,7 @@
 # Dogfooding Test Plan - EndiorBot Self-Development
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 **Strategy:** Use EndiorBot to develop EndiorBot
 **Approach:** Test as you code (incremental coverage)
 **Projects:** 2 repos (EndiorBot existing + Dyad new)

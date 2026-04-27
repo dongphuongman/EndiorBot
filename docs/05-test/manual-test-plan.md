@@ -1,5 +1,7 @@
 # Manual Test Plan - EndiorBot CLI
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 **Date:** 2026-03-01
 **Tester:** @dev + @pjm
 **Version:** v1.0 (Sprint 64)

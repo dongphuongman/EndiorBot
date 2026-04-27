@@ -1,5 +1,7 @@
 # E2E Master Test Plan: Sprint 1-72
 
+> **Historical artifact** — this document reflects the framework version and test count at the time of writing. Current stats: 8,124+ tests, SDLC 6.3.1.
+
 **Status:** Active
 **Date:** 2026-03-03
 **Author:** @tester + @pm

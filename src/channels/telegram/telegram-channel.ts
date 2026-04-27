@@ -143,10 +143,8 @@ export class TelegramChannel implements BidirectionalChannel {
   private lastUpdateId = 0;
   private pollingActive = false;
   private pollingTimeout: ReturnType<typeof setTimeout> | null = null;
-  private approvalQueue: ApprovalQueueLike | null = null;
   private messageHandler: IncomingMessageHandler | null = null;
   private pendingMessages: IncomingMessage[] = [];
-  private currentMode: string = "READ";
   /** Sprint 110: RL feedback service (optional — set via setFeedbackService()) */
   private feedbackService: RLFeedbackService | null = null;
   /** Extracted command routing logic */
@@ -158,11 +156,7 @@ export class TelegramChannel implements BidirectionalChannel {
 
     this.commandRouter = new TelegramCommandRouter({
       log: this.log,
-      isPollingActive: () => this.pollingActive,
-      getMode: () => this.currentMode,
-      setMode: (mode: string) => { this.currentMode = mode; },
       getChatId: () => this.config?.chatId,
-      getApprovalQueue: () => this.approvalQueue,
       getFeedbackService: () => this.feedbackService,
       sendMessage: (text, useMarkdown, replyMarkup) =>
         this.sendMessage(text, useMarkdown, replyMarkup),
@@ -335,10 +329,14 @@ export class TelegramChannel implements BidirectionalChannel {
 
   /**
    * Set the approval queue for command handling.
+   *
+   * @deprecated Approval commands (/approve, /reject) now route through
+   * CommandDispatcher (Sprint 135+). This method is a no-op kept for
+   * backward compatibility with existing callers.
    */
-  setApprovalQueue(queue: ApprovalQueueLike): void {
-    this.approvalQueue = queue;
-    this.log.info("ApprovalQueue attached to TelegramChannel");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setApprovalQueue(_queue: ApprovalQueueLike): void {
+    this.log.debug("setApprovalQueue: no-op — /approve and /reject now handled by CommandDispatcher");
   }
 
   /**
@@ -935,7 +933,6 @@ export class TelegramChannel implements BidirectionalChannel {
    */
   dispose(): void {
     this.stopPolling();
-    this.approvalQueue = null;
     this.messageHandler = null;
     this.pendingMessages = [];
   }

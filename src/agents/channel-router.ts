@@ -245,6 +245,13 @@ export class ChannelRouter {
     }
     agentLocks.set(lockKey, { agent, startedAt: Date.now(), task: task.slice(0, 100) });
 
+    // Sprint 147 T1: Send "đang xử lý" AFTER lock acquired (not before).
+    // Previously sent eagerly in OTT adapter → caused duplicate progress messages.
+    if (progressFn) {
+      const model = getAgentProviderModel(agent)?.model ?? "sonnet";
+      progressFn(`⏳ @${agent} đang xử lý... (${model})`);
+    }
+
     try {
     const ws = workspace ?? this.config.projectRoot;
     // Sprint 144 T3: OTT-aware timeout — 60s for chat channels, 180s for CLI
