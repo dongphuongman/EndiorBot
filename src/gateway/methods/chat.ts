@@ -451,7 +451,7 @@ function handleChatHistory(
     throw new Error("sessionId is required");
   }
 
-  // TODO: Implement session history storage
+  // DEFERRED(Sprint 147): Implement session history storage (persisted JSONL per session)
   // For now, return empty array
   return { messages: [] };
 }

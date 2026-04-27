@@ -75,7 +75,7 @@ import {
 import {
   getApprovalQueue,
   type ApprovalRequest,
-} from "../gateway/methods/approval.js";
+} from "../approval/queue.js";
 
 // ============================================================================
 // Adapter helpers

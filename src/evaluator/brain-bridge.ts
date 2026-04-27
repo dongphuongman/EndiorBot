@@ -192,7 +192,7 @@ const feedbackStorage: FeedbackEntry[] = [];
  */
 export function storeFeedback(entry: FeedbackEntry): void {
   feedbackStorage.push(entry);
-  // TODO: Day 7 - Persist to Brain storage
+  // DEFERRED(Sprint 147): Persist to Brain storage (in-memory only for now)
 }
 
 /**

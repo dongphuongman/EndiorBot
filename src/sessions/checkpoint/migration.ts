@@ -179,7 +179,6 @@ export function findMigrationPath(
       // Once the first real migration is registered (e.g. 1.0.0 → 1.0.1),
       // this assumption must be reviewed — older checkpoints without a
       // migration hop could silently skip a required transformation.
-      // TODO: Review this assumption when first migration is registered.
       if (toVersion === CHECKPOINT_SCHEMA_VERSION) {
         break;
       }

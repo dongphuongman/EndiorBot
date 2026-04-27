@@ -26,7 +26,7 @@ vi.mock("../../src/commands/handlers.js", async (importOriginal) => {
 // Mock the approval queue
 const mockQueue = new Map<string, { id: string; status: string; message: string; respondedAt?: number; respondedBy?: string; details?: Record<string, unknown> }>();
 
-vi.mock("../../src/gateway/methods/approval.js", () => ({
+vi.mock("../../src/approval/queue.js", () => ({
   getApprovalQueue: () => mockQueue,
 }));
 

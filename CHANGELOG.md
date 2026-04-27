@@ -6,6 +6,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [Sprint 145] - 2026-04-27
+
+### Added
+- CI/CD pipeline with GitHub Actions (build, test, publish)
+- endior.net landing page scaffolded
+- SDLC 6.3.1 compliance audit: score raised from 92% to 94%
+
+### Changed
+- Dual-launch preparation: SDLC Framework + EndiorBot published as separate artifacts
+- Community publish cleanup: `mtclaw` → `mcp-gateway`, `nqh` → `self-hosted`, "CEO Power Tool" → "Solo Developer Power Tool"
+- Stage 00-02 docs updated to match actual implementation
+- Usage Guide revised with 11 accuracy fixes
+- Product Vision rewritten to v3.0
+
+### Security
+- Key rotation performed pre-publish (historical credential exposure remediation)
+
+### Fixed
+- Desktop IPC handlers, gateway method signatures, Dashboard stats — SDLC gap analysis corrections
+
+## [Sprint 144] - 2026-04-27
+
+### Added
+- Gateway PID lockfile (prevents duplicate server processes)
+- Circuit breaker for gateway fault isolation
+- OTT 60-second timeout guard
+- Desktop app: 9 pages, gateway auto-start on launch, API key management UI
+- 39 unified commands across 5 channels (Web, Telegram, Zalo, CLI, Desktop)
+- HSTS header added to all HTTP responses
+
+### Changed
+- Kimi subprocess integration marked deprecated; migration path documented
+- Dead code removed (CSO audit)
+
+### Fixed
+- Gateway hardening: startup race conditions, stale PID cleanup
+
+## [Sprint 143] - 2026-04-26
+
+### Added
+- `gate mark` subcommand for manual gate state transitions
+- Brain L2 pattern matching wired into recovery engine
+- ADR-052 amendment: CC-first routing policy
+
+### Fixed
+- 7 gateway hotfixes from CEO testing session (OTT response formatting, session state, error propagation)
+
+## [Sprint 142] - 2026-04-26
+
+### Added
+- Anti-drift improvements: 17 mechanisms across session anchoring and context refresh
+- `buildEnrichedPrompt()`: vendor-agnostic enrichment layer for all model providers
+- Expert routing Phase 2: domain-aware dispatcher with confidence scoring
+
+## [Sprint 141] - 2026-04-24
+
+### Added
+- Cost telemetry: per-request token cost tracking across all providers
+- Budget tracker with configurable thresholds and alerts
+- Ollama confidence scoring (feature-flag gated, `FF_OLLAMA_CONFIDENCE`)
+
+### Fixed
+- Kimi proxy resilience: 429 rate-limit recovery with exponential backoff
+
+## [Sprint 140] - 2026-04-23
+
+### Added
+- Kimi k2.6 model integration via proxy
+- ADR-052: agent-to-model tier mapping specification
+- 3-tier model routing: Opus (architecture) / Sonnet (standard) / Ollama (local/efficiency)
+
+## [Sprint 139] - 2026-04-20
+
+### Added
+- ADR-050: OpenMythos evaluator optimization patterns
+- Evaluator loop with configurable scoring thresholds and low-score notification hook
+
 ## [0.1.0-beta.1] - 2026-03-23
 
 ### Added

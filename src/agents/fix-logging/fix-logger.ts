@@ -255,7 +255,7 @@ export class FixLogger {
         patternId,
         count: stats.count,
         successRate: sr,
-        trend: "stable" as const, // TODO: compare with previous week
+        trend: "stable" as const, // DEFERRED(Sprint 147): compare with previous week using historical pattern store
         ...(sr < 0.5 && { recommendation: "Review this pattern" }),
       };
       return summary;

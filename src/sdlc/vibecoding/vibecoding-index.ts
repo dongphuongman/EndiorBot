@@ -290,7 +290,7 @@ export class VibecodingCalculator {
       });
     }
 
-    // TODO count signal (lower is better)
+    // TODO-count signal (lower is better)
     if (metrics.todoCount !== undefined) {
       const threshold = this.getThreshold("todoCount");
       const weight = this.getWeight("todoCount");

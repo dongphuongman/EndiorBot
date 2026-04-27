@@ -444,7 +444,7 @@ Reply with:
       totalRequests: this.approvalHistory.length,
       approved,
       rejected,
-      averageResponseTimeMs: 0, // TODO: Calculate from history
+      averageResponseTimeMs: 0, // TRIVIAL: compute mean (respondedAt - requestedAt) across approvalHistory once timestamps are added to OTTApprovalResponse
     };
   }
 

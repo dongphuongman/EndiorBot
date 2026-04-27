@@ -2,76 +2,36 @@
  * Gateway Approval Methods
  *
  * JSON-RPC methods for approval queue management.
+ * Queue state and shared types now live in src/approval/queue.ts to
+ * prevent agents/ → gateway/ architectural inversion (CSO audit).
  *
  * @module gateway/methods/approval
- * @version 1.0.0
- * @date 2026-02-23
- * @status ACTIVE - Sprint 44 Day 3
+ * @version 1.1.0
+ * @date 2026-04-27
+ * @status ACTIVE
  */
 
 import type { GatewayServer } from "../server.js";
 import type { ClientInfo } from "../types.js";
+import {
+  approvalQueue,
+  updateExpiredRequests,
+} from "../../approval/queue.js";
+import type { ApprovalRequest, ApprovalStatus, ApprovalType } from "../../approval/queue.js";
 
-// ============================================================================
-// Types
-// ============================================================================
+// Re-export everything consumers depended on from this path (backward compat).
+export {
+  createApprovalRequest,
+  waitForApproval,
+  clearApprovalQueue,
+  getApprovalQueue,
+} from "../../approval/queue.js";
 
-/**
- * Approval request types.
- */
-export type ApprovalType =
-  | "gate"           // SDLC gate approval
-  | "budget"         // Budget limit increase
-  | "action"         // Risky action (file delete, deploy, etc.)
-  | "escalation"     // Agent escalation to CEO
-  | "checkpoint";    // Checkpoint restore
-
-/**
- * Approval request status.
- */
-export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
-
-/**
- * Approval request.
- */
-export interface ApprovalRequest {
-  id: string;
-  type: ApprovalType;
-  status: ApprovalStatus;
-  message: string;
-  details?: Record<string, unknown>;
-  createdAt: number;
-  expiresAt: number;
-  respondedAt?: number;
-  respondedBy?: string;
-  notes?: string;
-  sessionId?: string;
-}
-
-/**
- * Approval queue (in-memory for now).
- * TODO: Wire to actual ApprovalQueue in Sprint 44 Day 5+
- */
-const approvalQueue: Map<string, ApprovalRequest> = new Map();
-
-// Default expiration: 1 hour
-const DEFAULT_EXPIRATION_MS = 60 * 60 * 1000;
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-/**
- * Check and update expired requests.
- */
-function updateExpiredRequests(): void {
-  const now = Date.now();
-  for (const request of approvalQueue.values()) {
-    if (request.status === "pending" && now > request.expiresAt) {
-      request.status = "expired";
-    }
-  }
-}
+export type {
+  ApprovalRequest,
+  ApprovalStatus,
+  ApprovalType,
+} from "../../approval/queue.js";
 
 // ============================================================================
 // Method Handlers
@@ -82,7 +42,7 @@ function updateExpiredRequests(): void {
  */
 function handleApprovalList(
   params: unknown,
-  _client: ClientInfo
+  _client: ClientInfo,
 ): { requests: ApprovalRequest[]; pendingCount: number } {
   updateExpiredRequests();
 
@@ -95,12 +55,10 @@ function handleApprovalList(
 
   let requests = Array.from(approvalQueue.values());
 
-  // Filter by status
   if (status) {
     requests = requests.filter((r) => r.status === status);
   }
 
-  // Filter by type
   if (type) {
     requests = requests.filter((r) => r.type === type);
   }
@@ -109,7 +67,7 @@ function handleApprovalList(
   requests.sort((a, b) => b.createdAt - a.createdAt);
 
   const pendingCount = Array.from(approvalQueue.values()).filter(
-    (r) => r.status === "pending"
+    (r) => r.status === "pending",
   ).length;
 
   // Apply pagination
@@ -123,7 +81,7 @@ function handleApprovalList(
  */
 function handleApprovalGet(
   params: unknown,
-  _client: ClientInfo
+  _client: ClientInfo,
 ): ApprovalRequest {
   updateExpiredRequests();
 
@@ -146,7 +104,7 @@ function handleApprovalGet(
  */
 function handleApprovalApprove(
   params: unknown,
-  client: ClientInfo
+  client: ClientInfo,
 ): { success: boolean; request: ApprovalRequest } {
   updateExpiredRequests();
 
@@ -183,7 +141,7 @@ function handleApprovalApprove(
  */
 function handleApprovalReject(
   params: unknown,
-  client: ClientInfo
+  client: ClientInfo,
 ): { success: boolean; request: ApprovalRequest } {
   updateExpiredRequests();
 
@@ -220,12 +178,12 @@ function handleApprovalReject(
  */
 function handleApprovalPendingCount(
   _params: unknown,
-  _client: ClientInfo
+  _client: ClientInfo,
 ): { count: number; byType: Record<ApprovalType, number> } {
   updateExpiredRequests();
 
   const pending = Array.from(approvalQueue.values()).filter(
-    (r) => r.status === "pending"
+    (r) => r.status === "pending",
   );
 
   const byType: Record<ApprovalType, number> = {
@@ -256,97 +214,4 @@ export function registerApprovalMethods(server: GatewayServer): void {
   server.registerMethod("approval.approve", handleApprovalApprove);
   server.registerMethod("approval.reject", handleApprovalReject);
   server.registerMethod("approval.pendingCount", handleApprovalPendingCount);
-}
-
-// ============================================================================
-// Internal API (for approval queue push)
-// ============================================================================
-
-/**
- * Create an approval request (called by ApprovalQueue).
- */
-export function createApprovalRequest(
-  type: ApprovalType,
-  message: string,
-  options?: {
-    details?: Record<string, unknown>;
-    expiresInMs?: number;
-    sessionId?: string;
-  }
-): ApprovalRequest {
-  const expiresInMs = options?.expiresInMs ?? DEFAULT_EXPIRATION_MS;
-
-  const request: ApprovalRequest = {
-    id: crypto.randomUUID(),
-    type,
-    status: "pending",
-    message,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + expiresInMs,
-  };
-
-  if (options?.details !== undefined) {
-    request.details = options.details;
-  }
-  if (options?.sessionId !== undefined) {
-    request.sessionId = options.sessionId;
-  }
-
-  approvalQueue.set(request.id, request);
-
-  return request;
-}
-
-/**
- * Wait for approval (promise-based).
- */
-export async function waitForApproval(
-  approvalId: string,
-  timeoutMs?: number
-): Promise<ApprovalRequest> {
-  const timeout = timeoutMs ?? DEFAULT_EXPIRATION_MS;
-  const startTime = Date.now();
-
-  return new Promise((resolve, reject) => {
-    const check = (): void => {
-      const request = approvalQueue.get(approvalId);
-      if (!request) {
-        reject(new Error(`Approval request not found: ${approvalId}`));
-        return;
-      }
-
-      if (request.status !== "pending") {
-        resolve(request);
-        return;
-      }
-
-      if (Date.now() - startTime > timeout) {
-        request.status = "expired";
-        resolve(request);
-        return;
-      }
-
-      setTimeout(check, 500);
-    };
-
-    check();
-  });
-}
-
-// ============================================================================
-// Test Helpers
-// ============================================================================
-
-/**
- * Clear approval queue (for testing).
- */
-export function clearApprovalQueue(): void {
-  approvalQueue.clear();
-}
-
-/**
- * Get approval queue (for testing).
- */
-export function getApprovalQueue(): Map<string, ApprovalRequest> {
-  return approvalQueue;
 }

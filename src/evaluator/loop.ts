@@ -904,7 +904,7 @@ export class EvaluatorLoop {
       channel: this.config.notifications.channel,
     });
 
-    // TODO: Implement actual notification via Telegram/Desktop
+    // DEFERRED(Sprint 147): Implement actual notification via Telegram/Desktop
   }
 }
 

@@ -166,7 +166,7 @@ function getProjectStatus(projectPath: string): ProjectStatus {
     sdlcVersion: sdlcConfig?.framework?.version ?? "6.3.0",
     hasGit,
     branch: hasGit ? getCurrentBranch(projectPath) : undefined,
-    uncommittedFiles: 0, // TODO: Implement git status check
+    uncommittedFiles: 0, // DEFERRED(Sprint 147): wire git status check via existing GitAutomation module
     srcFiles: countFiles(join(projectPath, "src"), /\.(ts|tsx|js|jsx)$/),
     testFiles: countFiles(join(projectPath, "tests"), /\.test\.(ts|tsx|js|jsx)$/),
   };
