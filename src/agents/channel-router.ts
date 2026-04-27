@@ -10,8 +10,8 @@ import { initializeProvidersFromEnv } from "../providers/init.js";
 import { registerKimiProxyCleanup } from "../providers/kimi-proxy/index.js";
 import { parseMention } from "./orchestrator/mention-parser.js";
 import type { ChannelSendFn } from "../bus/types.js";
-import type { MTClawBridge } from "../mtclaw/bridge.js";
-import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mtclaw/types.js";
+import type { McpGatewayBridge } from "../mcp-gateway/bridge.js";
+import { type CrossSystemRoute, RAG_COLLECTIONS, AI_PLATFORM_DOCS_URL } from "../mcp-gateway/types.js";
 import { TIMEOUTS } from "../config/timeouts.js";
 import { getMetricsCollector, type AgentMetric } from "../analytics/index.js";
 import { createPricingRegistry } from "../budget/pricing-registry.js";
@@ -53,7 +53,7 @@ export interface ChannelRouterConfig {
   claudeTimeout: number;
   claudeMaxTokens: number;
   verbose: boolean;
-  mtclawBridge?: MTClawBridge;
+  mcpGatewayBridge?: McpGatewayBridge;
 }
 
 export interface RouteResult {
@@ -105,6 +105,21 @@ export const DEFAULT_ROUTER_CONFIG: ChannelRouterConfig = {
   claudeMaxTokens: 4000,
   verbose: false,
 };
+
+// ============================================================================
+// Sprint 143: Per-agent session lock
+// Prevents duplicate concurrent calls to the same agent from the same user.
+// If @coder is already processing, subsequent @coder requests get a notice
+// instead of spawning a competing CC Bridge process.
+// ============================================================================
+
+interface AgentLock {
+  agent: string;
+  startedAt: number;
+  task: string;
+}
+
+const agentLocks = new Map<string, AgentLock>();
 
 export class ChannelRouter {
   readonly config: ChannelRouterConfig;
@@ -205,6 +220,21 @@ export class ChannelRouter {
      */
     progressFn?: (text: string) => void,
   ): Promise<AIResult> {
+    // Sprint 143: Per-agent session lock — prevent duplicate concurrent calls.
+    // CEO may tap @coder 3 times; only the first spawns a bridge, rest get notice.
+    const lockKey = agent; // single-user tool → agent name is sufficient key
+    const existingLock = agentLocks.get(lockKey);
+    if (existingLock) {
+      const elapsedSec = Math.round((Date.now() - existingLock.startedAt) / 1000);
+      return {
+        content: `⏳ @${agent} đang xử lý request trước (${elapsedSec}s elapsed). Vui lòng chờ hoàn thành hoặc gửi lại sau.`,
+        provider: "session-lock",
+        durationMs: 0,
+      };
+    }
+    agentLocks.set(lockKey, { agent, startedAt: Date.now(), task: task.slice(0, 100) });
+
+    try {
     const ws = workspace ?? this.config.projectRoot;
     const deps = { bridge: this.bridge, claudeAvailable: this.claudeAvailable, config: this.config };
     const callStartTime = Date.now();
@@ -307,6 +337,10 @@ export class ChannelRouter {
     throw new Error(
       `All providers failed for @${agent}. Primary (${agentConfig!.provider}) and fallback chain exhausted.`,
     );
+    } finally {
+      // Sprint 143: Release per-agent session lock
+      agentLocks.delete(lockKey);
+    }
   }
 
   /**
@@ -392,11 +426,11 @@ export class ChannelRouter {
     return `${icon} @${agent}\n\n${truncated}`;
   }
 
-  /** Call MTClaw agent via cross-system route (Sprint 113, ADR-034). */
+  /** Call MCP Gateway agent via cross-system route (Sprint 113, ADR-034). */
   async callMTClaw(route: CrossSystemRoute): Promise<AIResult> {
-    const bridge = this.config.mtclawBridge;
+    const bridge = this.config.mcpGatewayBridge;
     if (!bridge || !bridge.isAvailable()) {
-      return { content: "MTClaw is currently unavailable.", provider: "mtclaw-mcp", durationMs: 0 };
+      return { content: "MCP Gateway is currently unavailable.", provider: "mcp-gateway", durationMs: 0 };
     }
 
     const start = Date.now();
@@ -426,10 +460,10 @@ export class ChannelRouter {
           break;
         }
       }
-      return { content, provider: "mtclaw-mcp", durationMs: Date.now() - start };
+      return { content, provider: "mcp-gateway", durationMs: Date.now() - start };
     } catch (e) {
-      console.warn(`[Router] MTClaw call failed: ${e instanceof Error ? e.message : String(e)}`);
-      return { content: "MTClaw request failed. Please try again later.", provider: "mtclaw-mcp", durationMs: Date.now() - start };
+      console.warn(`[Router] MCP Gateway call failed: ${e instanceof Error ? e.message : String(e)}`);
+      return { content: "MCP Gateway request failed. Please try again later.", provider: "mcp-gateway", durationMs: Date.now() - start };
     }
   }
 
