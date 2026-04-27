@@ -361,14 +361,20 @@ export function Chat() {
           <button
             type="button"
             className="btn-ghost rounded-lg p-2"
-            aria-label="Attach file"
+            aria-label="Attach file (coming soon)"
+            title="Coming soon"
+            disabled
+            style={{ opacity: 0.3, cursor: "not-allowed" }}
           >
             <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
           <button
             type="button"
             className="btn-ghost rounded-lg p-2"
-            aria-label="Voice input"
+            aria-label="Voice input (coming soon)"
+            title="Coming soon"
+            disabled
+            style={{ opacity: 0.3, cursor: "not-allowed" }}
           >
             <Mic className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>

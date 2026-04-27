@@ -14,6 +14,22 @@ import type { FixStatsSummary, FixPattern } from "../types/electron";
 import { formatPercent, formatDate } from "../lib/utils";
 import { cn } from "../lib/utils";
 
+let _ipc: Electron.IpcRenderer | null = null;
+function getIpc() {
+  if (_ipc) return _ipc;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _ipc = (require("electron") as { ipcRenderer: Electron.IpcRenderer }).ipcRenderer;
+  } catch {
+    /* not in Electron */
+  }
+  return _ipc;
+}
+const safeIpcInvoke = async (channel: string, ...args: unknown[]): Promise<unknown> => {
+  const ipc = getIpc();
+  return ipc ? ipc.invoke(channel, ...args) : null;
+};
+
 export function FixStats() {
   const [summary, setSummary] = useState<FixStatsSummary | null>(null);
   const [patterns, setPatterns] = useState<FixPattern[]>([]);
@@ -26,13 +42,11 @@ export function FixStats() {
   const loadStats = async () => {
     try {
       const [summaryData, patternsData] = await Promise.all([
-        window.electron.ipcRenderer.invoke<FixStatsSummary>(
-          "fixStats:getWeeklySummary"
-        ),
-        window.electron.ipcRenderer.invoke<FixPattern[]>("fixStats:getPatterns"),
+        safeIpcInvoke("fixStats:getWeeklySummary") as Promise<FixStatsSummary | null>,
+        safeIpcInvoke("fixStats:getPatterns") as Promise<FixPattern[] | null>,
       ]);
       setSummary(summaryData);
-      setPatterns(patternsData);
+      setPatterns(patternsData ?? []);
     } catch (error) {
       console.error("Failed to load fix stats:", error);
     } finally {

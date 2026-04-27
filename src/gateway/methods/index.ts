@@ -10,6 +10,9 @@
  */
 
 import type { GatewayServer } from "../server.js";
+import type { CommandDispatcher } from "../../commands/command-dispatcher.js";
+import type { ChannelRouter } from "../../agents/channel-router.js";
+import type { GatewayIngress } from "../ingress.js";
 
 // Registration functions
 import { registerSessionMethods } from "./sessions.js";
@@ -20,6 +23,8 @@ import { registerAgentMethods } from "./agents.js";
 import { registerChatMethods } from "./chat.js";
 
 // Sprint 93: Bridge commands + Router chat
+import { registerBridgeCommandMethods } from "./bridge-commands.js";
+import { registerRouterChatMethods } from "./router-chat.js";
 export { registerBridgeCommandMethods, getBridgeCommandCount } from "./bridge-commands.js";
 export { registerRouterChatMethods } from "./router-chat.js";
 import { registerEvalMethods } from "./eval.js";
@@ -193,9 +198,34 @@ export {
 // ============================================================================
 
 /**
- * Register all gateway methods with the server.
+ * Options for registering all gateway methods.
+ *
+ * Sprint 93: `dispatcher` and `router` are optional so callers that do not
+ * have those dependencies (e.g. the standalone `gateway start` command) can
+ * still call this function without wiring bridge-command or router.chat
+ * methods.  When provided, `registerBridgeCommandMethods` and
+ * `registerRouterChatMethods` are called inside this function so Desktop Chat
+ * reaches the 39 dispatcher commands and the router.chat endpoint via WebSocket.
  */
-export function registerAllMethods(server: GatewayServer): void {
+export interface RegisterAllMethodsOptions {
+  /** CommandDispatcher — required to enable cmd.* bridge methods. */
+  dispatcher?: CommandDispatcher;
+  /** ChannelRouter — required to enable router.chat and router.status methods. */
+  router?: ChannelRouter;
+  /** GatewayIngress — optional; improves router.chat pipeline when provided. */
+  ingress?: GatewayIngress;
+}
+
+/**
+ * Register all gateway methods with the server.
+ *
+ * Pass `options.dispatcher` and `options.router` to also register the Sprint 93
+ * bridge-command methods (`cmd.*`) and the router-chat method (`router.chat`).
+ */
+export function registerAllMethods(
+  server: GatewayServer,
+  options: RegisterAllMethodsOptions = {},
+): void {
   registerSessionMethods(server);
   registerBudgetMethods(server);
   registerApprovalMethods(server);
@@ -205,6 +235,16 @@ export function registerAllMethods(server: GatewayServer): void {
   registerEvalMethods(server);
   registerOptimizerMethods(server);
   registerToolsMethods(server);
+
+  // Sprint 93: Bridge commands (cmd.*) — requires CommandDispatcher
+  if (options.dispatcher) {
+    registerBridgeCommandMethods(server, options.dispatcher);
+  }
+
+  // Sprint 93/99: Router chat (router.chat, router.status) — requires ChannelRouter
+  if (options.router) {
+    registerRouterChatMethods(server, options.router, options.ingress);
+  }
 }
 
 /**

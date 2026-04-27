@@ -2,13 +2,74 @@
  * Dashboard Page - Project overview and system status
  */
 
+import { useState, useEffect } from "react";
 import { useSettingsStore } from "../stores/settings.safe";
 import { useGatewayStore } from "../stores/gateway.safe";
 import { Card, CardHeader, CardTitle, CardContent, Badge } from "../components/ui";
 
+/** Lazy IPC renderer accessor — returns null outside Electron. */
+let _ipc: Electron.IpcRenderer | null = null;
+function getIpc(): Electron.IpcRenderer | null {
+  if (_ipc) return _ipc;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _ipc = (require("electron") as { ipcRenderer: Electron.IpcRenderer }).ipcRenderer;
+  } catch {
+    // Running in browser / test — no IPC available
+  }
+  return _ipc;
+}
+
+async function safeIpcInvoke<T>(channel: string): Promise<T | null> {
+  const ipc = getIpc();
+  if (!ipc) return null;
+  try {
+    return (await ipc.invoke(channel)) as T;
+  } catch {
+    return null;
+  }
+}
+
+interface DashboardStats {
+  projectCount: string;
+  gatePassCount: string;
+  providerCount: string;
+}
+
 export function Dashboard() {
   const { theme, gatewayPort } = useSettingsStore();
   const { status, isConnected, lastChecked } = useGatewayStore();
+
+  const [stats, setStats] = useState<DashboardStats>({
+    projectCount: "—",
+    gatePassCount: "—",
+    providerCount: "—",
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStats() {
+      const [repos, gates, providers] = await Promise.all([
+        safeIpcInvoke<{ id: string }[]>("repos:list"),
+        safeIpcInvoke<{ result: string }[]>("gates:status"),
+        safeIpcInvoke<{ name: string }[]>("experts:providers"),
+      ]);
+
+      if (cancelled) return;
+
+      setStats({
+        projectCount: repos != null ? String(repos.length) : "—",
+        gatePassCount: gates != null
+          ? String(gates.filter((g) => g.result === "PASS").length)
+          : "—",
+        providerCount: providers != null ? String(providers.length) : "—",
+      });
+    }
+
+    void loadStats();
+    return () => { cancelled = true; };
+  }, []);
 
   // Project overview (no sprint-specific info, just status)
   const projectStats = {
@@ -60,16 +121,16 @@ export function Dashboard() {
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-4 mt-4">
               <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-blue-400">12</p>
-                <p className="text-xs text-gray-400">Tasks Done</p>
+                <p className="text-2xl font-bold text-blue-400">{stats.projectCount}</p>
+                <p className="text-xs text-gray-400">Projects</p>
               </div>
               <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">8</p>
-                <p className="text-xs text-gray-400">Commits</p>
+                <p className="text-2xl font-bold text-green-400">{stats.gatePassCount}</p>
+                <p className="text-xs text-gray-400">Gates Passed</p>
               </div>
               <div className="text-center p-3 bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-purple-400">3</p>
-                <p className="text-xs text-gray-400">PRs</p>
+                <p className="text-2xl font-bold text-purple-400">{stats.providerCount}</p>
+                <p className="text-xs text-gray-400">Providers</p>
               </div>
             </div>
           </div>

@@ -28,8 +28,6 @@ import {
   setGatewayServer,
 } from "../../gateway/index.js";
 import { registerAllMethods } from "../../gateway/methods/index.js";
-import { registerBridgeCommandMethods } from "../../gateway/methods/bridge-commands.js";
-import { registerRouterChatMethods } from "../../gateway/methods/router-chat.js";
 import { GatewayIngress } from "../../gateway/ingress.js";
 import { createCommandDispatcher } from "../../commands/index.js";
 import { createChannelRouter } from "../../agents/channel-router.js";
@@ -302,9 +300,7 @@ async function serveAction(options: ServeOptions): Promise<void> {
     // 5. Gateway Server
     console.log(dim("  Starting Gateway server..."));
     const server = createGatewayServer({ port });
-    registerAllMethods(server);
-    registerBridgeCommandMethods(server, dispatcher);
-    registerRouterChatMethods(server, router, ingress);
+    registerAllMethods(server, { dispatcher, router, ingress });
     setGatewayServer(server);
     await server.start();
     components.push({

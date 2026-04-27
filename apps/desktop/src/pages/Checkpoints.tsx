@@ -13,6 +13,22 @@ import { History, RotateCcw, Loader2 } from "lucide-react";
 import type { Checkpoint } from "../types/electron";
 import { formatTimestamp } from "../lib/utils";
 
+let _ipc: Electron.IpcRenderer | null = null;
+function getIpc() {
+  if (_ipc) return _ipc;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _ipc = (require("electron") as { ipcRenderer: Electron.IpcRenderer }).ipcRenderer;
+  } catch {
+    /* not in Electron */
+  }
+  return _ipc;
+}
+const safeIpcInvoke = async (channel: string, ...args: unknown[]): Promise<unknown> => {
+  const ipc = getIpc();
+  return ipc ? ipc.invoke(channel, ...args) : null;
+};
+
 export function Checkpoints() {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,10 +40,8 @@ export function Checkpoints() {
 
   const loadCheckpoints = async () => {
     try {
-      const data = await window.electron.ipcRenderer.invoke<Checkpoint[]>(
-        "checkpoints:list"
-      );
-      setCheckpoints(data);
+      const data = (await safeIpcInvoke("checkpoints:list")) as Checkpoint[] | null;
+      setCheckpoints(data ?? []);
     } catch (error) {
       console.error("Failed to load checkpoints:", error);
     } finally {
@@ -38,12 +52,12 @@ export function Checkpoints() {
   const handleRestore = async (id: string) => {
     setRestoringId(id);
     try {
-      const result = await window.electron.ipcRenderer.invoke<{
+      const result = (await safeIpcInvoke("checkpoints:restore", id)) as {
         success: boolean;
         checkpointId: string;
-      }>("checkpoints:restore", id);
+      } | null;
 
-      if (result.success) {
+      if (result?.success) {
         // Show success notification (will implement toast in Sprint 44)
         console.log(`Restored checkpoint: ${result.checkpointId}`);
       }
