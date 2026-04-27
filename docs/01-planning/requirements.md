@@ -26,10 +26,10 @@ endiorbot switch <project>      # Minimal context
 
 | ID | Requirement | Priority | Tier |
 |----|-------------|----------|------|
-| FR-001.1 | Query 2 models: Gemini (primary) + Opus (backup) | P0 | MVP |
+| FR-001.1 | Query 2 models: Claude Code (primary) + Kimi (fallback) | P0 | MVP |
 | FR-001.2 | Consolidate with primary_with_notes algorithm | P0 | MVP |
 | FR-001.3 | Fallback to single model on timeout | P0 | MVP |
-| FR-001.4 | Full 4+ model orchestration | P2 | Tier 3 |
+| FR-001.4 | Full 4+ model orchestration (5 providers: CC, Kimi proxy, Kimi API, OpenAI, Ollama) | P2 | Tier 3 |
 
 ### FR-002: Project Context Switching (MVP)
 
@@ -141,25 +141,25 @@ endiorbot switch <project>      # Minimal context
 
 ---
 
-### FR-011: Gateway Operational Resilience (Sprint 143-144)
+### FR-011: Gateway Operational Resilience (Sprint 143-144) ✅ COMPLETE
 
 **Trigger:** CEO real-world testing exposed 7 production issues in a single 2-hour Telegram session. Architecture review: [`docs/02-design/14-Technical-Specs/gateway-architecture-review-sprint-143.md`](../02-design/14-Technical-Specs/gateway-architecture-review-sprint-143.md)
 
 | ID | Requirement | Priority | Sprint |
 |----|-------------|----------|--------|
-| FR-011.1 | Singleton serve enforcement (PID lockfile) — prevent duplicate processes | P0 | 144 |
-| FR-011.2 | Provider health circuit breaker — skip dead providers immediately after 2 failures | P0 | 144 |
+| FR-011.1 | Singleton serve enforcement (PID lockfile) — prevent duplicate processes | P0 | 144 ✅ |
+| FR-011.2 | Provider health circuit breaker — skip dead providers immediately after 2 failures | P0 | 144 ✅ |
 | FR-011.3 | Per-agent session lock — prevent duplicate concurrent calls for same agent | P0 | 143 ✅ |
 | FR-011.4 | CC timeout → automatic fallback to Kimi/cloud (not error) | P0 | 143 ✅ |
-| FR-011.5 | OTT channel timeout 60s (not 180s) with immediate Kimi fallback | P1 | 144 |
+| FR-011.5 | OTT channel timeout 60s (not 180s) with immediate Kimi fallback | P1 | 144 ✅ |
 | FR-011.6 | Telegram message delivery guarantee (retry as plain text on parse failure) | P1 | 143 ✅ |
 | FR-011.7 | Kimi model name resolution (non-Kimi model → default kimi-k2.6) | P1 | 143 ✅ |
-| FR-011.8 | Deprecate Kimi subprocess spawner, document external proxy pattern | P1 | 144 |
+| FR-011.8 | Deprecate Kimi subprocess spawner, document external proxy pattern | P1 | 144 ✅ |
 
 **Acceptance Criteria:**
-- Cannot start 2 serve processes simultaneously (T1)
-- After 2 CC timeouts, 3rd @agent call skips CC → responds via Kimi in <30s (T2)
-- OTT @agent: total time-to-response ≤ 90s even when CC is down (T3)
+- Cannot start 2 serve processes simultaneously (T1) ✅
+- After 2 CC timeouts, 3rd @agent call skips CC → responds via Kimi in <30s (T2) ✅
+- OTT @agent: total time-to-response ≤ 90s even when CC is down (T3) ✅
 - CEO taps @coder 3x → only first processes, rest get "already processing" (FR-011.3 ✅)
 - Telegram table-formatted response → plain text fallback, not silent loss (FR-011.6 ✅)
 
@@ -170,7 +170,7 @@ endiorbot switch <project>      # Minimal context
 | NFR-004.1 | OTT time-to-first-response | ≤ 90s (60s CC attempt + 30s fallback) | P0 |
 | NFR-004.2 | Message delivery rate | 100% (retry plain text on Markdown failure) | P0 |
 | NFR-004.3 | Provider failover time | ≤ 5s after circuit opens (skip immediately) | P0 |
-| NFR-004.4 | Zero duplicate messages from serve process competition | P0 | P0 |
+| NFR-004.4 | Zero duplicate messages from serve process competition | P0 | ✅ Sprint 144 |
 
 ---
 
@@ -178,12 +178,12 @@ endiorbot switch <project>      # Minimal context
 
 | Feature | Status | Reason |
 |---------|--------|--------|
-| Desktop shell | Tier 3 | CLI-first |
 | Skills gateway | Tier 3 | Complexity |
-| Full multi-model (4+) | Tier 3 | 2 models enough |
+| Full multi-model (4+) | ✅ SHIPPED (Sprint 140+) | 5 providers active |
 | SDLC enforcement | Tier 3 | Checklist first |
 | Dynamic overlay | Tier 2 | Session anchor first |
-| Junior hub | Tier 3 | Solo developer focus |
+| Desktop shell | ✅ SHIPPED (Sprint 144) | 9 pages, gateway auto-start |
+| Junior hub | ✅ SHIPPED (Sprint 144) | Desktop page functional |
 
 ---
 
@@ -193,8 +193,9 @@ endiorbot switch <project>      # Minimal context
 |------------|---------|---------|
 | Node.js | 22+ | Runtime |
 | TypeScript | 5.8+ | Language |
-| Google AI SDK | Latest | Gemini API |
-| Anthropic SDK | Latest | Claude API |
+| Anthropic SDK | Latest | Claude API (CC-first primary) |
+| OpenAI SDK | Latest | Kimi API + OpenAI providers |
+| Electron | Latest | Desktop channel |
 
 ---
 
@@ -203,23 +204,17 @@ endiorbot switch <project>      # Minimal context
 - [Master Plan v2.0](../00-foundation/master-plan.md)
 - [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md)
 
-### FR-011: Kimi2.6 First Fallback via Subprocess Orchestrator (Sprint 140)
+### FR-012: Kimi Proxy Integration (Sprint 140) ✅ COMPLETE
 
-| ID | Requirement | Priority | Tier |
-|----|-------------|----------|------|
-| FR-011.1 | Auto-detect and spawn `claude-code-proxy` as managed subprocess | P0 | ALL |
-| FR-011.2 | Dynamic port allocation for proxy (avoid hardcoded 18765) | P0 | ALL |
-| FR-011.3 | Insert `kimi-proxy` as first fallback for all SDLC agents | P0 | ALL |
-| FR-011.4 | Graceful degrade if proxy binary missing or not authenticated | P0 | ALL |
-| FR-011.5 | Health check `/healthz` ≤ 3s, non-blocking router init | P0 | ALL |
-| FR-011.6 | Cleanup proxy process on EndiorBot shutdown (SIGTERM) | P0 | ALL |
-| FR-011.7 | Kill switch `ENDIORBOT_DISABLE_KIMI_PROXY=true` | P1 | ALL |
-| FR-011.8 | Auth pre-check before starting proxy (warn if not logged in) | P1 | ALL |
+> **Note:** Subprocess spawner pattern deprecated in Sprint 144. Supported path is external proxy via `ENDIORBOT_KIMI_PROXY_URL`.
 
-**Acceptance Criteria:**
-- Given `claude-code-proxy` installed and Kimi authenticated, When EndiorBot starts, Then proxy auto-starts on a free port and registers as `kimi-proxy` provider.
-- Given Claude Code Bridge returns RATE_LIMITED, When any agent is called, Then router tries `kimi-proxy` before cloud providers.
-- Given `claude-code-proxy` not in PATH, When EndiorBot starts, Then router initializes without error and skips kimi-proxy fallback.
+| ID | Requirement | Priority | Tier | Status |
+|----|-------------|----------|------|--------|
+| FR-012.1 | External `claude-code-proxy` wired as `kimi-proxy` provider | P0 | ALL | ✅ |
+| FR-012.2 | Dynamic port via `ENDIORBOT_KIMI_PROXY_URL` env | P0 | ALL | ✅ |
+| FR-012.3 | `kimi-proxy` as fallback for all SDLC agents (CC-first per ADR-052) | P0 | ALL | ✅ |
+| FR-012.4 | Graceful degrade if proxy unavailable | P0 | ALL | ✅ |
+| FR-012.5 | Kimi subprocess spawner deprecated with `console.warn` (Sprint 144) | P0 | ALL | ✅ |
 
 **Design Doc:** [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md)
 
@@ -229,9 +224,9 @@ endiorbot switch <project>      # Minimal context
 
 Feature-scoped PRDs that extend this MVP requirements spec:
 
-- **[openclaw Backport (Sprint 132+)](./openclaw-backport/PRD.md)** — M0 `commands.list` RPC, M1 `exec-policy` cluster, S1 Active Memory, S2 SSRF audit. Plan v3 CTO G2 APPROVED 2026-04-11. See also [scope.md](./openclaw-backport/scope.md) and [Sprint 132 plan](../04-build/sprints/sprint-132-openclaw-backport.md).
+- **[openclaw Backport (Sprint 132-133)](./openclaw-backport/PRD.md)** ✅ COMPLETE — M0 `commands.list` RPC, M1 `exec-policy` cluster, S1 Active Memory, S2 SSRF audit all shipped. C2 Webhooks delivered Sprint 134. See also [scope.md](./openclaw-backport/scope.md).
 
 ---
 
-*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
-*Identity: LOCKED (2026-02-28)*
+*Solo Developer Power Tool | SDLC Framework v6.3.1 - Stage 01: Planning*
+*Identity: LOCKED (2026-02-28) | Updated Sprint 144 (2026-04-27)*

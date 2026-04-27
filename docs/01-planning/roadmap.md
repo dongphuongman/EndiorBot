@@ -45,32 +45,32 @@
 
 ---
 
-## Tier 1 — MVP (Current)
+## Tier 1 — MVP
 
 **Timeline:** 2-3 weeks
-**Status:** In Progress (Sprint 54)
+**Status:** ✅ COMPLETE (Sprint 54)
 
-### Sprint 54: CEO Tool MVP
+### Sprint 54: MVP (COMPLETE)
 
 | Task | Hours | Priority | Status |
 |------|-------|----------|--------|
-| ChatHandler (2-model) | 2h | P0 | PENDING |
-| AIRouter (Gemini + Opus) | 1.5h | P0 | PENDING |
-| primary_with_notes consolidation | 1h | P0 | PENDING |
-| ActionControlPlane stub | 1h | P0 | PENDING |
-| Context Budget governance | 1h | P0 | PENDING |
-| Gate status read-only | 0.5h | P0 | PENDING |
-| CLI `consult` command | 1h | P0 | PENDING |
-| Testing & documentation | 2h | P0 | PENDING |
+| ChatHandler (2-model) | 2h | P0 | ✅ DONE |
+| AIRouter | 1.5h | P0 | ✅ DONE |
+| primary_with_notes consolidation | 1h | P0 | ✅ DONE |
+| ActionControlPlane stub | 1h | P0 | ✅ DONE |
+| Context Budget governance | 1h | P0 | ✅ DONE |
+| Gate status read-only | 0.5h | P0 | ✅ DONE |
+| CLI `consult` command | 1h | P0 | ✅ DONE |
+| Testing & documentation | 2h | P0 | ✅ DONE |
 
 ### MVP Features
 
 | Feature | Command | Status |
 |---------|---------|--------|
-| 2-Model Consultation | `endiorbot consult` | Sprint 54 |
-| Gate Status | `endiorbot gate status` | Sprint 54 |
-| Project Switch | `endiorbot switch` | ✅ Implemented |
-| Brain L4 Injection | Auto at session start | Sprint 54 |
+| 2-Model Consultation | `endiorbot consult` | ✅ DONE |
+| Gate Status | `endiorbot gate status` | ✅ DONE |
+| Project Switch | `endiorbot switch` | ✅ DONE |
+| Brain L4 Injection | Auto at session start | ✅ DONE |
 
 ### MVP Success Criteria
 
@@ -83,10 +83,10 @@
 
 ---
 
-## Tier 2 — Pro (Future)
+## Tier 2 — Pro
 
 **Timeline:** 4-6 weeks after MVP
-**Prerequisites:** CEO validates MVP for 2-4 weeks
+**Status:** ✅ COMPLETE (Sprints 55-58)
 
 ### Sprint 55-56
 
@@ -114,21 +114,21 @@
 
 ---
 
-## Tier 3 — Productization (Later)
+## Tier 3 — Productization
 
-**Timeline:** After 2-4 weeks CEO usage
+**Timeline:** Completed across Sprints 62-144
 **Prerequisites:** Pro tier stable, CEO feedback collected
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
-| Desktop shell | Electron app with full UI |
-| Skills gateway | Extensible skill system |
-| Dynamic context overlay | Real-time context injection |
-| Junior hub | Task delegation and training |
-| Full multi-model (4+) | All providers |
-| SDLC enforcement | Not just checklist |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Desktop shell | Electron app with full UI | ✅ SHIPPED Sprint 62 + 144 (9 pages) |
+| Skills gateway | Extensible skill system | Backlog |
+| Dynamic context overlay | Real-time context injection | Backlog |
+| Junior hub | Task delegation and training | ✅ SHIPPED Sprint 144 (Desktop page) |
+| Full multi-model (4+) | All providers | ✅ SHIPPED Sprint 140+ (5 providers) |
+| SDLC enforcement | Not just checklist | ✅ SHIPPED Sprints 68-79 (gate engine, contracts) |
 
 ---
 
@@ -229,17 +229,20 @@ Per Master Plan v2.0, these are explicitly excluded:
 | **M6: Intelligence** | End Sprint 88 | SOUL + Brain + Context + Evaluator | ✅ DONE |
 | **M7: Agent Teams** | End Sprint 91 | Team launch, monitoring, cost | ✅ DONE |
 | **M8: Unified Launcher** | End Sprint 92 | PID tracking, crash recovery, lock | ✅ DONE |
-| **M9: Kimi2.6 Fallback** | Sprint 140 | Kimi API + OAuth proxy as first fallback for all agents | 🔄 IN PROGRESS |
+| **M9: Kimi2.6 Fallback** | Sprint 140 | Kimi API + OAuth proxy as first fallback for all agents | ✅ DONE |
+| **M10: CC-First Routing** | Sprint 143 | ADR-052 amendment — CC primary, Kimi fallback on rate-limit only | ✅ DONE |
+| **M11: Gateway Hardening** | Sprint 144 | PID lockfile + circuit breaker + OTT timeout + Desktop channel | ✅ DONE |
 
 ---
 
-## Current Sprint
+## Current State
 
-**Sprint 140 (Kimi2.6 Fallback Integration)** — IN PROGRESS
-- Scope: [FR-011](./requirements.md) + [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md)
-- Status: Implementation complete, awaiting G3 test evidence
+**Sprint 144 CLOSED** (2026-04-27)
+- 8,142 tests passing, 39 commands, 14 agents, 5 channels, 5 providers
+- All milestones M1–M11 complete
+- See [Sprint History in README.md](./README.md) for full sprint log
 
-Next sprint: TBD
+**Next sprint:** TBD — See backlog items in Tier 3 (Skills gateway, dynamic context overlay)
 
 ---
 
@@ -250,5 +253,5 @@ Next sprint: TBD
 
 ---
 
-*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
-*Identity: LOCKED (2026-03-08)*
+*Solo Developer Power Tool | SDLC Framework v6.3.1 - Stage 01: Planning*
+*Identity: LOCKED (2026-03-08) | Updated Sprint 144 (2026-04-27)*

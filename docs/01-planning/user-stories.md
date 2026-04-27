@@ -7,7 +7,7 @@
 
 ---
 
-## Epic 1: Multi-Model AI Orchestration
+## Epic 1: Multi-Model AI Orchestration ✅ SHIPPED
 
 ### US-1.1: Automatic Expert Consultation
 
@@ -16,13 +16,14 @@
 **So that** I get diverse expert opinions without manual copy/paste
 
 **Acceptance Criteria:**
-- [ ] Can configure expert panel (Claude, GPT, Gemini, Mistral)
-- [ ] Queries are sent in parallel
-- [ ] Responses are consolidated with consensus detection
-- [ ] Disagreements are highlighted with evidence
-- [ ] Total query time < 60 seconds
+- [x] Can configure expert panel (Claude Code, Kimi, OpenAI, Ollama — 5 providers)
+- [x] Queries are sent in parallel
+- [x] Responses are consolidated with consensus detection
+- [x] Disagreements are highlighted with evidence
+- [x] Total query time < 60 seconds
 
 **Story Points:** 8
+**Delivered:** Sprint 54+ (CC-first routing ADR-052, Sprint 143)
 
 ---
 
@@ -33,12 +34,13 @@
 **So that** I get the best expertise for each situation
 
 **Acceptance Criteria:**
-- [ ] Architecture tasks → Claude + GPT + Gemini
-- [ ] Code generation → Claude only (fast)
-- [ ] Security review → Claude + GPT (cross-validation)
-- [ ] Research → Gemini + Claude (latest data)
+- [x] Architecture tasks → multi-model /consult (CC + OpenAI + Kimi)
+- [x] Code generation → CC primary (fast, Kimi fallback)
+- [x] Security review → multi-model via /consult
+- [x] Research → multi-model via /consult (Gemini available in /consult)
 
 **Story Points:** 5
+**Delivered:** Sprint 140+ (provider routing, ADR-052 CC-first)
 
 ---
 
@@ -49,15 +51,16 @@
 **So that** I can get quick answers without consultation overhead
 
 **Acceptance Criteria:**
-- [ ] `endiorbot --model opus "quick fix"` uses Claude only
-- [ ] No consolidation step
-- [ ] Response time < 10 seconds for simple queries
+- [x] `endiorbot --model claude "quick fix"` uses CC only
+- [x] No consolidation step
+- [x] Response time < 10 seconds for simple queries (evaluator skip for simple tasks, Sprint 139)
 
 **Story Points:** 3
+**Delivered:** Sprint 54 + Sprint 139 (evaluator dynamic budget)
 
 ---
 
-## Epic 2: Project Context Management
+## Epic 2: Project Context Management ✅ SHIPPED
 
 ### US-2.1: Quick Project Switch
 
@@ -66,12 +69,13 @@
 **So that** I don't waste time re-establishing context
 
 **Acceptance Criteria:**
-- [ ] `endiorbot switch bflow` switches to Bflow
-- [ ] Previous context saved automatically
-- [ ] New context loaded with SDLC state
-- [ ] Switch completes in < 2 seconds
+- [x] `endiorbot switch bflow` switches to Bflow
+- [x] Previous context saved automatically
+- [x] New context loaded with SDLC state
+- [x] Switch completes in < 2 seconds
 
 **Story Points:** 5
+**Delivered:** Sprint 54 (repos.json + ChatFocus, ADR-029)
 
 ---
 
@@ -82,12 +86,13 @@
 **So that** I can resume where I left off
 
 **Acceptance Criteria:**
-- [ ] Conversation history saved on switch
-- [ ] History compacted if > 80% token budget
-- [ ] SDLC stage and gates preserved
-- [ ] Active task state preserved
+- [x] Conversation history saved on switch
+- [x] History compacted if > 80% token budget
+- [x] SDLC stage and gates preserved
+- [x] Active task state preserved
 
 **Story Points:** 5
+**Delivered:** Sprint 55-56 (session resume, Brain provenance)
 
 ---
 
@@ -98,15 +103,16 @@
 **So that** I don't lose work when switching projects
 
 **Acceptance Criteria:**
-- [ ] Detect uncommitted git changes
-- [ ] Show warning before switch
-- [ ] Option to stash or commit first
+- [x] Detect uncommitted git changes
+- [x] Show warning before switch
+- [x] Option to stash or commit first
 
 **Story Points:** 3
+**Delivered:** Sprint 57 (FR-002.3)
 
 ---
 
-## Epic 3: SDLC Automation
+## Epic 3: SDLC Automation ✅ SHIPPED
 
 ### US-3.1: Automatic Gate Evaluation
 
@@ -115,13 +121,15 @@
 **So that** I don't manually track checklists
 
 **Acceptance Criteria:**
-- [ ] `endiorbot gate propose G2 AR-457` evaluates G2
-- [ ] Checklist items auto-checked where possible
-- [ ] Missing items clearly listed
-- [ ] Vibecoding Index calculated
-- [ ] Recommendation provided
+- [x] `endiorbot gate status G2` evaluates G2
+- [x] Checklist items auto-checked where possible
+- [x] Missing items clearly listed
+- [x] Vibecoding Index calculated
+- [x] Recommendation provided
+- [x] `endiorbot gate mark` for manual items (Sprint 143)
 
 **Story Points:** 8
+**Delivered:** Sprints 61-68 (gate engine, contracts, dashboard)
 
 ---
 
@@ -132,12 +140,14 @@
 **So that** I have audit trail for gates
 
 **Acceptance Criteria:**
-- [ ] File references captured with hash
-- [ ] Commit references captured
-- [ ] Test results captured
-- [ ] Evidence stored in `~/.endiorbot/evidence/`
+- [x] File references captured with hash (PatchManager, Sprint 68)
+- [x] Commit references captured
+- [x] Test results captured
+- [x] Evidence stored in `~/.endiorbot/evidence/`
+- [x] Gate mark evidence trail (Sprint 143)
 
 **Story Points:** 5
+**Delivered:** Sprint 68 (PatchManager + evidence store)
 
 ---
 
@@ -148,16 +158,17 @@
 **So that** I don't write boilerplate documentation
 
 **Acceptance Criteria:**
-- [ ] Parse recent git commits
-- [ ] Extract change summary
-- [ ] Generate CRP markdown
-- [ ] Include SDLC metadata
+- [x] Parse recent git commits
+- [x] Extract change summary
+- [x] Generate CRP markdown
+- [x] Include SDLC metadata
 
 **Story Points:** 5
+**Delivered:** Sprint 68 (compliance dashboard, report generator)
 
 ---
 
-## Epic 4: Security & Quality
+## Epic 4: Security & Quality ✅ SHIPPED
 
 ### US-4.1: Input Sanitization
 
@@ -166,12 +177,14 @@
 **So that** I'm protected from injection attacks
 
 **Acceptance Criteria:**
-- [ ] SQL injection patterns blocked
-- [ ] XSS patterns blocked
-- [ ] Command injection blocked
-- [ ] Path traversal blocked
+- [x] SQL injection patterns blocked
+- [x] XSS patterns blocked
+- [x] Command injection blocked
+- [x] Path traversal blocked
+- [x] SSRF block-list (Sprint 133, openclaw backport S2)
 
 **Story Points:** 5
+**Delivered:** Sprint 54 (input-sanitizer) + Sprint 133 (SSRF audit)
 
 ---
 
@@ -182,12 +195,13 @@
 **So that** I never accidentally leak credentials
 
 **Acceptance Criteria:**
-- [ ] API keys redacted
-- [ ] Passwords redacted
-- [ ] Tokens redacted
-- [ ] AWS keys redacted
+- [x] API keys redacted
+- [x] Passwords redacted
+- [x] Tokens redacted
+- [x] AWS keys redacted
 
 **Story Points:** 5
+**Delivered:** Sprint 54 (output-scrubber)
 
 ---
 
@@ -198,30 +212,31 @@
 **So that** I maintain high standards
 
 **Acceptance Criteria:**
-- [ ] Score 0-100 calculated
-- [ ] Green (0-30), Yellow (31-60), Orange (61-80), Red (81-100)
-- [ ] 5 quality signals measured
-- [ ] Block commit if Red zone
+- [x] Score 0-100 calculated
+- [x] Green (0-30), Yellow (31-60), Orange (61-80), Red (81-100)
+- [x] 5 quality signals measured
+- [x] Block commit if Red zone
 
 **Story Points:** 5
+**Delivered:** Sprint 88 (Vibecoding in Bridge output pipeline)
 
 ---
 
-## Epic 5: Junior Developer Support (Optional)
+## Epic 5: Junior Developer Support ✅ PARTIAL (Desktop Hub shipped, full delegation deferred)
 
 ### US-5.1: Task Assignment
 
-**As a** CEO
-**I want to** assign tasks to junior developers
+**As a** solo developer
+**I want to** assign tasks to junior developers via the Desktop UI
 **So that** they have clear work items
 
 **Acceptance Criteria:**
-- [ ] Create task with description
-- [ ] Assign to junior
-- [ ] Junior sees assigned tasks on login
-- [ ] AI assists junior with task
+- [x] Junior Hub page available in Desktop app (Sprint 144)
+- [ ] Full task assignment workflow with AI assist (deferred — backlog)
+- [ ] Junior sees assigned tasks on login (deferred)
 
 **Story Points:** 5
+**Delivered:** Sprint 144 (Junior Hub Desktop page, basic UI functional)
 
 ---
 
@@ -232,42 +247,85 @@
 **So that** I learn best practices
 
 **Acceptance Criteria:**
-- [ ] AI explains decisions when Learning Mode ON
+- [ ] AI explains decisions when Learning Mode ON (deferred — backlog)
 - [ ] References to documentation provided
 - [ ] Best practices highlighted
 - [ ] Alternative approaches discussed
 
 **Story Points:** 3
+**Status:** Backlog
 
 ---
 
 ### US-5.3: Sandbox Permissions
 
-**As a** CEO
+**As a** solo developer
 **I want to** restrict junior access to safe areas
 **So that** they can't break production
 
 **Acceptance Criteria:**
-- [ ] Junior can't push to main/master
+- [ ] Junior can't push to main/master (deferred — backlog)
 - [ ] Junior can't approve gates
 - [ ] Junior can't access secrets
-- [ ] All PRs require CEO approval
+- [ ] All PRs require approval
 
 **Story Points:** 3
+**Status:** Backlog
+
+---
+
+## Epic 6: Desktop Channel ✅ SHIPPED (Sprint 144)
+
+### US-6.1: Desktop App
+
+**As a** solo developer
+**I want to** use EndiorBot from a native desktop app
+**So that** I can access all features without a terminal
+
+**Acceptance Criteria:**
+- [x] 9 pages: Dashboard, Chat, Projects, Gates, Experts, Settings, Junior Hub, Zalo, Telegram
+- [x] Gateway auto-starts as Electron subprocess on launch
+- [x] API key management in Settings page
+- [x] Live data from repos.json in Projects page
+
+**Story Points:** 13
+**Delivered:** Sprint 144 (ADR-044 Desktop channel)
+
+---
+
+## Epic 7: Gateway Resilience ✅ SHIPPED (Sprint 143-144)
+
+### US-7.1: Always-On Availability
+
+**As a** solo developer
+**I want to** EndiorBot to stay responsive even when Claude Code is unavailable
+**So that** I never get a dead end response on Telegram
+
+**Acceptance Criteria:**
+- [x] PID lockfile prevents duplicate serve processes (Sprint 144)
+- [x] Provider circuit breaker: 2 CC failures → instant Kimi fallback (Sprint 144)
+- [x] OTT timeout 60s with immediate Kimi fallback (Sprint 144)
+- [x] Telegram plain-text retry on Markdown parse failure (Sprint 143)
+- [x] Per-agent session lock prevents duplicate concurrent calls (Sprint 143)
+
+**Story Points:** 8
+**Delivered:** Sprints 143-144 (FR-011)
 
 ---
 
 ## Sprint Backlog Summary
 
-| Epic | Stories | Total Points |
-|------|---------|--------------|
-| E1: Multi-Model | 3 | 16 |
-| E2: Context | 3 | 13 |
-| E3: SDLC | 3 | 18 |
-| E4: Security | 3 | 15 |
-| E5: Junior (Optional) | 3 | 11 |
-| **Total** | **15** | **73** |
+| Epic | Stories | Total Points | Status |
+|------|---------|--------------|--------|
+| E1: Multi-Model | 3 | 16 | ✅ SHIPPED |
+| E2: Context | 3 | 13 | ✅ SHIPPED |
+| E3: SDLC | 3 | 18 | ✅ SHIPPED |
+| E4: Security | 3 | 15 | ✅ SHIPPED |
+| E5: Junior | 3 | 11 | Partial (Desktop Hub only) |
+| E6: Desktop | 1 | 13 | ✅ SHIPPED |
+| E7: Gateway Resilience | 1 | 8 | ✅ SHIPPED |
+| **Total** | **17** | **94** | |
 
 ---
 
-*SDLC Framework v6.2.0 - Stage 01: Planning*
+*Solo Developer Power Tool | SDLC Framework v6.3.1 - Stage 01: Planning | Updated Sprint 144 (2026-04-27)*
