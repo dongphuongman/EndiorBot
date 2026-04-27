@@ -86,7 +86,7 @@ git checkout -b feat/my-feature
 # ... code ...
 
 # 5. Verify
-pnpm build && pnpm test    # 8,142+ tests must pass
+pnpm build && pnpm test    # 8,124+ tests must pass
 
 # 6. Submit PR
 git push origin feat/my-feature
@@ -161,7 +161,7 @@ Four tasks shipped:
 
 Community publish cleanup also shipped: `src/mcp-gateway/` rename, `"self-hosted"` budget label, `endiorbot` npm package name, endior.net domain, identity alignment to "Solo Developer Power Tool".
 
-**Test count:** 8,142/8,152 pass (10 skipped, zero failures).
+**Test count:** 8,124+ pass (zero failures).
 
 ## Sprints 139–141 — OpenMythos Adoption + Kimi Integration (2026-04-20 → 2026-04-24)
 
@@ -208,4 +208,4 @@ EndiorBot is [MIT licensed](../../LICENSE). All dependencies are MIT/ISC/Apache/
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 08: Collaborate — Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 08: Collaborate — Updated Sprint 145 (2026-04-27)*

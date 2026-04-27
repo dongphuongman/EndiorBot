@@ -46,7 +46,8 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 | 141 | Cost telemetry + Ollama confidence + Kimi resilience | CLOSED |
 | 142 | Anti-drift improvements + vendor-agnostic provider refactor | CLOSED |
 | 143 | Brain L2 activation + gate mark + gateway resilience hotfixes (7 issues) | CLOSED |
-| **144** | **Gateway hardening: PID lockfile + circuit breaker + OTT timeout + Kimi deprecation + community publish + desktop channel** | **CLOSED** |
+| 144 | Gateway hardening: PID lockfile + circuit breaker + OTT timeout + Kimi deprecation + community publish + desktop channel | CLOSED |
+| **145** | **ADR-003 + ADR-006 added; docs consistency pass (51 ADRs, 5-channel parity)** | **IN PROGRESS** |
 
 Full sprint index: [`../04-build/sprints/SPRINT-INDEX.md`](../04-build/sprints/SPRINT-INDEX.md)
 
@@ -118,7 +119,7 @@ NQH Creative Studio (Open-Generative-AI) Sprint 1 kicked off — fork, rebrand, 
 
 ## Current Stats
 
-- **8,142 tests** passing (8,152 total, 10 skipped)
+- **8,124+ tests** passing
 - **39 commands** in unified CommandDispatcher, 30+ OTT commands
 - **14 SOUL agents** across 3 tiers (CC-first for Tier 2)
 - **5 active providers** (Claude Code, Kimi proxy, Kimi API, OpenAI, Ollama)
@@ -127,4 +128,4 @@ NQH Creative Studio (Open-Generative-AI) Sprint 1 kicked off — fork, rebrand, 
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 01: Planning — Updated Sprint 144 close (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 01: Planning — Updated Sprint 145 (2026-04-27)*

@@ -62,7 +62,7 @@ All stages (00–09): [`../README.md`](../README.md).
 > **Scope:** local repos + general developer support only.
 > Remote product-org infrastructure belongs to the target team's orchestrator.
 
-## Key Architecture Decisions (as of Sprint 144)
+## Key Architecture Decisions (as of Sprint 145)
 
 | ADR | Decision | Sprint |
 |-----|----------|--------|
@@ -88,4 +88,4 @@ All triggers wired and operational:
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 00: Foundation — Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 00: Foundation — Updated Sprint 145 (2026-04-27)*

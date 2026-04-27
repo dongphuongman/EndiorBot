@@ -293,7 +293,7 @@ Before publishing to npm / endior.net:
 | "Solo Developer Power Tool" identity | Done |
 | MIT license + CONTRIBUTING.md + SECURITY.md | Done |
 | Internal URL references removed | Done |
-| 8,142/8,152 tests pass | Done |
+| 8,124+ tests pass | Done |
 
 ## Pre-Deploy Checklist
 
@@ -343,4 +343,4 @@ cat ~/.endiorbot/serve.pid 2>/dev/null || echo "No existing serve"
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 06: Deploy — Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 06: Deploy — Updated Sprint 145 (2026-04-27)*

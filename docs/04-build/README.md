@@ -69,9 +69,10 @@ pnpm lint           # Check code style
 | 142 | 4 | `buildEnrichedPrompt()`, kill switch fix, vision re-injection, expert routing Phase 2 |
 | 143 | 3 | Brain L2 pattern activation, 17th mechanism docs, OGA handoff |
 | 144 | — | OTT ack, circuit breaker, channel-aware timeouts, `/status` + `/clear` commands |
+| **145** | **IN PROGRESS** | **ADR-003 + ADR-006 added; docs consistency pass; 51 ADRs total** |
 
 Sprint plans: [`sprints/`](sprints/)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 04: Build — Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 04: Build — Updated Sprint 145 (2026-04-27)*

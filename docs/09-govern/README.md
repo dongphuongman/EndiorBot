@@ -45,6 +45,7 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 | 142 | Kill switch consistency — CPO finding → immediate fix | Cross-role review catches real bugs |
 | 143 | Brain L2 wiring — CPO "produce data ≠ activate behavior" finding → E2E fix | Behavioral completeness standard |
 | 144 | Circuit breaker + OTT ack — CEO UX gap identified → channel-aware timeouts + immediate feedback | Resilience pattern codified |
+| 145 | ADR-003 + ADR-006 added; docs consistency pass → 51 ADRs, 5-channel parity confirmed | Documentation accuracy standard |
 
 ## Governance Principles
 
@@ -56,4 +57,4 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 09: Govern & improve — Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 09: Govern & improve — Updated Sprint 145 (2026-04-27)*

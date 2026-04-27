@@ -18,9 +18,9 @@ Design → build → test traceability is **mandatory**. Stage 03 is the integra
 |-------|--------|----------|---------------|
 | **00** Foundation | [`00-foundation/`](00-foundation/) | **WHY** | Product vision, problem statement, business case |
 | **01** Planning | [`01-planning/`](01-planning/) | **WHAT** | Requirements, user stories, roadmap |
-| **02** Design | [`02-design/`](02-design/) | **HOW** | 49 ADRs, 20+ technical specs, architecture review |
+| **02** Design | [`02-design/`](02-design/) | **HOW** | 51 ADRs, 20+ technical specs, architecture review |
 | **03** Integrate | [`03-integrate/`](03-integrate/) | **CONNECT** | API specs, channel contracts, provider pipeline |
-| **04** Build | [`04-build/`](04-build/) | **BUILD** | 90+ sprint plans, coding standards, CLI reference |
+| **04** Build | [`04-build/`](04-build/) | **BUILD** | 25 active sprint plans (Sprint 126-146), coding standards, CLI reference |
 | **05** Test | [`05-test/`](05-test/) | **VERIFY** | Master test plan, E2E reports, bug tracking |
 
 ### Extended Lifecycle (06 → 09)
@@ -84,20 +84,20 @@ Design → build → test traceability is **mandatory**. Stage 03 is the integra
 
 ---
 
-## Current State (Sprint 144, 2026-04-27)
+## Current State (Sprint 145, 2026-04-27)
 
 | Metric | Value |
 |--------|-------|
-| Tests | 8,142+ passing |
+| Tests | 8,124+ passing |
 | Unified commands | 39 (across all channels) |
 | SOUL agents | 14 |
 | Channels | 5 (CLI, Web, Telegram, Zalo, Desktop) |
 | Providers | 5 active (Claude Code, Kimi, OpenAI, Ollama, MCP Gateway) |
-| ADRs | 49 approved |
-| Sprint plans | 90+ (Sprint 56-144; older archived to 10-Archive) |
+| ADRs | 51 approved |
+| Sprint plans | 25 active (Sprint 126-146), 111 archived |
 | Framework | SDLC 6.3.1 (7-Pillar, 10-Stage, 4-Tier) |
 
-### Sprint 143-144 Highlights
+### Sprint 144-145 Highlights
 
 | Feature | Sprint | Impact |
 |---------|--------|--------|
@@ -110,4 +110,4 @@ Design → build → test traceability is **mandatory**. Stage 03 is the integra
 
 ---
 
-*EndiorBot | SDLC **6.3.1** — docs/ stage index | Updated Sprint 144 (2026-04-27)*
+*EndiorBot | SDLC **6.3.1** — docs/ stage index | Updated Sprint 145 (2026-04-27)*
