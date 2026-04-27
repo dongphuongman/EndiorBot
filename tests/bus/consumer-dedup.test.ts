@@ -95,20 +95,21 @@ describe("BusConsumer + BusDedup integration", () => {
     expect(outboundMsgs).toHaveLength(1);
   });
 
-  it("T18: consumer WITHOUT dedup (dedup=undefined) — same dedupKey processed twice", async () => {
-    // Backward compat: no dedup means all messages go through
+  it("T18: consumer WITHOUT dedup (dedup=undefined) — different content processed twice", async () => {
+    // Backward compat: no transport dedup means all messages go through.
+    // Sprint 147 T2: use different content to avoid content dedup trigger.
     const ingress = makeIngress();
     const consumer = new BusConsumer(bus, ingress as never); // no dedup
     consumer.start();
 
-    const msg1 = makeMsg({ correlationId: "cid-1" });
-    const msg2 = makeMsg({ correlationId: "cid-2", metadata: { dedupKey: "telegram-111" } });
+    const msg1 = makeMsg({ correlationId: "cid-1", content: "@pm plan sprint alpha" });
+    const msg2 = makeMsg({ correlationId: "cid-2", content: "@coder fix bug beta", metadata: { dedupKey: "telegram-111" } });
 
     bus.publishInbound(msg1);
     bus.publishInbound(msg2);
     await new Promise((r) => setTimeout(r, 30));
 
-    // Both processed — no dedup guard
+    // Both processed — different agent+content
     expect(ingress.handleInbound).toHaveBeenCalledTimes(2);
   });
 

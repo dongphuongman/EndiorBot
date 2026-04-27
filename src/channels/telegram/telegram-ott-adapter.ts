@@ -18,7 +18,7 @@ import { createCorrelationId } from "../../bus/message-bus.js";
 import { BusDebounce } from "../../bus/debounce.js";
 import { TelegramChannel } from "./telegram-channel.js";
 import { loadTelegramConfig } from "./telegram-config.js";
-import { getAgentModel } from "../../agents/channel-router.js";
+// Sprint 147 T1: getAgentModel import removed — progress message moved to callAI()
 import type { RLFeedbackService } from "../../rl/feedback-service.js";
 
 // ============================================================================

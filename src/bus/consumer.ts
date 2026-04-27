@@ -48,9 +48,14 @@ import type { SessionLike, ActiveMemoryConfig } from "../agents/intelligence/act
  * NOTE: _handler is bound in constructor (not anonymous function).
  * This enables clean offInbound() removal via bus.offInbound(this._handler).
  */
+/** Sprint 147 T2: Content dedup window — same sender+agent+text within 5 minutes → skip */
+const CONTENT_DEDUP_WINDOW_MS = 5 * 60_000;
+
 export class BusConsumer {
   private _started: boolean;
   private readonly _handler: (msg: BusInboundMessage) => void;
+  /** Sprint 147 T2: Content dedup map — key: senderId:agent:normalizedText, value: timestamp */
+  private readonly contentDedupMap = new Map<string, number>();
 
   /**
    * @param bus               Message bus
@@ -127,6 +132,31 @@ export class BusConsumer {
       if (dedupKey !== undefined) {
         if (this.dedup.isDuplicate(dedupKey)) return; // silent skip
         this.dedup.markSeen(dedupKey);
+      }
+    }
+
+    // Sprint 147 T2: Content dedup — same sender + same agent + similar text within 5min → skip
+    // Prevents CEO sending @pm 3 times → 3 identical agent calls.
+    // Transport dedup (above) only catches webhook retries (same messageId).
+    const agentMentionMatch = msg.content.match(/^@([\w.]+)/);
+    if (agentMentionMatch) {
+      const contentKey = `${msg.senderId}:${agentMentionMatch[1]}:${msg.content.toLowerCase().trim().replace(/\s+/g, " ")}`;
+      const now = Date.now();
+      const prev = this.contentDedupMap.get(contentKey);
+      if (prev && now - prev < CONTENT_DEDUP_WINDOW_MS) {
+        // Duplicate intent — skip with notice
+        void msg.replyFn(
+          `⏳ Request tương tự đang xử lý hoặc vừa hoàn thành. Chờ kết quả hoặc gửi lại sau 5 phút.`,
+          { correlationId: msg.correlationId, isTrainableTurn: false },
+        ).catch(() => {});
+        return;
+      }
+      this.contentDedupMap.set(contentKey, now);
+      // Evict expired entries (prevent memory leak)
+      if (this.contentDedupMap.size > 100) {
+        for (const [k, ts] of this.contentDedupMap) {
+          if (now - ts > CONTENT_DEDUP_WINDOW_MS) this.contentDedupMap.delete(k);
+        }
       }
     }
 
