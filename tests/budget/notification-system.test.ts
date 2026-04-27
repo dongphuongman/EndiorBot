@@ -285,7 +285,7 @@ describe("NotificationSystem", () => {
 
       const result = await system.notifyModelSwitched(
         "claude-opus-4",
-        "nqh/qwen3-coder",
+        "self-hosted/qwen3-coder",
         "Budget limit reached",
       );
       expect(result).toBe(true);

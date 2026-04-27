@@ -79,7 +79,7 @@ describe("OWASP API4 — Unrestricted Resource Consumption (Sprint 137 P2-03)", 
   it("per-agent Claude Code timeouts exist (Sprint 137 B6)", () => {
     const agentConstants = src("src/agents/router/agent-constants.ts");
     expect(agentConstants).toMatch(/DEFAULT_AGENT_TIMEOUT_MS_BY_CLASS/);
-    expect(agentConstants).toMatch(/executor: 60_000/);
+    expect(agentConstants).toMatch(/executor: 180_000/);
     expect(agentConstants).toMatch(/advisory: 180_000/);
     expect(agentConstants).toMatch(/"adr-writer": 600_000/);
   });

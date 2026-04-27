@@ -177,7 +177,7 @@ describe("PricingRegistry", () => {
       expect(models).toContain("claude-opus-4");
       expect(models).toContain("claude-sonnet-4");
       expect(models).toContain("gpt-4o");
-      expect(models).toContain("nqh/qwen3-coder");
+      expect(models).toContain("self-hosted/qwen3-coder");
     });
   });
 
@@ -207,13 +207,13 @@ describe("PricingRegistry", () => {
       expect(models).not.toContain("claude-opus-4");
     });
 
-    it("should list NQH models", () => {
+    it("should list self-hosted models", () => {
       const registry = new PricingRegistry(tempConfigPath);
 
-      const models = registry.listModelsByProvider("nqh");
+      const models = registry.listModelsByProvider("self-hosted");
 
-      expect(models).toContain("nqh/qwen3-coder");
-      expect(models).toContain("nqh/deepseek-coder");
+      expect(models).toContain("self-hosted/qwen3-coder");
+      expect(models).toContain("self-hosted/deepseek-coder");
     });
   });
 
@@ -222,13 +222,13 @@ describe("PricingRegistry", () => {
   // ==========================================================================
 
   describe("getFreeModels", () => {
-    it("should return NQH models (free)", () => {
+    it("should return self-hosted models (free)", () => {
       const registry = new PricingRegistry(tempConfigPath);
 
       const freeModels = registry.getFreeModels();
 
-      expect(freeModels).toContain("nqh/qwen3-coder");
-      expect(freeModels).toContain("nqh/deepseek-coder");
+      expect(freeModels).toContain("self-hosted/qwen3-coder");
+      expect(freeModels).toContain("self-hosted/deepseek-coder");
       expect(freeModels).not.toContain("claude-opus-4");
     });
   });
@@ -257,10 +257,10 @@ describe("PricingRegistry", () => {
       expect(cost).toBeCloseTo(0.018, 5);
     });
 
-    it("should return 0 for free NQH models", () => {
+    it("should return 0 for free self-hosted models", () => {
       const registry = new PricingRegistry(tempConfigPath);
 
-      const cost = registry.calculateCost("nqh/qwen3-coder", 10000, 10000);
+      const cost = registry.calculateCost("self-hosted/qwen3-coder", 10000, 10000);
 
       expect(cost).toBe(0);
     });
@@ -285,8 +285,8 @@ describe("PricingRegistry", () => {
 
       const cheapest = registry.getCheapestModel();
 
-      // NQH models are free (cheapest)
-      expect(cheapest).toMatch(/^nqh\//);
+      // self-hosted models are free (cheapest)
+      expect(cheapest).toMatch(/^self-hosted\//);
     });
 
     it("should return cheapest Anthropic model", () => {
@@ -528,6 +528,6 @@ describe("Constants", () => {
     expect(models).toContain("claude-haiku-3.5");
     expect(models).toContain("gpt-4-turbo");
     expect(models).toContain("gpt-4o");
-    expect(models).toContain("nqh/qwen3-coder");
+    expect(models).toContain("self-hosted/qwen3-coder");
   });
 });

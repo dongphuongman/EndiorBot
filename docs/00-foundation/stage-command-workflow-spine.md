@@ -5,7 +5,7 @@
 **Audience:** Solo developer shipping **enterprise-grade** behavior; **CEO vision** in [`product-vision.md`](./product-vision.md) (autonomous SDLC, design→build→test continuity, escalate only on critical issues).  
 **Technical SSOT:** Commands implement in `./endiorbot.mjs` core; CLI, **OTT** (Telegram/Zalo), and **Web** share [`CommandDispatcher`](../../src/commands/command-dispatcher.ts) + gateway ingress where applicable — *thin client everywhere*.
 
-**Language:** Application development documentation under `docs/` is authored in **English** (MTS SDLC 6.3.0). See [`docs/README.md`](../README.md) (section *Documentation language*).
+**Language:** Application development documentation under `docs/` is authored in **English** (SDLC 6.3.0). See [`docs/README.md`](../README.md) (section *Documentation language*).
 
 ---
 
@@ -106,4 +106,4 @@ Workflows **reuse** the same core modules as atomic commands (no duplicate busin
 
 ---
 
-*EndiorBot — CEO Power Tool + enterprise SDLC discipline for solo dev | SDLC 6.3.0*
+*EndiorBot — Solo Developer Power Tool + enterprise SDLC discipline for solo dev | SDLC 6.3.0*

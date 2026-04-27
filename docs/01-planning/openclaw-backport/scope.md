@@ -46,7 +46,7 @@
 |---|---|---|
 | **C1** | Evidence linter (memory-wiki port) | **DROPPED.** No CEO-facing use case today. Identity-drift risk ("SDLC enforcer" role is forbidden by identity lock). Requires creating a new markdown evidence substrate — subsystem-scale effort, not a lint tool. Revisit if a future CEO workflow demands it. |
 
-### Rejected by identity lock (CEO Power Tool, not platform)
+### Rejected by identity lock (Solo Developer Power Tool, not platform)
 
 - **Channels:** Matrix, Signal, iMessage, Teams, IRC, Feishu, Slack (as full channel), Discord. 4-channel parity is locked at Web / Telegram / Zalo / CLI.
 - **Mobile / native:** iOS, Android, native macOS apps beyond existing `apps/desktop/`.
@@ -71,7 +71,7 @@
 
 **Must preserve:**
 - 4 Non-Negotiable Invariants (Thin Client pattern, stdin-JSON hooks, SOUL=governance/CC=execution, Sonnet default model)
-- Identity LOCKED: CEO Power Tool (NOT platform, NOT SDLC enforcer)
+- Identity LOCKED: Solo Developer Power Tool (NOT platform, NOT SDLC enforcer)
 - 4-channel parity (Web / Telegram / Zalo / CLI) — M0 specifically strengthens this
 - 2K tokens/turn, 3 blocks/turn, hard reset every 30 turns
 - Sprint 72 Autonomous Gates A/B/C (M1 layers ON TOP, does not replace)
@@ -99,4 +99,4 @@
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | openclaw-backport scope*
+*EndiorBot | Solo Developer Power Tool (LOCKED) | openclaw-backport scope*

@@ -46,9 +46,50 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 | 141 | Cost telemetry + Ollama confidence + Kimi resilience | CLOSED |
 | 142 | Anti-drift improvements + vendor-agnostic provider refactor | CLOSED |
 | 143 | Brain L2 activation + gate mark + gateway resilience hotfixes (7 issues) | CLOSED |
-| **144** | **Gateway hardening: PID lockfile + circuit breaker + OTT timeout + Kimi deprecation** | **PLANNED** |
+| **144** | **Gateway hardening: PID lockfile + circuit breaker + OTT timeout + Kimi deprecation + community publish + desktop channel** | **CLOSED** |
 
 Full sprint index: [`../04-build/sprints/SPRINT-INDEX.md`](../04-build/sprints/SPRINT-INDEX.md)
+
+## Sprint 144 Planning Highlights
+
+### T1: PID Lockfile
+
+Prevents duplicate `endiorbot serve` processes. Writes `~/.endiorbot/serve.pid` on startup; subsequent invocations detect existing PID and exit cleanly. `--force` flag bypasses the check for development use.
+
+### T2: Provider Circuit Breaker
+
+2 consecutive CC failures → circuit opens → instant Kimi fallback (no timeout wait). 60s cooldown before half-open probe. Exponential backoff up to 5 minutes max. Pattern reuses Active Memory in-memory state design.
+
+### T3: OTT Timeout 60s
+
+Telegram/Zalo/Web CC timeout reduced from 180s → 60s, then falls through to Kimi. CLI remains 180s. `originChannel` threaded through bus consumer → ingress → router to enable channel-aware routing.
+
+### T4: Kimi Subprocess Deprecation
+
+`kimi-subprocess` internal mode deprecated with `console.warn`. Docs updated to point to `ENDIORBOT_KIMI_PROXY_URL` external proxy pattern as the supported path.
+
+### Community Publish Cleanup
+
+- `src/mtclaw/` renamed to `src/mcp-gateway/` (`McpGatewayBridge`; backward-compat aliases retained)
+- `"nqh"` provider key renamed to `"self-hosted"` in budget system
+- "CEO Power Tool" → "Solo Developer Power Tool" across 337 docs + source files
+- Internal URLs (nqh-internal.example, nhatquangholding.com) → endior.net / example.com
+- npm package: `@dttai/endiorbot` → `endiorbot`
+- 3 sensitive docs moved to `10-Archive/`
+- Domain: endior.net (owner-controlled)
+
+### Desktop Channel
+
+All 7 pages functional: Dashboard, Chat (auto-gateway attach), Projects (live data from `repos.json`), Gates (7 SDLC gates rendered), Experts (provider status), Settings (API key management), Junior Hub. Gateway auto-starts as Electron subprocess on launch. TypeCheck clean, build clean.
+
+### Command Parity Audit
+
+- 39 commands in unified `CommandDispatcher` (up from 37)
+- `/status` and `/clear` added to dispatcher (previously missing)
+- Immediate `⚡ @agent` acknowledgement on all OTT channels before AI call
+- All 5 channels verified: CLI, Web, Telegram, Zalo, Desktop
+
+---
 
 ## Sprint 143 Planning Highlights
 
@@ -78,11 +119,12 @@ NQH Creative Studio (Open-Generative-AI) Sprint 1 kicked off — fork, rebrand, 
 ## Current Stats
 
 - **8,142 tests** passing (8,152 total, 10 skipped)
-- **35+ CLI commands**, 30+ OTT commands
+- **39 commands** in unified CommandDispatcher, 30+ OTT commands
 - **14 SOUL agents** across 3 tiers (CC-first for Tier 2)
 - **5 active providers** (Claude Code, Kimi proxy, Kimi API, OpenAI, Ollama)
+- **5 channels** active: CLI, Web, Telegram, Zalo, Desktop
 - **2 moderate vulnerabilities** (dev-only, down from 37)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 01: Planning — Updated Sprint 143 close (2026-04-26)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 01: Planning — Updated Sprint 144 close (2026-04-27)*

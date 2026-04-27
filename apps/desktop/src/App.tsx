@@ -12,15 +12,7 @@ import { ProjectsPage } from "./pages/Projects";
 import { GatesPage } from "./pages/Gates";
 import { ExpertsPage } from "./pages/Experts";
 import { JuniorHubPage } from "./pages/JuniorHub";
-
-function SettingsPage() {
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>⚙️ Settings</h1>
-      <p>Configure your preferences</p>
-    </div>
-  );
-}
+import { Settings as SettingsPage } from "./pages/Settings";
 
 // Simple Layout with Sidebar
 function SimpleLayout({ children }: { children: React.ReactNode }) {

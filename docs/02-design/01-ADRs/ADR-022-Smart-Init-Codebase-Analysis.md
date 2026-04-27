@@ -16,7 +16,7 @@
 
 `collectProjectContext()` was implemented in Sprint 75 (ADR-018) and fully tested, but was only called during `compliance fix` — **never during `init`**.
 
-**Test case:** `endiorbot init /Users/dttai/Documents/Python/01.NQH/open-pencil/ --tier STANDARD`
+**Test case:** `endiorbot init /path/to/open-pencil/ --tier STANDARD`
 - open-pencil: TypeScript + Vue 3 + Vite + Tauri 2, Bun, Playwright E2E + Bun unit tests
 
 **Comparison with SDLC Orchestrator** (Python, `/01.NQH/SDLC-Orchestrator`):

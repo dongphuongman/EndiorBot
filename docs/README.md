@@ -1,84 +1,113 @@
-# EndiorBot documentation index
+# EndiorBot Documentation Index
 
-**Framework:** MTS SDLC **6.3.0** · **Identity:** CEO Power Tool (solo dev, enterprise-grade discipline)
+**Framework:** SDLC **6.3.1** · **Identity:** Solo Developer Power Tool
 
-This folder is the **stage-shaped** home for product and engineering docs. **Command SSOT** lives in code (`./endiorbot.mjs`); **stage semantics** (WHY → WHAT → HOW → CONNECT → BUILD → VERIFY → …) are summarized in [`00-foundation/stage-command-workflow-spine.md`](00-foundation/stage-command-workflow-spine.md).
+> Stage-shaped home for product and engineering docs. Command SSOT lives in code (`./endiorbot.mjs`); stage semantics (WHY → WHAT → HOW → …) defined in [`stage-command-workflow-spine.md`](00-foundation/stage-command-workflow-spine.md).
 
-### Documentation language (SDLC Framework)
-
-Per MTS SDLC **6.3.0**, **application development documentation** under `docs/` (stage READMEs, ADRs, technical specs, sprint plans, test plans, and reference templates) is authored in **English** so reviews, gates, and tooling stay consistent. Product-facing OTT strings or locale-specific runbooks may use other languages when explicitly scoped outside this tree.
+**Documentation language:** Per SDLC 6.3.1, application docs under `docs/` are authored in **English**. Product-facing OTT strings may use other languages when explicitly scoped.
 
 ---
 
-## Core pipeline (00 → 05)
+## 10-Stage Lifecycle (SDLC 6.3.1 Pillar 1)
 
-Design → build → test traceability is **mandatory** between these stages; stage **03** is the integration bridge (not optional for platform work).
+### Core Pipeline (00 → 05)
 
-| Stage | Folder | Key question | README |
-|-------|--------|--------------|--------|
-| **00** Foundation | [`00-foundation/`](00-foundation/) | **WHY** | [`README.md`](00-foundation/README.md) |
-| **01** Planning | [`01-planning/`](01-planning/) | **WHAT** | [`README.md`](01-planning/README.md) |
-| **02** Design | [`02-design/`](02-design/) | **HOW** (design) | [`README.md`](02-design/README.md) |
-| **03** Integrate | [`03-integrate/`](03-integrate/) | **CONNECT** | [`README.md`](03-integrate/README.md) |
-| **04** Build | [`04-build/`](04-build/) | **BUILD** | [`README.md`](04-build/README.md) |
-| **05** Test | [`05-test/`](05-test/) | **VERIFY** | [`README.md`](05-test/README.md) |
+Design → build → test traceability is **mandatory**. Stage 03 is the integration bridge.
 
-**North star & autonomy:** [`00-foundation/product-vision.md`](00-foundation/product-vision.md)  
-**Atomic CLI / OTT / Web vs workflows:** [`00-foundation/stage-command-workflow-spine.md`](00-foundation/stage-command-workflow-spine.md)  
-**Command catalog (templates & agents):** [`reference/templates/COMMANDS.md`](reference/templates/COMMANDS.md)
+| Stage | Folder | Question | Key Artifacts |
+|-------|--------|----------|---------------|
+| **00** Foundation | [`00-foundation/`](00-foundation/) | **WHY** | Product vision, problem statement, business case |
+| **01** Planning | [`01-planning/`](01-planning/) | **WHAT** | Requirements, user stories, roadmap |
+| **02** Design | [`02-design/`](02-design/) | **HOW** | 49 ADRs, 20+ technical specs, architecture review |
+| **03** Integrate | [`03-integrate/`](03-integrate/) | **CONNECT** | API specs, channel contracts, provider pipeline |
+| **04** Build | [`04-build/`](04-build/) | **BUILD** | 90+ sprint plans, coding standards, CLI reference |
+| **05** Test | [`05-test/`](05-test/) | **VERIFY** | Master test plan, E2E reports, bug tracking |
 
----
+### Extended Lifecycle (06 → 09)
 
-## Extended lifecycle (06 → 09)
+| Stage | Folder | Question | Key Artifacts |
+|-------|--------|----------|---------------|
+| **06** Deploy | [`06-deploy/`](06-deploy/) | **SHIP** | Deploy guide, PID lockfile, Kimi proxy setup |
+| **07** Operate | [`07-operate/`](07-operate/) | **RUN** | Usage guide (20 workflows), circuit breaker ops |
+| **08** Collaborate | [`08-collaborate/`](08-collaborate/) | **ALIGN** | SDLC compliance, knowledge transfer, community publish |
+| **09** Govern | [`09-govern/`](09-govern/) | **IMPROVE** | Governance status |
 
-Same **thin-client** rule: operational docs describe *what* to run; execution goes through EndiorBot core where applicable (`ops`, `serve`, `compliance`, `gate`, …).
+### Archive
 
-| Stage | Folder | Key question | README |
-|-------|--------|--------------|--------|
-| **06** Deploy | [`06-deploy/`](06-deploy/) | **SHIP** — release, envs, CI/CD | [`README.md`](06-deploy/README.md) |
-| **07** Operate | [`07-operate/`](07-operate/) | **RUN** — monitoring, incidents | [`README.md`](07-operate/README.md) |
-| **08** Collaborate | [`08-collaborate/`](08-collaborate/) | **ALIGN** — humans, compliance, handover | [`README.md`](08-collaborate/README.md) |
-| **09** Govern | [`09-govern/`](09-govern/) | **IMPROVE** — RFCs, retros, process | [`README.md`](09-govern/README.md) |
-
----
-
-## Naming note
-
-Use **`03-integrate`** (folder name in this repo). Older docs may say `03-integration`; treat that as the same stage and prefer **`docs/03-integrate/`** in new links.
+| Folder | Contents |
+|--------|----------|
+| [`10-Archive/`](10-Archive/) | Sprint 29-55 plans, autonomy epic (consolidated), old reports |
 
 ---
 
-## Reference templates
+## Quality Gates (SDLC 6.3.1 Pillar 4)
 
-Scaffold outputs and agent guidance: [`reference/templates/`](reference/templates/)
+| Gate | Stage | Evidence Required |
+|------|-------|-------------------|
+| G0 / G0.1 | 00 Foundation | Problem statement, stakeholder sign-off |
+| G1 | 01 Planning | Requirements, user stories, estimates |
+| G2 | 02 Design | ADRs, architecture docs, API specs |
+| G3 | 04 Build | Code complete, tests passing, coverage |
+| G4 | 06 Deploy | MRP, security scan, deployment ready |
+| G-Sprint | 04 Build | Sprint plan, goals, completion report |
 
 ---
 
-## Current state (Sprint 135, 2026-04-12)
+## Reference & Templates
+
+> **Note:** `docs/reference/` is **EndiorBot-specific** — scaffold templates, SOUL definitions, SDLC API, and migration guides generated by EndiorBot's `init` command. This directory is NOT part of the 10-stage lifecycle; it is the product's own template registry that `endiorbot init` uses to scaffold new projects.
+
+| Resource | Location | Purpose |
+|----------|----------|---------|
+| **Templates** | | |
+| SOUL templates (14 agents) | [`reference/templates/souls/`](reference/templates/souls/) | Agent persona definitions (SASE model) |
+| Team templates (7 teams) | [`reference/templates/teams/`](reference/templates/teams/) | Multi-agent team configurations |
+| Tier configs (LITE→ENTERPRISE) | [`reference/templates/configs/`](reference/templates/configs/) | `.sdlc-config.json` per tier |
+| Scaffold templates | [`reference/templates/`](reference/templates/) | AGENTS.md, IDENTITY.md, CLAUDE.md, TOOLS.md, etc. |
+| Command catalog | [`reference/templates/COMMANDS.md`](reference/templates/COMMANDS.md) | 39 unified commands across 5 channels |
+| **SDLC Integration** | | |
+| SDLC API | [`reference/sdlc/API.md`](reference/sdlc/API.md) | Programmatic SDLC API reference |
+| Migration guide | [`reference/sdlc/MIGRATION.md`](reference/sdlc/MIGRATION.md) | OpenClaw → EndiorBot migration |
+| Config schemas | [`reference/sdlc/schemas/`](reference/sdlc/schemas/) | JSON schemas for `.sdlc-config.json` |
+
+---
+
+## Key Entry Points
+
+| Document | Purpose |
+|----------|---------|
+| [Product Vision](00-foundation/product-vision.md) | North star + autonomy levels (L1-L4) |
+| [Stage × Command Spine](00-foundation/stage-command-workflow-spine.md) | Stage alignment, CLI/OTT/Web mapping |
+| [Usage Guide](07-operate/USAGE-GUIDE.md) | 20 workflows — setup to advanced |
+| [Deploy Guide](06-deploy/README.md) | Deployment options, Docker, Desktop, npm |
+| [ADR-052 Agent-Model Tier Mapping](02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md) | CC-first routing + fallback chains |
+
+---
+
+## Current State (Sprint 144, 2026-04-27)
 
 | Metric | Value |
 |--------|-------|
-| Tests | 7,921 passing |
-| CLI commands | ~35 |
-| OTT commands | 30+ (Telegram + Zalo) |
-| SOUL agents | 14 + preamble |
-| AI providers | 6 (Anthropic, OpenAI, Gemini, GitHub, Ollama, Claude Code) |
-| Channels | 4 (CLI, Web, Telegram, Zalo) + Desktop (Electron) |
+| Tests | 8,142+ passing |
+| Unified commands | 39 (across all channels) |
+| SOUL agents | 14 |
+| Channels | 5 (CLI, Web, Telegram, Zalo, Desktop) |
+| Providers | 5 active (Claude Code, Kimi, OpenAI, Ollama, MCP Gateway) |
+| ADRs | 49 approved |
+| Sprint plans | 90+ (Sprint 56-144; older archived to 10-Archive) |
+| Framework | SDLC 6.3.1 (7-Pillar, 10-Stage, 4-Tier) |
 
-### Sprint 131-135 capabilities (openclaw backport + surface parity)
+### Sprint 143-144 Highlights
 
-| Capability | Backend | CLI | OTT | Web API | Ref |
-|------------|---------|-----|-----|---------|-----|
-| Command discovery | `cmd.list` RPC | `endiorbot commands` | `/commands` | JSON-RPC | Sprint 132 M0 |
-| Exec-policy | 9-module cluster | 6 subcommands | `/exec-policy show\|preset\|audit` | `POST /api/config/exec-policy/preset` | Sprint 132 M1 |
-| Active Memory | Cache-first context refresh | env toggle | `/config active-memory on\|off` | `POST /api/config/active-memory` | Sprint 133 S1 |
-| SSRF defense | `safeFetch` + `http-validator.ts` | — | `/audit ssrf` | `GET /api/audit/ssrf` | Sprint 133 S2 |
-| Config SSOT | `src/config/timeouts.ts` | env vars | `/config` view | `GET /api/config` | Sprint 134 |
-| Webhooks ingress | `POST /api/webhooks/:triggerId` | — | `/webhooks list\|test` | `GET /api/audit/webhooks` | Sprint 134 |
-| Unified audit | JSONL logs | `exec-policy audit` | `/audit exec-policy\|ssrf\|webhooks` | `GET /api/audit/:type` | Sprint 135 |
-
-Key docs: [ADR-046 (exec-policy)](02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md) · [Deploy guide](06-deploy/README.md) · [Usage guide](07-operate/USAGE-GUIDE.md) · [Openclaw backport PRD](01-planning/openclaw-backport/PRD.md)
+| Feature | Sprint | Impact |
+|---------|--------|--------|
+| CC-first routing (ADR-052 amendment) | 143 | All Tier 2 agents use Claude Code primary, Kimi fallback |
+| PID lockfile singleton serve | 144 | Prevents duplicate processes (`--force` to takeover) |
+| Provider circuit breaker | 144 | 2 failures → skip provider → 60s cooldown → recovery |
+| OTT 60s timeout | 144 | Telegram/Zalo/Web = 60s CC timeout (CLI stays 180s) |
+| Desktop app | 144 | 7 pages, gateway auto-start, API key management |
+| Community publish cleanup | 144 | Internal refs removed, domain endior.net, MIT license |
 
 ---
 
-*EndiorBot | docs/ stage index | SDLC 6.3.0 | Updated Sprint 135*
+*EndiorBot | SDLC **6.3.1** — docs/ stage index | Updated Sprint 144 (2026-04-27)*

@@ -33,6 +33,41 @@ Developer ←→ EndiorBot (14 SOUL agents)
 
 ---
 
+## Community Publish Readiness (Sprint 144)
+
+EndiorBot is published as a community open-source tool. All internal references have been cleaned up:
+
+| Item | Detail |
+|------|--------|
+| npm package | `endiorbot` (no scope prefix) |
+| Domain | endior.net |
+| Identity | "Solo Developer Power Tool" |
+| MCP bridge module | `src/mcp-gateway/` (McpGatewayBridge) |
+| Budget system | `"self-hosted"` tier label |
+| License | MIT |
+| Community files | CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md |
+
+### Command Parity Across 5 Channels (Sprint 144)
+
+39 commands in `CommandDispatcher` — all verified across CLI, Web, Telegram, Zalo, Desktop:
+
+```bash
+endiorbot commands          # Full list with channel availability
+endiorbot commands --json   # Machine-readable envelope
+```
+
+Sprint 144 added `/status` and `/clear` to the unified Dispatcher, completing OTT parity. Any command available on CLI is available on Telegram/Zalo/Desktop.
+
+### Desktop as Collaboration Surface
+
+The Desktop app (Electron) surfaces the full EndiorBot capability set in a native GUI:
+
+- **Settings page** — API key management per provider, theme switching
+- **Projects page** — workspace switching via `~/.endiorbot/repos.json`
+- **Gates page** — 7 SDLC gate status, approve/reject with audit trail
+- **Experts page** — provider status, circuit breaker health
+- **Chat page** — gateway auto-starts as subprocess; no separate `serve` needed
+
 ## OSS Contribution Workflow
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for full details.
@@ -51,7 +86,7 @@ git checkout -b feat/my-feature
 # ... code ...
 
 # 5. Verify
-pnpm build && pnpm test    # 8,111+ tests must pass
+pnpm build && pnpm test    # 8,142+ tests must pass
 
 # 6. Submit PR
 git push origin feat/my-feature
@@ -102,7 +137,7 @@ Sprint 132 established a repeatable process for backporting from upstream reposi
 
 ```
 1. Survey upstream    → Explore agents map recent changes with commit-date evidence
-2. Filter by identity → CEO Power Tool filter (not platform, not SDLC enforcer)
+2. Filter by identity → Solo Developer Power Tool filter (not platform, not SDLC enforcer)
 3. MoSCoW prioritize  → MUST/SHOULD/COULD/WON'T with effort + risk estimates
 4. Ground-truth verify → SOUL-pm.md Rule 1 on every integration point
 5. Port the pattern   → Adapt the design, don't copy the code
@@ -114,6 +149,19 @@ Artifacts produced: PRD ([`docs/01-planning/openclaw-backport/PRD.md`](../01-pla
 ## Sprint 132 Gate Status
 
 **G3 APPROVED** — CTO code review 9.5/10, zero conditions. Three rounds of plan review (CTO + CPO), all 8 conditions from v2 folded into v3. CEO decisions locked (6 items) on 2026-04-11.
+
+## Sprint 144 — Gateway Hardening + Community Publish (2026-04-27)
+
+Four tasks shipped:
+
+- **T1 PID lockfile** — `~/.endiorbot/serve.pid` prevents accidental duplicate `serve`. `--force` flag for deliberate takeover.
+- **T2 Provider circuit breaker** — 2 failures → OPEN → 60s cooldown → HALF-OPEN probe → CLOSED on success. Automatic fallback to next provider in chain. `getOpenCircuits()` for diagnostics.
+- **T3 Channel-aware timeouts** — `originChannel` threaded bus → ingress → router. OTT/Web = 60s, CLI = 180s, ensuring OTT message delivery windows are respected without penalizing terminal users.
+- **T4 Kimi subprocess deprecation** — External `claude-code-proxy serve` + `ENDIORBOT_KIMI_PROXY_URL` is now the recommended deployment path. Auto-spawn remains functional but deprecated.
+
+Community publish cleanup also shipped: `src/mcp-gateway/` rename, `"self-hosted"` budget label, `endiorbot` npm package name, endior.net domain, identity alignment to "Solo Developer Power Tool".
+
+**Test count:** 8,142/8,152 pass (10 skipped, zero failures).
 
 ## Sprints 139–141 — OpenMythos Adoption + Kimi Integration (2026-04-20 → 2026-04-24)
 
@@ -154,10 +202,10 @@ EndiorBot is [MIT licensed](../../LICENSE). All dependencies are MIT/ISC/Apache/
 - **Consumes:** Gate evidence and sprint outcomes from [04-build](../04-build/)
 - **Key ADRs:** [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
 - **Backport PRD:** [openclaw-backport PRD](../01-planning/openclaw-backport/PRD.md) + [scope](../01-planning/openclaw-backport/scope.md)
-- **Sprints:** [132](../04-build/sprints/sprint-132-openclaw-backport.md), [133](../04-build/sprints/sprint-133-active-memory-ssrf.md), [139](../04-build/sprints/sprint-139-plan.md), [140](../04-build/sprints/sprint-140-plan.md), [141](../04-build/sprints/sprint-141-plan.md)
+- **Sprints:** [132](../04-build/sprints/sprint-132-openclaw-backport.md), [133](../04-build/sprints/sprint-133-active-memory-ssrf.md), [139](../04-build/sprints/sprint-139-plan.md), [140](../04-build/sprints/sprint-140-plan.md), [141](../04-build/sprints/sprint-141-plan.md), [144](../04-build/sprints/sprint-144-plan.md)
 - **ADRs:** [ADR-050](../02-design/01-ADRs/ADR-050-openmythos-evaluator-optimization-patterns.md), [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)
 - **Spine:** [stage-command-workflow-spine.md](../00-foundation/stage-command-workflow-spine.md)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 08: Collaborate — Updated Sprint 141 (2026-04-24)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 08: Collaborate — Updated Sprint 144 (2026-04-27)*

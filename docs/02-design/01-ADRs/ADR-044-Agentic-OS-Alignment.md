@@ -116,7 +116,7 @@ These patterns were built before the Agentic OS analysis — their presence vali
 
 ### "Build what you need, validate against best practices, don't cargo-cult"
 
-EndiorBot independently implemented 8/18 patterns before the analysis. This proves the architecture is sound — driven by real requirements (CEO Power Tool use cases), not by copying a reference system.
+EndiorBot independently implemented 8/18 patterns before the analysis. This proves the architecture is sound — driven by real requirements (Solo Developer Power Tool use cases), not by copying a reference system.
 
 ### "Federated AI OS" Mental Model
 

@@ -19,7 +19,7 @@ references:
 
 Sprint 143 CEO testing exposed 7 production issues in a 2-hour Telegram session. All were hotfixed same-day, but 4 underlying architectural gaps remain that config alone can't prevent. This sprint closes those gaps.
 
-**Identity guard:** All items are operational resilience — no new features, no platform creep. CEO Power Tool stays the same; it just stops breaking under real-world usage patterns.
+**Identity guard:** All items are operational resilience — no new features, no platform creep. Solo Developer Power Tool stays the same; it just stops breaking under real-world usage patterns.
 
 ---
 
@@ -199,4 +199,4 @@ ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:18765 endiorbot serve
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 144 Draft — 2026-04-27*
+*EndiorBot | Solo Developer Power Tool | SDLC 6.3.1 | Sprint 144 Draft — 2026-04-27*

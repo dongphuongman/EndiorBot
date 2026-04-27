@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-**Vision**: Transform EndiorBot from "CEO Power Tool" to "Autonomous SDLC Agent".
+**Vision**: Transform EndiorBot from "Solo Developer Power Tool" to "Autonomous SDLC Agent".
 
 ```
 v1.0: CEO asks → Agent answers (30s decisions)

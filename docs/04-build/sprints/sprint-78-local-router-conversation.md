@@ -9,7 +9,7 @@
 
 ## Goal
 
-**CEO Power Tool** — 2 improvements to reduce cost and improve UX:
+**Solo Developer Power Tool** — 2 improvements to reduce cost and improve UX:
 
 1. **Track A**: Replace Sonnet routing ($0.003/req) with local `qwen3.5:9b` ($0/req)
 2. **Track B**: Add conversation persistence to Telegram/Zalo (CEO no longer repeats context)

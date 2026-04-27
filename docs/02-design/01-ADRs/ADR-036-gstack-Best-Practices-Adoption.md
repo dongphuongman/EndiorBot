@@ -55,7 +55,7 @@ Add structured debugging workflow to SOUL-coder.md: Reproduce → Hypothesize �
 | `/freeze` command | OTT session model ambiguity — what scope does "freeze" apply to? |
 | LLM-as-Judge (R5) | Low ROI at 14 SOULs. Defer until count > 20 or regression escapes |
 | ETHOS.md file | CEO: don't create new file. Port content into AGENTS.md |
-| Browser daemon | Not aligned with CEO Power Tool identity |
+| Browser daemon | Not aligned with Solo Developer Power Tool identity |
 | Skill template build system (.tmpl) | Preamble gives 80% benefit at 10% cost |
 | Dual-host support | EndiorBot is Claude-native |
 

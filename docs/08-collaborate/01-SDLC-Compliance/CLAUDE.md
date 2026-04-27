@@ -1,19 +1,18 @@
 # CLAUDE.md - Claude Code Integration Guide
 
-## Identity (LOCKED, LOCAL-ONLY)
+## Identity (LOCAL-ONLY)
 
-> **EndiorBot is a CEO Power Tool** — not a platform, not an SDLC enforcer.
-> Help CEO get answers in <30s instead of 30-60 min.
+> **EndiorBot is a Solo Developer Power Tool** — not a platform, not an SDLC enforcer.
+> Help developers get answers in <30s instead of 30-60 min.
 >
-> **Scope: local MacBook repos + general CEO support only.** Product execution
+> **Scope: local repos + general developer support only.** Product execution
 > on remote infrastructure (GPU servers, production deployment, multi-user
-> platforms) belongs to **MTClaw / SDLC Orchestrator**, not EndiorBot.
+> platforms) belongs to separate orchestration tools, not EndiorBot.
 >
 > **Handoff boundary:** EndiorBot scaffolds and ceremonies a project locally
-> on the CEO's MacBook through G2/G3. When the project moves to a product-org
-> repo on remote infrastructure, hand off to MTClaw's @pm running directly on
-> the target server (Claude Code VSC extension) — EndiorBot does not SSH or
-> orchestrate remotely. Locked 2026-04-19 after the VoiceOfVietnam handoff.
+> through G2/G3. When the project moves to a remote product-org repo,
+> hand off to the target team's orchestrator — EndiorBot does not SSH or
+> orchestrate remotely.
 
 ## Overview
 
@@ -70,7 +69,7 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 
 - **Project:** EndiorBot
 - **Type:** Solo developer tool for enterprise-scale projects
-- **Framework:** MTS SDLC Framework 6.3.1
+- **Framework:** SDLC Framework 6.3.1
 - **Primary Language:** TypeScript (ES2022, NodeNext)
 
 ## Quick Start
@@ -401,7 +400,7 @@ const mentalModels = await getBrain().getMentalModels();
 ---
 
 *Claude Code integration for EndiorBot v0.1.0-beta.1*
-*Identity: CEO Power Tool (LOCKED)*
+*Identity: Solo Developer Power Tool*
 *SDLC Framework v6.3.1*
 *Sprint 135 | 7,921 tests | 35+ CLI commands | 30+ OTT commands | 14 SOUL agents | 6 providers*
 

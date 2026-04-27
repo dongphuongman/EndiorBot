@@ -65,4 +65,4 @@ If P3-01 surfaces a live leaked key that's been abused, escalate immediately —
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 138 Draft — 2026-04-19*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 138 Draft — 2026-04-19*

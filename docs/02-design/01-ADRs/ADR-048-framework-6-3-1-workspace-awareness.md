@@ -25,14 +25,14 @@ referenced_by: ["Sprint 135 P1 (Workspace Awareness)", "docs/reference/templates
 
 On 2026-04-17, MTClaw Team escalated a P1 Agent Continuity gap: agents with filesystem tools asked users for workspace state (sprint number, backlog, tech stack) that was already discoverable from the workspace. SDLC Framework responded with 6.3.1 — an addendum, not a methodology change — adding a new SASE Artifact: `Agent-Continuity-Runtime-Guidance.md` (RECOMMENDED, SHOULD). See `.sdlc-framework/05-Templates-Tools/04-SASE-Artifacts/Agent-Continuity-Runtime-Guidance.md`.
 
-EndiorBot's audit showed the gap: `src/agents/context/context-injector.ts` loaded SOUL + Brain L4 + project context but never auto-loaded `CLAUDE.md` / `AGENTS.md` / sprint docs. Agents launched via Claude Code Bridge inherited zero discovery directive. For a CEO Power Tool, this violates the <30s-answer promise — CEO shouldn't have to re-brief the agent on sprint state visible in the workspace.
+EndiorBot's audit showed the gap: `src/agents/context/context-injector.ts` loaded SOUL + Brain L4 + project context but never auto-loaded `CLAUDE.md` / `AGENTS.md` / sprint docs. Agents launched via Claude Code Bridge inherited zero discovery directive. For a Solo Developer Power Tool, this violates the <30s-answer promise — CEO shouldn't have to re-brief the agent on sprint state visible in the workspace.
 
 ## Decision
 
 Adopt Framework 6.3.1 via **Pattern A — System Prompt Injection** (per the SASE artifact's three options: A layered composer, B tool-use preamble, C per-agent config flag):
 
 - **Runtime:** Added `src/agents/context/workspace-awareness.ts` exporting `WORKSPACE_AWARENESS_SECTION` as a module-level `as const` string literal. Injected at **Layer 1.25** of the context-injector pipeline — between SOUL (layer 1) and Brain L4 (layer 2). Explicitly emitted in `buildSystemPrompt` so the directive reaches the agent regardless of manifest truncation.
-- **SOUL templates:** Added `## Workspace Awareness (MANDATORY)` section to the 5 executor SOULs (coder, pm, architect, reviewer, tester). Section cites the CEO Power Tool <30s guarantee explicitly — framing is productivity-first, not SDLC-enforcer-first.
+- **SOUL templates:** Added `## Workspace Awareness (MANDATORY)` section to the 5 executor SOULs (coder, pm, architect, reviewer, tester). Section cites the Solo Developer Power Tool <30s guarantee explicitly — framing is productivity-first, not SDLC-enforcer-first.
 - **Version bump:** `framework_version` 6.3.0 → 6.3.1 in `.sdlc-config.json`, `CLAUDE.md`, `AGENTS.md`, and 5 SOUL frontmatter blocks. Historical section markers (TDD, Coverage Targets introduced in 6.3.0) preserved — they describe when features were added, not the active framework claim.
 
 ## Threat Model (Static Constant)
@@ -91,7 +91,7 @@ If a specific agent should not receive the workspace-awareness directive (e.g., 
 1. Remove the `## Workspace Awareness (MANDATORY)` section from that SOUL's markdown (context-injector reads the SOUL body verbatim).
 2. Add the agent role to a denylist in `context-injector.ts` before the Layer 1.25 push.
 
-No executor SOUL is expected to opt out — the CEO Power Tool <30s guarantee depends on every executor discovering workspace state.
+No executor SOUL is expected to opt out — the Solo Developer Power Tool <30s guarantee depends on every executor discovering workspace state.
 
 ## Quality Gate Alignment
 
@@ -122,7 +122,7 @@ SDLC 6.3.1's SASE artifact documents **three implementation patterns** (A/B/C). 
 
 | Test file | Tests | Property verified | Run cost |
 |-----------|-------|-------------------|----------|
-| `tests/agents/context/workspace-awareness.test.ts` | 11 | Static-constant immutability; exact header text; no template interpolation (`${}`, `%s`, `{N}`); injection ordering (SOUL → workspace_awareness → brain_l4); full emission in `buildSystemPrompt`; CEO Power Tool <30s linkage in section text; Mental Model #7 reference | <1s |
+| `tests/agents/context/workspace-awareness.test.ts` | 11 | Static-constant immutability; exact header text; no template interpolation (`${}`, `%s`, `{N}`); injection ordering (SOUL → workspace_awareness → brain_l4); full emission in `buildSystemPrompt`; Solo Developer Power Tool <30s linkage in section text; Mental Model #7 reference | <1s |
 | `tests/integration/sprint-99-workspace-channel.test.ts` (Phase 5) | 3 | SOUL frontmatter bump post-Sprint-123 continues to reflect 6.3.x references (test relaxed to `/6\.3\.\d+/` regex to survive future addendum bumps without edits) | <1s |
 | `tests/agents/context/cross-project.test.ts` | 10 | Repo-registry + workspace resolution still works after new context source was added to the union | <1s |
 | Full repository regression | 7946 | Zero regression after Sprint 135 P1 + Sprint 136 ADR-048-adjacent fixes | ~45s |

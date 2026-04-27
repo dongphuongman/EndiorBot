@@ -53,8 +53,8 @@ describe("workspace-awareness (SDLC 6.3.1 Layer 1.25)", () => {
       expect(WORKSPACE_AWARENESS_SECTION).toContain("Mental Model #7");
     });
 
-    it("cites the CEO Power Tool <30s guarantee (identity-lock linkage)", () => {
-      expect(WORKSPACE_AWARENESS_SECTION).toContain("CEO Power Tool");
+    it("cites the solo developer power tool <30s guarantee (identity-lock linkage)", () => {
+      expect(WORKSPACE_AWARENESS_SECTION).toContain("solo developer power tool");
       expect(WORKSPACE_AWARENESS_SECTION).toContain("<30");
     });
 

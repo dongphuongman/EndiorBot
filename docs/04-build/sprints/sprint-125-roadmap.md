@@ -192,7 +192,7 @@ Research into Claude Code architecture (via public specs, clean-room Rust reimpl
 | Implement Claude Code's Terminal UI (Ink/React) | EndiorBot is CLI + 4-channel OTT, not terminal app |
 | Feature flags via GrowthBook | Over-engineering for solo developer tool |
 | Classifier-based auto-approval (ML model) | EndiorBot uses rule-based RiskClassifier — sufficient |
-| BUDDY companion pet system | Not aligned with CEO Power Tool identity |
+| BUDDY companion pet system | Not aligned with Solo Developer Power Tool identity |
 | Voice mode | Not in scope for beta |
 | Dream memory consolidation | ClawVault FactStore serves same purpose differently |
 

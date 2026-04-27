@@ -169,4 +169,4 @@ All rollback actions are localized to `src/evaluator/loop.ts` and `src/evaluator
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | ADR-050 FULL — 2026-04-20*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | ADR-050 FULL — 2026-04-20*

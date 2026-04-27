@@ -42,8 +42,9 @@ Full catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMM
 
 ## Contents
 
-- `autonomy-epic/` — Autonomy epic integration plans
-- `sprint-50-validation-plan.md` — Sprint 50 validation plan
+- `sprint-139-integration-spec.md` — Sprint 139 integration specification (active)
+
+> **Archived:** `autonomy-epic/` and `sprint-50-validation-plan.md` moved to [`../10-Archive/`](../10-Archive/) (Sprint 144 docs cleanup).
 
 ## MVP Integrations (Tier 1)
 
@@ -129,15 +130,15 @@ Telegram: /gate mark G1 g1-stakeholder-signoff --pass    ← same CommandDispatc
 
 4-channel parity: CLI, Web, Telegram, Zalo all route through unified `CommandDispatcher`.
 
-### E2E Channel Test Results (Sprint 143)
+### E2E Channel Test Results (Sprint 144)
 
 | Channel | Tests | Pass | Notes |
 |---------|-------|------|-------|
 | CLI | 10 | 10/10 | All commands, agent routing, gate flow |
 | Web | 8 | 8/8 | WebSocket gateway, chat stream, budget |
 | Telegram | 10 | 10/10 | /start, @agent, /gate, /config, /audit |
-| Zalo | — | — | Deferred (no active Zalo OA token) |
-| Desktop | — | — | Deferred (VS Code extension testing) |
+| Zalo | — | PASS | Manual smoke; no active OA token for automated suite |
+| Desktop | 7 | 7/7 | Dashboard, Chat, Projects, Gates, Experts, Settings, Junior Hub |
 
 Automated: 8,142/8,152 tests pass (10 skipped by design).
 
@@ -146,17 +147,18 @@ Automated: 8,142/8,152 tests pass (10 skipped by design).
 Sprint 143 CEO testing revealed integration-layer gaps. Fixes shipped + Sprint 144 planned:
 
 ```
-Request flow (post-Sprint 143):
+Request flow (post-Sprint 144):
 
 @agent message on Telegram
-    → OTT Adapter → Bus → Consumer → Ingress
-    → [SESSION LOCK CHECK]  ← Sprint 143: reject if agent already processing
+    → OTT Adapter → Bus (originChannel tagged) → Consumer → Ingress
+    → [SESSION LOCK CHECK]       ← Sprint 143: reject if agent already processing
+    → ⚡ immediate ack sent       ← Sprint 144: OTT channels send "@agent acknowledged" before AI call
     → Channel Router.callAI()
-        → [CIRCUIT BREAKER]  ← Sprint 144: skip providers marked OPEN
+        → [CIRCUIT BREAKER CHECK]  ← Sprint 144: skip CC if circuit OPEN (2 failures)
         → Provider dispatch (CC → Kimi → cloud)
-            → CC Bridge (60s OTT / 180s CLI)  ← Sprint 144: channel-aware timeout
-            → on TIMEOUT → Kimi fallback (stream:false, model resolved)
-            → on Kimi fail → cloud fallback (OpenAI/Gemini last resort)
+            → CC Bridge (60s OTT / 180s CLI)  ← Sprint 144: channel-aware via originChannel
+            → on TIMEOUT or OPEN circuit → Kimi fallback (stream:false, model resolved)
+            → on Kimi fail → cloud fallback (OpenAI last resort)
         → Response
     → [SESSION LOCK RELEASE]
     → Telegram send (Markdown → plain-text retry on 400)  ← Sprint 143 R03
@@ -172,13 +174,26 @@ Request flow (post-Sprint 143):
 | TIER_FALLBACK_CHAIN | Now includes cloud as last-resort | Chain extension, no contract break |
 | KimiProxyProvider.chat() | resolveKimiModel() maps non-Kimi names | Internal, no external contract change |
 
-**Sprint 144 integration additions (planned):**
+**Sprint 144 integration additions (shipped):**
 
-| Contract | Addition |
-|----------|----------|
-| PID lockfile | `~/.endiorbot/serve.pid` — startup checks before binding ports |
-| Circuit breaker state | In-memory `Map<providerId, CircuitState>` — cleared on restart |
-| Channel-aware timeout | `originChannel` threaded from bus consumer → router → provider |
+| Contract | Addition | Status |
+|----------|----------|--------|
+| PID lockfile | `~/.endiorbot/serve.pid` — startup checks before binding ports | 144 ✅ |
+| Circuit breaker state | In-memory `Map<providerId, CircuitState>` — cleared on restart | 144 ✅ |
+| Channel-aware timeout | `originChannel` threaded from bus consumer → router → provider | 144 ✅ |
+| Kimi subprocess | `console.warn` deprecation; `ENDIORBOT_KIMI_PROXY_URL` is supported path | 144 ✅ |
+| Immediate OTT ack | `⚡ @agent acknowledged` sent before AI call on all OTT channels | 144 ✅ |
+
+### Command Parity (Sprint 144)
+
+39 commands registered in unified `CommandDispatcher` (was 37). All commands accessible from CLI, Web, Telegram, Zalo, and Desktop channels.
+
+| Addition | Detail |
+|----------|--------|
+| `/status` | Added to dispatcher (was missing) |
+| `/clear` | Added to dispatcher (was missing) |
+| Immediate ack | All OTT channels send `⚡ @agent` before long AI call |
+| Desktop channel | Electron app — all 7 pages functional, gateway auto-starts |
 
 ## References
 
@@ -194,4 +209,4 @@ Request flow (post-Sprint 143):
 
 ---
 
-*Solo Developer Power Tool | SDLC Framework **6.3.1** — Stage 03: Integration — Updated Sprint 143 close (2026-04-26)*
+*Solo Developer Power Tool | SDLC Framework **6.3.1** — Stage 03: Integration — Updated Sprint 144 close (2026-04-27)*

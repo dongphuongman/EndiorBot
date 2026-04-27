@@ -7,7 +7,7 @@
 | **Authors** | PM, Architect |
 | **Reviewers** | CTO, 4-Expert Panel |
 | **Sprint** | 54 |
-| **Identity** | CEO Power Tool (LOCKED) |
+| **Identity** | Solo Developer Power Tool (LOCKED) |
 
 ---
 
@@ -355,6 +355,6 @@ class ActionControlPlaneStub implements ActionControlPlane {
 
 ---
 
-*ADR-012 | CEO Power Tool MVP | ActionControlPlane*
+*ADR-012 | Solo Developer Power Tool MVP | ActionControlPlane*
 *Identity: LOCKED (2026-02-28)*
 *SDLC Framework v6.1.1*

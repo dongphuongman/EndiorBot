@@ -96,10 +96,10 @@ const DEFAULT_PRICING: Record<string, ModelPricing> = {
     output_per_1k: 0.015,
     updatedAt: new Date(),
   },
-  "nqh/qwen3-coder": {
-    provider: "nqh", // remote Ollama server
+  "self-hosted/qwen3-coder": {
+    provider: "self-hosted", // self-hosted Ollama server
     model: "qwen3-coder",
-    input_per_1k: 0, // Free via company infrastructure
+    input_per_1k: 0, // Free via self-hosted Ollama infrastructure
     output_per_1k: 0,
     updatedAt: new Date(),
   },
@@ -616,7 +616,7 @@ export class BudgetTracker {
    */
   getFallbackModel(): string | undefined {
     const action = this.config.on_limit_reached;
-    if (action.action === "switch_to_nqh" && action.fallback_model) {
+    if (action.action === "switch_to_self_hosted" && action.fallback_model) {
       return action.fallback_model;
     }
     return undefined;
@@ -848,7 +848,7 @@ export class BudgetTracker {
 
     // Suggest Ollama for simple tasks
     if (taskType === "documentation" || taskType === "general") {
-      return "Consider using NQH API (free) for this simple task";
+      return "Consider using Self-Hosted Ollama (free) for this simple task";
     }
 
     return undefined;
@@ -1005,10 +1005,10 @@ export class BudgetTracker {
           },
         };
 
-      case "switch_to_nqh":
+      case "switch_to_self_hosted":
         return {
           action: "switch_model",
-          model: action.fallback_model ?? "nqh/qwen3-coder",
+          model: action.fallback_model ?? "self-hosted/qwen3-coder",
           reason: `${budgetType}_limit_reached`,
           remainingBudget: {
             session: Math.max(

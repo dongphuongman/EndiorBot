@@ -4,7 +4,7 @@
 **Owner:** @architect (design) → @coder (implementation)
 **Authority:** Plan v3 (CTO G2 APPROVED 2026-04-11), PRD §3 M0, Sprint 132 plan Task 2
 **Status:** DESIGN — awaiting @coder handoff
-**Identity check:** CEO Power Tool (LOCKED) — thin-client invariant preserved
+**Identity check:** Solo Developer Power Tool (LOCKED) — thin-client invariant preserved
 **Framework:** SDLC 6.3.0
 
 ---
@@ -370,4 +370,4 @@ Plan v3 says **S (0.5–1 day, ~150–200 LoC incl. tests)**. After ground-truth
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.0 | M0 @architect design pass | 2026-04-11*
+*EndiorBot | Solo Developer Power Tool (LOCKED) | SDLC 6.3.0 | M0 @architect design pass | 2026-04-11*

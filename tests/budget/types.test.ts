@@ -46,7 +46,7 @@ describe("DEFAULT_BUDGET_CONFIG", () => {
       "pause_and_notify",
     );
     expect(DEFAULT_BUDGET_CONFIG.on_limit_reached.fallback_model).toBe(
-      "nqh/qwen3-coder",
+      "self-hosted/qwen3-coder",
     );
     expect(DEFAULT_BUDGET_CONFIG.on_limit_reached.pause_duration).toBe(60000);
   });
@@ -383,11 +383,11 @@ describe("BudgetAction type", () => {
   it("should accept switch_model action with model", () => {
     const action: BudgetAction = {
       action: "switch_model",
-      model: "nqh/qwen3-coder",
+      model: "self-hosted/qwen3-coder",
       reason: "budget_exhausted",
     };
 
-    expect(action.model).toBe("nqh/qwen3-coder");
+    expect(action.model).toBe("self-hosted/qwen3-coder");
   });
 
   it("should accept escalate action with approval ID", () => {
@@ -462,7 +462,7 @@ describe("Notification type", () => {
       message: "Session budget limit reached: $2.00",
       options: {
         continue_with_approval: "Increase budget and continue",
-        switch_to_nqh: "Switch to free local model",
+        switch_to_self_hosted: "Switch to free local model",
         stop: "Stop execution and review",
       },
     };

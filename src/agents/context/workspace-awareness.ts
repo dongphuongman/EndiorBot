@@ -58,7 +58,7 @@ Never ask the user:
 
 This directive exists to honor Mental Model #7 (Agent Continuity): each new
 AI session inherits enough context to continue work without re-briefing the
-human. For EndiorBot specifically, this backs the CEO Power Tool guarantee
+human. For EndiorBot specifically, this backs the solo developer power tool guarantee
 that commands return answers in <30 seconds without clarifying questions about
 state already visible in the workspace.` as const;
 

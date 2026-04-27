@@ -3,7 +3,7 @@
 **Sprint:** 133 (hotfix batch)
 **Owner:** @devops (diagnosis) → @coder (fixes)
 **Status:** IMPLEMENTED — committed `d0fc613`, pending follow-up commit for streaming + idle hints
-**Identity check:** CEO Power Tool (LOCKED)
+**Identity check:** Solo Developer Power Tool (LOCKED)
 **Framework:** SDLC 6.3.0
 
 ---
@@ -123,7 +123,7 @@ const projectPath = cwdIsRepo ? cwd : resolveActiveProjectDir();
 
 ### AD-5: SSRF allowlist cho configured Ollama endpoints
 
-**Discovery:** S2 SSRF defense (`safeFetch`) block `localhost` by default. Ollama có thể chạy local (`localhost:11434`) hoặc remote (`ai.nqh-internal.example`).
+**Discovery:** S2 SSRF defense (`safeFetch`) block `localhost` by default. Ollama có thể chạy local (`localhost:11434`) hoặc remote (`api.endior.net`).
 
 **Design:** Đọc TẤT CẢ Ollama env vars (`OLLAMA_URL`, `OLLAMA_HOST`, `OLLAMA_BASE_URL`, `OLLAMA_REMOTE_URL`) + default `localhost:11434`. Mọi configured endpoint được trust — đây là CEO/DevOps configuration, không phải user input.
 
@@ -193,7 +193,7 @@ ANTHROPIC_API_KEY
 
 OLLAMA_URL / OLLAMA_HOST / OLLAMA_BASE_URL
 ├── Used by: OllamaProvider (src/providers/ollama/)
-├── May point to REMOTE (e.g. ai.nqh-internal.example)
+├── May point to REMOTE (e.g. api.endior.net)
 ├── SSRF validator: localhost:11434 always allowed regardless of env var value
 └── Fallback: OLLAMA_REMOTE_URL for remote Ollama (AI-Platform)
 
@@ -246,5 +246,5 @@ These fixes are primarily UX/integration fixes that are hard to unit-test (they 
 
 ---
 
-*EndiorBot | CEO Power Tool | SDLC 6.3.0 | Chat & Bridge UX Fixes Design*
+*EndiorBot | Solo Developer Power Tool | SDLC 6.3.0 | Chat & Bridge UX Fixes Design*
 *Discovered through live CEO testing session 2026-04-11*

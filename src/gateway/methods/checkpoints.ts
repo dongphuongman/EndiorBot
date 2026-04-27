@@ -151,17 +151,9 @@ function handleCheckpointsRestore(
     throw new Error(`Checkpoint not found: ${checkpointId}`);
   }
 
-  // Create a new session ID for the restored session
-  const newSessionId = crypto.randomUUID();
-
-  // TODO: Actually restore session state from checkpoint
-  // This will be wired to CheckpointManager in Sprint 44 Day 5+
-
-  return {
-    success: true,
-    checkpoint,
-    newSessionId,
-  };
+  // CSO Sprint 144: Restore not yet implemented — return explicit error
+  // instead of fake success that misleads callers into thinking state was restored.
+  throw new Error("Checkpoint restore not yet implemented. Checkpoint data is available for manual review via checkpoints.get.");
 }
 
 /**

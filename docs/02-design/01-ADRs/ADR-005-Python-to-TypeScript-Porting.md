@@ -194,7 +194,7 @@ describe('InputSanitizer', () => {
 
 ## References
 
-- [SDLC-Orchestrator Source](/Users/dttai/Documents/Python/01.NQH/SDLC-Orchestrator/)
+- [SDLC-Orchestrator Source](/path/to/SDLC-Orchestrator/)
 - [XRegExp Library](https://xregexp.com/)
 
 ---

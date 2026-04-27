@@ -228,7 +228,7 @@ grep "My Section" CLAUDE.md  # Should exist
 ```bash
 # Setup
 mkdir /tmp/test-migrate && cd /tmp/test-migrate
-cp /Users/dttai/Documents/Python/01.NQH/tinysdlc/.sdlc-config.json .
+cp /path/to/tinysdlc/.sdlc-config.json .
 
 # Test
 endiorbot init
@@ -279,8 +279,8 @@ grep "IMPORTANT USER DATA" CLAUDE.md  # Should NOT exist (overwritten)
 
 | Config | Location |
 |--------|----------|
-| tinysdlc | `/Users/dttai/Documents/Python/01.NQH/tinysdlc/.sdlc-config.json` |
-| SDLC Orchestrator | `/Users/dttai/Documents/Python/01.NQH/SDLC-Orchestrator/.sdlc-config.json` |
+| tinysdlc | `/path/to/tinysdlc/.sdlc-config.json` |
+| SDLC Orchestrator | `/path/to/SDLC-Orchestrator/.sdlc-config.json` |
 
 ### 7.2 Test Fixtures
 

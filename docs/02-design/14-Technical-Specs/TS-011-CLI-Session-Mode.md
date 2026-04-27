@@ -12,7 +12,7 @@
 
 The CLI Session Mode provides a persistent REPL (Read-Eval-Print Loop) interface for EndiorBot. Instead of running single commands that exit immediately, the session mode keeps the process alive, maintaining loaded context (GateEngine, active project, config) across multiple commands.
 
-**Identity:** CEO Power Tool — interactive mode for faster iteration without repeated startup cost.
+**Identity:** Solo Developer Power Tool — interactive mode for faster iteration without repeated startup cost.
 
 **Command:** `endiorbot shell` (primary) or `endiorbot -i` (shorthand)
 

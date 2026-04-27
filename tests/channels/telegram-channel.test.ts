@@ -378,17 +378,12 @@ describe("TelegramChannel", () => {
       expect(queue.reject).toHaveBeenCalledWith("apr-123", "Not needed");
     });
 
-    it("should handle /status command", async () => {
+    it("should return null for /status (handled by CommandDispatcher, not local handler)", async () => {
+      // Sprint 144: /status moved to unified CommandDispatcher.
+      // Telegram handleCommand returns null → falls through to bus → ingress → Dispatcher.
       const channel = createTelegramChannel(createTestConfig());
-      const queue = createMockApprovalQueue();
-      channel.setApprovalQueue(queue);
-
       const result = await channel.handleCommand("/status");
-
-      expect(result?.success).toBe(true);
-      expect(result?.response).toContain("Pending: 2");
-      expect(result?.response).toContain("apr-123");
-      expect(result?.response).toContain("apr-456");
+      expect(result).toBeNull();
     });
 
     it("should handle /help command", async () => {
@@ -470,17 +465,20 @@ describe("TelegramChannel", () => {
       // Mock sendMessage for the response
       mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 1 }));
 
+      // Use /help instead of /status (which now falls through to Dispatcher)
+      mockFetch.mockResolvedValueOnce(createMockResponse(true, { message_id: 2 }));
       await channel.handleUpdate({
         update_id: 1,
         message: {
           message_id: 1,
           chat: { id: parseInt(config.chatId), type: "private" },
           date: Date.now(),
-          text: "/status",
+          text: "/help",
         },
       });
 
-      expect(queue.listPending).toHaveBeenCalled();
+      // Verify the channel processed the update (sent a response via fetch)
+      expect(mockFetch).toHaveBeenCalled();
     });
 
     it("should ignore update from unauthorized chat", async () => {

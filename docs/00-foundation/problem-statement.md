@@ -5,7 +5,7 @@
 **Date:** 2026-02-28
 **Author:** CEO/Solo Developer
 **SDLC Stage:** 00-FOUNDATION
-**Identity:** CEO Power Tool (LOCKED)
+**Identity:** Solo Developer Power Tool (LOCKED)
 
 ---
 
@@ -153,9 +153,9 @@ endiorbot switch <project>      # Minimal context
 ## References
 
 - [Master Plan v2.0](./master-plan.md) - Identity & roadmap
-- [MTS SDLC Framework v6.2.0](/.sdlc-framework)
+- [SDLC Framework v6.2.0](/.sdlc-framework)
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.2.0 - Stage 00: Foundation*
+*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 00: Foundation*
 *Identity: LOCKED (2026-02-28)*

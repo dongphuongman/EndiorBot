@@ -127,9 +127,9 @@ Compliance score: 100%
 
 **TC-5.1 Error:**
 ```bash
-$ ./endiorbot.mjs switch /Users/dttai/Documents/Python/01.NQH/EndiorBot
+$ ./endiorbot.mjs switch /path/to/endiorbot
 📂 Switched to: EndiorBot
-   Path: /Users/dttai/Documents/Python/01.NQH/EndiorBot
+   Path: /path/to/endiorbot
    Tier: STANDARD
 
 $ ./endiorbot.mjs status
@@ -398,7 +398,7 @@ Tests  62 failed | 4016 passed | 10 skipped (4088)
 
 **TC-5.1: Status Command**
 - Error: "Project path not found"
-- Path expected: /Users/dttai/Documents/Python/01.NQH/EndiorBot
+- Path expected: /path/to/endiorbot
 - Path actual: /var/folders/.../endiorbot-test-project
 - Exit code: 1
 

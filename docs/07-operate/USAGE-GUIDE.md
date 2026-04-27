@@ -1,10 +1,10 @@
 # EndiorBot Usage Guide
 
-> **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
+> **Solo Developer Power Tool** — AI assistant that answers in <30s instead of 30-60 min
 
 EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code (and Codex) as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
 
-**Last Updated:** Sprint 141 (2026-04-24) · SDLC 6.3.1
+**Last Updated:** Sprint 144 (2026-04-27) · SDLC 6.3.1
 
 ---
 
@@ -31,8 +31,10 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 19. [Workflow 16: Webhooks Ingress](#workflow-16-webhooks-ingress-sprint-134-135)
 20. [Workflow 17: Agent-Model Routing & Fallback](#workflow-17-agent-model-routing--fallback-sprint-140-141)
 21. [Workflow 18: Cost Monitoring](#workflow-18-cost-monitoring-sprint-141)
-22. [Command Reference](#command-reference)
-23. [Troubleshooting](#troubleshooting)
+22. [Workflow 19: Desktop App](#workflow-19-desktop-app-sprint-144)
+23. [Workflow 20: Gateway Resilience](#workflow-20-gateway-resilience-sprint-144)
+24. [Command Reference](#command-reference)
+25. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -41,22 +43,22 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 ### Via npx (recommended)
 
 ```bash
-npx @dttai/endiorbot --help
-npx @dttai/endiorbot init
-npx @dttai/endiorbot serve
+npx endiorbot --help
+npx endiorbot init
+npx endiorbot serve
 ```
 
 ### Global install
 
 ```bash
-npm install -g @dttai/endiorbot
+npm install -g endiorbot
 endiorbot --help
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/anthropics/endiorbot.git
+git clone https://github.com/Minh-Tam-Solution/EndiorBot.git
 cd EndiorBot
 pnpm install && pnpm build
 ./endiorbot.mjs --help
@@ -93,16 +95,18 @@ open http://localhost:18790
 
 | Channel | Access | Commands | AI Chat | Best For |
 |---------|--------|----------|---------|----------|
-| **CLI** | `endiorbot <cmd>` | 40 commands | Via `@agent` | Automation, scripting |
+| **CLI** | `endiorbot <cmd>` | 39 commands | Via `@agent` | Automation, scripting |
 | **Web UI** | `http://localhost:18790` | Not supported | Yes (`@agent`) | Quick AI conversations |
-| **Telegram** | `@Endior_bot` | 30 commands | Yes (`@agent`) | Mobile, full features |
+| **Telegram** | `@Endior_bot` | 39 commands | Yes (`@agent`) | Mobile, full features |
 | **Zalo** | Bot Endior | 14 commands | Yes (`@agent`) | Vietnam market |
+| **Desktop** | Electron app | 39 commands | Yes (`@agent`) | Visual dashboard, settings |
 
 ### Channel Feature Comparison
 
 ```
 CLI ........... Full commands + agent shortcuts + all features
 Telegram ...... Full commands + agent mentions + inline keyboards
+Desktop ....... Visual dashboard + AI chat + settings UI (auto-starts gateway)
 Web UI ........ AI chat only (no slash commands)
 Zalo .......... Basic commands + agent mentions (no bridge commands)
 ```
@@ -845,7 +849,7 @@ EndiorBot uses a 3-tier model routing strategy (ADR-052) to optimize cost while 
 | Tier | Provider | Model | Agents | Rationale |
 |------|----------|-------|--------|-----------|
 | 1 | claude-code | claude-opus-4 | `@architect`, `@cso`, `@ceo` (3 agents) | Critical reasoning — ADR, security, CEO strategy |
-| 2 | kimi | kimi-k2-6 | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` (10 agents) | Primary workhorse — coding ≈ Sonnet quality, ~60-80% lower cost |
+| 2 | claude-code | sonnet | `@coder`, `@reviewer`, `@tester`, `@pm`, `@cpo`, `@cto`, `@fullstack`, `@pjm`, `@researcher`, `@devops` (10 agents) | Primary workhorse — coding quality via Sonnet (Sprint 143 amendment) |
 | 3 | ollama | qwen3.5:9b | `@assistant` (1 agent) | Free tier — routing, delegation, lightweight tasks |
 
 ### Kimi Access Paths
@@ -866,13 +870,15 @@ Without this env var, EndiorBot auto-spawns a proxy subprocess (ADR-051).
 
 ### Fallback Chains
 
-**Per-Tier Fallback (ADR-052):**
+**Per-Tier Fallback (ADR-052, Sprint 143 amendment):**
 
 ```
 Tier 1 (Opus primary):    claude-code → kimi → ollama
-Tier 2 (Kimi primary):    kimi → claude-code → ollama
+Tier 2 (CC-Sonnet primary): claude-code → kimi → ollama
 Tier 3 (Ollama primary):  ollama → kimi → claude-code
 ```
+
+> **Sprint 144:** Tier 2 now uses a circuit breaker. After 2 consecutive CC failures, the circuit opens and Tier 2 routes directly to Kimi for 60s cooldown. See [Workflow 20](#workflow-20-gateway-resilience-sprint-144).
 
 **Cloud Fallback (rate-limit only):**
 
@@ -946,6 +952,79 @@ endiorbot cost report --week
 ### Cost Data Location
 
 Persisted to `~/.endiorbot/metrics/YYYY-MM-DD.json`. Each entry records agent, provider, model, tokens (input/output), and estimated cost.
+
+---
+
+## Workflow 19: Desktop App (Sprint 144)
+
+Native desktop application for visual management.
+
+### Launch
+
+```bash
+cd apps/desktop && pnpm dev     # Development mode
+cd apps/desktop && pnpm build   # Production build (DMG/NSIS/AppImage)
+```
+
+### Pages
+
+| Page | Data Source | Description |
+|------|------------|-------------|
+| Dashboard | Gateway WebSocket | System overview |
+| Chat | Gateway WebSocket | AI chat (auto-connects to gateway) |
+| Projects | `~/.endiorbot/repos.json` | Registered workspaces |
+| Gates | `.sdlc-config.json` | 7 SDLC gate status |
+| Experts | Environment variables | Provider status (5 providers) |
+| Settings | `.env` file | API key management, theme, gateway port |
+| Junior Hub | — | Coming soon |
+
+### Gateway Auto-Start
+
+Desktop app automatically starts the Gateway server as a subprocess when launched. No need to run `endiorbot serve` separately.
+
+- Default port: 18790 (configurable in Settings)
+- Auto-fallback to port 18800 if 18790 is occupied
+- Gateway process killed cleanly on app quit
+
+### API Key Management
+
+Settings page lets you set/update API keys directly in the UI:
+- Anthropic, OpenAI, Gemini, Kimi, Ollama Remote, MCP Gateway, Telegram Bot, GitHub PAT
+- Keys saved to `.env` file (never exposed in full — masked display)
+
+---
+
+## Workflow 20: Gateway Resilience (Sprint 144)
+
+### PID Lockfile — Singleton Serve
+
+```bash
+endiorbot serve              # Writes PID to ~/.endiorbot/serve.pid
+endiorbot serve              # Error: "Already running (PID N). Use --force"
+endiorbot serve --force      # Kill existing + take over
+```
+
+### Provider Circuit Breaker
+
+After 2 consecutive failures, a provider is temporarily skipped:
+
+```
+CC Bridge fails twice → circuit OPEN → skip CC → instant Kimi fallback
+  → 60s cooldown → try CC once (half-open)
+  → success → circuit CLOSED (recovered)
+  → failure → re-open (120s cooldown, max 5min)
+```
+
+### OTT vs CLI Timeout
+
+| Channel | CC Timeout | Rationale |
+|---------|-----------|-----------|
+| Telegram / Zalo / Web / Desktop | 60s | Chat-like responsiveness |
+| CLI | 180s | User at terminal, more patient |
+
+### Immediate Acknowledgement
+
+All OTT channels now send `⚡ @agent` immediately when routing, before the AI call starts. No more silent waiting.
 
 ---
 
@@ -1065,20 +1144,22 @@ endiorbot start myproject    # Activate a project
 endiorbot gate status        # Now works
 ```
 
-### "EADDRINUSE: address already in use"
+### "EndiorBot already running (PID N)"
 
-**Cause:** Another EndiorBot instance is running on the same port.
+**Cause:** PID lockfile at `~/.endiorbot/serve.pid` detected another instance.
 **Solution:**
 ```bash
-# Find the process
-lsof -i :18790
-
-# Kill it
-kill -9 <PID>
-
-# Restart
-endiorbot serve
+endiorbot serve --force      # Kill existing + take over
+# Or manually:
+cat ~/.endiorbot/serve.pid   # Check PID
+kill <PID>                   # Kill it
+endiorbot serve              # Restart
 ```
+
+### Agent responses slow after provider failure
+
+**Cause:** Circuit breaker may be open for your primary provider.
+**Solution:** Wait 60s for cooldown, or restart `endiorbot serve` to reset all circuits.
 
 ### Agent says "no Bash tool available"
 
@@ -1147,6 +1228,7 @@ Stored in `.env` (git-ignored; `.env.example` is the template). **Primary AI pat
 | `ENDIORBOT_DEBUG` | No | `false` | Debug mode (allows localhost fetch) | — |
 | `ENDIORBOT_AUTO_HANDOFF` | No | `false` | Auto-route @mention handoffs | Sprint 131 |
 | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED` | No | `false` | Per-query context refresh kill switch | Sprint 133 |
+| `ENDIORBOT_GATEWAY_PORT` | No | `18790` | Gateway WebSocket port | Sprint 134 |
 | `ENDIORBOT_GATEWAY_TOKEN` | For non-localhost Web API mutations | — | Auth token | Sprint 135 |
 | `ENDIORBOT_WEBHOOK_SECRET` | For webhook ingress | — | Shared secret (fail-closed) | Sprint 134 |
 | `ENDIORBOT_KIMI_PROXY_URL` | No | — | Reuse external `claude-code-proxy` (skip subprocess spawn) | Sprint 141 |
@@ -1162,12 +1244,12 @@ User Input → Channel Adapter → GatewayIngress
   ├── /command → CommandDispatcher → Handler → Response
   └── @agent  → ChannelRouter → AI Provider → Response
 
-AI Routing (ADR-052, Sprint 140):
+AI Routing (ADR-052, Sprint 140-143):
   @agent → AGENT_PROVIDER_MODEL_MAP → Primary Provider
-    ├── Tier 1: claude-code (Opus) — @architect, @cso, @ceo
-    ├── Tier 2: kimi (k2.6)       — @coder, @reviewer, @tester + 7 more
-    └── Tier 3: ollama (Qwen)     — @assistant
-  Fallback: tier-specific chain (e.g. kimi → claude-code → ollama)
+    ├── Tier 1: claude-code (Opus)   — @architect, @cso, @ceo
+    ├── Tier 2: claude-code (Sonnet) — @coder, @reviewer, @tester + 7 more
+    └── Tier 3: ollama (Qwen)        — @assistant
+  Fallback: circuit check → tier-specific chain (e.g. claude-code → kimi → ollama)
 ```
 
 ### State Files
@@ -1177,6 +1259,7 @@ AI Routing (ADR-052, Sprint 140):
   ├── repos.json          # Registered repositories
   ├── chat-focus.json     # Per-chat workspace focus
   ├── config.json         # Persisted config (exec-policy preset, Active Memory, auto-handoff)
+  ├── serve.pid           # PID lockfile (singleton serve)
   ├── exec-policy/        # Exec-policy preset + custom rules (Sprint 132)
   │   └── approvals.json  # Active preset + extra allow/deny patterns
   ├── audit-logs/
@@ -1197,4 +1280,4 @@ AI Routing (ADR-052, Sprint 140):
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.3.1 | Updated Sprint 141 (2026-04-24)*
+*EndiorBot v0.1.0-beta.1 | Solo Developer Power Tool | SDLC Framework v6.3.1 | Updated Sprint 144 (2026-04-27)*

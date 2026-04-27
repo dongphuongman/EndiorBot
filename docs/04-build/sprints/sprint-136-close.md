@@ -96,4 +96,4 @@ d8a4c6d docs(sprint-136): draft plan — Part A verified, Part B scope TBD pendi
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.1 | Sprint 136 Close — 2026-04-18*
+*EndiorBot | Solo Developer Power Tool (LOCKED) | SDLC 6.3.1 | Sprint 136 Close — 2026-04-18*

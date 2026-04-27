@@ -60,8 +60,8 @@ const BLOCKED_HOST_SUFFIXES = [".local", ".internal", ".localhost"];
 
 /**
  * Collect all configured Ollama URLs from env vars.
- * Users may configure local (localhost:11434) or remote (ai.nqh-internal.example) Ollama.
- * All configured URLs are trusted — they are explicit CEO/DevOps configuration, not user input.
+ * Users may configure local (localhost:11434) or remote Ollama servers.
+ * All configured URLs are trusted — they are explicit DevOps configuration, not user input.
  */
 function getConfiguredOllamaOrigins(): Set<string> {
   const origins = new Set<string>();

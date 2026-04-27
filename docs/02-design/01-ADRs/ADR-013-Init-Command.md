@@ -15,7 +15,7 @@
 
 CEO works on multiple projects and needs to quickly initialize them with SDLC Framework structure. Current manual process takes 30-60 minutes per project. Three different tools exist that generate SDLC configs:
 
-1. **EndiorBot** - CEO Power Tool (this project)
+1. **EndiorBot** - Solo Developer Power Tool (this project)
 2. **tinysdlc** - Lightweight SDLC generator
 3. **SDLC Orchestrator** - Web platform
 

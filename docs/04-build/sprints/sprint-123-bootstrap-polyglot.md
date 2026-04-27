@@ -253,7 +253,7 @@ Phase 5: Run (if --run)
 │  🚀 EndiorBot Bootstrap                                     │
 ├─────────────────────────────────────────────────────────────┤
 │  Repo: Glass-HQ/Glass                                       │
-│  Path: /Users/dttai/Documents/Python/01.NQH/Glass          │
+│  Path: /path/to/Glass          │
 │  Ecosystem: Rust (cargo)                                    │
 │  Tier: STANDARD (auto-detected)                             │
 ├─────────────────────────────────────────────────────────────┤
@@ -575,11 +575,11 @@ Bootstrap output includes trust note (first line after clone starts):
 
 ```bash
 # T1: Ecosystem detection
-node endiorbot.mjs init --path /Users/dttai/Documents/Python/01.NQH/Glass --analyze
+node endiorbot.mjs init --path /path/to/Glass --analyze
 # Should show: "Rust (cargo)" not "JavaScript (npm)"
 
 # T2: Multi-ecosystem build
-node endiorbot.mjs ops build --path /Users/dttai/Documents/Python/01.NQH/Glass --skip-gate-check
+node endiorbot.mjs ops build --path /path/to/Glass --skip-gate-check
 # Should run: cargo build
 
 # T3: Full bootstrap

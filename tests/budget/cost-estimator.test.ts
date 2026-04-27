@@ -159,10 +159,10 @@ describe("CostEstimator", () => {
       );
     });
 
-    it("should return zero cost for NQH models", () => {
+    it("should return zero cost for self-hosted models", () => {
       const context = createTestContext();
 
-      const estimate = estimator.estimate(context, "nqh/qwen3-coder");
+      const estimate = estimator.estimate(context, "self-hosted/qwen3-coder");
 
       expect(estimate.estimated_cost).toBe(0);
     });
@@ -238,13 +238,13 @@ describe("CostEstimator", () => {
   describe("estimateForModels", () => {
     it("should estimate for multiple models", () => {
       const context = createTestContext();
-      const models = ["claude-opus-4", "claude-sonnet-4", "nqh/qwen3-coder"];
+      const models = ["claude-opus-4", "claude-sonnet-4", "self-hosted/qwen3-coder"];
 
       const estimates = estimator.estimateForModels(context, models);
 
       expect(estimates.size).toBe(3);
       expect(estimates.has("claude-opus-4")).toBe(true);
-      expect(estimates.has("nqh/qwen3-coder")).toBe(true);
+      expect(estimates.has("self-hosted/qwen3-coder")).toBe(true);
     });
   });
 
@@ -259,8 +259,8 @@ describe("CostEstimator", () => {
       const result = estimator.findCheapestModel(context);
 
       expect(result).toBeDefined();
-      // NQH models are free
-      expect(result?.model).toMatch(/^nqh\//);
+      // self-hosted models are free
+      expect(result?.model).toMatch(/^self-hosted\//);
       expect(result?.estimate.estimated_cost).toBe(0);
     });
 
@@ -361,7 +361,7 @@ describe("CostEstimator", () => {
   // ==========================================================================
 
   describe("recommendations", () => {
-    it("should recommend NQH for simple tasks", () => {
+    it("should recommend Self-Hosted Ollama for simple tasks", () => {
       const context = createTestContext({
         prompt: "Write documentation",
         taskType: "documentation",
@@ -369,7 +369,7 @@ describe("CostEstimator", () => {
 
       const estimate = estimator.estimate(context, "claude-opus-4");
 
-      expect(estimate.recommendation).toContain("NQH");
+      expect(estimate.recommendation).toContain("Self-Hosted");
     });
 
     it("should warn about low confidence", () => {

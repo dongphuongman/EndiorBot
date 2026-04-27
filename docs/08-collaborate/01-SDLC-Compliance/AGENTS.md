@@ -1,4 +1,4 @@
-<!-- From: /Users/dttai/Documents/Python/01.NQH/EndiorBot/AGENTS.md -->
+<!-- From: /path/to/endiorbot/AGENTS.md -->
 # AGENTS.md - EndiorBot AI Agent Guidelines
 
 ## Overview
@@ -300,12 +300,12 @@ All runtime state is stored in `~/.endiorbot/` (override with `ENDIORBOT_STATE_D
 
 ## Core Principles
 
-1. **SDLC Compliance First** - All development follows MTS SDLC Framework 6.3.1
+1. **SDLC Compliance First** - All development follows SDLC Framework 6.3.1
 2. **Quality Gates** - Never bypass gate requirements (G0 → G4)
 3. **Evidence-Based** - Every decision requires documented evidence
 4. **Security-Aware** - Apply input sanitization and output scrubbing
 5. **Context-Preserving** - Maintain project context across sessions
-6. **English development docs** - Under `docs/`, application development documentation (ADRs, specs, sprint plans, stage READMEs, test plans) is written in **English** per MTS SDLC 6.3.1; policy: [`docs/README.md`](docs/README.md)
+6. **English development docs** - Under `docs/`, application development documentation (ADRs, specs, sprint plans, stage READMEs, test plans) is written in **English** per SDLC 6.3.1; policy: [`docs/README.md`](docs/README.md)
 7. **Local-only scope** - EndiorBot agents work on **CEO's local MacBook repos** only. Remote orchestration, GPU servers, and product execution are out of scope (see Handoff Boundary below).
 
 ## Handoff Boundary (LOCKED 2026-04-19)

@@ -50,7 +50,7 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 1. **Docs before code** — Sprint plan + G1 approval before implementation
 2. **CTO review every sprint** — Code review with specific blockers, not rubber stamps
 3. **CPO behavioral verification** — "Does it actually DO what we claim?"
-4. **CEO identity lock** — EndiorBot = CEO Power Tool, scope doesn't drift
+4. **CEO identity lock** — EndiorBot = Solo Developer Power Tool, scope doesn't drift
 5. **Evidence matrix** — Every claimed trigger must be wired in code, not just documented
 
 ---

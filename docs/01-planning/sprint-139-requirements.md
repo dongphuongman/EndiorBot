@@ -3,7 +3,7 @@ project: EndiorBot
 version: "1.0.0"
 date: 2026-04-20
 sdlc_stage: "01-PLANNING"
-identity: "CEO Power Tool (LOCKED, LOCAL-ONLY)"
+identity: "Solo Developer Power Tool (LOCKED, LOCAL-ONLY)"
 sprint: 139
 gate: G1
 authority:
@@ -125,4 +125,4 @@ EndiorBot's evaluator loop (`src/evaluator/loop.ts`) runs a fixed-depth optimiza
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 139 Requirements — 2026-04-20*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 139 Requirements — 2026-04-20*

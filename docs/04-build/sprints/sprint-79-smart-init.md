@@ -148,19 +148,19 @@ pnpm build
 pnpm test
 
 # 3. Live test — open-pencil
-node dist/cli/index.js init /Users/dttai/Documents/Python/01.NQH/open-pencil/ \
+node dist/cli/index.js init /path/to/open-pencil/ \
   --tier STANDARD --force
 
 # Expected IDENTITY.md:
-cat /Users/dttai/Documents/Python/01.NQH/open-pencil/IDENTITY.md
+cat /path/to/open-pencil/IDENTITY.md
 # → "## Tech Stack", "TypeScript", "Vue/Vite", "bun", "Tauri 2"
 
 # Expected CLAUDE.md:
-cat /Users/dttai/Documents/Python/01.NQH/open-pencil/CLAUDE.md
+cat /path/to/open-pencil/CLAUDE.md
 # → "bun install", "bun run dev", "bun run build", "bun run test"
 
 # Expected .sdlc-config.json:
-cat /Users/dttai/Documents/Python/01.NQH/open-pencil/.sdlc-config.json
+cat /path/to/open-pencil/.sdlc-config.json
 # → "techStack": { "language": "TypeScript", "framework": "Vue/Vite", ... }
 
 # 4. --skip-analysis preserves current behavior

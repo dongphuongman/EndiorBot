@@ -126,15 +126,36 @@ CEO real-world testing exposed 6 structural gaps. Sprint 144 addresses P0+P1:
 
 | Gap | Design decision | Sprint |
 |-----|-----------------|--------|
-| No singleton process | PID lockfile at `~/.endiorbot/serve.pid` | 144 |
-| No provider circuit breaker | Reuse Active Memory pattern: 2 failures → open → 60s cooldown → half-open | 144 |
-| No OTT-aware timeout | Channel-aware: OTT=60s CC then Kimi; CLI=180s | 144 |
-| Kimi subprocess fragile | Deprecate; document `ENDIORBOT_KIMI_PROXY_URL` external pattern | 144 |
+| No singleton process | PID lockfile at `~/.endiorbot/serve.pid` | 144 ✅ |
+| No provider circuit breaker | Reuse Active Memory pattern: 2 failures → open → 60s cooldown → half-open | 144 ✅ |
+| No OTT-aware timeout | Channel-aware: OTT=60s CC then Kimi; CLI=180s | 144 ✅ |
+| Kimi subprocess fragile | Deprecate; document `ENDIORBOT_KIMI_PROXY_URL` external pattern | 144 ✅ |
 | No per-agent session lock | `agentLocks` Map in channel-router, released in finally{} | 143 ✅ |
 | No message delivery guarantee | Plain-text retry on Telegram Markdown 400 | 143 ✅ |
 
 **Key architectural principle:** The gateway stays stateless — locks/circuits are in-memory (cleared on restart). This is correct for a single-user tool where restart = full reset.
 
+### Circuit Breaker Pattern (Sprint 144)
+
+```
+CLOSED  →  (2 consecutive CC failures)  →  OPEN
+OPEN    →  (60s cooldown elapsed)        →  HALF_OPEN
+HALF_OPEN → (probe succeeds)             →  CLOSED
+HALF_OPEN → (probe fails)                →  OPEN (backoff doubles, max 5min)
+```
+
+State is held in `Map<providerId, CircuitState>` inside ChannelRouter. Cleared on process restart. When circuit is OPEN, CC is skipped instantly — no timeout wait — and the router falls through to Kimi, then cloud fallback.
+
+### Community Publish Renames (Sprint 144)
+
+| Before | After | Notes |
+|--------|-------|-------|
+| `src/mtclaw/` | `src/mcp-gateway/` | `McpGatewayBridge`; backward-compat aliases in place |
+| provider `"nqh"` | provider `"self-hosted"` | Budget system, telemetry, logs |
+| "CEO Power Tool" | "Solo Developer Power Tool" | 337 files updated |
+| `@dttai/endiorbot` | `endiorbot` | npm package name |
+| nqh-internal.example / nhatquangholding.com | endior.net / example.com | All doc URLs |
+
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 02: Design — Updated Sprint 144 planning (2026-04-27)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 02: Design — Updated Sprint 144 close (2026-04-27)*

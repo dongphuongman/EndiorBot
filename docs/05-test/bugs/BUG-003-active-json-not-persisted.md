@@ -84,7 +84,7 @@ saveActiveProject({
 
 **Before Fix:**
 ```bash
-$ ./endiorbot.mjs switch /Users/dttai/Documents/Python/01.NQH/EndiorBot
+$ ./endiorbot.mjs switch /path/to/endiorbot
 📂 Switched to: EndiorBot
 
 $ ./endiorbot.mjs status
@@ -94,12 +94,12 @@ Use 'endiorbot switch <project>' to change projects.
 
 **After Fix:**
 ```bash
-$ ./endiorbot.mjs switch /Users/dttai/Documents/Python/01.NQH/EndiorBot
+$ ./endiorbot.mjs switch /path/to/endiorbot
 📂 Switched to: EndiorBot
 
 $ cat ~/.endiorbot/active-project.json
 {
-  "path": "/Users/dttai/Documents/Python/01.NQH/EndiorBot",
+  "path": "/path/to/endiorbot",
   "name": "EndiorBot",
   "tier": "STANDARD",
   "startedAt": 1772377260913
@@ -110,7 +110,7 @@ $ ./endiorbot.mjs status
 │  📊 Project Status                                          │
 ├─────────────────────────────────────────────────────────────┤
 │  Name: EndiorBot                                           │
-│  Path: /Users/dttai/Documents/Python/01.NQH/EndiorBot      │
+│  Path: /path/to/endiorbot      │
 │  Tier: 🔵 STANDARD                                         │
 └─────────────────────────────────────────────────────────────┘
 ```

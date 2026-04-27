@@ -38,7 +38,7 @@ While authoring the checklist, the @devops author ran `git log -S` on known key 
 | `ghp_` (GitHub PAT) | 6 | Mix of real + docs |
 | Telegram `\d{9,10}:[...]{35}` | 4 real + 2 synthetic test fixtures | Real tokens on multiple bot IDs |
 
-Internal infrastructure hostnames (`nhatquangholding.com`) also present.
+Internal infrastructure hostnames (`example.com`) also present.
 
 ## Decision
 
@@ -100,4 +100,4 @@ If a critical path is missed and force-push turns out to be wrong:
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | ADR-049 STUB — drafted 2026-04-19*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | ADR-049 STUB — drafted 2026-04-19*

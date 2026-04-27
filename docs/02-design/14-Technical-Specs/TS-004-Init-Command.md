@@ -36,7 +36,7 @@ EndiorBot is the CEO's tool to govern AI coding assistants (especially Claude Co
 under the SDLC Framework for projects the CEO owns.
 
 NOT: Platform, SDLC enforcer, blocker
-IS: CEO Power Tool, fast (<30s), auto-healing
+IS: Solo Developer Power Tool, fast (<30s), auto-healing
 ```
 
 ### 1.3 Goals

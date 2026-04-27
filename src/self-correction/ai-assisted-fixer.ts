@@ -384,18 +384,19 @@ export class AIAssistedFixer {
       return this.createDryRunResponse(request);
     }
 
-    // Build prompt for AI
-    const prompt = this.buildPrompt(request);
-
     try {
-      // TODO: Integrate with actual AI provider (Sprint 38+)
-      // For now, return a mock response
-      // In production, this would call:
-      // - anthropic.messages.create() for Claude
-      // - openai.chat.completions.create() for GPT
-
-      // Simulate AI consultation
-      const response = await this.simulateAICall(prompt, request);
+      // CSO Sprint 144: AI provider integration not yet wired.
+      // Return explicit "not available" instead of simulated mock data.
+      // When a real provider is wired (future sprint), replace this block.
+      const response: AIConsultationResponse = {
+        hasSuggestion: false,
+        description: "AI-assisted fix not available — provider not yet integrated",
+        explanation: "The AI consultation feature requires a wired provider (Claude/GPT). " +
+          "Currently returning no suggestion. Use manual test fixing or enable when provider is configured.",
+        aiConfidence: "low",
+        tokensUsed: 0,
+        cost: 0,
+      };
       this.consultationHistory.push(response);
       return response;
     } catch (err) {
@@ -408,95 +409,6 @@ export class AIAssistedFixer {
         cost: 0,
       };
     }
-  }
-
-  /**
-   * Build prompt for AI consultation.
-   */
-  private buildPrompt(request: AIConsultationRequest): string {
-    return `
-You are a test-fixing assistant. Analyze this failing test and suggest a fix.
-
-## Test File
-File: ${request.error.testFile}
-Test Name: ${request.error.testName}
-
-## Error
-${request.error.message}
-${request.error.stack || ""}
-
-## Test Output
-${request.testOutput}
-
-## Current Test Code
-\`\`\`typescript
-${request.testFileContent}
-\`\`\`
-
-## Instructions
-1. Identify the root cause of the test failure
-2. Suggest a minimal fix to make the test pass
-3. Do NOT weaken assertions (e.g., don't change expect(5).toBe(5) to expect(anything))
-4. If the test is correct and source code is wrong, say "SOURCE_FIX_NEEDED"
-5. Respond with the exact fixed code section
-
-## Response Format
-Provide ONLY the fixed code block, no explanation needed.
-`.trim();
-  }
-
-  /**
-   * Simulate AI call (mock for testing).
-   * In production, replace with actual API call.
-   */
-  private async simulateAICall(
-    _prompt: string,
-    request: AIConsultationRequest
-  ): Promise<AIConsultationResponse> {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Simple heuristics for common test fixes
-    const error = request.error;
-    const testContent = request.testFileContent;
-
-    // Check for common patterns
-    if (error.isTimeout) {
-      return {
-        hasSuggestion: true,
-        description: "Increase test timeout",
-        fixedCode: testContent.replace(
-          /it\((['"`].*?['"`])/,
-          'it($1, { timeout: 10000 }'
-        ),
-        explanation: "Test appears to timeout - suggesting increased timeout",
-        aiConfidence: "medium",
-        tokensUsed: 150,
-        cost: this.config.estimatedCostPerConsultation,
-      };
-    }
-
-    // Check for expected/actual mismatch
-    if (error.expected !== undefined && error.actual !== undefined) {
-      return {
-        hasSuggestion: false,
-        description: "Expected/actual value mismatch - likely source code issue",
-        explanation: `Expected ${JSON.stringify(error.expected)} but got ${JSON.stringify(error.actual)}. This may require source code fix, not test fix.`,
-        aiConfidence: "low",
-        tokensUsed: 100,
-        cost: this.config.estimatedCostPerConsultation,
-      };
-    }
-
-    // Default: no suggestion
-    return {
-      hasSuggestion: false,
-      description: "Unable to determine fix",
-      explanation: "The test failure requires manual analysis",
-      aiConfidence: "low",
-      tokensUsed: 50,
-      cost: this.config.estimatedCostPerConsultation * 0.5,
-    };
   }
 
   /**

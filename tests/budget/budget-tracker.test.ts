@@ -510,19 +510,19 @@ describe("BudgetTracker", () => {
       expect(result.action).toBe("pause");
     });
 
-    it("should switch_to_nqh when configured", async () => {
+    it("should switch_to_self_hosted when configured", async () => {
       const tracker = createBudgetTracker({
         per_session_limit: 1.0,
         on_limit_reached: {
-          action: "switch_to_nqh",
-          fallback_model: "nqh/qwen3-coder",
+          action: "switch_to_self_hosted",
+          fallback_model: "self-hosted/qwen3-coder",
         },
       });
 
       const result = await tracker.recordUsage(createUsageRecord({ cost: 1.0 }));
 
       expect(result.action).toBe("switch_model");
-      expect(result.model).toBe("nqh/qwen3-coder");
+      expect(result.model).toBe("self-hosted/qwen3-coder");
     });
 
     it("should fail_fast when configured", async () => {
@@ -545,12 +545,12 @@ describe("BudgetTracker", () => {
     it("should return fallback model when configured", () => {
       const tracker = createBudgetTracker({
         on_limit_reached: {
-          action: "switch_to_nqh",
-          fallback_model: "nqh/qwen3-coder",
+          action: "switch_to_self_hosted",
+          fallback_model: "self-hosted/qwen3-coder",
         },
       });
 
-      expect(tracker.getFallbackModel()).toBe("nqh/qwen3-coder");
+      expect(tracker.getFallbackModel()).toBe("self-hosted/qwen3-coder");
     });
 
     it("should return undefined when not configured", () => {

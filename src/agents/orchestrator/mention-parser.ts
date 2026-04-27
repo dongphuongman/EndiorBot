@@ -28,7 +28,7 @@ import {
 } from "../types/handoff.js";
 import type { TeamId } from "../types/team.js";
 import type { TeamRegistry } from "./team-registry.js";
-import type { CrossSystemRoute } from "../../mtclaw/types.js";
+import type { CrossSystemRoute } from "../../mcp-gateway/types.js";
 
 // ============================================================================
 // Types

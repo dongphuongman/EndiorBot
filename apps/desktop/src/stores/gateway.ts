@@ -16,7 +16,7 @@ import type { GatewayStatus } from "../types/electron";
 // Constants
 // ============================================================================
 
-const GATEWAY_WS_URL = "ws://127.0.0.1:18790";
+const GATEWAY_WS_URL = "ws://127.0.0.1:18790/ws";
 const RECONNECT_BASE_DELAY = 1000; // 1 second
 const RECONNECT_MAX_DELAY = 30000; // 30 seconds
 const RECONNECT_MAX_ATTEMPTS = 10;

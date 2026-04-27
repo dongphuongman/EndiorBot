@@ -48,7 +48,7 @@ All stages (00–09): [`../README.md`](../README.md).
 
 ## Identity (LOCKED 2026-04-19)
 
-> **EndiorBot is a CEO Power Tool** — not a platform, not an SDLC enforcer.
+> **EndiorBot is a Solo Developer Power Tool** — not a platform, not an SDLC enforcer.
 > Help CEO get answers in <30s instead of 30-60 min.
 >
 > **Scope:** local MacBook repos + general CEO support only.

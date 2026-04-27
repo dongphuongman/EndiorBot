@@ -104,6 +104,14 @@ openclaw-trl/__pycache__/
 # Local dev artifacts
 ollama
 .endiorbot-aliases
+SESSION-PROGRESS.md
+conversation-*.txt
+.graphify_*.json
+.graphify_*.txt
+logs/
+
+# SDLC framework symlink (local path — each dev creates their own)
+.sdlc-framework
 
 # EndiorBot local state
 .endiorbot/

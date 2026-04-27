@@ -6,7 +6,7 @@
 **Pillar**: 2 - Sprint Governance
 **Stage**: 04 - BUILD
 **SDLC**: Framework 6.2.0
-**Deferred Rationale**: Composio integration requires external API dependency (`@composio/core`) and CEO use case validation for specific tool orchestration scenarios (GitHub, Gmail, Calendar). EndiorBot's current architecture (30 OTT commands, 13 SOUL agents, tmux bridge) serves the CEO Power Tool use case without external tool execution. Reopen when a specific tool orchestration need arises that cannot be met by the existing command handler pattern.
+**Deferred Rationale**: Composio integration requires external API dependency (`@composio/core`) and CEO use case validation for specific tool orchestration scenarios (GitHub, Gmail, Calendar). EndiorBot's current architecture (30 OTT commands, 13 SOUL agents, tmux bridge) serves the Solo Developer Power Tool use case without external tool execution. Reopen when a specific tool orchestration need arises that cannot be met by the existing command handler pattern.
 **Reopen Condition**: CEO requests real-world action execution (e.g., "create GitHub issue from chat", "send email from bot") that cannot be handled by existing `/send` command or MTClaw MCP bridge.
 
 ---
@@ -15,7 +15,7 @@
 
 EndiorBot currently provides AI-powered advice but cannot execute real-world actions. To transform from "advisor" to "executor", we need external tool integration capabilities.
 
-**Composio** (`/Users/dttai/Documents/Python/01.NQH/composio/`) provides:
+**Composio** (`/path/to/composio/`) provides:
 - 500+ pre-built tool integrations (GitHub, Gmail, Slack, etc.)
 - Multi-provider support (OpenAI, Anthropic, LangChain, etc.)
 - OAuth and authentication management
@@ -571,7 +571,7 @@ Sprint 50 was committed to **Context Engineering** (deferred from Sprint 47).
 - Expert 8 (Security-First SDLC) Review: 5 P0 issues
 - Expert 9 (System Architect) Review: Approved with phased approach
 - CTO Review: Conditional approval with corrections
-- Composio SDK: `/Users/dttai/Documents/Python/01.NQH/composio/`
+- Composio SDK: `/path/to/composio/`
 - ADR-001 to ADR-007: EndiorBot architecture decisions
 - Sprint 49: Production Hardening (complete)
 

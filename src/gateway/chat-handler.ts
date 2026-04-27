@@ -118,7 +118,7 @@ export interface ChatHandlerResponse {
 // Constants
 // ============================================================================
 
-/** Default models — latest and most capable (CEO Power Tool demands top-tier) */
+/** Default models — latest and most capable (demands top-tier) */
 export const DEFAULT_MODELS = {
   anthropic: "claude-sonnet-4-5-20250929", // Claude via Bridge (OAuth), not API
   openai: "gpt-5.4",                       // Latest OpenAI for consultation

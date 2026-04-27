@@ -18,7 +18,7 @@
 /**
  * Memory observation types relevant to SDLC agent workflow.
  * Adapted from ClawVault's 8-type taxonomy — trimmed to 7 types
- * relevant to EndiorBot's CEO Power Tool use case.
+ * relevant to EndiorBot's solo developer power tool use case.
  *
  * Skipped from ClawVault: "feeling" (emotional tracking not relevant for SDLC)
  */

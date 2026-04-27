@@ -91,4 +91,4 @@ This file must be updated **on the same day** as each sprint kickoff / close. Pa
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-24*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Pointer updated 2026-04-24*

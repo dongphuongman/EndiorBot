@@ -15,7 +15,7 @@ conditions: ["C-HARD-1: OTT mutation confirm prompt", "C-SOFT-1: localhost-only 
 
 Sprint 131-134 shipped 9 backend features. 7 of them are invisible to CEO on Telegram/Zalo/Web/Desktop. This sprint closes the gap by adding OTT commands + Web API endpoints for the most critical features.
 
-**Identity:** CEO Power Tool — CEO controls everything from any channel (phone, terminal, web).
+**Identity:** Solo Developer Power Tool — CEO controls everything from any channel (phone, terminal, web).
 
 ## Locked Scope — 5 Days
 
@@ -34,4 +34,4 @@ Sprint 131-134 shipped 9 backend features. 7 of them are invisible to CEO on Tel
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.0 | Sprint 135 Plan*
+*EndiorBot | Solo Developer Power Tool (LOCKED) | SDLC 6.3.0 | Sprint 135 Plan*

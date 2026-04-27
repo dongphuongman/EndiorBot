@@ -122,7 +122,7 @@ Decision velocity: 12 min (median plan → first execution, last 7 days)
 
 | # | Question | Options | Impact |
 |---|----------|---------|--------|
-| Q1 | CEO Power Tool scope | Supervisory cockpit ONLY vs orchestration platform | ADR-044 says cockpit. Confirm or amend? |
+| Q1 | Solo Developer Power Tool scope | Supervisory cockpit ONLY vs orchestration platform | ADR-044 says cockpit. Confirm or amend? |
 | Q2 | 6-month optimization target | Decision speed vs autonomous throughput | Shapes Sprint 132-140 priorities |
 | Q3 | Hard-gate tolerance | Speed > compliance vs compliance > speed | Shapes ADR-046 |
 | Q4 | Citizen dev surface (SDLC 6.3.0 Mental Model #8) | Product priority vs channel expansion | Affects Web UI investment |

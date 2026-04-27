@@ -92,7 +92,7 @@ Before answering ANY question about the project, planning, status, or next steps
 - "What files are in the project?" → use `list_files` / `Glob`
 - "What's the current gate?" → read `.sdlc-config.json`
 
-This honors Mental Model #7 (Agent Continuity) from SDLC 6.3.1: each new AI session inherits enough context to continue work without re-briefing. Backs the CEO Power Tool guarantee that commands return answers in <30s without clarifying questions about state visible in the workspace.
+This honors Mental Model #7 (Agent Continuity) from SDLC 6.3.1: each new AI session inherits enough context to continue work without re-briefing. Backs the Solo Developer Power Tool guarantee that commands return answers in <30s without clarifying questions about state visible in the workspace.
 
 Ref: `.sdlc-framework/05-Templates-Tools/04-SASE-Artifacts/Agent-Continuity-Runtime-Guidance.md`
 

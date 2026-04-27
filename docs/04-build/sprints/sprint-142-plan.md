@@ -161,4 +161,4 @@ Estimated: ~12-15 new tests. Full regression against 8,100+ tests.
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 142 Draft — 2026-04-26*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 142 Draft — 2026-04-26*

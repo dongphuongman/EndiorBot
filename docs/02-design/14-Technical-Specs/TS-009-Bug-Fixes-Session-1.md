@@ -82,7 +82,7 @@ $ ./endiorbot.mjs status
 │  📊 Project Status                                          │
 ├─────────────────────────────────────────────────────────────┤
 │  Name: EndiorBot                                           │
-│  Path: /Users/dttai/Documents/Python/01.NQH/EndiorBot      │
+│  Path: /path/to/endiorbot      │
 │  Tier: 🔵 STANDARD                                         │
 └─────────────────────────────────────────────────────────────┘
 ```

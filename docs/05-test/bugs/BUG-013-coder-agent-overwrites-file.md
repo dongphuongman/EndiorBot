@@ -89,7 +89,7 @@ def translate(key):
 **Crash output:**
 ```
 IndentationError: unexpected indent
-  /Users/dttai/Projects/VideoLingo/translations/translations.py:1
+  /path/to/VideoLingo/translations/translations.py:1
      "🇷🇺 Русский": "ru",
     ▲
 ```

@@ -128,17 +128,17 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
       notes: "Moonshot v1 32K context — economical",
     },
     // Remote Ollama infrastructure
-    "nqh/qwen3-coder": {
-      provider: "nqh",
+    "self-hosted/qwen3-coder": {
+      provider: "self-hosted",
       input_per_1k: 0,
       output_per_1k: 0,
-      notes: "Free via company infrastructure",
+      notes: "Free via self-hosted Ollama infrastructure",
     },
-    "nqh/deepseek-coder": {
-      provider: "nqh",
+    "self-hosted/deepseek-coder": {
+      provider: "self-hosted",
       input_per_1k: 0,
       output_per_1k: 0,
-      notes: "Free via company infrastructure",
+      notes: "Free via self-hosted Ollama infrastructure",
     },
     // Local Ollama models
     "qwen3.5:9b": {
@@ -222,7 +222,7 @@ export class PricingRegistry {
   }
 
   /**
-   * Get free models (NQH infrastructure).
+   * Get free models (self-hosted Ollama infrastructure).
    */
   getFreeModels(): string[] {
     return this.listModels().filter((model) => {

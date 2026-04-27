@@ -10,7 +10,7 @@
 
 ## Context
 
-Several **local reference trees** exist under the EndiorBot workspace (not necessarily committed to public remotes). They represent different reactions to **public reports (March 2026)** that Claude Code’s npm package had shipped artifacts that exposed original TypeScript via **source maps** (`sourcesContent`). EndiorBot’s product strategy remains: **CEO Power Tool** integrated with **official** Claude Code / Anthropic surfaces — not a fork of proprietary CLI internals.
+Several **local reference trees** exist under the EndiorBot workspace (not necessarily committed to public remotes). They represent different reactions to **public reports (March 2026)** that Claude Code’s npm package had shipped artifacts that exposed original TypeScript via **source maps** (`sourcesContent`). EndiorBot’s product strategy remains: **Solo Developer Power Tool** integrated with **official** Claude Code / Anthropic surfaces — not a fork of proprietary CLI internals.
 
 | Path (workspace) | Nature (high level) | Relevance to EndiorBot |
 |------------------|---------------------|-------------------------|

@@ -10,7 +10,7 @@ author: CEO + Expert Panel + CTO
 ## Vision Statement
 
 ```
-EndiorBot v2.0 transforms from a "CEO Power Tool" to an "Autonomous SDLC Agent"
+EndiorBot v2.0 transforms from a "Solo Developer Power Tool" to an "Autonomous SDLC Agent"
 that can run 120+ minute sessions without human intervention while maintaining
 full SDLC compliance and self-healing capabilities.
 ```
@@ -293,7 +293,7 @@ endiorbot autopilot "Build complete auth system" \
 
 | Version | Sprint | Hours | Focus |
 |---------|--------|-------|-------|
-| v1.0 | 61-62 | 34h | Init, Compliance, CEO Power Tool |
+| v1.0 | 61-62 | 34h | Init, Compliance, Solo Developer Power Tool |
 | v1.5 | 65 | 34h | Foundation: Context + Recovery |
 | v1.8 | 68 | 40h | Compliance: Contracts + Patch |
 | v2.0 | 72 | 80h | Autonomy: Full SDLC loop |

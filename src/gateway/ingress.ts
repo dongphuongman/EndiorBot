@@ -241,6 +241,9 @@ export class GatewayIngress {
       : undefined;
     // Use sanitized text for AI call (defense-in-depth against prompt injection)
     const sanitizedTask = violations.length > 0 ? sanitizedText : routeResult.task;
+    // Sprint 144: Immediate acknowledgement so CEO knows the bot received the message
+    // (OTT channels may take 30-180s for AI response — silence feels like a hang)
+    progressFn?.(`⚡ @${agent}`);
     // Sprint 144 T3: Pass origin channel for OTT-aware timeout selection
     const originChannel = (msg.channel ?? "cli") as "telegram" | "zalo" | "web" | "cli";
     const result = await this.router.callAI(agent, sanitizedTask, history, workspace, notifyFn, progressFn, originChannel);

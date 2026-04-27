@@ -13,7 +13,7 @@
 import { app, shell, ipcMain } from "electron";
 import path from "node:path";
 import { createWindow, getMainWindow, restoreWindowState } from "./window.js";
-import { registerIpcHandlers } from "./ipc-handlers.js";
+import { registerIpcHandlers, autoStartGateway, stopGateway } from "./ipc-handlers.js";
 import { setupMenu } from "./menu.js";
 import { createTray } from "./tray.js";
 import { initUpdater, registerUpdaterIpc } from "./updater.js";
@@ -30,6 +30,7 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL ?? "http://localhost
 const PRELOAD_PATH = path.join(__dirname, "../preload/index.js");
 // Load built React app
 const RENDERER_PATH = path.join(__dirname, "../../dist/index.html");
+void PRELOAD_PATH; // Used when preload script is re-enabled
 
 // ============================================================================
 // App Lifecycle
@@ -87,6 +88,16 @@ async function onReady(): Promise<void> {
 
   // Initialize auto-updater
   initUpdater(win);
+
+  // Auto-start Gateway server (so Chat works immediately)
+  autoStartGateway().then((result) => {
+    if (result.success) {
+      console.log(`[Main] Gateway auto-started on port ${result.port}`);
+      win.webContents.send("gateway:status-changed", { status: "running", port: result.port });
+    } else {
+      console.warn("[Main] Gateway auto-start failed:", result.error);
+    }
+  });
 
   // Handle external links
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -159,6 +170,11 @@ if (!gotLock) {
 // ============================================================================
 // IPC Handlers (App-level)
 // ============================================================================
+
+// Clean up gateway subprocess on quit
+app.on("before-quit", () => {
+  stopGateway();
+});
 
 ipcMain.handle("app:quit", () => {
   app.quit();

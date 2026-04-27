@@ -43,14 +43,14 @@ afterEach(() => {
 });
 
 describe("getAgentTimeoutMs — class defaults", () => {
-  it("executor agents default to 60s", () => {
-    expect(getAgentTimeoutMs("coder", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("tester", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("devops", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("fullstack", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("pjm", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("researcher", FALLBACK_MS)).toBe(60_000);
-    expect(getAgentTimeoutMs("assistant", FALLBACK_MS)).toBe(60_000);
+  it("executor agents default to 180s (Sprint 143: bumped from 60s for CC CLI patience)", () => {
+    expect(getAgentTimeoutMs("coder", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("tester", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("devops", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("fullstack", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("pjm", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("researcher", FALLBACK_MS)).toBe(180_000);
+    expect(getAgentTimeoutMs("assistant", FALLBACK_MS)).toBe(180_000);
   });
 
   it("advisory agents default to 180s", () => {
@@ -98,7 +98,7 @@ describe("getAgentTimeoutMs — env overrides", () => {
 
   it("malformed env value falls back to class default", () => {
     process.env.ENDIORBOT_AGENT_TIMEOUT_CODER_MS = "not-a-number";
-    expect(getAgentTimeoutMs("coder", FALLBACK_MS)).toBe(60_000);
+    expect(getAgentTimeoutMs("coder", FALLBACK_MS)).toBe(180_000);
   });
 });
 

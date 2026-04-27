@@ -17,7 +17,7 @@ EndiorBot's RiskClassifier evaluates tool risk (LOW/MEDIUM/HIGH/CRITICAL) and re
 - **When** (timestamp for audit trail)
 - **What happened after** (tool succeeded or failed)
 
-For CEO Power Tool operating with increasing autonomy (Sprint 124+), audit trail is essential for:
+For Solo Developer Power Tool operating with increasing autonomy (Sprint 124+), audit trail is essential for:
 - Debugging: "why was this tool allowed/blocked?"
 - Compliance: SDLC gate evidence for G3/G4
 - Trust building: demonstrate safe autonomy to CEO before granting Gate C

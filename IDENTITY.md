@@ -30,7 +30,7 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 - Evidence collection and archival
 
 ### Project Context Switching
-- Quick switch between multiple projects (Bflow, NQH-Bot, MTEP)
+- Quick switch between multiple projects
 - Preserve conversation history and SDLC state
 - Memory budget management by tier
 
@@ -47,10 +47,10 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ## Framework
 
-- **SDLC Version:** MTS SDLC Framework 6.3.0
+- **SDLC Version:** SDLC Framework 6.3.0
 - **Architecture:** 7-Pillar, 10-Stage Lifecycle
 - **Quality:** Vibecoding Index (0-100 score)
-- **Stage × commands:** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — atomic CLI/OTT/Web vs seamless workflows, aligned with CEO vision
+- **Stage × commands:** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — atomic CLI/OTT/Web vs seamless workflows, aligned with product vision
 
 ## Personas — 14 SOUL Agents (SASE Model)
 
@@ -85,7 +85,7 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ### Intentionally scoped out
 
-The SDLC Framework 6.3.0 defines 19 SOUL templates (including CS, ITAdmin, Sales, Writer). EndiorBot implements **14** — the roles relevant to a **solo developer CEO Power Tool**. The following framework roles are intentionally excluded:
+The SDLC Framework 6.3.0 defines 19 SOUL templates (including CS, ITAdmin, Sales, Writer). EndiorBot implements **14** — the roles relevant to a **solo developer power tool**. The following framework roles are intentionally excluded:
 
 | Role | Why excluded |
 |------|-------------|

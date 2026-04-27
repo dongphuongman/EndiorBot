@@ -107,4 +107,4 @@ Sprint budget: core items (P0+P1+P2-01..04) ~7h. Spikes add 1-2 days if prioriti
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 137 Draft — consolidated 2026-04-19*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 137 Draft — consolidated 2026-04-19*

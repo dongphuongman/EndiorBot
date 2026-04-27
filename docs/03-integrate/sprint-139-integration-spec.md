@@ -220,4 +220,4 @@ If future sprints expose telemetry counters via the gateway (e.g., `GET /api/eva
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 139 Integration Spec — 2026-04-20*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 139 Integration Spec — 2026-04-20*

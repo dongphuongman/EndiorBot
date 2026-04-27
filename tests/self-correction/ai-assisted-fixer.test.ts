@@ -566,7 +566,7 @@ describe("AIAssistedFixer - Integration Preparation", () => {
   });
 
   it("should support custom provider configuration", () => {
-    // For NQH Ollama integration
+    // For self-hosted Ollama integration
     const fixer = createAIAssistedFixer({
       provider: "ollama",
       model: "qwen3-coder:30b",

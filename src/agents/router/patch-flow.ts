@@ -11,6 +11,9 @@
 import type { ClaudeCodeBridge } from "../invoke/index.js";
 import type { AgentRole } from "../types/handoff.js";
 import { PATCH_CONFIRMATION_TTL_MS, PATCH_SCOPE_SYSTEM_PROMPT, MAX_PATCH_FILES } from "../intelligence/patch-budget.js";
+// CSO audit: agents/ importing from gateway/ is an architectural inversion.
+// approval.ts doesn't import from agents/ so no runtime cycle exists,
+// but this should be refactored to a neutral module (src/approval/) in a future sprint.
 import { createApprovalRequest, waitForApproval } from "../../gateway/methods/approval.js";
 import { getBridgeAuditLogger } from "../../bridge/security/bridge-audit.js";
 import type { ChannelSendFn } from "../../bus/types.js";

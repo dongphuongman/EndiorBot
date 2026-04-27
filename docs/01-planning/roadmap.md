@@ -4,7 +4,7 @@
 **Version:** 2.0.0
 **Date:** 2026-02-28
 **SDLC Stage:** 01-PLANNING
-**Identity:** CEO Power Tool (LOCKED)
+**Identity:** Solo Developer Power Tool (LOCKED)
 
 ---
 
@@ -250,5 +250,5 @@ Next sprint: TBD
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
+*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
 *Identity: LOCKED (2026-03-08)*

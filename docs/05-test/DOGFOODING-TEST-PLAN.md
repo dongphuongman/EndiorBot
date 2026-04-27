@@ -12,7 +12,7 @@
 
 ### Setup
 ```bash
-cd /Users/dttai/Documents/Python/01.NQH/EndiorBot
+cd /path/to/endiorbot
 ```
 
 **Project Stats:**

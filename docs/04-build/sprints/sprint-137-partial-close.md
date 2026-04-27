@@ -128,4 +128,4 @@ Per CTO recommendation: spikes need fresh focus, not end-of-session bandwidth.
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 137 Partial Close — 2026-04-19*
+*EndiorBot | Solo Developer Power Tool (LOCKED, LOCAL-ONLY) | SDLC 6.3.1 | Sprint 137 Partial Close — 2026-04-19*

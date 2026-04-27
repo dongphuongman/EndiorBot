@@ -7,7 +7,7 @@
 | **Authors** | PM, Architect |
 | **Reviewers** | CTO, 4-Expert Panel |
 | **Sprint** | 54 |
-| **Identity** | CEO Power Tool (LOCKED) |
+| **Identity** | Solo Developer Power Tool (LOCKED) |
 
 ---
 
@@ -381,7 +381,7 @@ $ endiorbot models list
 
 ---
 
-*ADR-001 | CEO Power Tool MVP | 3-Model Consultation*
+*ADR-001 | Solo Developer Power Tool MVP | 3-Model Consultation*
 *Claude (Coding) + OpenAI + Gemini (Research/Critique)*
 *Identity: LOCKED (2026-02-28)*
 *SDLC Framework v6.1.1*

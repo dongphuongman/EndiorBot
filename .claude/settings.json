@@ -1,13 +1,5 @@
 {
   "hooks": {
-    "preToolUse": {
-      "enabled": true,
-      "script": ".claude/hooks/pre-tool-use.sh"
-    },
-    "postToolUse": {
-      "enabled": true,
-      "script": ".claude/hooks/post-tool-use.sh"
-    },
     "PreToolUse": [
       {
         "matcher": "Glob|Grep",

@@ -22,11 +22,26 @@ interface SettingsActions {
 
 type SettingsStore = SettingsState & SettingsActions;
 
-// Safe IPC helper
+// Safe IPC helper — works with nodeIntegration:true (no preload needed)
+let _ipcRenderer: { invoke: (channel: string, ...args: any[]) => Promise<any> } | null = null;
+function getIpcRenderer() {
+  if (_ipcRenderer) return _ipcRenderer;
+  try {
+    // nodeIntegration:true → require("electron") works in renderer
+    const electron = require("electron");
+    _ipcRenderer = electron.ipcRenderer;
+    return _ipcRenderer;
+  } catch {
+    // Not in Electron context (e.g. browser dev)
+    return null;
+  }
+}
+
 const safeIpcInvoke = async (channel: string, ...args: any[]) => {
-  if (typeof window !== 'undefined' && window.electron?.ipcRenderer?.invoke) {
+  const ipc = getIpcRenderer();
+  if (ipc) {
     try {
-      return await window.electron.ipcRenderer.invoke(channel, ...args);
+      return await ipc.invoke(channel, ...args);
     } catch (error) {
       console.warn(`IPC call failed: ${channel}`, error);
       return null;
@@ -62,7 +77,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const storedTheme = localStorage.getItem("endiorbot-theme") as Theme | null;
 
       // Try to load from main process (optional)
-      const allSettings = await safeIpcInvoke("settings:getAll") || {};
+      const allSettings = (await safeIpcInvoke("settings:getAll") || {}) as Partial<SettingsState>;
 
       set({
         theme: storedTheme ?? allSettings.theme ?? "dark",

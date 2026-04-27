@@ -57,7 +57,7 @@ After PM + Architect research, CTO + CPO reviewed the 5-recommendation plan. Thr
 | /freeze command | DEFERRED — OTT session model unclear (CTO C5) | Sprint 124+ |
 | LLM-as-Judge (R5) | DEFERRED — low ROI at 14 SOULs (CTO C6) | When SOUL count > 20 |
 | ETHOS.md separate file | CEO directive — port into AGENTS.md instead | — |
-| Persistent browser daemon | Not aligned with CEO Power Tool identity | — |
+| Persistent browser daemon | Not aligned with Solo Developer Power Tool identity | — |
 | Skill template build system | Preamble pattern gives 80% benefit at 10% cost | — |
 
 ---

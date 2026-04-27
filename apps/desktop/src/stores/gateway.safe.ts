@@ -54,7 +54,7 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
 
     // Try to connect
     try {
-      const ws = new WebSocket(`ws://127.0.0.1:${state.port}`);
+      const ws = new WebSocket(`ws://127.0.0.1:${state.port}/ws`);
 
       // Set timeout for connection
       const timeout = setTimeout(() => {
@@ -119,7 +119,7 @@ export const useGatewayStore = create<GatewayStore>((set, get) => ({
     set({ status: 'connecting' });
 
     try {
-      const ws = new WebSocket(`ws://127.0.0.1:${state.port}`);
+      const ws = new WebSocket(`ws://127.0.0.1:${state.port}/ws`);
 
       await new Promise((resolve, reject) => {
         ws.onopen = () => {

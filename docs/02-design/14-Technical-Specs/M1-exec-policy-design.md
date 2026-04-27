@@ -377,7 +377,7 @@ Plan v3 estimate: **M–L (2–3 days).** Breakdown:
 - ❌ Interaction with ParallelExecutor (deferred, future ADR-046 amendment)
 - ❌ Framing exec-policy as an "SDLC governance" surface
 
-Identity lock: **CEO Power Tool**. Nothing in M1 creeps toward platform.
+Identity lock: **Solo Developer Power Tool**. Nothing in M1 creeps toward platform.
 
 ---
 
@@ -397,4 +397,4 @@ Identity lock: **CEO Power Tool**. Nothing in M1 creeps toward platform.
 ---
 
 *EndiorBot | SDLC Framework 6.3.0 | Sprint 132 openclaw-backport M1 design note*
-*Identity: CEO Power Tool (LOCKED)*
+*Identity: Solo Developer Power Tool (LOCKED)*

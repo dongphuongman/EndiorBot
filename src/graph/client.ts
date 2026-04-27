@@ -88,7 +88,7 @@ export class CRGClient {
 
   constructor(config?: Partial<CRGConfig>) {
     this.config = {
-      baseUrl: config?.baseUrl ?? process.env.AI_PLATFORM_URL ?? "https://ai.nqh-internal.example",
+      baseUrl: config?.baseUrl ?? process.env.AI_PLATFORM_URL ?? "https://api.endior.net",
       apiKey: config?.apiKey ?? process.env.AI_PLATFORM_API_KEY ?? process.env.MTCLAW_API_KEY ?? "",
       timeout: config?.timeout ?? 15000,
     };

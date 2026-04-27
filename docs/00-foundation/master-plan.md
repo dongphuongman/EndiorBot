@@ -33,7 +33,7 @@ v1.0: Initial master plan (G2 ready)
 
 **One Sentence**: Help CEO get AI-assisted answers in <30s instead of 30-60 min.
 
-**v2.0 Evolution**: CEO Power Tool → Autonomous SDLC Agent (120+ min sessions)
+**v2.0 Evolution**: Solo Developer Power Tool → Autonomous SDLC Agent (120+ min sessions)
 
 ---
 
@@ -220,7 +220,7 @@ devops → tester
 ## 11. Vision v2.0: Autonomous SDLC Agent
 
 ```
-EndiorBot v2.0 transforms from a "CEO Power Tool" to an "Autonomous SDLC Agent"
+EndiorBot v2.0 transforms from a "Solo Developer Power Tool" to an "Autonomous SDLC Agent"
 that can run 120+ minute sessions without human intervention while maintaining
 full SDLC compliance and self-healing capabilities.
 ```
@@ -450,7 +450,7 @@ endiorbot autopilot "Build auth system" --gate C --duration 2h --budget 10
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  v1.0 (Sprint 61-62) ← CURRENT (34h)                                  │
-│  └── Init, Compliance, CEO Power Tool                                 │
+│  └── Init, Compliance, Solo Developer Power Tool                                 │
 │                                                                         │
 │  v1.5 (Sprint 65) - Foundation (34h)                                  │
 │  └── Context Anchoring, Git Time-Travel, Checkpoints                  │
@@ -603,5 +603,5 @@ See [Roadmap](../01-planning/roadmap.md) Tier 4 for full sprint breakdown.
 ---
 
 *EndiorBot Master Plan*
-*Identity: CEO Power Tool (LOCKED)*
+*Identity: Solo Developer Power Tool (LOCKED)*
 *SDLC Framework v6.2.0 compliant*

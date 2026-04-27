@@ -1,44 +1,44 @@
 # EndiorBot
 
-[![CI](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml/badge.svg)](https://github.com/Minh-Tam-Solution/EndiorBot/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@dttai/endiorbot)](https://www.npmjs.com/package/@dttai/endiorbot)
+[![CI](https://github.com/endior-net/EndiorBot/actions/workflows/ci.yml/badge.svg)](https://github.com/endior-net/EndiorBot/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/endiorbot)](https://www.npmjs.com/package/endiorbot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Beta:** APIs may change between releases. Not recommended for production use yet.
 
-> **CEO Power Tool** — AI assistant that answers in <30s instead of 30-60 min
+> **Solo Developer AI Orchestration Tool** — get answers in <30s instead of 30-60 min
 
 EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects.
-It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance across CLI, Web, Telegram, and Zalo channels.
+It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance across CLI, Web, Telegram, Zalo, and Desktop channels.
 
-**Identity**: CEO Power Tool (LOCKED) — not a platform, not an SDLC enforcer.
+**Identity**: Solo Developer Power Tool — not a platform, not an SDLC enforcer.
 
 ## Documentation
 
 - **[SDLC stage index (00→09)](docs/README.md)** — per-stage READMEs and extended lifecycle (06–09)
-- **[Product vision](docs/00-foundation/product-vision.md)** — CEO north star and autonomy levels (L1–L4)
+- **[Product vision](docs/00-foundation/product-vision.md)** — north star and autonomy levels (L1–L4)
 - **[Stage × command spine](docs/00-foundation/stage-command-workflow-spine.md)** — stage alignment, atomic CLI/OTT/Web vs workflows, design→build→test traceability
 
-Application development documentation under `docs/` is written in **English** (MTS SDLC 6.3.0); see the *Documentation language* note in [docs/README.md](docs/README.md).
+Application development documentation under `docs/` is written in **English** (SDLC 6.3.1); see the *Documentation language* note in [docs/README.md](docs/README.md).
 
 ## Prerequisites
 
 - Node.js >= 20
 - pnpm (via corepack: `corepack enable`)
-- An AI API key (OpenAI or Gemini recommended; Anthropic optional)
+- An AI API key (Anthropic required; Google API key recommended for fallback)
 
-> **Provider default change (Sprint 124a):** `endiorbot consult` now defaults to OpenAI (GPT-5.4) instead of Anthropic. Claude Code is used via OAuth bridge for development tasks, not via API key. Set `OPENAI_API_KEY` and/or `GOOGLE_API_KEY` in your `.env` file.
+> **Provider routing (Sprint 143+):** Claude Code is primary for Tier 1/2 tasks. Kimi serves as fallback when Claude Code is unavailable. Set `ANTHROPIC_API_KEY` and optionally `GOOGLE_API_KEY` in your `.env` file.
 
 ## Install
 
 ```bash
 # Via npx (no install needed)
-npx @dttai/endiorbot --help
-npx @dttai/endiorbot init
-npx @dttai/endiorbot serve
+npx endiorbot --help
+npx endiorbot init
+npx endiorbot serve
 
 # Or install globally
-npm install -g @dttai/endiorbot
+npm install -g endiorbot
 
 # Or via Docker
 docker run -p 18790:18790 endiorbot/endiorbot serve
@@ -52,7 +52,7 @@ endiorbot init                              # Auto-detect tech stack
 endiorbot init --tier STANDARD              # Specify tier
 endiorbot compliance check                  # Verify SDLC compliance
 
-# Unified Serve (Web + Telegram + Zalo)
+# Unified Serve (Web + Telegram + Zalo + Desktop gateway)
 endiorbot serve                             # Start all channels
 endiorbot serve --no-zalo                   # Skip Zalo adapter
 
@@ -65,39 +65,40 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    EndiorBot Unified Serve                       │
-│                                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │   Web    │  │ Telegram │  │   Zalo   │  │   CLI    │        │
-│  │:18790/ws │  │  @bot    │  │ Bot API  │  │ endiorbot│        │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
-│       └──────────────┼───────────┬─┘             │              │
-│                ┌─────▼─────┐     │               │              │
-│                │ MessageBus│◄────┘               │              │
-│                │ (debounce │                     │              │
-│                │  + dedup) │                     │              │
-│                └─────┬─────┘                     │              │
-│                ┌─────▼──────────────────────┐    │              │
-│                │     GatewayIngress         │◄───┘              │
-│                │  /commands → Dispatcher    │                   │
-│                │  @agents  → ChannelRouter  │                   │
-│                └─────┬─────────────┬────────┘                   │
-│                      │             │                            │
-│          ┌───────────▼──┐   ┌──────▼──────┐                    │
-│          │ CommandDisp. │   │ChannelRouter│                    │
-│          │ (30 commands)│   │ Bridge+Cloud│                    │
-│          └──────────────┘   └──────┬──────┘                    │
-│                                    │                            │
-│  ┌─────────────┐  ┌───────────┐  ┌▼────────────┐              │
-│  │ Claude Code │  │  Gemini   │  │   Ollama    │              │
-│  │  Bridge     │  │  2.5 Flash│  │ (local LLM) │              │
-│  │ (Primary)   │  │ (Fallback)│  │ (Router)    │              │
-│  └─────────────┘  └───────────┘  └─────────────┘              │
-│                                                                  │
-│  Per-Chat Workspace: /repos + /focus + resolveWorkspace()       │
-│  SOUL Templates: 14 agents × tier-aware model selection          │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    EndiorBot Unified Serve                           │
+│                                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
+│  │   Web    │  │ Telegram │  │   Zalo   │  │   CLI    │  │Desktp │ │
+│  │:18790/ws │  │  @bot    │  │ Bot API  │  │endiorbot │  │ App   │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───┬───┘ │
+│       └──────────────┼───────────┬─┘             │            │     │
+│                ┌─────▼─────┐     │               │            │     │
+│                │ MessageBus│◄────┴───────────────┘            │     │
+│                │ (debounce │◄───────────────────────────────── ┘     │
+│                │  + dedup) │                                         │
+│                └─────┬─────┘                                         │
+│                ┌─────▼──────────────────────┐                        │
+│                │     GatewayIngress         │                        │
+│                │  /commands → Dispatcher    │                        │
+│                │  @agents  → ChannelRouter  │                        │
+│                └─────┬─────────────┬────────┘                        │
+│                      │             │                                 │
+│          ┌───────────▼──┐   ┌──────▼──────┐                         │
+│          │ CommandDisp. │   │ChannelRouter│                         │
+│          │ (39 commands)│   │ Bridge+Cloud│                         │
+│          └──────────────┘   └──────┬──────┘                         │
+│                                    │                                 │
+│  ┌─────────────┐  ┌───────────┐  ┌▼────────────┐                   │
+│  │ Claude Code │  │   Kimi    │  │   Ollama    │                   │
+│  │  Bridge     │  │ (Fallback)│  │ (local LLM) │                   │
+│  │ (Primary)   │  │           │  │ (Router)    │                   │
+│  └─────────────┘  └───────────┘  └─────────────┘                   │
+│                                                                      │
+│  Per-Chat Workspace: /repos + /focus + resolveWorkspace()           │
+│  SOUL Templates: 14 agents × tier-aware model selection              │
+│  PID Lockfile: single-instance guard (--force to takeover)           │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Channels
@@ -108,6 +109,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 | Telegram | `@Endior_bot` | Mobile OTT |
 | Zalo | `Bot Endior` (zapps.me) | Mobile OTT (Vietnam) |
 | CLI | `endiorbot @agent "task"` | Terminal |
+| Desktop | Electron app (auto-starts gateway) | Native desktop client |
 
 ### OTT Commands (Telegram / Zalo)
 
@@ -121,7 +123,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 /launch claude --as coder       # Launch Claude Code in tmux
 /sessions                       # List active tmux sessions
 /switch <sessionId>             # Switch active session
-/help                           # Full command list (30 commands)
+/help                           # Full command list (39 commands)
 ```
 
 ## Agent Orchestration
@@ -170,10 +172,19 @@ Different chats can focus on different repos simultaneously:
 /focus endiorbot
 @pm check sprint status
 
-# Chat B (Zalo): focused on openfang-auto-clip
-/focus openfang
+# Chat B (Zalo): focused on a separate project
+/focus myproject
 @coder fix the video parser
 ```
+
+## Sprint 144 Highlights (2026-04-27)
+
+- **PID lockfile**: Single-instance guard — use `--force` flag to take over a running instance
+- **Provider circuit breaker**: Auto-trip on repeated provider failures with configurable recovery window
+- **OTT 60s timeout**: Hard timeout on all OTT handlers (Telegram + Zalo) to prevent hung sessions
+- **Desktop app**: Electron-based native client with gateway auto-start on launch
+- **39 unified commands** across 5 channels (CLI, Web, Telegram, Zalo, Desktop)
+- **8,142+ tests** passing
 
 ## Docker
 
@@ -196,10 +207,22 @@ docker run -p 18790:18790 --env-file .env endiorbot
 pnpm install      # Install dependencies
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (6,596+ passing)
+pnpm test         # Run tests (8,142+ passing)
 pnpm lint         # Check style
-pnpm lint:souls   # Validate 13 SOUL templates
+pnpm lint:souls   # Validate 14 SOUL templates
 ```
+
+## Stats
+
+| Metric | Value |
+|--------|-------|
+| Tests passing | 8,142+ |
+| CLI commands | 39 unified |
+| Channels | 5 (CLI, Web, Telegram, Zalo, Desktop) |
+| SOUL agents | 14 |
+| AI providers | 6 (Anthropic, OpenAI, Gemini, Ollama, Kimi, Groq) |
+| SDLC framework | v6.3.1 |
+| Sprint | 144 (2026-04-27) |
 
 ## Invariants
 
@@ -215,6 +238,8 @@ pnpm lint:souls   # Validate 13 SOUL templates
 - [IDENTITY.md](./IDENTITY.md) - Project identity
 - [CLAUDE.md](./CLAUDE.md) - Claude Code integration
 - [AGENTS.md](./AGENTS.md) - Agent guidelines
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - Community contribution guide
+
 ## Known Limitations (beta)
 
 - Composio tool integration not bundled (install separately if needed)
@@ -224,8 +249,9 @@ pnpm lint:souls   # Validate 13 SOUL templates
 
 ## Links
 
-- **Website:** https://endiorbot.nqh-internal.example
-- **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
+- **Website:** https://endior.net
+- **Repository:** https://github.com/endior-net/EndiorBot
+- **npm:** https://www.npmjs.com/package/endiorbot
 
 ## Contributing
 
@@ -237,4 +263,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | CEO Power Tool | SDLC Framework v6.2.0*
+*EndiorBot v0.1.0-beta.1 | Solo Developer Power Tool | SDLC Framework v6.3.1 | Sprint 144 (2026-04-27)*

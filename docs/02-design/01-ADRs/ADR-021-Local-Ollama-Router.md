@@ -3,7 +3,7 @@
 **Status**: ACCEPTED
 **Date**: 2026-03-05
 **Sprint**: 78
-**Authority**: CEO Power Tool — cost optimization
+**Authority**: Solo Developer Power Tool — cost optimization
 
 ---
 

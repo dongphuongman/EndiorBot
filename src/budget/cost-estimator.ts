@@ -537,10 +537,10 @@ export class CostEstimator {
       );
     }
 
-    // Suggest NQH for simple tasks
+    // Suggest Self-Hosted Ollama for simple tasks
     if (taskType === "documentation" || taskType === "general") {
       recommendations.push(
-        "Consider using NQH API (free) for this simple task.",
+        "Consider using Self-Hosted Ollama (free) for this simple task.",
       );
     }
 

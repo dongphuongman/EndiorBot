@@ -14,7 +14,7 @@ previous_sprint: "Sprint 135 — Surface Parity + P1 Workspace Awareness (IMPLEM
 
 Sprint 135 closed with P1 Workspace Awareness added on top of the original 8-item scope (commits `2959517`, `b6b192e`, `0da795a`, `9fcdfcb`, `835f5f4`, `9df591f`, `999c325`). This sprint handles the **documentation debt** from Sprint 135 (ADR-048 full expansion, SOUL-pm v1.3.0 rule) plus **new scope** for Desktop + Web dashboard.
 
-**Identity:** CEO Power Tool (LOCKED) — Desktop + Web dashboard must serve CEO's <30s-answer guarantee, not grow into a multi-user platform.
+**Identity:** Solo Developer Power Tool (LOCKED) — Desktop + Web dashboard must serve CEO's <30s-answer guarantee, not grow into a multi-user platform.
 
 ## Scope
 
@@ -35,7 +35,7 @@ Sprint 135 closed with P1 Workspace Awareness added on top of the original 8-ite
 
 ### Part A' — Gateway-level UX Fix (added 2026-04-18 after CEO field test)
 
-**CEO use case** — CEO chạy `@tester` trên Telegram từ phone. Không có progress events, CEO thấy 5-phút silent wait rồi reply — nghĩ bot đơ, re-send, nhận duplicate work. Với A6-A10, CEO thấy heartbeat mỗi 10s + fallback transitions, tin tưởng hệ thống, không spam. **Serves CEO Power Tool <30s-answer guarantee directly** — user biết là bot đang làm, không phải chờ mù.
+**CEO use case** — CEO chạy `@tester` trên Telegram từ phone. Không có progress events, CEO thấy 5-phút silent wait rồi reply — nghĩ bot đơ, re-send, nhận duplicate work. Với A6-A10, CEO thấy heartbeat mỗi 10s + fallback transitions, tin tưởng hệ thống, không spam. **Serves Solo Developer Power Tool <30s-answer guarantee directly** — user biết là bot đang làm, không phải chờ mù.
 
 **Trigger incident** (2026-04-18 16:47–16:54): CEO gửi `@tester plan smoke tests` → 7 phút silent (Claude Code CLI timeout 5 phút + cloud fallback 2 phút). Zero mid-flight updates.
 
@@ -78,7 +78,7 @@ Sprint 135 closed with P1 Workspace Awareness added on top of the original 8-ite
 ## Out of scope (explicitly)
 
 - L3 Group History — deferred per Sprint 135 decision (identity lock)
-- Multi-user Desktop/Web — CEO Power Tool identity lock prohibits
+- Multi-user Desktop/Web — Solo Developer Power Tool identity lock prohibits
 - Methodology changes to SDLC 6.3.1 framework (ADR-048 full expansion is a **documentation** task, not a framework edit)
 
 ## Success criteria
@@ -89,4 +89,4 @@ Sprint 135 closed with P1 Workspace Awareness added on top of the original 8-ite
 
 ---
 
-*EndiorBot | CEO Power Tool (LOCKED) | SDLC 6.3.1 | Sprint 136 Draft Plan — structural; Part B pending CEO scope confirmation*
+*EndiorBot | Solo Developer Power Tool (LOCKED) | SDLC 6.3.1 | Sprint 136 Draft Plan — structural; Part B pending CEO scope confirmation*

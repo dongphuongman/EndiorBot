@@ -43,7 +43,7 @@ import { getClaudeCodeBridge } from "../../agents/invoke/claude-code-bridge.js";
 
 /**
  * Available models for CEO selection.
- * Always use the latest and most capable models — CEO Power Tool demands top-tier.
+ * Always use the latest and most capable models — demands top-tier.
  */
 export const AVAILABLE_MODELS = {
   openai: ["gpt-5.4", "o3", "o3-mini", "o1", "gpt-4o", "gpt-4o-mini"],

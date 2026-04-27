@@ -199,7 +199,7 @@ describe("Gateway Checkpoint Methods", () => {
   });
 
   describe("checkpoints.restore", () => {
-    it("should restore from checkpoint", async () => {
+    it("should return error for restore (not yet implemented)", async () => {
       const { client, messages } = await setupServerAndClient();
 
       const createResponse = await sendRequest(client, messages, "checkpoints.create", {
@@ -208,15 +208,8 @@ describe("Gateway Checkpoint Methods", () => {
       const checkpointId = (createResponse.result as GatewayCheckpointInfo).id;
 
       const response = await sendRequest(client, messages, "checkpoints.restore", { checkpointId });
-      const result = response.result as {
-        success: boolean;
-        checkpoint: GatewayCheckpointInfo;
-        newSessionId: string;
-      };
-
-      expect(result.success).toBe(true);
-      expect(result.checkpoint.id).toBe(checkpointId);
-      expect(result.newSessionId).toBeDefined();
+      // CSO Sprint 144: restore now throws instead of returning fake success
+      expect(response.error).toBeDefined();
 
       client.close();
     });

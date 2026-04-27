@@ -39,16 +39,33 @@ let coreModules: {
   initializeProvidersFromEnv: () => Promise<number>;
 } | null = null;
 
-/** Load .env and .env.local from project root (cwd or monorepo parent) so API keys are available for providers. */
-function loadEnvFromProjectRoot(): void {
+/** Resolve EndiorBot project root (the directory containing endiorbot.mjs). */
+function findProjectRoot(): string | null {
   const cwd = process.cwd();
-  const candidates = [cwd, path.join(cwd, ".."), path.join(cwd, "..", "..")];
+  const candidates = [
+    cwd,                                               // if cwd = project root
+    path.resolve(cwd, "../.."),                        // if cwd = apps/desktop
+    path.resolve(__dirname, "../../../.."),             // dist-electron/main → root
+    path.resolve(__dirname, "../../../../.."),          // one more level
+  ];
   for (const dir of candidates) {
-    const envPath = path.join(dir, ".env");
-    const envLocalPath = path.join(dir, ".env.local");
-    if (fs.existsSync(envPath)) config({ path: envPath });
-    if (fs.existsSync(envLocalPath)) config({ path: envLocalPath, override: true });
+    if (fs.existsSync(path.join(dir, "endiorbot.mjs"))) return dir;
   }
+  // Fallback: look for .env anywhere up from cwd
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, ".env"))) return dir;
+  }
+  return null;
+}
+
+/** Load .env and .env.local from project root so API keys are available. */
+function loadEnvFromProjectRoot(): void {
+  const root = findProjectRoot();
+  if (!root) return;
+  const envPath = path.join(root, ".env");
+  const envLocalPath = path.join(root, ".env.local");
+  if (fs.existsSync(envPath)) config({ path: envPath });
+  if (fs.existsSync(envLocalPath)) config({ path: envLocalPath, override: true });
 }
 
 async function loadCoreModules(): Promise<typeof coreModules> {
@@ -216,6 +233,84 @@ function registerSettingsHandlers(): void {
 
   ipcMain.handle("settings:getAll", () => {
     return loadSettings();
+  });
+
+  // ── API Key Management ──
+  // API keys shown in Settings → API Keys section
+  const API_KEY_ENV_MAP: Record<string, string> = {
+    anthropic: "ANTHROPIC_API_KEY",
+    openai: "OPENAI_API_KEY",
+    gemini: "GEMINI_API_KEY",
+    kimi: "KIMI_API_KEY",
+    ollama: "OLLAMA_REMOTE_API_KEY",
+    mcp_gateway: "MCP_GATEWAY_API_KEY",
+    telegram: "ENDIORBOT_TELEGRAM_BOT_TOKEN",
+    github: "GITHUB_PAT",
+  };
+
+  // Sprint 144: Config vars managed by dedicated UI sections (Gateway editor, etc.)
+  // These use the same setApiKey IPC but are NOT shown in the API Keys list.
+  const CONFIG_ENV_MAP: Record<string, string> = {
+    gateway_port: "ENDIORBOT_GATEWAY_PORT",
+    gateway_token: "ENDIORBOT_GATEWAY_TOKEN",
+    webhook_secret: "ENDIORBOT_WEBHOOK_SECRET",
+    kimi_proxy_url: "ENDIORBOT_KIMI_PROXY_URL",
+  };
+
+  // Combined map for setApiKey handler (accepts both keys and config vars)
+  const ALL_ENV_MAP: Record<string, string> = { ...API_KEY_ENV_MAP, ...CONFIG_ENV_MAP };
+
+  function getEnvFilePath(): string {
+    const root = findProjectRoot();
+    if (root) return path.join(root, ".env");
+    return path.join(process.cwd(), ".env");
+  }
+
+  ipcMain.handle("settings:getApiKeys", () => {
+    loadEnvFromProjectRoot();
+
+    // Return ALL env vars (API keys + config) — UI filters display per section
+    const keys: Array<{ id: string; envVar: string; masked: string; isSet: boolean }> = [];
+    for (const [id, envVar] of Object.entries(ALL_ENV_MAP)) {
+      const value = process.env[envVar] ?? "";
+      const isSet = value.length > 0;
+      // Config vars (port, URL) show full value; secrets show masked
+      const isSecret = API_KEY_ENV_MAP[id] !== undefined;
+      const masked = isSet
+        ? isSecret ? value.slice(0, 4) + "••••" + value.slice(-4) : value
+        : "";
+      keys.push({ id, envVar, masked, isSet });
+    }
+    return { keys };
+  });
+
+  ipcMain.handle("settings:setApiKey", (_event, id: string, value: string) => {
+    const envVar = ALL_ENV_MAP[id];
+    if (!envVar) return { success: false, error: `Unknown key id: ${id}` };
+
+    const envPath = getEnvFilePath();
+    try {
+      let content = "";
+      if (fs.existsSync(envPath)) {
+        content = fs.readFileSync(envPath, "utf-8");
+      }
+
+      // Replace existing line or append
+      const regex = new RegExp(`^${envVar}=.*$`, "m");
+      const newLine = `${envVar}=${value}`;
+      if (regex.test(content)) {
+        content = content.replace(regex, newLine);
+      } else {
+        content = content.trimEnd() + "\n" + newLine + "\n";
+      }
+
+      fs.writeFileSync(envPath, content, "utf-8");
+      // Update process.env for current session
+      process.env[envVar] = value;
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
 }
 
@@ -663,6 +758,187 @@ function registerFixStatsHandlers(): void {
  * Register all IPC handlers.
  * Call this once during app initialization.
  */
+// ============================================================================
+// Repos Handlers (Wired to RepoRegistry via repos.json)
+// ============================================================================
+
+function registerReposHandlers(): void {
+  ipcMain.handle("repos:list", async () => {
+    try {
+      const stateDir = process.env.ENDIORBOT_STATE_DIR
+        || path.join(app.getPath("home"), ".endiorbot");
+      const reposPath = path.join(stateDir, "repos.json");
+
+      if (!fs.existsSync(reposPath)) {
+        return { repos: [], error: null };
+      }
+
+      const data = JSON.parse(fs.readFileSync(reposPath, "utf-8"));
+      const repos = (data.repos || []).map((r: { name: string; path: string; registeredAt?: string; defaultBranch?: string }) => ({
+        name: r.name,
+        path: r.path,
+        registeredAt: r.registeredAt,
+        defaultBranch: r.defaultBranch ?? "main",
+        exists: fs.existsSync(r.path),
+      }));
+
+      return { repos, error: null };
+    } catch (error) {
+      return { repos: [], error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+
+// ============================================================================
+// Gates Handlers (Wired to SDLC Gate Engine or .sdlc-config.json fallback)
+// ============================================================================
+
+interface GateInfo {
+  id: string;
+  name: string;
+  status: "pass" | "fail" | "pending" | "skipped";
+  lastChecked: string | null;
+}
+
+const GATE_DEFINITIONS: Array<{ id: string; name: string }> = [
+  { id: "G0", name: "Project Initialization" },
+  { id: "G0.1", name: "Requirements Baseline" },
+  { id: "G1", name: "Architecture Approved" },
+  { id: "G2", name: "Design Complete" },
+  { id: "G3", name: "Implementation Ready" },
+  { id: "G4", name: "Release Ready" },
+  { id: "G-Sprint", name: "Sprint Complete" },
+];
+
+function registerGatesHandlers(): void {
+  ipcMain.handle("gates:status", async () => {
+    // Try EndiorBot core first
+    try {
+      const core = await import("endiorbot") as unknown as Record<string, unknown>;
+      if (typeof core.getGateEngine === "function") {
+        const engine = (core.getGateEngine as () => unknown)() as Record<string, unknown> | null;
+        if (engine && typeof engine.evaluateAll === "function") {
+          const results = await (engine.evaluateAll as () => Promise<unknown[]>)();
+          return { gates: results, source: "core" };
+        }
+      }
+    } catch {
+      // Core not available — fall through to file fallback
+    }
+
+    // Fallback: read .sdlc-config.json from cwd
+    const candidatePaths = [
+      path.join(process.cwd(), ".sdlc-config.json"),
+      path.join(app.getPath("home"), ".endiorbot", "projects", "endiorbot", ".sdlc-config.json"),
+    ];
+
+    let sdlcConfig: Record<string, unknown> | null = null;
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        try {
+          sdlcConfig = JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, unknown>;
+          break;
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
+
+    const gateStatuses = sdlcConfig?.gate_statuses as Record<string, string> | undefined;
+    const gates: GateInfo[] = GATE_DEFINITIONS.map((g) => {
+      const rawStatus = gateStatuses?.[g.id];
+      let status: GateInfo["status"] = "pending";
+      if (rawStatus === "PASS" || rawStatus === "pass") status = "pass";
+      else if (rawStatus === "FAIL" || rawStatus === "fail") status = "fail";
+      else if (rawStatus === "SKIPPED" || rawStatus === "skipped") status = "skipped";
+
+      return {
+        id: g.id,
+        name: g.name,
+        status,
+        lastChecked: sdlcConfig ? new Date().toISOString() : null,
+      };
+    });
+
+    return {
+      gates,
+      tier: (sdlcConfig?.tier as string) ?? null,
+      frameworkVersion: (sdlcConfig?.framework_version as string) ?? null,
+      source: sdlcConfig ? "sdlc-config" : "static",
+    };
+  });
+}
+
+// ============================================================================
+// Experts / Providers Handlers
+// ============================================================================
+
+interface ProviderInfo {
+  id: string;
+  name: string;
+  configured: boolean;
+  tier: 1 | 2 | 3;
+  tierLabel: string;
+  description: string;
+}
+
+function registerExpertsHandlers(): void {
+  ipcMain.handle("experts:providers", () => {
+    loadEnvFromProjectRoot();
+
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const kimiKey = process.env.KIMI_API_KEY;
+    const ollamaKey = process.env.OLLAMA_API_KEY || process.env.OLLAMA_REMOTE_URL;
+    const geminiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+
+    const providers: ProviderInfo[] = [
+      {
+        id: "anthropic",
+        name: "Claude (Anthropic)",
+        configured: Boolean(anthropicKey),
+        tier: 1,
+        tierLabel: "Tier 1 — Elite",
+        description: "Claude Opus / Sonnet — primary reasoning engine",
+      },
+      {
+        id: "openai",
+        name: "OpenAI GPT",
+        configured: Boolean(openaiKey),
+        tier: 2,
+        tierLabel: "Tier 2 — Standard",
+        description: "GPT-4o — multi-model consultation fallback",
+      },
+      {
+        id: "gemini",
+        name: "Google Gemini",
+        configured: Boolean(geminiKey),
+        tier: 2,
+        tierLabel: "Tier 2 — Standard",
+        description: "Gemini 1.5 Pro — large context window tasks",
+      },
+      {
+        id: "kimi",
+        name: "Kimi (Moonshot)",
+        configured: Boolean(kimiKey),
+        tier: 2,
+        tierLabel: "Tier 2 — Standard",
+        description: "Kimi — long document analysis via AI-Platform proxy",
+      },
+      {
+        id: "ollama",
+        name: "Ollama (Local)",
+        configured: Boolean(ollamaKey),
+        tier: 3,
+        tierLabel: "Tier 3 — Efficiency",
+        description: "Local models via Ollama — privacy-first, offline capable",
+      },
+    ];
+
+    return { providers };
+  });
+}
+
 export function registerIpcHandlers(): void {
   registerWindowHandlers();
   registerDialogHandlers();
@@ -672,4 +948,118 @@ export function registerIpcHandlers(): void {
   registerBudgetHandlers();
   registerCheckpointHandlers();
   registerFixStatsHandlers();
+  registerReposHandlers();
+  registerGatesHandlers();
+  registerExpertsHandlers();
+}
+
+/**
+ * Auto-start Gateway by spawning `endiorbot.mjs serve` as a subprocess.
+ * Electron's bundled context can't import endiorbot core directly,
+ * so we run it as a separate Node.js process.
+ */
+import { spawn, type ChildProcess } from "node:child_process";
+
+let gatewayProcess: ChildProcess | null = null;
+
+export async function autoStartGateway(): Promise<{ success: boolean; port?: number; error?: string }> {
+  if (gatewayProcess && !gatewayProcess.killed) {
+    return { success: true, port: 18790 };
+  }
+
+  const settings = loadSettings();
+  const port = settings.gatewayPort ?? 18790;
+
+  // Find endiorbot.mjs — walk up from apps/desktop to project root
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, "endiorbot.mjs"),                      // if cwd = project root
+    path.resolve(cwd, "../../endiorbot.mjs"),              // if cwd = apps/desktop
+    path.resolve(__dirname, "../../../../endiorbot.mjs"),   // dist-electron/main → root
+    path.resolve(__dirname, "../../../../../endiorbot.mjs"),// one more level up
+  ];
+
+  console.log("[Gateway] cwd:", cwd, "__dirname:", __dirname);
+
+  let entryPoint: string | null = null;
+  for (const p of candidates) {
+    const resolved = path.resolve(p);
+    console.log("[Gateway] checking:", resolved, fs.existsSync(resolved) ? "EXISTS" : "—");
+    if (fs.existsSync(resolved)) {
+      entryPoint = resolved;
+      break;
+    }
+  }
+
+  if (!entryPoint) {
+    return { success: false, error: `Cannot find endiorbot.mjs (cwd=${cwd}, __dirname=${__dirname})` };
+  }
+
+  const projectRoot = path.dirname(entryPoint);
+  console.log("[Gateway] entryPoint:", entryPoint, "projectRoot:", projectRoot);
+
+  return new Promise((resolve) => {
+    // Build clean env — remove Electron-specific vars so child is plain Node
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.ELECTRON_RUN_AS_NODE;
+    delete cleanEnv.ELECTRON_NO_ASAR;
+    cleanEnv.ENDIORBOT_GATEWAY_PORT = String(port);
+
+    gatewayProcess = spawn("node", [entryPoint!, "serve", "--no-telegram", "--no-zalo"], {
+      cwd: projectRoot,
+      env: cleanEnv,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: false,
+    });
+
+    let started = false;
+    const timeout = setTimeout(() => {
+      if (!started) {
+        started = true;
+        // Gateway may still be starting — optimistically report success
+        resolve({ success: true, port });
+      }
+    }, 5000);
+
+    gatewayProcess.stdout?.on("data", (data: Buffer) => {
+      const line = data.toString();
+      console.log("[Gateway]", line.trim());
+      // Detect successful start from gateway output
+      if (!started && (line.includes("Gateway") || line.includes("listening") || line.includes(String(port)))) {
+        started = true;
+        clearTimeout(timeout);
+        resolve({ success: true, port });
+      }
+    });
+
+    gatewayProcess.stderr?.on("data", (data: Buffer) => {
+      console.error("[Gateway:err]", data.toString().trim());
+    });
+
+    gatewayProcess.on("error", (err) => {
+      if (!started) {
+        started = true;
+        clearTimeout(timeout);
+        resolve({ success: false, error: err.message });
+      }
+    });
+
+    gatewayProcess.on("exit", (code) => {
+      console.log(`[Gateway] Process exited with code ${code}`);
+      gatewayProcess = null;
+      if (!started) {
+        started = true;
+        clearTimeout(timeout);
+        resolve({ success: false, error: `Gateway exited with code ${code}` });
+      }
+    });
+  });
+}
+
+/** Stop the gateway subprocess (called on app quit). */
+export function stopGateway(): void {
+  if (gatewayProcess && !gatewayProcess.killed) {
+    gatewayProcess.kill("SIGTERM");
+    gatewayProcess = null;
+  }
 }

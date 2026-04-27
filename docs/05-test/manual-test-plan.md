@@ -11,7 +11,7 @@
 
 - **OS:** macOS Darwin 25.3.0
 - **Node:** v24.11.0
-- **Project:** /Users/dttai/Documents/Python/01.NQH/EndiorBot
+- **Project:** /path/to/endiorbot
 - **Git branch:** main
 - **Test data:** EndiorBot repository itself
 

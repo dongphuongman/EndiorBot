@@ -8,7 +8,7 @@
 
 ## Daily Workflows
 
-### CEO Workflow
+### Developer Workflow (Daily)
 
 ```
 Morning:
@@ -120,6 +120,47 @@ endiorbot plan "add user authentication with JWT"
 
 ---
 
+## 5-Channel Operational Matrix (Sprint 144)
+
+| Channel | Start | Port/Address | Status |
+|---------|-------|-------------|--------|
+| CLI | `endiorbot serve` or any CLI command | n/a | Operational |
+| Web | auto on `serve` | `http://localhost:18790` | Operational |
+| Telegram | auto on `serve` (token required) | Bot API poll | Operational |
+| Zalo | auto on `serve` (token required) | Bot API poll | Operational |
+| Desktop | launch Electron app (gateway auto-starts) | subprocess | Operational |
+
+39 commands unified in `CommandDispatcher`. All 5 channels share the same handler surface — no channel-specific command logic.
+
+### PID Lockfile Operations (Sprint 144 T1)
+
+```bash
+# Check if serve is running
+cat ~/.endiorbot/serve.pid
+
+# Force takeover (kills existing, starts fresh)
+endiorbot serve --force
+
+# Clean stop
+kill $(cat ~/.endiorbot/serve.pid)
+```
+
+The PID file is auto-cleaned on graceful shutdown. Stale files from crashes are detected via process liveness check and removed on next start.
+
+### OTT vs CLI Timeout Differences (Sprint 144 T3)
+
+`originChannel` is threaded from the bus through ingress to the router, so timeout enforcement is channel-aware:
+
+| Channel | Timeout | Rationale |
+|---------|---------|-----------|
+| Telegram | 60s | OTT message delivery window |
+| Zalo | 60s | OTT message delivery window |
+| Web | 60s | HTTP request timeout |
+| CLI | 180s | Interactive terminal — user is watching |
+| Desktop | 60s | Electron IPC (treated as OTT) |
+
+If a model call exceeds the channel timeout, the in-flight request is cancelled and the user receives a timeout error with a retry suggestion.
+
 ## Monitoring & Health
 
 ```bash
@@ -137,6 +178,28 @@ endiorbot chat → /status            # Per-session cost in chat
 endiorbot chat --resume chat-abc123  # Resume saved chat
 /sessions                            # List active tmux sessions
 ```
+
+### Provider Circuit Breaker (Sprint 144 T2)
+
+The provider layer now wraps each upstream provider call with a circuit breaker. Thresholds:
+
+| State | Trigger | Behavior |
+|-------|---------|----------|
+| CLOSED (normal) | — | All requests pass through |
+| OPEN | 2 consecutive failures | Provider skipped; next provider in fallback chain used |
+| HALF-OPEN | 60s after OPEN | 1 probe request allowed |
+| CLOSED (recover) | HALF-OPEN probe succeeds | Normal operation resumes |
+
+```bash
+# Diagnose open circuits (programmatic)
+# In code: providerRouter.getOpenCircuits() → string[]
+
+# Operational signal: if a provider is consistently OPEN, check API key / quota
+endiorbot cost report --provider kimi   # Rate-limit and error stats
+/status                                 # OTT: surface-level circuit status
+```
+
+When a circuit is OPEN the fallback chain activates automatically: `claude-code → kimi-proxy → kimi-api → openai → ollama`. No manual intervention needed for transient outages.
 
 ### Kimi Provider Monitoring (Sprint 140–141)
 
@@ -228,6 +291,8 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 | Log / Metric | Path | What it tells you |
 |---|---|---|
 | Gateway health | `GET /health` on port 18790 | Service is up |
+| PID lockfile | `~/.endiorbot/serve.pid` | Whether serve is already running |
+| Provider circuit breaker | `providerRouter.getOpenCircuits()` / `/status` | Which providers are degraded |
 | Exec-policy audit | `~/.endiorbot/audit-logs/exec-policy.log` | What commands were allowed/denied/prompted |
 | SSRF blocks | `~/.endiorbot/audit-logs/ssrf-blocks.log` | Outbound fetch attempts to private IPs |
 | Token cost | `endiorbot cost report` or `/cost` (OTT) | Per-agent, per-provider cost |
@@ -235,18 +300,24 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 | Kimi 429 rate | `endiorbot cost report --provider kimi` | Rate-limit frequency |
 | Ollama confidence | Server logs (confidence scorer) | Escalation rate for Tier-3 |
 | Active Memory | Feature flag + circuit breaker state | Context enrichment health |
+| Channel timeouts | Server logs (`originChannel` tag) | OTT 60s vs CLI 180s enforcement |
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
+| `endiorbot serve` exits with "already running" | A previous instance is running. Use `--force` to take over, or `kill $(cat ~/.endiorbot/serve.pid)` to stop it first |
+| Stale PID file after crash | Delete `~/.endiorbot/serve.pid` manually, then `endiorbot serve` |
 | Port 18790 in use | `ENDIORBOT_GATEWAY_PORT=18800 endiorbot serve` — check `lsof -i :18790` for conflicts (Claude Code extension may occupy nearby ports) |
 | Telegram not responding | Check `ENDIORBOT_TELEGRAM_BOT_TOKEN` in `.env`; verify gateway fully started (look for "Telegram adapter started" in logs) |
+| Provider circuit OPEN (all retries exhausted) | `endiorbot cost report` to identify the failing provider; check API key / quota; circuit auto-recovers after 60s |
+| OTT message timeout (60s) | Long-running agent task. Use CLI (`endiorbot @coder ...`) for tasks that take > 45s; CLI timeout is 180s |
+| Desktop app: gateway not responding | Gateway subprocess may have crashed. Restart Desktop app; it will re-launch the gateway |
 | Kimi proxy health check timeout (10s) | An external `claude-code-proxy` may already be running. Set `ENDIORBOT_KIMI_PROXY_URL=http://127.0.0.1:<port>` to reuse it instead of spawning a new one. Check `ps aux \| grep claude-code-proxy` |
 | Kimi proxy dual-instance conflict | `claude-code-proxy` installed globally (for `claude-kimi` alias) conflicts with EndiorBot's auto-spawn. Fix: set `ENDIORBOT_KIMI_PROXY_URL` to the existing proxy URL, or `ENDIORBOT_DISABLE_KIMI_PROXY=true` to skip entirely |
 | Server stuck at "Initializing ChannelRouter" | Kimi proxy health check blocking startup. Same fix: `ENDIORBOT_KIMI_PROXY_URL` or `ENDIORBOT_DISABLE_KIMI_PROXY=true` |
 | Agent says "no Bash tool" | Agent is in READ mode; use `--risk patch` |
-| Chat: "Provider not available" | Check API key for selected provider |
+| Chat: "Provider not available" | Check API key for selected provider; check circuit breaker status |
 | Bootstrap: "Toolchain not found" | Install ecosystem toolchain first |
 | Exec-policy blocking agent commands | `endiorbot exec-policy preset open` (temporary); review audit log for false positives |
 | Active Memory latency spike | `ENDIORBOT_FF_ACTIVE_MEMORY_ENABLED=false` (immediate kill switch) |
@@ -261,9 +332,9 @@ Monitor via existing agent audit logs. Composition with exec-policy: see [ADR-04
 - **Upstream:** [06-deploy](../06-deploy/) (what was shipped), [03-integrate](../03-integrate/) (live integrations)
 - **Downstream:** [09-govern](../09-govern/) (retros, RFCs), [04-build](../04-build/) (fixes)
 - **ADRs:** [ADR-046 Autonomous Execution Policy](../02-design/01-ADRs/ADR-046-Autonomous-Execution-Policy.md)
-- **Sprints:** [Sprint 132](../04-build/sprints/sprint-132-openclaw-backport.md), [Sprint 133](../04-build/sprints/sprint-133-active-memory-ssrf.md), [Sprint 140](../04-build/sprints/sprint-140-plan.md), [Sprint 141](../04-build/sprints/sprint-141-plan.md)
+- **Sprints:** [Sprint 132](../04-build/sprints/sprint-132-openclaw-backport.md), [Sprint 133](../04-build/sprints/sprint-133-active-memory-ssrf.md), [Sprint 140](../04-build/sprints/sprint-140-plan.md), [Sprint 141](../04-build/sprints/sprint-141-plan.md), [Sprint 144](../04-build/sprints/sprint-144-plan.md)
 - **Spine:** [stage-command-workflow-spine.md](../00-foundation/stage-command-workflow-spine.md)
 
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 07: Operate — Updated Sprint 141 (2026-04-24)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 07: Operate — Updated Sprint 144 (2026-04-27)*

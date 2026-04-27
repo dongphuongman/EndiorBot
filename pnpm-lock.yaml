@@ -98,9 +98,6 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@dttai/endiorbot':
-        specifier: workspace:*
-        version: link:../..
       dotenv:
         specifier: ^16.4.0
         version: 16.6.1
@@ -110,6 +107,9 @@ importers:
       electron-updater:
         specifier: ^6.3.0
         version: 6.8.3
+      endiorbot:
+        specifier: workspace:*
+        version: link:../..
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@19.2.4)

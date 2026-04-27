@@ -16,7 +16,7 @@ EndiorBot is the CEO's tool to govern AI coding assistants (especially Claude Co
 under the SDLC Framework for projects the CEO owns.
 
 NOT: Platform, SDLC enforcer, blocker
-IS: CEO Power Tool, fast (<30s), auto-healing
+IS: Solo Developer Power Tool, fast (<30s), auto-healing
 ```
 
 ## Sprint Breakdown
@@ -270,8 +270,8 @@ endiorbot compliance report       # Executive summary
 
 | Source | Location |
 |--------|----------|
-| tinysdlc | `/Users/dttai/Documents/Python/01.NQH/tinysdlc/.sdlc-config.json` |
-| SDLC Orchestrator | `/Users/dttai/Documents/Python/01.NQH/SDLC-Orchestrator/.sdlc-config.json` |
+| tinysdlc | `/path/to/tinysdlc/.sdlc-config.json` |
+| SDLC Orchestrator | `/path/to/SDLC-Orchestrator/.sdlc-config.json` |
 
 ---
 
