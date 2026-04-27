@@ -209,7 +209,14 @@ async function serveAction(options: ServeOptions): Promise<void> {
     process.exit(1);
   }
 
-  const port = options.port ? parseInt(options.port, 10) : 18790;
+  // Sprint 144: Port resolution order: --port flag → ENDIORBOT_GATEWAY_PORT env → 18790 default
+  // Must match resolveGatewayConfig() so the log message shows the actual port.
+  const envPort = process.env["ENDIORBOT_GATEWAY_PORT"];
+  const port = options.port
+    ? parseInt(options.port, 10)
+    : envPort
+      ? parseInt(envPort, 10)
+      : 18790;
 
   if (isNaN(port) || port < 1 || port > 65535) {
     console.error(red("Error: Invalid port number"));
