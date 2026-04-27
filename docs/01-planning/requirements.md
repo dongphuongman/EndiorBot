@@ -4,7 +4,7 @@
 **Version:** 2.0.0
 **Date:** 2026-02-28
 **SDLC Stage:** 01-PLANNING
-**Identity:** CEO Power Tool (LOCKED)
+**Identity:** Solo Developer Power Tool (LOCKED)
 
 ---
 
@@ -141,6 +141,39 @@ endiorbot switch <project>      # Minimal context
 
 ---
 
+### FR-011: Gateway Operational Resilience (Sprint 143-144)
+
+**Trigger:** CEO real-world testing exposed 7 production issues in a single 2-hour Telegram session. Architecture review: [`docs/02-design/14-Technical-Specs/gateway-architecture-review-sprint-143.md`](../02-design/14-Technical-Specs/gateway-architecture-review-sprint-143.md)
+
+| ID | Requirement | Priority | Sprint |
+|----|-------------|----------|--------|
+| FR-011.1 | Singleton serve enforcement (PID lockfile) — prevent duplicate processes | P0 | 144 |
+| FR-011.2 | Provider health circuit breaker — skip dead providers immediately after 2 failures | P0 | 144 |
+| FR-011.3 | Per-agent session lock — prevent duplicate concurrent calls for same agent | P0 | 143 ✅ |
+| FR-011.4 | CC timeout → automatic fallback to Kimi/cloud (not error) | P0 | 143 ✅ |
+| FR-011.5 | OTT channel timeout 60s (not 180s) with immediate Kimi fallback | P1 | 144 |
+| FR-011.6 | Telegram message delivery guarantee (retry as plain text on parse failure) | P1 | 143 ✅ |
+| FR-011.7 | Kimi model name resolution (non-Kimi model → default kimi-k2.6) | P1 | 143 ✅ |
+| FR-011.8 | Deprecate Kimi subprocess spawner, document external proxy pattern | P1 | 144 |
+
+**Acceptance Criteria:**
+- Cannot start 2 serve processes simultaneously (T1)
+- After 2 CC timeouts, 3rd @agent call skips CC → responds via Kimi in <30s (T2)
+- OTT @agent: total time-to-response ≤ 90s even when CC is down (T3)
+- CEO taps @coder 3x → only first processes, rest get "already processing" (FR-011.3 ✅)
+- Telegram table-formatted response → plain text fallback, not silent loss (FR-011.6 ✅)
+
+### NFR-004: Gateway Reliability (Sprint 143-144)
+
+| ID | Requirement | Target | Priority |
+|----|-------------|--------|----------|
+| NFR-004.1 | OTT time-to-first-response | ≤ 90s (60s CC attempt + 30s fallback) | P0 |
+| NFR-004.2 | Message delivery rate | 100% (retry plain text on Markdown failure) | P0 |
+| NFR-004.3 | Provider failover time | ≤ 5s after circuit opens (skip immediately) | P0 |
+| NFR-004.4 | Zero duplicate messages from serve process competition | P0 | P0 |
+
+---
+
 ## What's NOT in MVP
 
 | Feature | Status | Reason |
@@ -200,5 +233,5 @@ Feature-scoped PRDs that extend this MVP requirements spec:
 
 ---
 
-*CEO Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
+*Solo Developer Power Tool | SDLC Framework v6.2.0 - Stage 01: Planning*
 *Identity: LOCKED (2026-02-28)*

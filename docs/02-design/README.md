@@ -54,11 +54,11 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 
 | ADR | Title | Sprint | Status |
 |-----|-------|--------|--------|
-| ADR-009 | Brain Architecture (Iceberg 4-layer) | 45 | Approved + Sprint 143 amendment (17th mechanism) |
+| ADR-009 | Brain Architecture (Iceberg 4-layer) | 45 | Approved + Sprint 143 amendment (17th mechanism: Workspace Awareness) |
 | ADR-046 | Autonomous Execution Policy | 131-132 | Approved |
 | ADR-050 | OpenMythos Evaluator Optimization Patterns | 139 | Approved |
 | ADR-051 | Kimi Proxy Subprocess Orchestrator | 140 | Approved |
-| ADR-052 | Agent-Model Tier Mapping | 140 | Approved + Sprint 142 amendment (vendor-agnostic enrichment) |
+| ADR-052 | Agent-Model Tier Mapping | 140 | Approved + **Sprint 143 amendment** (CC-first routing) |
 
 ## Architecture Highlights (Sprint 142-143)
 
@@ -67,7 +67,7 @@ Catalog: [`../reference/templates/COMMANDS.md`](../reference/templates/COMMANDS.
 ```
 buildEnrichedPrompt(agent, task, history, workspace)  ← UNIVERSAL
     ├── SOUL identity
-    ├── Workspace context (ALWAYS — not PATCH-only)
+    ├── Workspace context (ALWAYS — not PATCH-only)  ← BUG FIX Sprint 143
     ├── IDENTITY.md content (500 token cap)
     ├── Workspace Awareness directive (L1.25)
     ├── RL enrichment
@@ -84,6 +84,57 @@ Provider function  ← JUST API transport
 
 Adding a new LLM provider = register endpoint + zero context code.
 
+### ADR-052 Amendment — CC-First Routing (Sprint 143)
+
+CEO directive: *"CC luôn là primary với SDLC agents, Kimi chỉ khi rate-limited"*.
+
+| Before (Sprint 140-142) | After (Sprint 143) |
+|---|---|
+| Tier 2 agents → `provider: "kimi", model: "kimi-k2-6"` | Tier 2 agents → `provider: "claude-code", model: "sonnet"` |
+| Fallback: kimi → claude-code → ollama | Fallback: claude-code → kimi → ollama |
+| Workspace context gated behind PATCH intent | Workspace context injected for ALL intents |
+
+**Rationale:** Every SDLC agent must read the codebase. CC bridge has native file access; Kimi/cloud providers receive IDENTITY.md + Workspace Awareness directive. No vendor lock — provider swap = transport change, zero context code.
+
+### Brain L2 → Recovery Engine Wiring (Sprint 143)
+
+```
+FailureClassifier.classify(error)
+    → findMatchingPattern(errorSignature)   ← queries Brain L2 (count ≥ 2)
+    → patternHint injected into retry prompt
+    → AutonomousSessionManager.executeTaskWork() consumes + nulls hint
+```
+
+17th anti-drift mechanism: **SOUL-level Workspace Awareness** — 5 executor SOULs carry mandatory `[Workspace Awareness]` section. Documented as ADR-009 Sprint 143 amendment.
+
+### Gate Mark Design (Sprint 143 A3)
+
+```
+endiorbot gate mark <gateId> <itemId> --pass --evidence "..."
+    → ~/.endiorbot/evidence/<projectId>/gate-marks.json   (persistence)
+    → evaluateChecklist() checks marks for autoCheck:false items
+    → gate confirm succeeds without --force
+```
+
+Design decisions: evidence mandatory, reset via `--reset`, CEO `--force` unchanged (orthogonal path).
+
+### Gateway Architecture Review (Sprint 143 → 144)
+
+**Full review:** [`14-Technical-Specs/gateway-architecture-review-sprint-143.md`](14-Technical-Specs/gateway-architecture-review-sprint-143.md)
+
+CEO real-world testing exposed 6 structural gaps. Sprint 144 addresses P0+P1:
+
+| Gap | Design decision | Sprint |
+|-----|-----------------|--------|
+| No singleton process | PID lockfile at `~/.endiorbot/serve.pid` | 144 |
+| No provider circuit breaker | Reuse Active Memory pattern: 2 failures → open → 60s cooldown → half-open | 144 |
+| No OTT-aware timeout | Channel-aware: OTT=60s CC then Kimi; CLI=180s | 144 |
+| Kimi subprocess fragile | Deprecate; document `ENDIORBOT_KIMI_PROXY_URL` external pattern | 144 |
+| No per-agent session lock | `agentLocks` Map in channel-router, released in finally{} | 143 ✅ |
+| No message delivery guarantee | Plain-text retry on Telegram Markdown 400 | 143 ✅ |
+
+**Key architectural principle:** The gateway stays stateless — locks/circuits are in-memory (cleared on restart). This is correct for a single-user tool where restart = full reset.
+
 ---
 
-*EndiorBot | SDLC Framework **6.3.1** — Stage 02: Design — Updated Sprint 143 (2026-04-26)*
+*EndiorBot | SDLC Framework **6.3.1** — Stage 02: Design — Updated Sprint 144 planning (2026-04-27)*
