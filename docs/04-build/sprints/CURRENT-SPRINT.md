@@ -1,32 +1,35 @@
 # Current Sprint — Pointer
 
-> SSOT pointer. Top-level mirror: [../CURRENT-SPRINT.md](../CURRENT-SPRINT.md)
+> SSOT pointer for active and recent sprints.
 
 ## Active / Most Recent
 
-- **Sprint 142** — Anti-Drift Improvements + Carry-Forward — **📋 DRAFT** (2026-04-26)
+- **Sprint 145** — Pre-Publish Hardening — **📋 DRAFT** (2026-04-27)
+  - [sprint-145-pre-publish-hardening.md](./sprint-145-pre-publish-hardening.md)
+  - P0: Rotate all API keys, SECURITY.md update, CI/CD pipeline, vuln fixes
+  - P1: God class refactoring (top 3), circular dep fix, README polish
+  - Awaiting CEO kickoff
+
+- **Sprint 146** — Public Launch — **📋 DRAFT** (blocked by Sprint 145)
+  - [sprint-146-public-launch.md](./sprint-146-public-launch.md)
+  - P0: Flip repo public, npm publish, GitHub Release v0.1.0-beta.1
+  - P1: endior.net landing page, Desktop app release build
+
+- **Sprint 144** — Gateway Hardening + Community Publish Cleanup — **✅ COMPLETE** (2026-04-27)
+  - [sprint-144-gateway-hardening.md](./sprint-144-gateway-hardening.md)
+  - T1-T4: PID lockfile, circuit breaker, OTT 60s timeout, Kimi deprecation
+  - Community cleanup: 198 files, mtclaw → mcp-gateway, nqh → self-hosted, CEO Power Tool → Solo Developer Power Tool
+  - CSO audit: simulateAICall mock removed, dead skills/ module removed, checkpoint restore honest error
+  - 8,124 tests pass, build clean, commit `4760a8d`
+
+- **Sprint 143** — Brain L2 + Gate Mark + CC-First Routing — **✅ COMPLETE** (2026-04-26)
+  - [sprint-143-plan.md](./sprint-143-plan.md)
+
+- **Sprint 142** — Anti-Drift Improvements — **✅ COMPLETE** (2026-04-26)
   - [sprint-142-plan.md](./sprint-142-plan.md)
-  - P0: Turn-based vision re-injection, cloud provider content enrichment, Active Memory logging
-  - P1: Expert Routing Phase 2, Stability Guard instrumentation, Ollama FF decision
-  - Awaiting @cto G1 approval
 
-- **Sprint 141** — Cost Telemetry + Ollama Confidence + Kimi Resilience — **✅ COMPLETE** (2026-04-24)
-  - [sprint-141-plan.md](./sprint-141-plan.md)
-
-- **Sprint 140** — Kimi2.6 Integration + Agent-Model Tier Mapping (ADR-051 + ADR-052) — **✅ COMPLETE** (2026-04-23, CTO compliance note)
-  - [sprint-140-plan.md](./sprint-140-plan.md) *(retroactive — see compliance note)*
-  - Delivered: Kimi proxy subprocess orchestrator, 3-tier agent-model mapping, @consult 3-model panel
-  - 8,048 tests passing, 0 failures, 0 type errors
-  - **SDLC breach:** Work executed before G1 sprint plan approval. Retroactive plan drafted for compliance.
-
-- **Sprint 139** — OpenMythos Pattern Adoption (Sprint A) — **✅ COMPLETE** (2026-04-20)
-  - [sprint-139-plan.md](./sprint-139-plan.md)
-
-- **Sprint 132** — openclaw Backport (M0 + M1 + ADR-046 full expansion) — **✅ COMPLETE** (2026-04-11, CTO 9.5/10 G3 APPROVED)
-  - [sprint-132-openclaw-backport.md](./sprint-132-openclaw-backport.md)
-
-Older sprints: [sprint-index.md](./sprint-index.md)
+Older sprints: [sprint-index.md](./sprint-index.md) · Archived (Sprint 29-55): [../../10-Archive/sprints-legacy/](../../10-Archive/sprints-legacy/)
 
 ---
 
-*Updated 2026-04-26 — Sprint 142 draft added. Sprint 141 closed. Provider refactor shipped (ab17eca, 1029e9a).*
+*Updated 2026-04-27 — Sprint 145+146 plans drafted. Sprint 144 closed (OSS publish prep). Sprint 143-142 closed.*
