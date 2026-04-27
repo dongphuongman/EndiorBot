@@ -560,8 +560,8 @@ export class TelegramChannel implements BidirectionalChannel {
       case "/reject":
         return this.handleReject(args);
 
-      case "/status":
-        return this.handleStatus();
+      // Sprint 144: /status now handled by CommandDispatcher (shows project context).
+      // Legacy approval-queue status moved to /approval-status if needed.
 
       case "/help":
         return this.handleHelp();
@@ -707,48 +707,9 @@ export class TelegramChannel implements BidirectionalChannel {
     }
   }
 
-  /**
-   * Handle /status command.
-   */
-  private async handleStatus(): Promise<CommandResult> {
-    if (!this.approvalQueue) {
-      return {
-        success: true,
-        response: "📋 Status: No ApprovalQueue attached.",
-      };
-    }
-
-    try {
-      const pending = await this.approvalQueue.listPending();
-
-      if (pending.length === 0) {
-        return {
-          success: true,
-          response: "📋 Status: No pending approvals.",
-        };
-      }
-
-      let response = `📋 Pending: ${pending.length}\n\n`;
-      for (const item of pending) {
-        response += `• \`${item.id}\``;
-        if (item.description) {
-          response += `: ${item.description}`;
-        }
-        response += "\n";
-      }
-      response += "\nUse /approve <id> or /reject <id>";
-
-      return {
-        success: true,
-        response,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        response: `❌ Error: ${(error as Error).message}`,
-      };
-    }
-  }
+  // Sprint 144: Legacy handleStatus() removed — /status now handled by CommandDispatcher
+  // (shows project context, workspace, exec-policy instead of approval queue status).
+  // Approval queue pending list available via /approve (lists pending if no ID given).
 
   /**
    * Handle /help command.
