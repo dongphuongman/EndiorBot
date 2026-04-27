@@ -114,11 +114,17 @@ npm pack --dry-run   # Check what gets published
 
 ---
 
-## Track C: SDLC Framework Cross-Link (Day 2)
+## Track C: SDLC Framework Coordination (Day 2)
 
-### C1: Add EndiorBot Reference to Framework README (~30min)
+> **Note:** SDLC Framework is a **git submodule** inside the SDLC Orchestrator repo.
+> Changes to Framework must be coordinated with the SDLC Orchestrator team.
+> EndiorBot team prepares the request; Orchestrator team executes in their repo.
 
-Add to SDLC Framework README.md:
+### C1: Request Cross-Link from Orchestrator Team (~30min)
+
+**Handoff to SDLC Orchestrator PM:**
+
+Request adding to SDLC Framework README.md:
 ```markdown
 ## Reference Implementations
 
@@ -128,17 +134,18 @@ Add to SDLC Framework README.md:
 | **SDLC Orchestrator** | Enterprise platform (commercial, coming soon) | [sdlcframework.dev](https://sdlcframework.dev) |
 ```
 
-**Owner:** @pm
-**Repo:** SDLC-Enterprise-Framework
+**Owner:** @pm (EndiorBot) → handoff to Orchestrator team PM
+**Repo:** SDLC-Orchestrator/SDLC-Enterprise-Framework (submodule)
 
-### C2: Verify Framework Repo Ready (~15min)
+### C2: Verify Framework Submodule Ready (~15min)
 
-- `git pull origin main` (2 commits behind)
-- Verify clean working tree
-- Verify LICENSE, README, CHANGELOG present
+**Coordinate with Orchestrator team:**
+- Framework submodule up-to-date (`git submodule update`)
+- Verify LICENSE, README, CHANGELOG present in submodule
 - No action needed on MTS branding (CEO decision: keep as-is)
+- Confirm Orchestrator team will flip Framework submodule repo to public on launch day
 
-**Owner:** @devops
+**Owner:** @devops (EndiorBot) + Orchestrator team
 
 ### C3: Domain DNS Setup (~30min)
 
