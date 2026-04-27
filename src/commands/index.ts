@@ -54,6 +54,10 @@ import { handleExecPolicyOttCommand } from "./handlers/exec-policy-commands.js";
 import { handleConfigOttCommand } from "./handlers/config-commands-ott.js";
 import { handleWebhookOttCommand } from "./handlers/webhook-commands.js";
 import { buildCmdListResult, renderCmdListForChannel } from "./command-catalog.js";
+import { getConversationStore } from "../channels/conversation/store.js";
+import { resolveWorkspace } from "../bridge/repo/workspace-resolver.js";
+import { getPreset } from "../security/exec-approvals/index.js";
+import { isFeatureEnabled } from "../config/feature-flags.js";
 
 // Import remote command handlers
 import {
@@ -108,7 +112,7 @@ export function createCommandDispatcher(): CommandDispatcher {
   d.register("start", async () => ({
     success: true,
     response: [
-      "👋 **Welcome to EndiorBot** — CEO Power Tool",
+      "👋 **Welcome to EndiorBot** — Solo Developer Power Tool",
       "",
       "Get answers in <30s instead of 30-60 min.",
       "",
@@ -335,6 +339,37 @@ export function createCommandDispatcher(): CommandDispatcher {
     success: true,
     response: generateHelpMessage(),
   }));
+
+  // Sprint 144: /status — system status with active workspace context
+  d.register("status", async (ctx) => {
+    const chatId = ctx.chatId ?? ctx.userId ?? "unknown";
+    const ws = resolveWorkspace(chatId, process.cwd());
+    const projectName = ws.split("/").pop() ?? "unknown";
+    const preset = getPreset();
+
+    return {
+      success: true,
+      response: [
+        "📊 **EndiorBot Status**",
+        "",
+        `📁 **Project:** ${projectName}`,
+        `📂 **Workspace:** ${ws}`,
+        `🛡️ **Exec-Policy:** ${preset}`,
+        `🔄 **Auto-Handoff:** ${process.env["ENDIORBOT_AUTO_HANDOFF"] === "true" ? "ON" : "OFF"}`,
+        `🧠 **Active Memory:** ${isFeatureEnabled("ACTIVE_MEMORY_ENABLED") ? "ON" : "OFF"}`,
+        `⚙️ **Framework:** SDLC 6.3.1`,
+        "",
+        "Use `/gate status` for gates, `/config` for full config, `/cost` for budget.",
+      ].join("\n"),
+    };
+  });
+
+  // /clear — clear conversation history for the current chat
+  d.register("clear", async (ctx) => {
+    const chatId = ctx.userId ?? ctx.channel ?? "unknown";
+    getConversationStore().clear(chatId);
+    return { success: true, response: "🗑 Conversation cleared." };
+  });
 
   return d;
 }
