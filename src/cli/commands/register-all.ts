@@ -52,6 +52,11 @@ import {
   registerPlanCommand,
   registerChatCommand,
   registerExecPolicyCommand,
+  registerReposCommand,
+  registerApproveCommand,
+  registerRejectCommand,
+  registerAuditCommand,
+  registerWebhooksCommand,
 } from "./index.js";
 
 /**
@@ -96,4 +101,9 @@ export function registerAllCommands(program: Command): void {
   registerPlanCommand(program);
   registerChatCommand(program);
   registerExecPolicyCommand(program);
+  registerReposCommand(program);
+  registerApproveCommand(program);
+  registerRejectCommand(program);
+  registerAuditCommand(program);
+  registerWebhooksCommand(program);
 }
