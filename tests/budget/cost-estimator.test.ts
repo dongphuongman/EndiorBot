@@ -259,8 +259,8 @@ describe("CostEstimator", () => {
       const result = estimator.findCheapestModel(context);
 
       expect(result).toBeDefined();
-      // self-hosted models are free
-      expect(result?.model).toMatch(/^self-hosted\//);
+      // self-hosted models and kimi-coding (flat-rate subscription) are free
+      expect(result?.model).toMatch(/^(self-hosted\/|kimi-coding)$/);
       expect(result?.estimate.estimated_cost).toBe(0);
     });
 

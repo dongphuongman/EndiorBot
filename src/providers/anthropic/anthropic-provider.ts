@@ -70,8 +70,8 @@ const ANTHROPIC_MODELS: ModelDefinition[] = [
     maxOutputTokens: 4096,
     supportedFeatures: ["chat", "vision", "tools", "streaming"],
   },
-  // Sprint 143: Proxy-passthrough models — when AnthropicProvider is used as
-  // inner delegate by KimiProxyProvider, the proxy binary routes these model
+  // Sprint 143: Passthrough models — when AnthropicProvider is used as
+  // inner delegate by kimi-coding (ADR-053), the endpoint routes these model
   // names to Kimi. They must pass validateModel() to reach the HTTP call.
   {
     id: "kimi-k2.6",

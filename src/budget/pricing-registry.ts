@@ -107,13 +107,20 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
       provider: "kimi",
       input_per_1k: 0.003,
       output_per_1k: 0.015,
-      notes: "Kimi k2.6 — primary workhorse for Tier-2 agents",
+      notes: "Kimi k2.6 — served by kimi-api (Moonshot backup)",
     },
     "kimi-for-coding": {
       provider: "kimi",
       input_per_1k: 0.003,
       output_per_1k: 0.015,
-      notes: "Kimi coding-specialized variant",
+      notes: "Kimi coding-specialized — pay-per-token via kimi-api (Moonshot). When served by kimi-coding (CEO subscription), marginal cost is $0 (flat-rate).",
+    },
+    // ADR-053: Flat-rate marker for cost tracking when provider is kimi-coding
+    "kimi-coding": {
+      provider: "kimi-coding",
+      input_per_1k: 0,
+      output_per_1k: 0,
+      notes: "CEO subscription — flat-rate, no marginal cost per token",
     },
     "moonshot-v1-128k": {
       provider: "kimi",

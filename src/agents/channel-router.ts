@@ -7,7 +7,6 @@
 
 import { getClaudeCodeBridge, type ClaudeCodeBridge } from "./invoke/index.js";
 import { initializeProvidersFromEnv } from "../providers/init.js";
-import { registerKimiProxyCleanup } from "../providers/kimi-proxy/index.js";
 import { parseMention } from "./orchestrator/mention-parser.js";
 import type { ChannelSendFn } from "../bus/types.js";
 import type { McpGatewayBridge } from "../mcp-gateway/bridge.js";
@@ -139,9 +138,6 @@ export class ChannelRouter {
 
   /** Initialize all AI providers and check availability. */
   async initialize(): Promise<RouterStatus> {
-    // Register Kimi proxy process cleanup (ADR-051)
-    registerKimiProxyCleanup();
-
     // Init cloud providers (fallback)
     this.providerCount = await initializeProvidersFromEnv();
     console.log(`[Router] ${this.providerCount} fallback providers ready`);
@@ -248,8 +244,9 @@ export class ChannelRouter {
     // Sprint 147 T1: Send "đang xử lý" AFTER lock acquired (not before).
     // Previously sent eagerly in OTT adapter → caused duplicate progress messages.
     if (progressFn) {
-      const model = getAgentProviderModel(agent)?.model ?? "sonnet";
-      progressFn(`⏳ @${agent} đang xử lý... (${model})`);
+      const agentCfg = getAgentProviderModel(agent);
+      const providerLabel = agentCfg?.provider ?? "claude-code";
+      progressFn(`⏳ @${agent} đang xử lý... (${providerLabel})`);
     }
 
     try {
@@ -275,6 +272,7 @@ export class ChannelRouter {
         progressFn?.(`⚡ Claude Code circuit open (recent failures) — using fallback for @${agent}…`);
         const cbFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
         if (cbFallback) {
+          progressFn?.(`⏳ @${agent} đang xử lý... (${cbFallback.provider ?? "fallback"})`);
           this.recordTelemetry(agent, task, callStartTime, true, cbFallback.provider ?? "fallback", true, cbFallback);
           return cbFallback;
         }
@@ -315,6 +313,7 @@ export class ChannelRouter {
           );
           const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
           if (fallbackResult) {
+            progressFn?.(`⏳ @${agent} đang xử lý... (${fallbackResult.provider ?? "fallback"})`);
             this.recordTelemetry(agent, task, callStartTime, true, fallbackResult.provider ?? "fallback", true, fallbackResult);
             return fallbackResult;
           }
@@ -332,6 +331,7 @@ export class ChannelRouter {
           );
           const timeoutFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
           if (timeoutFallback) {
+            progressFn?.(`⏳ @${agent} đang xử lý... (${timeoutFallback.provider ?? "fallback"})`);
             this.recordTelemetry(agent, task, callStartTime, true, timeoutFallback.provider ?? "fallback", true, timeoutFallback);
             return timeoutFallback;
           }
@@ -340,15 +340,43 @@ export class ChannelRouter {
             `⚠️ Claude Code timed out and no fallback provider responded. The CLI did not respond in time — it may be waiting for permission input. Try 'claude --version' to verify the CLI is healthy.`,
           );
         }
-        case "AUTH":
-          throw new Error(
-            `🔑 Claude Code authentication failed — your OAuth session may have expired. Please run 'claude login' and retry.`,
+        case "AUTH": {
+          console.log(
+            `[Router] Claude Code auth failed (${failure.reason}) — falling back for @${agent}...`,
           );
+          progressFn?.(
+            `🔑 Claude Code auth failed — switching to fallback for @${agent}…`,
+          );
+          const authFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+          if (authFallback) {
+            progressFn?.(`⏳ @${agent} đang xử lý... (${authFallback.provider ?? "fallback"})`);
+            this.recordTelemetry(agent, task, callStartTime, true, authFallback.provider ?? "fallback", true, authFallback);
+            return authFallback;
+          }
+
+          throw new Error(
+            `🔑 Claude Code authentication failed and no fallback provider responded. Please run 'claude login' and retry.`,
+          );
+        }
         case "OTHER":
-        default:
-          throw new Error(
-            `Claude Code failed: ${failure.reason}. Silent fallback is disabled for non-rate-limit failures — please fix the root cause or retry.`,
+        default: {
+          console.log(
+            `[Router] Claude Code failed (${failure.reason}) — falling back for @${agent}...`,
           );
+          progressFn?.(
+            `⚡ Claude Code error — switching to fallback for @${agent}…`,
+          );
+          const otherFallback = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
+          if (otherFallback) {
+            progressFn?.(`⏳ @${agent} đang xử lý... (${otherFallback.provider ?? "fallback"})`);
+            this.recordTelemetry(agent, task, callStartTime, true, otherFallback.provider ?? "fallback", true, otherFallback);
+            return otherFallback;
+          }
+
+          throw new Error(
+            `Claude Code failed: ${failure.reason}. All fallback providers exhausted — please fix the root cause or retry.`,
+          );
+        }
       }
     }
 
@@ -365,6 +393,7 @@ export class ChannelRouter {
     progressFn?.(`⚡ ${agentConfig!.provider} unavailable — trying fallback for @${agent}…`);
     const fallbackResult = await dispatchAgentFallback(deps, agent, task, history, ws, notifyFn);
     if (fallbackResult) {
+      progressFn?.(`⏳ @${agent} đang xử lý... (${fallbackResult.provider ?? "fallback"})`);
       this.recordTelemetry(agent, task, callStartTime, true, fallbackResult.provider ?? "fallback", true, fallbackResult);
       return fallbackResult;
     }

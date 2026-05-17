@@ -111,14 +111,45 @@ export function buildEnrichedPrompt(
     // CC bridge reads files via CLI; cloud providers need it in prompt.
     // CTO C1 resolved: Layer 1.25 is bridge-only, so inject here for universality.
     // Cap: 500 tokens (~2000 chars) to prevent prompt bloat.
-    const identityContent = readProjectFile(ws, "IDENTITY.md", 2000);
+    const identityContent = readProjectFile(ws, "IDENTITY.md", 2000) ?? readProjectFile(ws, "CLAUDE.md", 2000);
     if (identityContent) parts.push(`[Project Identity]\n${identityContent}`);
-  }
 
-  // Workspace Awareness directive — instruct agent to read codebase files.
-  // Sprint 142 P0-2: Previously bridge-only (Layer 1.25 via ContextInjector).
-  // Now universal — cloud/Kimi/Ollama agents also get the discovery protocol.
-  parts.push(WORKSPACE_AWARENESS_SECTION);
+    // ADR-053 P0-2: Eager-load key project files for cloud providers
+    // (Kimi/OpenAI/Gemini) that lack filesystem tools. Prevents agents
+    // from asking clarifying questions about state already in the repo.
+    const eagerFiles = [
+      { name: "CLAUDE.md", maxChars: 1500 },
+      { name: "AGENTS.md", maxChars: 1000 },
+      { name: ".sdlc-config.json", maxChars: 500 },
+      { name: "docs/04-build/sprints/SPRINT-INDEX.md", maxChars: 1000 },
+    ];
+    let eagerLoadedCount = 0;
+    for (const { name, maxChars } of eagerFiles) {
+      const content = readProjectFile(ws, name, maxChars);
+      if (content) {
+        parts.push(`[${name}]\n${content}`);
+        eagerLoadedCount++;
+      }
+    }
+
+    // ADR-053: If eager context loaded, replace the tool-centric workspace
+    // awareness with a cloud-friendly directive. Prevents Kimi (no tools)
+    // from hallucinating file reads or looping on discovery protocol.
+    if (eagerLoadedCount > 0) {
+      parts.push(`## Workspace Awareness (MANDATORY)
+
+Project context is provided above in the [CLAUDE.md], [AGENTS.md], [.sdlc-config.json], and sprint sections.
+Answer directly based on this provided context. Do NOT list files to read or simulate reading them.
+If you have tool access and need additional information, use your tools.
+Never ask the user for information already visible in the provided context.`);
+    } else {
+      // Bridge path or missing files — keep original tool-centric directive
+      parts.push(WORKSPACE_AWARENESS_SECTION);
+    }
+  } else {
+    // Workspace context disabled — still inject the original directive for bridge
+    parts.push(WORKSPACE_AWARENESS_SECTION);
+  }
 
   // RL enrichment (confidence-gated)
   const enrichment = formatEnrichmentForPrompt(getPromptEnrichment(agent));
@@ -348,11 +379,11 @@ export async function callCloudFallback(
   // fallback with everything hung. Prefer actual cloud providers (Gemini,
   // OpenAI) which CEO has explicitly approved via .env.local keys.
   //
-  // ADR-051 (Sprint 140): Fallback chain per CEO directive 2026-04-23.
+  // ADR-053 (Sprint 145): Fallback chain updated.
   // Preference order:
-  //   kimi-proxy (OAuth) → kimi-api (API key) → openai
-  //   Gemini removed; Anthropic removed.
-  const preferredOrder = ["kimi-proxy", "kimi-api", "openai"];
+  //   kimi-coding (CEO subscription) → kimi-api (Moonshot backup) → openai
+  //   kimi-proxy removed; Gemini removed; Anthropic removed.
+  const preferredOrder = ["kimi-coding", "kimi-api", "openai"];
   let provider: ReturnType<typeof registry.get> = undefined;
   for (const id of preferredOrder) {
     if (registry.has(id)) {
@@ -417,8 +448,8 @@ export async function callCloudFallback(
 // ============================================================================
 
 /**
- * Call Kimi provider (proxy → API) for Tier-2 agents.
- * ADR-051: kimi-proxy (OAuth) preferred, kimi-api (API key) fallback.
+ * Call Kimi provider for Tier-2 agents.
+ * ADR-053: kimi-coding (CEO subscription, primary) → kimi-api (Moonshot backup).
  */
 export async function callKimiProvider(
   deps: ProviderDeps,
@@ -429,7 +460,9 @@ export async function callKimiProvider(
   modelOverride?: string,
 ): Promise<AIResult | null> {
   const registry = getProviderRegistry();
-  const preferredOrder = ["kimi-proxy", "kimi-api"];
+
+  // Resolve provider: kimi-coding primary, kimi-api backup
+  const preferredOrder = ["kimi-coding", "kimi-api"];
   let provider: ReturnType<typeof registry.get> = undefined;
   for (const id of preferredOrder) {
     if (registry.has(id)) {
@@ -450,12 +483,8 @@ export async function callKimiProvider(
 
   // Use agent's configured Kimi model or override
   const agentConfig = getAgentProviderModel(agent);
-  const modelId = modelOverride ?? agentConfig?.model ?? provider.models[0]?.id ?? "kimi-k2-6";
+  const modelId = modelOverride ?? agentConfig?.model ?? provider.models[0]?.id ?? "kimi-for-coding";
   if (!modelId) return null;
-
-  // Sprint 141 P0-3: rate-limit monitoring
-  const { recordProxySuccess, recordProxyRateLimit, recordFallbackToApi } =
-    await import("../../providers/kimi-proxy/rate-limit-monitor.js");
 
   try {
     const startTime = Date.now();
@@ -469,10 +498,9 @@ export async function callKimiProvider(
       maxTokens: 2000,
     });
     const latencyMs = Date.now() - startTime;
-    recordProxySuccess(latencyMs);
     const result: AIResult = {
       content: response.content,
-      provider: provider.id === "kimi-proxy" ? "kimi-proxy" : "kimi-api",
+      provider: provider.id,
       durationMs: latencyMs,
     };
     if (response.usage) {
@@ -485,48 +513,6 @@ export async function callKimiProvider(
     return result;
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-
-    // Sprint 141 P0-3: detect 429 rate-limit and try kimi-api fallback
-    const is429 = errMsg.includes("429") || errMsg.includes("rate limit") || errMsg.includes("Rate limit");
-    if (is429 && provider.id === "kimi-proxy") {
-      recordProxyRateLimit();
-      log.warn(`Kimi proxy rate-limited for @${agent} — trying kimi-api fallback`);
-
-      // Try kimi-api as immediate fallback
-      const apiProvider = registry.has("kimi-api") ? registry.get("kimi-api") : undefined;
-      if (apiProvider) {
-        try {
-          const fbStart = Date.now();
-          const fbResponse = await apiProvider.chat({
-            model: modelId,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: task },
-            ],
-            temperature: 0.7,
-            maxTokens: 2000,
-          });
-          const fbLatency = Date.now() - fbStart;
-          recordFallbackToApi(fbLatency);
-          const fbResult: AIResult = {
-            content: fbResponse.content,
-            provider: "kimi-api",
-            durationMs: fbLatency,
-          };
-          if (fbResponse.usage) {
-            fbResult.tokenUsage = {
-              inputTokens: fbResponse.usage.promptTokens,
-              outputTokens: fbResponse.usage.completionTokens,
-              totalTokens: fbResponse.usage.totalTokens,
-            };
-          }
-          return fbResult;
-        } catch (fbErr) {
-          log.warn(`Kimi API fallback also failed: ${(fbErr as Error).message}`);
-        }
-      }
-    }
-
     log.warn(`Kimi provider failed for @${agent}: ${errMsg}`);
     return null;
   }
@@ -706,7 +692,6 @@ export async function dispatchAgentFallback(
     log.info(`ADR-052 fallback: @${agent} → ${providerId} [tier ${tier}]`);
     let result: AIResult | null = null;
 
-    const fbStart = Date.now();
     switch (providerId) {
       case "claude-code":
         result = await callClaudeBridge(deps, agent, task, history, workspace, notifyFn);
@@ -721,11 +706,6 @@ export async function dispatchAgentFallback(
 
     if (result) {
       log.info(`ADR-052 fallback success: @${agent} via ${providerId}`);
-      // Sprint 141 P0-3 CPO fix: record fallback-to-Claude telemetry
-      if (providerId === "claude-code" && primaryProvider !== "claude-code") {
-        const { recordFallbackToClaude } = await import("../../providers/kimi-proxy/rate-limit-monitor.js");
-        recordFallbackToClaude(Date.now() - fbStart);
-      }
       return result;
     }
   }

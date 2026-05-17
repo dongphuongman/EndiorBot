@@ -1,5 +1,6 @@
 ---
-status: ACCEPTED
+status: SUPERSEDED
+supersededBy: "ADR-053"
 authority:
   proposer: "@architect"
   countersigners:
@@ -8,13 +9,17 @@ authority:
       grade: ""
       reference: "ceo-directive-2026-04-23"
   trigger: "CEO requires Kimi2.6 as first fallback for all SDLC agents without external proxy management"
-  notes: "Subprocess orchestrator pattern selected per CTO review. Full porting rejected due to security and maintenance concerns."
+  notes: "Subprocess orchestrator pattern selected per CTO review. Full porting rejected due to security and maintenance concerns. SUPERSEDED 2026-05-06 by ADR-053 — claude-code-proxy binary removed from environment; replaced by direct API-key access via api.kimi.com/coding/v1."
 ---
 
 # ADR-051: Kimi Proxy Subprocess Orchestrator Integration
 
 ## Status
-Proposed (awaiting G2 approval)
+**SUPERSEDED by [ADR-053](./ADR-053-kimi-coding-api-direct.md)** (2026-05-06).
+
+Original status: Proposed → Accepted (Sprint 140) → Superseded (2026-05-06).
+
+Reason: `claude-code-proxy` binary removed from environment; CEO subscription enables direct API-key access via `https://api.kimi.com/coding/v1`. The subprocess orchestrator described below is no longer functional and is being deleted from the codebase.
 
 ## Context
 

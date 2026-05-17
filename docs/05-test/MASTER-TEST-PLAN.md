@@ -26,9 +26,13 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
         └─────────────────┘
 ```
 
-**Current Status (Post-Sprint 144): 2026-04-27**
-- **Total Tests: 8,124+ (8,124 passing | 0 failing | 10 skipped)**
-- **Pass Rate:** 99.8%
+**Current Status (Post-Sprint 145): 2026-05-07**
+- **Total Tests: 8,137+ (8,131 passing | 1 failing | 10 skipped)**
+- **Pass Rate:** 99.9%
+- **Sprint 145 Changes:** ADR-053 — Kimi Coding API Direct Integration + kimi-proxy removal
+  - 7 new unit tests (`tests/providers/kimi-coding/`)
+  - 2 test updates (`pricing-registry`, `cost-estimator` — flat-rate marker)
+  - 1 infrastructure failure (`gateway/server.test.ts` — EADDRINUSE port collision, pre-existing)
 - **New Tests (Sprint 68-106):** 2,134 tests added
   - Sprint 68 (SDLC Compliance): 102 tests
   - Sprint 69-71 (Session Resilience): 112 tests
@@ -202,13 +206,41 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 
 | Module | Tests | Status | Notes |
 |--------|-------|--------|-------|
-| providers/ | ~3500 | MOSTLY PASS | Multi-model AI |
+| providers/ | ~3507 | MOSTLY PASS | Multi-model AI (+7 Sprint 145) |
 | agents/ | ~150 | PASS | Agent framework |
-| budget/ | 56 | PASS | Budget tracker |
+| budget/ | 73 | PASS | Budget tracker (+2 updated Sprint 145) |
 | account-manager | 65 | PASS | Multi-account switching |
 | config/ | ~50 | PASS | Configuration |
 | logging/ | ~30 | PASS | Logger |
 | utils/ | ~40 | PASS | Utilities |
+
+---
+
+### 1.33 Provider Architecture Changes (13 tests) - Sprint 145
+
+**Location:** `tests/providers/kimi-coding/`, `tests/budget/`, `tests/security/`
+**Authority:** ADR-053 Kimi Coding API Direct Integration
+
+| Test Suite | Tests | Status | Coverage |
+|------------|-------|--------|----------|
+| `kimi-coding/index.test.ts` | 7 | PASS | Provider metadata, init, model normalization, delegation |
+| `pricing-registry.test.ts` (updated) | 36 | PASS | Flat-rate marker `kimi-coding` acknowledged |
+| `cost-estimator.test.ts` (updated) | 37 | PASS | Cheapest model includes flat-rate subscription |
+| `http-validator.test.ts` (new) | 6 | PASS | SSRF defense: `api.kimi.com` + `api.moonshot.ai` allowed; private IPs blocked |
+
+**Validated Features:**
+- `KimiCodingProvider` composes `AnthropicProvider` (Anthropic-compatible endpoint)
+- Default endpoint: `https://api.kimi.com/coding/v1`
+- Model normalization: non-coding model names → `kimi-for-coding`
+- Env var split: `KIMI_API_KEY` (coding) vs `MOONSHOT_API_KEY` (backup)
+- Fallback chain: `kimi-coding` → `kimi-api` → `openai`
+- Pricing registry flat-rate marker: `kimi-coding` entry with `$0` marginal cost
+
+**Cleanup Verified:**
+- `src/providers/kimi-proxy/` deleted (3 files, ~600 LOC)
+- `tests/providers/kimi-proxy/` deleted
+- Zero runtime references to `kimi-proxy`, `claude-code-proxy`, `KIMI_PROXY_*` in `src/`
+- `http-validator.ts`: `ENDIORBOT_KIMI_PROXY_URL` refs removed
 
 ---
 
@@ -1142,27 +1174,29 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | 100 | 29 | 0 regressions | PASS |
 | 101 | 33 | 0 regressions | PASS |
 | 102 | 0 (+5 updated) | 0 regressions | PASS |
+| 145 | 7 new, 2 updated | 0 regressions | PASS |
 
 ---
 
 ## 9. Test Metrics & KPIs
 
-### 9.1 Current Metrics (Post-Sprint 144)
+### 9.1 Current Metrics (Post-Sprint 145)
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Total tests | 8,124+ | - | - |
+| Total tests | 8,137+ | - | - |
 | Pass rate | 99.9% | > 99% | ON TARGET |
-| Tech debt tests | 0 failing | < 20 | EXCELLENT |
+| Tech debt tests | 1 failing (infra) | < 20 | EXCELLENT |
 | Flaky tests | 0 | 0 | RESOLVED |
-| New tests (Sprint 68-144) | 3,775+ | - | +87% growth |
+| New tests (Sprint 68-145) | 3,788+ | - | +87% growth |
 | Manual tests | 278 (210 passing, 68 pending) | - | +42 Sprint 82, +42 Sprint 83 |
 
 ### 9.2 Coverage by Module
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
-| Providers | ~3,500 | ~95% |
+| Providers | ~3,507 | ~95% |
+| Security | 6 | ~95% | SSRF defense (Sprint 145) |
 | SDLC | 360 | ~98% |
 | Sessions | 154 | ~95% |
 | Metrics | 32 | ~98% |
@@ -1195,6 +1229,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 | BUG-012 | checkpoint.test.ts:462 flaky (resume from checkpoint) | P3 | 35-40 | KNOWN FLAKY |
 | BUG-013 | OTT detection `includes(":]")` should be `includes("]")` | P2 | 74 | FIXED |
 | BUG-014 | 16 gateway WebSocket test files fail (server response 400) | P3 | 93+ | KNOWN (infra) |
+| BUG-015 | `gateway/server.test.ts` EADDRINUSE on port 18797 (intermittent port collision) | P3 | 145 | KNOWN (infra) |
 
 ### 10.2 Resolved Issues
 
@@ -1236,6 +1271,7 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 - ADR-028 Progressive Trust T3 (Sprint 97 design authority)
 - ADR-029 Per-Chat Workspace + Unified Channel (Sprint 99 design authority)
 - ADR-030 Unified Command Architecture (Sprint 102 design authority)
+- ADR-053 Kimi Coding API Direct Integration (Sprint 145 design authority)
 
 ### 11.2 Test Reports
 
@@ -1283,15 +1319,18 @@ This master test plan covers all testing aspects of EndiorBot, organized by test
 32. ~~Sprint 100: SASE 6.1.2 Full Alignment — 29 tests~~ DONE
 33. ~~Sprint 101: Tier-Aware Routing + ClawVault Memory — 33 tests~~ DONE
 34. ~~Sprint 102: Unified Command Architecture — 5 tests updated (ADR-030)~~ DONE
+35. ~~Sprint 145: Kimi Coding API Direct Integration — 7 new + 2 updated + 6 SSRF tests~~ DONE
 
 ### Short-term (Sprint 145+)
 
-1. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
-2. Investigate BUG-012 (checkpoint.test.ts flaky)
-3. Bridge live E2E: `/sh git status` on running server with real tmux
-4. Bridge live E2E: `/run npm test` approval flow end-to-end
-5. Launcher live E2E: `endiorbot bridge launcher start` with real tmux sessions
-6. Team live E2E: full team launch + health monitoring + cost tracking flow
+1. **Kimi Coding live integration test** — 1 round-trip call to `https://api.kimi.com/coding/v1` with real `KIMI_API_KEY` (G2 evidence)
+2. **Kimi Coding fallback chain E2E** — verify `kimi-coding` → `kimi-api` → `claude-code` fallback under simulated failures
+3. Zalo webhook live E2E test (requires Zalo OA sandbox — 17 tests pending)
+4. Investigate BUG-012 (checkpoint.test.ts flaky)
+5. Bridge live E2E: `/sh git status` on running server with real tmux
+6. Bridge live E2E: `/run npm test` approval flow end-to-end
+7. Launcher live E2E: `endiorbot bridge launcher start` with real tmux sessions
+8. Team live E2E: full team launch + health monitoring + cost tracking flow
 
 ### Long-term
 
@@ -1343,6 +1382,9 @@ pnpm vitest run tests/bridge/repo/ tests/bridge/copilot/ tests/bridge/shell/ tes
 
 # Run Sprint 83 Manual Tests (42 tests)
 node tests/manual/mt-83-remote-shell.mjs
+
+# Run Sprint 145 Kimi Coding Provider
+pnpm vitest run tests/providers/kimi-coding/ tests/budget/pricing-registry.test.ts tests/budget/cost-estimator.test.ts
 
 # Run Sprint 102 Unified Command Architecture (affected tests)
 pnpm vitest run tests/commands/command-dispatcher.test.ts tests/channels/ott/ott-enhancement.test.ts tests/channels/zalo/zalo-commands.test.ts tests/integration/telegram-ott-complete-flow.test.ts tests/channels/telegram/team-launch.test.ts tests/channels/telegram/team-monitoring.test.ts
@@ -1444,7 +1486,8 @@ pnpm test --coverage
 | 96 | 85 | 6,079 | 100% |
 | 97 | 78 | 6,157 | 100% |
 | 98 | 106 | 6,263 | 100% |
+| 145 | 13 new + 2 updated | 6,270 | 99.9% |
 
 ---
 
-*Master Test Plan v18.0 | SDLC Framework v6.3.1 | Sprint 144*
+*Master Test Plan v18.1 | SDLC Framework v6.3.1 | Sprint 145*

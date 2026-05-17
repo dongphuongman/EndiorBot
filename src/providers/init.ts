@@ -16,10 +16,7 @@ import { createOpenAIProviderFromEnv } from "./openai/index.js";
 import { createGeminiProviderFromEnv } from "./gemini/index.js";
 import { createOllamaProviderFromEnv } from "./ollama/index.js";
 import { ClaudeCodeProvider } from "./claude-code/index.js";
-import {
-  startKimiProxy,
-  createKimiProxyProviderFromEnv,
-} from "./kimi-proxy/index.js";
+import { createKimiCodingProviderFromEnv } from "./kimi-coding/index.js";
 import { createKimiApiProviderFromEnv } from "./kimi-api/index.js";
 
 /**
@@ -51,35 +48,40 @@ export async function initializeProvidersFromEnv(): Promise<number> {
     // Claude Code not available — fall through to API providers
   }
 
-  // Kimi Proxy (local claude-code-proxy subprocess — ADR-051)
-  // Fallback Tier 1: Kimi OAuth via local proxy.
-  try {
-    const proxyState = await startKimiProxy();
-    if (proxyState) {
-      const kimi = createKimiProxyProviderFromEnv();
-      await kimi.initialize({ baseUrl: proxyState.url });
-      registry.register(kimi);
-      console.log(`✓ Registered KimiProxyProvider at ${proxyState.url}`);
-      count++;
-    }
-  } catch (error) {
-    console.warn("⚠ Failed to register KimiProxyProvider:", error instanceof Error ? error.message : String(error));
-  }
-
-  // Kimi API (Moonshot — direct OpenAI-compatible API)
-  // Fallback Tier 2: Direct API key when OAuth proxy unavailable.
+  // Kimi Coding (CEO subscription — primary kimi backend)
+  // ADR-053: Anthropic-compatible endpoint, kimi-for-coding model only.
   if (process.env.KIMI_API_KEY) {
     try {
-      const kimiApi = createKimiApiProviderFromEnv();
-      const kimiConfig: { apiKey: string; baseUrl?: string } = {
+      const kimiCoding = createKimiCodingProviderFromEnv();
+      const codingConfig: { apiKey: string; baseUrl?: string } = {
         apiKey: process.env.KIMI_API_KEY,
       };
       if (process.env.KIMI_API_BASE_URL) {
-        kimiConfig.baseUrl = process.env.KIMI_API_BASE_URL;
+        codingConfig.baseUrl = process.env.KIMI_API_BASE_URL;
+      }
+      await kimiCoding.initialize(codingConfig);
+      registry.register(kimiCoding);
+      console.log("✓ Registered KimiCodingProvider (CEO subscription)");
+      count++;
+    } catch (error) {
+      console.warn("⚠ Failed to register KimiCodingProvider:", error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // Kimi API (Moonshot — backup fallback, OpenAI-compatible API)
+  // ADR-053: MOONSHOT_API_KEY drives kimi-api. This is Fallback Tier 3.
+  if (process.env.MOONSHOT_API_KEY) {
+    try {
+      const kimiApi = createKimiApiProviderFromEnv();
+      const kimiConfig: { apiKey: string; baseUrl?: string } = {
+        apiKey: process.env.MOONSHOT_API_KEY,
+      };
+      if (process.env.MOONSHOT_API_BASE_URL) {
+        kimiConfig.baseUrl = process.env.MOONSHOT_API_BASE_URL;
       }
       await kimiApi.initialize(kimiConfig);
       registry.register(kimiApi);
-      console.log("✓ Registered KimiApiProvider (Moonshot)");
+      console.log("✓ Registered KimiApiProvider (Moonshot backup)");
       count++;
     } catch (error) {
       console.warn("⚠ Failed to register KimiApiProvider:", error instanceof Error ? error.message : String(error));
@@ -151,7 +153,7 @@ export async function initializeProvidersFromEnv(): Promise<number> {
   const defaultProvider = registry.getDefault();
 
   // Priority (ADR-043-A1): Claude Code > Gemini > Ollama > OpenAI
-  // Updated ADR-051: kimi-proxy is a fallback, never default.
+  // ADR-053: kimi-coding (primary) and kimi-api (backup) are fallbacks, never default.
   if (registry.has('claude-code')) {
     registry.setDefault('claude-code');
   } else if (registry.has('gemini')) {

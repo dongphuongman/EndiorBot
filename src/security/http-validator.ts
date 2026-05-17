@@ -82,26 +82,17 @@ function getConfiguredOllamaOrigins(): Set<string> {
 
 /**
  * Collect all configured local provider URLs that should bypass SSRF checks.
- * Includes Ollama endpoints AND kimi-proxy (ENDIORBOT_KIMI_PROXY_URL).
+ * Includes Ollama endpoints only.
  * All configured URLs are explicit CEO/DevOps configuration, not user input.
  */
 function getConfiguredLocalProviderOrigins(): Set<string> {
-  const origins = getConfiguredOllamaOrigins();
-  // Kimi proxy — local claude-code-proxy or externally managed proxy
-  const kimiProxyUrl = process.env.ENDIORBOT_KIMI_PROXY_URL;
-  if (kimiProxyUrl) {
-    try {
-      const parsed = new URL(kimiProxyUrl);
-      origins.add(`${parsed.hostname}:${parsed.port || (parsed.protocol === "https:" ? "443" : "80")}`);
-    } catch { /* skip invalid URLs */ }
-  }
-  return origins;
+  return getConfiguredOllamaOrigins();
 }
 
 /**
  * Check if a URL targets a configured local provider endpoint.
- * Returns true if the URL's host:port matches any configured Ollama URL from env,
- * the default localhost:11434, or ENDIORBOT_KIMI_PROXY_URL.
+ * Returns true if the URL's host:port matches any configured Ollama URL from env
+ * or the default localhost:11434.
  */
 function isConfiguredOllamaEndpoint(url: string): boolean {
   try {
@@ -262,7 +253,7 @@ export function validateFetchUrl(rawUrl: string): void {
   if (ipv4 !== null) {
     for (const [network, prefix] of BLOCKED_IPV4_CIDRS) {
       if (inIPv4Cidr(ipv4, network, prefix)) {
-        // Allow configured local providers (Ollama, kimi-proxy) on private IPs
+        // Allow configured local providers (Ollama) on private IPs
         if (isConfiguredOllamaEndpoint(rawUrl)) {
           return; // allowed — CEO/DevOps configured local provider
         }
@@ -283,6 +274,10 @@ export function validateFetchUrl(rawUrl: string): void {
   }
 
   // --- FQDN: passed all checks ---
+  // ADR-053: Intentionally allowed provider hosts (public APIs):
+  //   api.kimi.com (Kimi Coding API, primary)
+  //   api.moonshot.ai (Moonshot backup)
+  // These are public FQDNs and pass through the blocklist-based validator.
 }
 
 // ============================================================================

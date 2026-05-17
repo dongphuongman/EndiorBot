@@ -64,10 +64,14 @@ const RATE_LIMIT_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
 
 /**
  * Patterns that indicate OAuth / authentication failure (not rate-limit).
- * These should NOT trigger Gemini fallback — user must re-login to Claude CLI.
+ * ADR-053 (Sprint 145): Auth failures now trigger kimi-coding fallback
+ * (CEO subscription via API key, independent of Claude OAuth).
+ * Kept separate from rate-limit so the router can log the root cause clearly.
  */
 const AUTH_FAIL_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\bnot\s+authenticated\b/i, label: "not-authenticated" },
+  { pattern: /\bnot\s+logged\s+in\b/i, label: "not-logged-in" },
+  { pattern: /\bplease\s+(run\s+)?[`/]?login[`/]?/i, label: "login-required" },
   { pattern: /\bplease\s+(run\s+)?`?claude\s+login`?/i, label: "claude-login-required" },
   { pattern: /\boauth\s+(token\s+)?(expired|invalid)\b/i, label: "oauth-expired" },
   { pattern: /\b401\s+unauthorized\b/i, label: "http-401" },

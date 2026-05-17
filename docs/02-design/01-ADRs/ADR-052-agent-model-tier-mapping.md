@@ -14,7 +14,7 @@ authority:
 # ADR-052: Agent-Model Tier Mapping Strategy
 
 ## Status
-Proposed (awaiting G2 approval)
+ACCEPTED (2026-04-23, CTO G2). Amended 2026-05-06 by ADR-053 (kimi-coding primary / kimi-api backup).
 
 ## Context
 
@@ -62,6 +62,8 @@ For lightweight, non-coding tasks where quality tolerance is highest.
 | `@assistant` | Ollama qwen3.5:9b | Routing, delegation tracking |
 
 ### Fallback Chain per Tier
+
+> **Amended by [ADR-053](./ADR-053-kimi-coding-api-direct.md) (2026-05-06)**: the abstract `kimi` slot in each chain now resolves at runtime as `kimi-coding` (primary, `api.kimi.com/coding/v1`) → `kimi-api` (backup, `api.moonshot.ai/v1`). The legacy `kimi-proxy` (subprocess) has been removed.
 
 ```
 Tier 1 (Opus):   claude-code → kimi → ollama

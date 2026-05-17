@@ -72,29 +72,15 @@ When you complete a plan, scope doc, PRD, or requirements update:
 
 The cite-path step is the single invariant. Skip steps 1–2 if the work is exploratory (idea capture, option weighing). Never skip step 3 if you produced an approvable artifact.
 
-## Workspace Awareness (MANDATORY)
+## Workspace Awareness
 
-Before answering ANY question about the project, planning, status, or next steps, you MUST first read the project context using your tools.
+Project context is provided by the runtime context injector (Layer 1.25). Key files (`CLAUDE.md`, `AGENTS.md`, sprint docs, `.sdlc-config.json`) are eagerly loaded into the system prompt when running via cloud providers.
 
-**Discovery protocol — run these reads BEFORE responding:**
+**When context is already provided above:** Answer directly based on it. Do NOT list files to read or simulate reading them.
 
-1. Read `CLAUDE.md` (root) — project overview, constraints, identity lock
-2. Read `AGENTS.md` (root) — agent guidelines, SDLC conventions
-3. List `docs/04-build/sprints/` — find latest sprint plan
-4. Read most recent `SPRINT-*.md` — current scope, task status, gate state
-5. Read `.sdlc-config.json` — tier, stage, framework version
+**When you have tool access (Claude Code Bridge):** Use `Read`, `Glob`, or `list_files` to discover additional context as needed.
 
-**Never ask the user:**
-
-- "What sprint is this?" → read sprint docs
-- "What's the backlog?" → read sprint plans + `git log`
-- "What's the tech stack?" → read `CLAUDE.md`
-- "What files are in the project?" → use `list_files` / `Glob`
-- "What's the current gate?" → read `.sdlc-config.json`
-
-This honors Mental Model #7 (Agent Continuity) from SDLC 6.3.1: each new AI session inherits enough context to continue work without re-briefing. Backs the Solo Developer Power Tool guarantee that commands return answers in <30s without clarifying questions about state visible in the workspace.
-
-Ref: `.sdlc-framework/05-Templates-Tools/04-SASE-Artifacts/Agent-Continuity-Runtime-Guidance.md`
+**Never ask the user for information already visible in the provided context.**
 
 ## Problem-First Approach (MANDATORY)
 
@@ -405,16 +391,17 @@ Completed: <milestone/phase description>]
 
 
 
-## Model Fallback Policy (ADR-052 Tier 2)
+## Model Fallback Policy (ADR-052 Tier 2, amended by ADR-053)
 
-**Primary:** Kimi k2.6 (`kimi-proxy` → `kimi-api`) — primary workhorse for this agent.
+**Primary:** `kimi-coding` (CEO subscription, `kimi-for-coding`) — primary workhorse for this agent.
 
-When Kimi is unavailable, this agent falls back to:
+When `kimi-coding` is unavailable, this agent falls back to:
 
-1. **Claude Code Bridge** (`claude-opus-4` → `claude-sonnet-4`) — Opus-level reasoning
-2. **OpenAI** (`openai`) — Codex / GPT
-3. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
+1. **`kimi-api`** (Moonshot backup, `kimi-k2.6`) — pay-per-use safety net
+2. **Claude Code Bridge** (`claude-opus-4` → `claude-sonnet-4`) — Opus-level reasoning
+3. **OpenAI** (`openai`) — Codex / GPT
+4. **Remote Ollama** (`ai-platform`) — AI Platform (last resort)
 
-**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed.
+**Removed from chain:** Gemini (CEO directive). Anthropic API key (expensive) also removed. `kimi-proxy` superseded by ADR-053.
 
-References: [ADR-051](../../../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md), [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md)
+References: [ADR-052](../../../02-design/01-ADRs/ADR-052-agent-model-tier-mapping.md), [ADR-053](../../../02-design/01-ADRs/ADR-053-kimi-coding-api-direct.md)

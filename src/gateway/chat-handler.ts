@@ -15,7 +15,7 @@
  * @authority ADR-001 3-Model Consultation
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import { randomUUID } from "crypto";
@@ -74,7 +74,7 @@ export interface ChatHandlerRequest {
  * Individual model response.
  */
 export interface ModelResponse {
-  provider: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-proxy";
+  provider: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-coding";
   model: string;
   content: string;
   latencyMs: number;
@@ -450,7 +450,7 @@ export class ChatHandler {
    * Query a single provider.
    */
   private async queryProvider(
-    providerId: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-proxy",
+    providerId: "anthropic" | "openai" | "google" | "kimi" | "kimi-api" | "kimi-coding",
     model: string,
     message: string,
     systemContext?: string,
@@ -458,12 +458,12 @@ export class ChatHandler {
     const startTime = Date.now();
     // Sprint 141 P1-1: resolve "kimi" via provider registry instead of
     // conditional this.providers.get() checks (tech debt from Sprint 140).
-    // Registry lookup order: kimi-proxy (OAuth) → kimi-api (API key)
+    // ADR-053: Registry lookup order: kimi-coding (primary) → kimi-api (backup)
     type ProviderId = ModelResponse["provider"];
     let resolvedId: ProviderId | null = providerId;
     if (providerId === "kimi") {
       const registry = getProviderRegistry();
-      if (registry.has("kimi-proxy")) resolvedId = "kimi-proxy";
+      if (registry.has("kimi-coding")) resolvedId = "kimi-coding";
       else if (registry.has("kimi-api")) resolvedId = "kimi-api";
       else resolvedId = null;
     }
@@ -553,7 +553,7 @@ export class ChatHandler {
       if (response.provider === "google" && response.status === "success") {
         critiques.gemini = response.content;
       }
-      if ((response.provider === "kimi" || response.provider === "kimi-api" || response.provider === "kimi-proxy") && response.status === "success") {
+      if ((response.provider === "kimi" || response.provider === "kimi-api" || response.provider === "kimi-coding") && response.status === "success") {
         critiques.kimi = response.content;
       }
     }

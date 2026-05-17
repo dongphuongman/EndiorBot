@@ -2,7 +2,7 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.3.1
-**Last Updated**: 2026-04-26 (Sprint 143 COMPLETE)
+**Last Updated**: 2026-05-07 (Sprint 148 PLANNED)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 141 | TBD | Cost telemetry validation + Ollama confidence tuning | 📋 PLANNED | — |
+| Sprint 148 | TBD | Kimi Coding API Integration (ADR-053) — merge, deploy, G3 validation | 📋 PLANNED | [sprint-148](sprint-148-kimi-coding-api.md) |\n| Sprint 147 | TBD | Agent Queue Integrity + UI Upgrade | 📋 PLANNED | [sprint-147](sprint-147-agent-queue.md) |\n| Sprint 146 | TBD | Post-Launch: Quality Hardening + Gap Closure | 📋 PLANNED | [sprint-146](sprint-146-post-launch.md) |
 
 ## Recently Completed
 

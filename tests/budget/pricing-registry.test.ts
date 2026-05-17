@@ -285,8 +285,8 @@ describe("PricingRegistry", () => {
 
       const cheapest = registry.getCheapestModel();
 
-      // self-hosted models are free (cheapest)
-      expect(cheapest).toMatch(/^self-hosted\//);
+      // self-hosted models and kimi-coding (flat-rate subscription) are free (cheapest)
+      expect(cheapest).toMatch(/^(self-hosted\/|kimi-coding)$/);
     });
 
     it("should return cheapest Anthropic model", () => {

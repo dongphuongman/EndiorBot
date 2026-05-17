@@ -204,19 +204,42 @@ endiorbot switch <project>      # Minimal context
 - [Master Plan v2.0](../00-foundation/master-plan.md)
 - [Sprint 54 Plan](../04-build/sprints/sprint-54-ai-chat-integration.md)
 
-### FR-012: Kimi Proxy Integration (Sprint 140) ✅ COMPLETE
+### FR-012: Kimi Proxy Integration (Sprint 140) ❌ REMOVED (Sprint 145, 2026-05-06)
 
-> **Note:** Subprocess spawner pattern deprecated in Sprint 144. Supported path is external proxy via `ENDIORBOT_KIMI_PROXY_URL`.
+> **REMOVED 2026-05-06 per CEO directive and [ADR-053](../02-design/01-ADRs/ADR-053-kimi-coding-api-direct.md).**
+> `claude-code-proxy` binary deleted from environment. Subprocess orchestrator non-functional. All `kimi-proxy` provider code, tests, and env variables (`KIMI_PROXY_*`, `ENDIORBOT_KIMI_PROXY_*`) scheduled for deletion. Replaced by FR-013 (direct API-key access).
 
 | ID | Requirement | Priority | Tier | Status |
 |----|-------------|----------|------|--------|
-| FR-012.1 | External `claude-code-proxy` wired as `kimi-proxy` provider | P0 | ALL | ✅ |
-| FR-012.2 | Dynamic port via `ENDIORBOT_KIMI_PROXY_URL` env | P0 | ALL | ✅ |
-| FR-012.3 | `kimi-proxy` as fallback for all SDLC agents (CC-first per ADR-052) | P0 | ALL | ✅ |
-| FR-012.4 | Graceful degrade if proxy unavailable | P0 | ALL | ✅ |
-| FR-012.5 | Kimi subprocess spawner deprecated with `console.warn` (Sprint 144) | P0 | ALL | ✅ |
+| FR-012.1 | External `claude-code-proxy` wired as `kimi-proxy` provider | P0 | ALL | ❌ REMOVED |
+| FR-012.2 | Dynamic port via `ENDIORBOT_KIMI_PROXY_URL` env | P0 | ALL | ❌ REMOVED |
+| FR-012.3 | `kimi-proxy` as fallback for all SDLC agents (CC-first per ADR-052) | P0 | ALL | ❌ REMOVED |
+| FR-012.4 | Graceful degrade if proxy unavailable | P0 | ALL | ❌ REMOVED |
+| FR-012.5 | Kimi subprocess spawner deprecated with `console.warn` (Sprint 144) | P0 | ALL | ❌ REMOVED |
 
-**Design Doc:** [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md)
+**Design Doc:** [ADR-051](../02-design/01-ADRs/ADR-051-kimi-proxy-subprocess-orchestrator.md) (SUPERSEDED by ADR-053)
+
+---
+
+### FR-013: Kimi Coding API Direct Integration (Sprint 145) 🆕 PROPOSED
+
+> Replaces FR-011.8 / FR-012 entirely. CEO subscription provides up to 5 API keys (Option A: single key per instance, MVP). Endpoint `https://api.kimi.com/coding/v1` is **Anthropic-compatible** and serves the **`kimi-for-coding`** model only. Moonshot (`https://api.moonshot.ai/v1`) re-roled as backup, endpoint host corrected from `.cn` to `.ai`.
+
+| ID | Requirement | Priority | Tier | Status |
+|----|-------------|----------|------|--------|
+| FR-013.1 | New `kimi-coding` provider targeting `https://api.kimi.com/coding/v1` (Anthropic-compat) | P0 | ALL | 🆕 |
+| FR-013.2a | Authenticate `kimi-coding` via `KIMI_API_KEY` (CEO subscription, single key per instance) | P0 | ALL | 🆕 |
+| FR-013.2b | Authenticate `kimi-api` (Moonshot backup) via `MOONSHOT_API_KEY`; `KIMI_API_KEY` no longer shared | P0 | ALL | 🆕 |
+| FR-013.3 | `kimi-coding` becomes primary "kimi" backend in fallback chains (ADR-052 amended) | P0 | ALL | 🆕 |
+| FR-013.4 | `kimi-api` (Moonshot) re-roled as backup; URL corrected to `https://api.moonshot.ai/v1` | P0 | ALL | 🆕 |
+| FR-013.5 | Auto-fallback `kimi-coding` → `kimi-api` on 5xx/auth errors | P0 | ALL | 🆕 |
+| FR-013.6 | Graceful skip if both `KIMI_API_KEY` and Moonshot key absent (no errors, chain continues) | P0 | ALL | 🆕 |
+| FR-013.7 | HTTP allowlist: `api.kimi.com` + `api.moonshot.ai` (SSRF guard) | P0 | ALL | 🆕 |
+| FR-013.8 | Pricing registry: `kimi-coding` flat-rate marker, `kimi-api` pay-per-token | P1 | ALL | 🆕 |
+| FR-013.9 | Cleanup: delete `src/providers/kimi-proxy/`, all related tests, env vars, channel-router hooks | P0 | ALL | 🆕 |
+| FR-013.10 | SOUL files updated: replace `kimi-proxy` refs with `kimi-coding (primary) → kimi-api (backup)` | P1 | ALL | 🆕 |
+
+**Design Doc:** [ADR-053](../02-design/01-ADRs/ADR-053-kimi-coding-api-direct.md)
 
 ---
 

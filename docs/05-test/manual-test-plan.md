@@ -482,3 +482,95 @@ time ./endiorbot.mjs context search "function" -c --topK 10
 ---
 
 *Manual Test Plan v1.0 | Sprint 64 | SDLC Framework v6.1.1*
+
+---
+
+## Test Suite 10: Kimi Coding API Integration (Sprint 145)
+
+**Authority:** ADR-053 Kimi Coding API Direct Integration
+**Date:** 2026-05-07
+**Tester:** @tester
+
+### TC-145.1: Provider registration with KIMI_API_KEY
+
+**Prerequisites:**
+- `.env` has `KIMI_API_KEY=sk-...` (CEO subscription key)
+- `.env` has `MOONSHOT_API_KEY=sk-...` (optional backup)
+
+**Command:**
+```bash
+pnpm vitest run tests/providers/kimi-coding/
+```
+
+**Expected:**
+- ✅ 7/7 unit tests pass
+- ✅ Provider metadata correct (`id: "kimi-coding"`, `model: "kimi-for-coding"`)
+- ✅ Initialization delegates to AnthropicProvider with correct baseUrl
+
+**Result:** ⏳ PENDING
+
+### TC-145.2: Fallback chain verification
+
+**Command:**
+```bash
+pnpm vitest run tests/agents/router/providers.ts
+```
+
+**Expected:**
+- ✅ `callCloudFallback` preferredOrder: `["kimi-coding", "kimi-api", "openai"]`
+- ✅ `callKimiProvider` tries `kimi-coding` before `kimi-api`
+- ✅ Graceful degrade when both keys missing
+
+**Result:** ⏳ PENDING
+
+### TC-145.3: Live integration test (requires real API key)
+
+**Command:**
+```bash
+# Requires KIMI_API_KEY in environment
+node -e "
+const { KimiCodingProvider } = require('./src/providers/kimi-coding/index.js');
+const p = new KimiCodingProvider();
+await p.initialize({ apiKey: process.env.KIMI_API_KEY });
+const h = await p.healthCheck();
+console.log('Health:', h.status, h.latencyMs + 'ms');
+const r = await p.chat({ model: 'kimi-for-coding', messages: [{role:'user',content:'Hello'}] });
+console.log('Response:', r.content.slice(0, 100));
+"
+```
+
+**Expected:**
+- ✅ Health check returns `healthy`
+- ✅ Chat response returns non-empty content
+- ✅ Latency < 8s
+
+**Result:** ⏳ PENDING
+
+### TC-145.4: Non-coding agent quality check (@cpo KPI)
+
+**Agents to test:** `@pm`, `@researcher`, `@cpo`
+**Task:** Non-coding task (e.g., "Write a brief strategy memo")
+**Metric:**
+- Fallback rate to `claude-code` < 15%
+- Output quality score ≥ 4.0/5 (rubric: clarity, completeness, no hallucination)
+
+**Expected:**
+- ✅ Agent uses `kimi-for-coding` as primary
+- ✅ If quality drops, fallback to `claude-code` automatic
+- ✅ No error thrown when kimi-coding unavailable
+
+**Result:** ⏳ PENDING (measure over 7-day window)
+
+### TC-145.5: Legacy cleanup verification
+
+**Command:**
+```bash
+grep -rn "kimi-proxy\|KimiProxy\|KIMI_PROXY\|ENDIORBOT_KIMI_PROXY\|claude-code-proxy" src/ tests/
+```
+
+**Expected:**
+- ✅ Zero code references (only comments allowed)
+- ✅ `src/providers/kimi-proxy/` does not exist
+- ✅ `tests/providers/kimi-proxy/` does not exist
+
+**Result:** ⏳ PENDING

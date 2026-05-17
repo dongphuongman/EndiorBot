@@ -1,11 +1,14 @@
 /**
  * Kimi API Provider (Moonshot)
  *
- * Direct integration with Moonshot AI API (api.moonshot.cn).
+ * Direct integration with Moonshot AI API (api.moonshot.ai).
  * Uses OpenAI-compatible API format via composition with OpenAIProvider.
+ *
+ * ADR-053: Re-roled from primary to backup kimi provider. URL corrected .cn → .ai.
  *
  * @module providers/kimi-api
  * @since Sprint 140 — Kimi API fallback tier
+ * @updated Sprint 145 — ADR-053 backup role + URL fix
  */
 
 import { OpenAIProvider } from "../openai/index.js";
@@ -19,8 +22,8 @@ import type {
   ProviderHealth,
 } from "../types.js";
 
-/** Default Moonshot API endpoint. */
-const DEFAULT_MOONSHOT_URL = "https://api.moonshot.cn/v1";
+/** Default Moonshot API endpoint (corrected .cn → .ai per ADR-053). */
+const DEFAULT_MOONSHOT_URL = "https://api.moonshot.ai/v1";
 
 /** Kimi model definitions via Moonshot API. */
 const KIMI_API_MODELS: ModelDefinition[] = [
@@ -51,7 +54,8 @@ const KIMI_API_MODELS: ModelDefinition[] = [
  * KimiApiProvider delegates to an internal OpenAIProvider instance
  * because Moonshot exposes an OpenAI-compatible API.
  *
- * This is Fallback Tier 2 (after Kimi OAuth proxy, before OpenAI Codex).
+ * ADR-053: Backup kimi provider — used when kimi-coding (CEO subscription)
+ * is unavailable or rate-limited. Primary for this model is now kimi-coding.
  */
 export class KimiApiProvider implements AIProvider {
   readonly id = "kimi-api";
@@ -93,8 +97,8 @@ export class KimiApiProvider implements AIProvider {
  * Create a KimiApiProvider from environment variables.
  *
  * Env:
- *   KIMI_API_KEY — Moonshot API key (required)
- *   KIMI_API_BASE_URL — optional override (default https://api.moonshot.cn/v1)
+ *   MOONSHOT_API_KEY — Moonshot API key (required)
+ *   MOONSHOT_API_BASE_URL — optional override (default https://api.moonshot.ai/v1)
  */
 export function createKimiApiProviderFromEnv(): KimiApiProvider {
   const provider = new KimiApiProvider();
