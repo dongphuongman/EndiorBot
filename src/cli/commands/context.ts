@@ -18,7 +18,7 @@
  * @status ACTIVE - Sprint 63 Code Search
  * @authority Master Plan v4.2, CTO Amendments
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import { writeFileSync, existsSync, readFileSync } from "node:fs";

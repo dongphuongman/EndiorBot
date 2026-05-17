@@ -64,7 +64,7 @@ export async function scaffoldProject(
     name: config.projectName,
     description: config.projectDescription ?? "",
     tier: config.tier,
-    frameworkVersion: "6.3.0",
+    frameworkVersion: "6.3.1",
   };
 
   try {

@@ -17,7 +17,7 @@
  * @authority ADR-001 Multi-Model Orchestrator
  * @pillar 3 - Resource Optimization
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import { createLogger, type Logger } from "../logging/index.js";

@@ -17,7 +17,7 @@
  * @authority ADR-010 Evaluator-Optimizer Loop
  * @pillar 2 - Sprint Governance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import type { Command } from "commander";

@@ -18,7 +18,7 @@
  * @authority ADR-012 ActionControlPlane
  * @pillar 2 - Quality Assurance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import { randomUUID } from "crypto";

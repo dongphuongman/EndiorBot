@@ -17,7 +17,7 @@
 // ============================================================================
 
 /**
- * All SDLC Framework 6.3.0 stages.
+ * All SDLC Framework 6.3.1 stages.
  */
 export const SDLC_STAGES = [
   "00-FOUNDATION",

@@ -433,7 +433,7 @@ describe("Migration Config Structure", () => {
     const detection = createDetection("TINYSDLC", config, configPath);
     const result = await migrateConfig(detection, { dryRun: true });
 
-    expect(result.config?.framework_version).toBe("6.3.0");
+    expect(result.config?.framework_version).toBe("6.3.1");
   });
 
   it("should generate stage paths for tier", async () => {

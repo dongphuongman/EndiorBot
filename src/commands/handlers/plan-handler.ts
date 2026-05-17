@@ -9,7 +9,7 @@
  * @date 2026-03-31
  * @status ACTIVE — Sprint 124a
  * @authority ADR-038 Autonomous Workflow Integration
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";

@@ -181,7 +181,7 @@ function generateMigratedConfig(
 
   return {
     schema_version: "1.0.0",
-    framework_version: "6.3.0",
+    framework_version: "6.3.1",
     generator: "endiorbot",
     generated_at: new Date().toISOString(),
     migrated_from: source,

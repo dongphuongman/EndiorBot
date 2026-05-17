@@ -12,7 +12,7 @@
  * @authority ADR-005 Python-to-TypeScript Porting
  * @pillar 7 - Quality Assurance System
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 // Reflect Step

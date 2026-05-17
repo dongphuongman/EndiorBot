@@ -17,7 +17,7 @@
  * @authority ADR-011 Fix Logging Architecture
  * @pillar 4 - Quality Assurance
  * @stage 04 - BUILD
- * @sdlc SDLC Framework 6.3.0
+ * @sdlc SDLC Framework 6.3.1
  */
 
 import type { Command } from "commander";
