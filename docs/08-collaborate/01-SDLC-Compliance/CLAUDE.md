@@ -185,7 +185,8 @@ src/
 ├── rl/            # RL feedback capture (JSONL, data store)
 ├── sdlc/          # Gate engine, compliance, scaffold
 │   ├── gates/     # Gate evaluation
-│   ├── scaffold/  # Init templates (CLAUDE.md, IDENTITY.md, etc.)
+│   ├── scaffold/  # Init templates, tier-recommender, plugin-loader, plugin-manifest
+│   ├── compliance/ # Content checker, claude-md-auditor
 │   └── vibecoding/ # Quality index
 ├── security/      # Sanitizer, scrubber, guard, exec-approvals cluster, http-validator
 └── sessions/      # Session state machine, resilience, checkpoints, autonomous
@@ -399,10 +400,11 @@ const mentalModels = await getBrain().getMentalModels();
 
 ---
 
-*Claude Code integration for EndiorBot v0.1.0-beta.1*
+*Claude Code integration for EndiorBot v0.1.0-beta.3*
 *Identity: Solo Developer Power Tool*
 *SDLC Framework v6.3.1*
-*Sprint 145 | 8,124+ tests | 39 commands | 39 unified commands | 14 SOUL agents | 6 providers*
+*Sprint 154 | 8,206+ tests | 42 commands | 42 unified commands | 14 SOUL agents | 6 providers*
+*Plugin Architecture: layered CLAUDE.md + Anthropic Base profile + skill loader + audit + self-improving hooks*
 
 ## graphify
 

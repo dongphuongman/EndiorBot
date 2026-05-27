@@ -1,11 +1,11 @@
 # EndiorBot Product Vision
 
 ---
-version: 3.0
+version: 4.0
 status: APPROVED
-updated: 2026-04-27
+updated: 2026-05-27
 author: CEO + CTO + CPO
-sprint: 144
+sprint: 154
 ---
 
 ## Vision Statement
@@ -37,7 +37,18 @@ Full stage index: [`docs/README.md`](../README.md).
 
 ---
 
-## What's Built (Sprint 144 — verified against code)
+## What's Built (Sprint 154 — verified against code)
+
+### Plugin Architecture (Sprint 149-154, NEW)
+
+| Feature | Status | Evidence |
+|---------|--------|----------|
+| Tier auto-recommendation (7 signals) | SHIPPED | ADR-054, `src/sdlc/scaffold/tier-recommender.ts` |
+| Layered CLAUDE.md (root + subdir per tier) | SHIPPED | ADR-055, STANDARD: root + src/ + tests/ |
+| Plugin format scaffold (Anthropic Base profile) | SHIPPED | ADR-056, `.claude-plugin/plugin.json` |
+| Plugin loader (discover + parse skills/) | SHIPPED | `src/sdlc/scaffold/plugin-loader.ts`, `endiorbot skills` |
+| CLAUDE.md staleness detection (5 checks) | SHIPPED | `endiorbot audit-claude-md`, baseline suppression |
+| Self-improving hooks (PostToolUse + Stop) | SHIPPED | `.claude/hooks/post-tool-use-tracker.sh`, `stop-suggest.sh` |
 
 ### AI Agent Orchestration
 
@@ -74,6 +85,12 @@ All channels route through `GatewayIngress → CommandDispatcher` (39 commands).
 | Compliance check/fix/score | SHIPPED | `endiorbot compliance check` |
 | Vibecoding Index | SHIPPED | `src/sdlc/vibecoding/vibecoding-index.ts` |
 | 4-tier classification (LITE→ENTERPRISE) | SHIPPED | `endiorbot init --tier STANDARD` |
+| Tier auto-recommendation | SHIPPED | ADR-054, 7 signals → weighted score → tier |
+| Layered CLAUDE.md generation | SHIPPED | ADR-055, root + subdir per tier |
+| Plugin format (Anthropic Base profile) | SHIPPED | ADR-056, `.claude-plugin/plugin.json` |
+| Plugin loader (skills/ discovery) | SHIPPED | `endiorbot skills` — folder-per-skill + flat fallback |
+| CLAUDE.md staleness detection | SHIPPED | `endiorbot audit-claude-md` — 5 checks + baseline |
+| Self-improving hooks | SHIPPED | PostToolUse tracker + Stop suggest |
 | Smart init (codebase analysis) | SHIPPED | ADR-022, `collectProjectContext()` |
 | Exec-policy (3 presets: strict/balanced/open) | SHIPPED | ADR-046, 9-module security cluster |
 | SSRF protection | SHIPPED | `src/security/http-validator.ts` |

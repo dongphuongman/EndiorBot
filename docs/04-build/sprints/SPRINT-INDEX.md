@@ -8,20 +8,19 @@
 
 ## Current Sprint
 
-**Sprint 154** — Hook-Based Self-Improvement (Plan U5)
-- PostToolUse tracker + Stop suggest hooks in `endiorbot init` output
-- Cross-product packaging with MTClaw S124 (deferred items)
+No active sprint. Plugin Architecture plan (S149-S154) **COMPLETE**.
+Next: cross-product packaging (MTClaw S124 dependency).
 
 ## Active Sprints
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 154 | May 27, 2026 | Hook-based self-improvement + cross-product packaging | 🔄 IN PROGRESS | [sprint-154](sprint-154-hook-self-improvement.md) |
 
 ## Recently Completed — Plugin Architecture Upgrade (S149-S153)
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
+| Sprint 154 | May 27, 2026 | Hook-Based Self-Improvement — PostToolUse tracker + Stop suggest (Plan U5 final) | ✅ COMPLETE | [report](../../05-test/sprint-154-execution-report.md) |
 | Sprint 153 | May 27, 2026 | CLAUDE.md Staleness Detection — `audit-claude-md` command (5 checks + baseline suppression) | ✅ COMPLETE | [report](../../05-test/sprint-153-execution-report.md) |
 | Sprint 152 | May 27, 2026 | Plugin Loader Runtime MVP — discover + parse + expose `skills/` directory | ✅ COMPLETE | [report](../../05-test/sprint-152-execution-report.md) |
 | Sprint 151 | May 27, 2026 | Plugin Format Scaffold — Base profile `.claude-plugin/plugin.json` (ADR-056) | ✅ COMPLETE | [report](../../05-test/sprint-151-execution-report.md) |
@@ -171,6 +170,7 @@
 
 | Sprint | Tests | Cumulative |
 |--------|-------|------------|
+| Sprint 154 | +8 | 8,206 |
 | Sprint 153 | +11 | 8,199 |
 | Sprint 152 | +13 | 8,188 |
 | Sprint 151 | +16 | 8,175 |

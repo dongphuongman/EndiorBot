@@ -1,7 +1,7 @@
 # Sprint 154 Execution Report — Hook-Based Self-Improvement
 
 > **Executor:** EndiorBot (@coder)  
-> **Date:** 2026-05-06  
+> **Date:** 2026-05-27  
 > **Scope:** Add self-improving hooks to `endiorbot init` scaffold: PostToolUse tracker + Stop suggest. Final sprint in Plugin Architecture plan (D1 + D2).
 
 ---
@@ -175,7 +175,7 @@ cd /tmp/test-hooks-154 && echo '{"stop_reason":"user"}' | .claude/hooks/stop-sug
 |----------|--------|
 | Build | ✅ Clean |
 | New tests | ✅ 8/8 pass (54 total in suite) |
-| Full regression | ✅ 8,206/8,206 pass |
+| Full regression | ✅ 8,206/8,207 pass (1 pre-existing flaky in compliance.test.ts) |
 | Smoke STANDARD | ✅ 3 hooks created + executable |
 | Smoke LITE | ✅ 3 hooks created + executable |
 | PostToolUse tracker | ✅ Write tracked, Read ignored, exit 0 |

@@ -6,7 +6,7 @@
 
 > **Beta:** APIs may change between releases. Not recommended for production use yet.
 
-> **AI dev team in your terminal** — 14 SDLC agents, 5 channels, answers in 30 seconds
+> **AI dev team in your terminal** — 14 SDLC agents, 5 channels, plugin-compatible, answers in 30 seconds
 
 EndiorBot is a personal AI power tool for solo developers working on enterprise-scale projects.
 It integrates with Claude Code as an Agent Orchestrator, enabling @agent invocations with SDLC governance across CLI, Web, Telegram, Zalo, and Desktop channels.
@@ -64,8 +64,10 @@ After v1.0.0 ships, the `@beta` qualifier will become optional and the bare `npx
 
 ```bash
 # Initialize SDLC structure
-endiorbot init                              # Auto-detect tech stack
-endiorbot init --tier STANDARD              # Specify tier
+endiorbot init                              # Auto-recommend tier from project scan
+endiorbot init --tier STANDARD              # Override with explicit tier
+endiorbot skills                            # List discovered skills in project
+endiorbot audit-claude-md                   # Check CLAUDE.md health (stale refs, size, age)
 endiorbot compliance check                  # Verify SDLC compliance
 
 # Unified Serve (Web + Telegram + Zalo + Desktop gateway)

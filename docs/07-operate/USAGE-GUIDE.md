@@ -4,7 +4,7 @@
 
 EndiorBot is a personal AI tool for solo developers. It integrates with Claude Code (and Codex) as an Agent Orchestrator, supporting CLI, Web, Telegram, and Zalo channels.
 
-**Last Updated:** Sprint 144 (2026-04-27) · SDLC 6.3.1
+**Last Updated:** Sprint 154 (2026-05-27) · SDLC 6.3.1
 
 ---
 
@@ -33,8 +33,10 @@ EndiorBot is a personal AI tool for solo developers. It integrates with Claude C
 21. [Workflow 18: Cost Monitoring](#workflow-18-cost-monitoring-sprint-141)
 22. [Workflow 19: Desktop App](#workflow-19-desktop-app-sprint-144)
 23. [Workflow 20: Gateway Resilience](#workflow-20-gateway-resilience-sprint-144)
-24. [Command Reference](#command-reference)
-25. [Troubleshooting](#troubleshooting)
+24. [Workflow 21: Plugin Architecture](#workflow-21-plugin-architecture-sprint-149-154)
+25. [Workflow 22: CLAUDE.md Maintenance](#workflow-22-claudemd-maintenance-sprint-153-154)
+26. [Command Reference](#command-reference)
+27. [Troubleshooting](#troubleshooting)
 
 ---
 
