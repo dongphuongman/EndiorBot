@@ -2,21 +2,38 @@
 
 **Project**: EndiorBot
 **Framework**: SDLC 6.3.1
-**Last Updated**: 2026-05-07 (Sprint 148 PLANNED)
+**Last Updated**: 2026-05-27 (Sprint 153 COMPLETE, Sprint 154 NEXT)
 
 ---
+
+## Current Sprint
+
+**Sprint 154** — Hook-Based Self-Improvement (Plan U5)
+- PostToolUse tracker + Stop suggest hooks in `endiorbot init` output
+- Cross-product packaging with MTClaw S124 (deferred items)
 
 ## Active Sprints
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 148 | TBD | Kimi Coding API Integration (ADR-053) — merge, deploy, G3 validation | 📋 PLANNED | [sprint-148](sprint-148-kimi-coding-api.md) |\n| Sprint 147 | TBD | Agent Queue Integrity + UI Upgrade | 📋 PLANNED | [sprint-147](sprint-147-agent-queue.md) |\n| Sprint 146 | TBD | Post-Launch: Quality Hardening + Gap Closure | 📋 PLANNED | [sprint-146](sprint-146-post-launch.md) |
+| Sprint 154 | May 27, 2026 | Hook-based self-improvement + cross-product packaging | 🔄 IN PROGRESS | [sprint-154](sprint-154-hook-self-improvement.md) |
 
-## Recently Completed
+## Recently Completed — Plugin Architecture Upgrade (S149-S153)
 
 | Sprint | Date | Goal | Status | Report |
 |--------|------|------|--------|--------|
-| Sprint 140 | Apr 23, 2026 | Kimi2.6 Integration + Agent-Model Tier Mapping (ADR-051 + ADR-052) + @consult 3-model panel | ✅ COMPLETE (retroactive plan) | [sprint-140](sprint-140-plan.md) |
+| Sprint 153 | May 27, 2026 | CLAUDE.md Staleness Detection — `audit-claude-md` command (5 checks + baseline suppression) | ✅ COMPLETE | [report](../../05-test/sprint-153-execution-report.md) |
+| Sprint 152 | May 27, 2026 | Plugin Loader Runtime MVP — discover + parse + expose `skills/` directory | ✅ COMPLETE | [report](../../05-test/sprint-152-execution-report.md) |
+| Sprint 151 | May 27, 2026 | Plugin Format Scaffold — Base profile `.claude-plugin/plugin.json` (ADR-056) | ✅ COMPLETE | [report](../../05-test/sprint-151-execution-report.md) |
+| Sprint 150 | May 27, 2026 | Layered CLAUDE.md Generation — root + src/ + docs/ + tests/ per tier (ADR-055) | ✅ COMPLETE | [report](../../05-test/sprint-150-execution-report.md) |
+| Sprint 149 | May 26, 2026 | Init Tier Auto-Recommendation — 7 signals → weighted score → tier (ADR-054) | ✅ COMPLETE | [report](../../05-test/sprint-149-review-report.md) |
+| Sprint 148 | May 20, 2026 | Kimi Coding API Integration (ADR-053) — replace kimi-proxy with direct API | ✅ COMPLETE | [sprint-148](sprint-148-kimi-coding-api.md) |
+
+## Recently Completed — Prior
+
+| Sprint | Date | Goal | Status | Report |
+|--------|------|------|--------|--------|
+| Sprint 140 | Apr 23, 2026 | Kimi2.6 Integration + Agent-Model Tier Mapping (ADR-051 + ADR-052) + @consult 3-model panel | ✅ COMPLETE | [sprint-140](sprint-140-plan.md) |
 | Sprint 139 | Apr 20, 2026 | OpenMythos Pattern Adoption — convergence guard, dynamic iteration budget, frozen input, loop-index | ✅ COMPLETE | [sprint-139](sprint-139-plan.md) |
 | Sprint 138 | Apr 19, 2026 | Governance debt + security incident remediation | ✅ COMPLETE | [sprint-138-plan.md](sprint-138-plan.md) |
 
@@ -154,6 +171,12 @@
 
 | Sprint | Tests | Cumulative |
 |--------|-------|------------|
+| Sprint 153 | +11 | 8,199 |
+| Sprint 152 | +13 | 8,188 |
+| Sprint 151 | +16 | 8,175 |
+| Sprint 150 | +14 | 8,159 |
+| Sprint 149 | +18 | 8,145 |
+| Sprint 148 | — (provider swap) | 8,127 |
 | Sprint 129 | +33 (fixes+cleanup) | 7,601 |
 | Sprint 128 | +5 | 7,587 |
 | Sprint 127 | +14 | 7,582 |
@@ -210,6 +233,10 @@
 
 | ADR | Title | Sprints | Status |
 |-----|-------|---------|--------|
+| ADR-056 | Plugin Format Compatibility (Base Profile) | 151 | ✅ ACCEPTED |
+| ADR-055 | Layered CLAUDE.md Generation | 150 | ✅ ACCEPTED |
+| ADR-054 | Init Tier Auto-Recommendation | 149 | ✅ ACCEPTED |
+| ADR-053 | Kimi Coding API Direct | 148 | ✅ ACCEPTED |
 | ADR-044 | Agentic OS Alignment (3-Product Pattern Ownership) | 129 | ✅ ACCEPTED |
 | ADR-043 | Chat Mode Interactive Session | 127-128 | ✅ ACCEPTED |
 | ADR-042 | Autonomous Execution Engine | 124b | ✅ ACCEPTED |
