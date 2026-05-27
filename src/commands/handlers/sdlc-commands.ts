@@ -255,7 +255,7 @@ export function handleConsultCommand(args: string[]): CommandResult {
 /** Options for the shared init command — used by both CLI and Gateway. */
 export interface ExecuteInitOptions {
   projectName: string;
-  tier: string;     // validated by caller, but we re-validate
+  tier?: string;     // if omitted, auto-recommended from project scan (ADR-054)
   targetPath: string;
   force?: boolean;
   analyze?: boolean;       // dry-run preview
@@ -301,27 +301,31 @@ export async function executeInitCommand(opts: ExecuteInitOptions): Promise<Exec
 
   const VALID_TIERS = ["LITE", "STANDARD", "PROFESSIONAL", "ENTERPRISE"];
 
-  // Validate tier
-  const normalizedTier = opts.tier.toUpperCase();
-  const isValidTier = VALID_TIERS.includes(normalizedTier);
+  // Validate tier (if explicitly provided)
+  const normalizedTier = opts.tier ? opts.tier.toUpperCase() : undefined;
+  const isExplicitTier = normalizedTier != null && VALID_TIERS.includes(normalizedTier);
 
   // Step 1: Detect existing project state
   const detection = detectProject(opts.targetPath);
   const detectedTier = detection.configTier ?? detection.structureTier;
 
-  // Step 2: Determine tier (priority: explicit > detected > default STANDARD)
+  // Step 2: Determine tier (ADR-054: explicit > detected > recommended > fallback LITE)
   let tier: string;
   let tierSource: string;
 
-  if (isValidTier) {
+  if (isExplicitTier) {
     tier = normalizedTier;
     tierSource = "explicit";
   } else if (detectedTier) {
     tier = detectedTier;
     tierSource = detection.configTier ? "config (.sdlc-config.json)" : "docs/ structure";
   } else {
-    tier = "STANDARD";
-    tierSource = "default (no config or docs/ detected)";
+    // Auto-recommend from project scan (ADR-054, Sprint 149)
+    const { recommendTier } = await import("../../sdlc/scaffold/tier-recommender.js");
+    const recommendation = recommendTier(opts.targetPath);
+    tier = recommendation.tier;
+    tierSource = `auto-recommended (${recommendation.reason})`;
+    messages.push(`Tier recommendation: ${recommendation.reason}`);
   }
 
   // Step 3: Codebase analysis for snapshot-aware templates (Sprint 79)
@@ -367,7 +371,7 @@ export async function executeInitCommand(opts: ExecuteInitOptions): Promise<Exec
       createBackup: true,
       dryRun: opts.analyze ?? false,
     };
-    if (isValidTier) migrationOpts.tier = normalizedTier as any;
+    if (isExplicitTier) migrationOpts.tier = normalizedTier as any;
     const migrationResult = await migrateConfig(detection, migrationOpts);
 
     if (!migrationResult.success || !migrationResult.config) {

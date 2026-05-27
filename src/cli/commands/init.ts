@@ -32,7 +32,7 @@ export function registerInitCommand(program: Command): void {
   program
     .command("init [project-name]")
     .description("Initialize project with SDLC + AI governance files")
-    .option("--tier <tier>", "Project tier (LITE, STANDARD, PROFESSIONAL, ENTERPRISE)", "STANDARD")
+    .option("--tier <tier>", "Project tier (LITE, STANDARD, PROFESSIONAL, ENTERPRISE)")
     .option("--path <path>", "Target directory", process.cwd())
     .option("--analyze", "Show preview without writing (dry-run)")
     .option("--force", "Overwrite existing files (creates backup)")
@@ -54,7 +54,7 @@ export function registerInitCommand(program: Command): void {
 // ============================================================================
 
 interface InitCommandOptions {
-  tier: string;
+  tier?: string;
   path: string;
   analyze?: boolean;
   force?: boolean;
@@ -81,15 +81,19 @@ async function executeInit(
   const targetPath = resolve(options.path);
   const name = projectName ?? basename(targetPath);
 
-  // Validate tier
-  const tier = validateTier(options.tier);
-  if (!tier) {
-    console.error(fmt.error(t("init.invalid_tier", { tier: options.tier })));
-    console.log("Valid tiers: LITE, STANDARD, PROFESSIONAL, ENTERPRISE");
-    process.exit(1);
+  // Validate tier (if explicitly provided)
+  let tier: string | undefined;
+  if (options.tier) {
+    const validated = validateTier(options.tier);
+    if (!validated) {
+      console.error(fmt.error(t("init.invalid_tier", { tier: options.tier })));
+      console.log("Valid tiers: LITE, STANDARD, PROFESSIONAL, ENTERPRISE");
+      process.exit(1);
+    }
+    tier = validated;
   }
 
-  logger.info("Starting init", { name, tier, path: targetPath });
+  logger.info("Starting init", { name, tier: tier ?? "auto", path: targetPath });
 
   // Show analysis spinner
   const analysisSpinner = (!options.skipAnalysis && !options.analyze)
@@ -97,7 +101,8 @@ async function executeInit(
     : null;
 
   // Call shared init command (exactOptionalPropertyTypes: build opts conditionally)
-  const initOpts: ExecuteInitOptions = { projectName: name, tier, targetPath };
+  const initOpts: ExecuteInitOptions = { projectName: name, targetPath };
+  if (tier) initOpts.tier = tier;
   if (options.force) initOpts.force = options.force;
   if (options.analyze) initOpts.analyze = options.analyze;
   if (options.skipAnalysis) initOpts.skipAnalysis = options.skipAnalysis;

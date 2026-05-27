@@ -37,7 +37,8 @@ describe("KimiCodingProvider", () => {
     expect(initSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         apiKey: "sk-test",
-        baseUrl: "https://api.kimi.com/coding/v1",
+        baseUrl: "https://api.kimi.com/coding",
+        timeout: 60000,
       })
     );
   });
