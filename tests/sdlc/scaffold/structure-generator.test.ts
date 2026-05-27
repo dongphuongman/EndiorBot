@@ -421,6 +421,130 @@ describe("scaffoldProject - Result", () => {
 });
 
 // ============================================================================
+// Layered CLAUDE.md — Sprint 150 (ADR-055)
+// ============================================================================
+
+describe("scaffoldProject - Layered CLAUDE.md", () => {
+  it("should NOT create subdir CLAUDE.md for LITE tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "lite-project",
+      tier: "LITE",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    expect(existsSync(join(TEST_DIR, "src", "CLAUDE.md"))).toBe(false);
+    expect(existsSync(join(TEST_DIR, "tests", "CLAUDE.md"))).toBe(false);
+    expect(existsSync(join(TEST_DIR, "docs", "CLAUDE.md"))).toBe(false);
+  });
+
+  it("should create src/ and tests/ CLAUDE.md for STANDARD tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "std-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    expect(existsSync(join(TEST_DIR, "src", "CLAUDE.md"))).toBe(true);
+    expect(existsSync(join(TEST_DIR, "tests", "CLAUDE.md"))).toBe(true);
+    expect(existsSync(join(TEST_DIR, "docs", "CLAUDE.md"))).toBe(false);
+  });
+
+  it("should create src/, docs/, and tests/ CLAUDE.md for PROFESSIONAL tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "pro-project",
+      tier: "PROFESSIONAL",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    expect(existsSync(join(TEST_DIR, "src", "CLAUDE.md"))).toBe(true);
+    expect(existsSync(join(TEST_DIR, "tests", "CLAUDE.md"))).toBe(true);
+    expect(existsSync(join(TEST_DIR, "docs", "CLAUDE.md"))).toBe(true);
+  });
+
+  it("should include Context Files section in root CLAUDE.md for STANDARD+", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "std-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const rootClaude = readFileSync(join(TEST_DIR, "CLAUDE.md"), "utf-8");
+    expect(rootClaude).toContain("## Context Files");
+    expect(rootClaude).toContain("src/CLAUDE.md");
+    expect(rootClaude).toContain("tests/CLAUDE.md");
+  });
+
+  it("should NOT include Context Files section in root CLAUDE.md for LITE", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "lite-project",
+      tier: "LITE",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const rootClaude = readFileSync(join(TEST_DIR, "CLAUDE.md"), "utf-8");
+    expect(rootClaude).not.toContain("## Context Files");
+  });
+
+  it("should generate subdir CLAUDE.md under 100 lines", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "pro-project",
+      tier: "PROFESSIONAL",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const srcLines = readFileSync(join(TEST_DIR, "src", "CLAUDE.md"), "utf-8").split("\n").length;
+    const testsLines = readFileSync(join(TEST_DIR, "tests", "CLAUDE.md"), "utf-8").split("\n").length;
+    const docsLines = readFileSync(join(TEST_DIR, "docs", "CLAUDE.md"), "utf-8").split("\n").length;
+
+    expect(srcLines).toBeLessThan(100);
+    expect(testsLines).toBeLessThan(100);
+    expect(docsLines).toBeLessThan(100);
+  });
+
+  it("should preserve existing subdir CLAUDE.md on re-init without force", async () => {
+    mkdirSync(join(TEST_DIR, "src"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "src", "CLAUDE.md"), "# Custom src rules\n");
+
+    const config: ScaffoldConfig = {
+      projectName: "std-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const content = readFileSync(join(TEST_DIR, "src", "CLAUDE.md"), "utf-8");
+    expect(content).toBe("# Custom src rules\n");
+  });
+});
+
+// ============================================================================
 // createBackup Tests
 // ============================================================================
 

@@ -13,7 +13,7 @@ export {
   generateMinimalConfig,
 } from "./sdlc-config.js";
 
-export { generateClaudeMd } from "./claude-md.js";
+export { generateClaudeMd, generateSubdirClaudeMd } from "./claude-md.js";
 
 export { generateIdentityMd } from "./identity-md.js";
 

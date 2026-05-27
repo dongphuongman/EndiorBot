@@ -9,7 +9,7 @@
  * @status ACTIVE - Sprint 61
  */
 
-import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, statSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { createLogger } from "../../logging/index.js";
@@ -21,11 +21,12 @@ import type {
   ProjectTier,
 } from "./types.js";
 import type { ProjectSnapshot } from "../compliance/fix-types.js";
-import { TIER_STAGES } from "./types.js";
+import { TIER_STAGES, TIER_SUBDIR_CLAUDE_MD } from "./types.js";
 import {
   generateSdlcConfig,
   serializeSdlcConfig,
   generateClaudeMd,
+  generateSubdirClaudeMd,
   generateIdentityMd,
   generateAgentsMd,
 } from "./templates/index.js";
@@ -87,6 +88,35 @@ export async function scaffoldProject(
         config
       )
     );
+
+    // Step 2b: Create subdirectory CLAUDE.md files (Sprint 150, ADR-055)
+    const subdirs = TIER_SUBDIR_CLAUDE_MD[config.tier] ?? [];
+    for (const subdir of subdirs) {
+      const subdirPath = join(config.targetPath, subdir);
+      steps.push(
+        await executeStep(
+          `Generate ${subdir}/CLAUDE.md`,
+          join(subdirPath, "CLAUDE.md"),
+          () => generateSubdirClaudeMd(subdir, projectConfig, config.snapshot),
+          config
+        )
+      );
+    }
+
+    // Step 2c: ENTERPRISE — per-service CLAUDE.md files
+    if (config.tier === "ENTERPRISE") {
+      const serviceDirs = detectServiceDirs(config.targetPath);
+      for (const serviceDir of serviceDirs) {
+        steps.push(
+          await executeStep(
+            `Generate ${serviceDir}/CLAUDE.md`,
+            join(config.targetPath, serviceDir, "CLAUDE.md"),
+            () => generateSubdirClaudeMd(serviceDir, projectConfig, config.snapshot),
+            config
+          )
+        );
+      }
+    }
 
     // Step 3: Create IDENTITY.md
     steps.push(
@@ -580,6 +610,85 @@ function shouldCreateForTier(
     ENTERPRISE: 3,
   };
   return order[actualTier] >= order[requiredTier];
+}
+
+// ============================================================================
+// Service Directory Detection (ENTERPRISE tier, Sprint 150)
+// ============================================================================
+
+/**
+ * Detect per-service directories for ENTERPRISE tier subdir CLAUDE.md.
+ * Checks packages/, apps/, services/ and package.json workspaces.
+ */
+function detectServiceDirs(targetPath: string): string[] {
+  const patterns = ["packages", "apps", "services"];
+  const results: string[] = [];
+
+  for (const pattern of patterns) {
+    const dir = join(targetPath, pattern);
+    if (existsSync(dir) && statSync(dir).isDirectory()) {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        try {
+          if (statSync(full).isDirectory()) {
+            results.push(join(pattern, entry));
+          }
+        } catch {
+          // Skip unreadable entries
+        }
+      }
+    }
+  }
+
+  // Also check package.json workspaces
+  const pkgPath = join(targetPath, "package.json");
+  if (existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
+        workspaces?: string[] | { packages?: string[] };
+      };
+      const ws = pkg.workspaces;
+      if (Array.isArray(ws)) {
+        for (const pattern of ws) {
+          const base = pattern.replace("/*", "").replace("/**", "");
+          const dir = join(targetPath, base);
+          if (existsSync(dir) && statSync(dir).isDirectory()) {
+            for (const entry of readdirSync(dir)) {
+              const full = join(dir, entry);
+              try {
+                if (statSync(full).isDirectory()) {
+                  results.push(join(base, entry));
+                }
+              } catch {
+                // Skip unreadable entries
+              }
+            }
+          }
+        }
+      } else if (ws?.packages) {
+        for (const pattern of ws.packages) {
+          const base = pattern.replace("/*", "").replace("/**", "");
+          const dir = join(targetPath, base);
+          if (existsSync(dir) && statSync(dir).isDirectory()) {
+            for (const entry of readdirSync(dir)) {
+              const full = join(dir, entry);
+              try {
+                if (statSync(full).isDirectory()) {
+                  results.push(join(base, entry));
+                }
+              } catch {
+                // Skip unreadable entries
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed package.json
+    }
+  }
+
+  return [...new Set(results)];
 }
 
 // ============================================================================

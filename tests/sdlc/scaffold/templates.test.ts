@@ -15,6 +15,7 @@ import {
   serializeSdlcConfig,
   generateMinimalConfig,
   generateClaudeMd,
+  generateSubdirClaudeMd,
   generateIdentityMd,
   generateAgentsMd,
   getAllAgents,
@@ -164,6 +165,67 @@ describe("generateClaudeMd", () => {
   it("should include SDLC integration section", () => {
     const content = generateClaudeMd(testProject);
     expect(content).toContain("SDLC");
+  });
+
+  it("should include Context Files section for STANDARD tier", () => {
+    const content = generateClaudeMd({ ...testProject, tier: "STANDARD" });
+    expect(content).toContain("## Context Files");
+    expect(content).toContain("src/CLAUDE.md");
+  });
+
+  it("should NOT include Context Files section for LITE tier", () => {
+    const content = generateClaudeMd({ ...testProject, tier: "LITE" });
+    expect(content).not.toContain("## Context Files");
+  });
+});
+
+// ============================================================================
+// generateSubdirClaudeMd Tests — Sprint 150
+// ============================================================================
+
+describe("generateSubdirClaudeMd", () => {
+  it("should generate src/CLAUDE.md with code conventions", () => {
+    const content = generateSubdirClaudeMd("src", testProject);
+    expect(content).toContain("# CLAUDE.md — src/");
+    expect(content).toContain("## Code Conventions");
+    expect(content).toContain("See root \`CLAUDE.md\`");
+  });
+
+  it("should generate tests/CLAUDE.md with testing conventions", () => {
+    const content = generateSubdirClaudeMd("tests", testProject);
+    expect(content).toContain("# CLAUDE.md — tests/");
+    expect(content).toContain("## Testing Conventions");
+    expect(content).toContain("Run all tests in this directory");
+  });
+
+  it("should generate docs/CLAUDE.md with documentation standards", () => {
+    const content = generateSubdirClaudeMd("docs", testProject);
+    expect(content).toContain("# CLAUDE.md — docs/");
+    expect(content).toContain("## Documentation Standards");
+    expect(content).toContain("00-foundation");
+  });
+
+  it("should be under 100 lines", () => {
+    const src = generateSubdirClaudeMd("src", testProject);
+    const tests = generateSubdirClaudeMd("tests", testProject);
+    const docs = generateSubdirClaudeMd("docs", testProject);
+    expect(src.split("\n").length).toBeLessThan(100);
+    expect(tests.split("\n").length).toBeLessThan(100);
+    expect(docs.split("\n").length).toBeLessThan(100);
+  });
+
+  it("should include tech-stack info when snapshot provided", () => {
+    const snapshot: ProjectSnapshot = {
+      techStack: {
+        language: "Python",
+        framework: "Flask",
+        packageManager: "pip",
+        scripts: {},
+      },
+    } as ProjectSnapshot;
+    const content = generateSubdirClaudeMd("src", testProject, snapshot);
+    expect(content).toContain("Python");
+    expect(content).toContain("Flask");
   });
 });
 

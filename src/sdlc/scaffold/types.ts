@@ -395,6 +395,16 @@ export const TIER_ROOT_FILES: Record<ProjectTier, string[]> = {
 };
 
 /**
+ * Subdirectory CLAUDE.md paths per tier.
+ */
+export const TIER_SUBDIR_CLAUDE_MD: Record<ProjectTier, string[]> = {
+  LITE: [],
+  STANDARD: ["src", "tests"],
+  PROFESSIONAL: ["src", "docs", "tests"],
+  ENTERPRISE: ["src", "docs", "tests"],
+};
+
+/**
  * Agent count per tier.
  */
 export const TIER_AGENT_COUNT: Record<ProjectTier, number> = {

@@ -79,6 +79,10 @@ export {
   getAgentById,
 } from "./templates/index.js";
 
+// Tier recommendation (ADR-054, Sprint 149)
+export type { TierSignals, TierRecommendation } from "./tier-recommender.js";
+export { recommendTier } from "./tier-recommender.js";
+
 // Config migration
 export type { MigrationResult, MigrationOptions } from "./config-migrator.js";
 export { migrateConfig, writeMigratedConfig } from "./config-migrator.js";
