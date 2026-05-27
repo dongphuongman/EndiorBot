@@ -53,4 +53,5 @@ export { registerApproveCommand } from "./approve.js";
 export { registerRejectCommand } from "./reject.js";
 export { registerAuditCommand } from "./audit.js";
 export { registerWebhooksCommand } from "./webhooks.js";
+export { registerSkillsCommand } from "./skills.js";
 export { registerAllCommands } from "./register-all.js";

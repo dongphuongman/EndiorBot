@@ -86,6 +86,10 @@ export { recommendTier } from "./tier-recommender.js";
 export type { PluginManifest } from "./templates/plugin-manifest.js";
 export { generatePluginManifest } from "./templates/plugin-manifest.js";
 
+// Plugin loader (Sprint 152)
+export type { DiscoveredSkill } from "./plugin-loader.js";
+export { discoverSkills, loadSkill } from "./plugin-loader.js";
+
 // Config migration
 export type { MigrationResult, MigrationOptions } from "./config-migrator.js";
 export { migrateConfig, writeMigratedConfig } from "./config-migrator.js";

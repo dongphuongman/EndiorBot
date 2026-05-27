@@ -57,6 +57,7 @@ import {
   registerRejectCommand,
   registerAuditCommand,
   registerWebhooksCommand,
+  registerSkillsCommand,
 } from "./index.js";
 
 /**
@@ -106,4 +107,5 @@ export function registerAllCommands(program: Command): void {
   registerRejectCommand(program);
   registerAuditCommand(program);
   registerWebhooksCommand(program);
+  registerSkillsCommand(program);
 }
