@@ -27,7 +27,8 @@ EndiorBot implements **[SDLC Framework 6.3.1](https://github.com/Minh-Tam-Soluti
 - **[SDLC stage index (00→09)](docs/README.md)** — per-stage READMEs and extended lifecycle (06–09)
 - **[Product vision](docs/00-foundation/product-vision.md)** — north star and autonomy levels (L1–L4)
 - **[Stage × command spine](docs/00-foundation/stage-command-workflow-spine.md)** — stage alignment, atomic CLI/OTT/Web vs workflows, design→build→test traceability
-- **[Usage Guide](docs/07-operate/USAGE-GUIDE.md)** — 20 workflows from setup to advanced
+- **[Usage Guide](docs/07-operate/USAGE-GUIDE.md)** — 22 workflows from setup to advanced
+- **[Plugin Architecture Guide](docs/08-collaborate/plugin-architecture-guide.md)** — tier recommendation, layered CLAUDE.md, skills, audit, hooks
 
 Application development documentation under `docs/` is written in **English** (SDLC 6.3.1); see the *Documentation language* note in [docs/README.md](docs/README.md).
 
@@ -52,7 +53,7 @@ npx endiorbot@beta serve
 npm install -g endiorbot@beta
 
 # Or pin a specific beta version
-npm install -g endiorbot@0.1.0-beta.1
+npm install -g endiorbot@0.1.0-beta.3
 
 # Or via Docker
 docker run -p 18790:18790 endiorbot/endiorbot serve
@@ -104,7 +105,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 │                      │             │                                 │
 │          ┌───────────▼──┐   ┌──────▼──────┐                         │
 │          │ CommandDisp. │   │ChannelRouter│                         │
-│          │ (39 commands)│   │ Bridge+Cloud│                         │
+│          │ (42 commands)│   │ Bridge+Cloud│                         │
 │          └──────────────┘   └──────┬──────┘                         │
 │                                    │                                 │
 │  ┌─────────────┐  ┌───────────┐  ┌▼────────────┐                   │
@@ -141,7 +142,7 @@ endiorbot @consult "Redis vs PostgreSQL?"   # Multi-model consultation
 /launch claude --as coder       # Launch Claude Code in tmux
 /sessions                       # List active tmux sessions
 /switch <sessionId>             # Switch active session
-/help                           # Full command list (39 commands)
+/help                           # Full command list (42 commands)
 ```
 
 ## Agent Orchestration
@@ -195,14 +196,16 @@ Different chats can focus on different repos simultaneously:
 @coder fix the video parser
 ```
 
-## Sprint 144 Highlights (2026-04-27)
+## Sprint 154 Highlights (2026-05-27) — Plugin Architecture
 
-- **PID lockfile**: Single-instance guard — use `--force` flag to take over a running instance
-- **Provider circuit breaker**: Auto-trip on repeated provider failures with configurable recovery window
-- **OTT 60s timeout**: Hard timeout on all OTT handlers (Telegram + Zalo) to prevent hung sessions
-- **Desktop app**: Electron-based native client with gateway auto-start on launch
-- **39 unified commands** across 5 channels (CLI, Web, Telegram, Zalo, Desktop)
-- **8,142+ tests** passing
+- **Tier auto-recommendation**: `endiorbot init` scans 7 project signals to recommend LITE/STANDARD/PRO/ENT (ADR-054)
+- **Layered CLAUDE.md**: root + per-directory context files, scoped by tier (ADR-055)
+- **Plugin format**: Anthropic Base profile `.claude-plugin/plugin.json` for STANDARD+ (ADR-056)
+- **Plugin loader**: `endiorbot skills` discovers and lists `skills/` directory at runtime
+- **CLAUDE.md audit**: `endiorbot audit-claude-md` — 5 checks (stale refs, version, size, age) + baseline suppression
+- **Self-improving hooks**: PostToolUse tracker + Stop suggest → `.endiorbot/audit-suggestions.md`
+- **42 unified commands** across 5 channels
+- **8,206+ tests** passing
 
 ## Docker
 
@@ -225,7 +228,7 @@ docker run -p 18790:18790 --env-file .env endiorbot
 pnpm install      # Install dependencies
 pnpm dev          # Watch mode
 pnpm build        # Build TypeScript
-pnpm test         # Run tests (8,142+ passing)
+pnpm test         # Run tests (8,206+ passing)
 pnpm lint         # Check style
 pnpm lint:souls   # Validate 14 SOUL templates
 ```
@@ -234,13 +237,13 @@ pnpm lint:souls   # Validate 14 SOUL templates
 
 | Metric | Value |
 |--------|-------|
-| Tests passing | 8,142+ |
-| CLI commands | 39 unified |
+| Tests passing | 8,206+ |
+| CLI commands | 42 unified |
 | Channels | 5 (CLI, Web, Telegram, Zalo, Desktop) |
 | SOUL agents | 14 |
 | AI providers | 6 (Anthropic, OpenAI, Gemini, Ollama, Kimi, Groq) |
 | SDLC framework | v6.3.1 |
-| Sprint | 144 (2026-04-27) |
+| Sprint | 154 (2026-05-27) |
 
 ## Invariants
 
@@ -281,4 +284,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
 ---
 
-*EndiorBot v0.1.0-beta.1 | Solo Developer Power Tool | SDLC Framework v6.3.1 | Sprint 144 (2026-04-27)*
+*EndiorBot v0.1.0-beta.3 | Solo Developer Power Tool | SDLC Framework v6.3.1 | Sprint 154 (2026-05-27)*

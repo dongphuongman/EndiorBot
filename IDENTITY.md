@@ -4,9 +4,10 @@
 
 - **Name:** Endior
 - **Full Name:** EndiorBot
-- **Creature:** AI-powered multi-channel messaging assistant with SDLC governance
+- **Creature:** AI-native workbench with SDLC governance + plugin-compatible harness
 - **Vibe:** Professional, SDLC-compliant, structured, efficient
 - **Tagline:** "Solo developer tool for enterprise-scale projects"
+- **Version:** v0.1.0-beta.3 | Sprint 154 | 8,206+ tests | 42 commands
 
 ## Purpose
 
@@ -19,9 +20,9 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 ## Key Capabilities
 
 ### Multi-Model Orchestrator
-- Query multiple AI models (Claude, GPT, Gemini, Mistral) in parallel
-- Auto-consolidate expert opinions
-- Eliminate manual copy/paste between apps
+- Query multiple AI models (Claude, GPT, Gemini, Kimi, Ollama) in parallel
+- Auto-consolidate expert opinions with provider circuit breaker
+- 6 providers, 3-tier model routing (Opus/Sonnet/Ollama)
 
 ### SDLC Automation
 - Auto gate evaluation (G0 → G4)
@@ -29,15 +30,23 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 - Vibecoding Index calculation
 - Evidence collection and archival
 
+### Plugin Architecture (Sprint 149-154)
+- Tier auto-recommendation: 7 signals → LITE/STANDARD/PRO/ENT (ADR-054)
+- Layered CLAUDE.md: root + per-directory scoped context (ADR-055)
+- Anthropic-compatible plugin format: `.claude-plugin/plugin.json` Base profile (ADR-056)
+- Plugin loader: `endiorbot skills` discovers `skills/` at runtime
+- CLAUDE.md audit: `endiorbot audit-claude-md` — 5 checks + baseline suppression
+- Self-improving hooks: PostToolUse tracker + Stop suggest
+
 ### Project Context Switching
 - Quick switch between multiple projects
 - Preserve conversation history and SDLC state
-- Memory budget management by tier
+- Per-chat workspace (/repos + /focus)
 
 ### Hybrid Team Support
-- AI Team: PM, Architect, Coder, Reviewer personas
-- Junior Dev support with Learning Mode
-- Simple permissions: CEO + Junior roles
+- 14 SOUL agents: 9 executors + 4 advisors + 1 router
+- Auto-handoff chain (PM→Architect→Coder→Reviewer→Tester)
+- Exec-policy presets (strict/balanced/open)
 
 ## Channels
 
@@ -47,7 +56,7 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ## Framework
 
-- **SDLC Version:** SDLC Framework 6.3.0
+- **SDLC Version:** SDLC Framework 6.3.1
 - **Architecture:** 7-Pillar, 10-Stage Lifecycle
 - **Quality:** Vibecoding Index (0-100 score)
 - **Stage × commands:** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md) — atomic CLI/OTT/Web vs seamless workflows, aligned with product vision
@@ -85,7 +94,7 @@ It combines Claude Code capabilities with SDLC Framework automation and multi-mo
 
 ### Intentionally scoped out
 
-The SDLC Framework 6.3.0 defines 19 SOUL templates (including CS, ITAdmin, Sales, Writer). EndiorBot implements **14** — the roles relevant to a **solo developer power tool**. The following framework roles are intentionally excluded:
+The SDLC Framework 6.3.1 defines 19 SOUL templates (including CS, ITAdmin, Sales, Writer). EndiorBot implements **14** — the roles relevant to a **solo developer power tool**. The following framework roles are intentionally excluded:
 
 | Role | Why excluded |
 |------|-------------|
@@ -98,7 +107,7 @@ The SDLC Framework 6.3.0 defines 19 SOUL templates (including CS, ITAdmin, Sales
 
 - **Product vision:** [`docs/00-foundation/product-vision.md`](docs/00-foundation/product-vision.md)
 - **Stage & command spine (CPO/CTO):** [`docs/00-foundation/stage-command-workflow-spine.md`](docs/00-foundation/stage-command-workflow-spine.md)
-- **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
+- **Plugin Architecture Guide:** [`docs/08-collaborate/plugin-architecture-guide.md`](docs/08-collaborate/plugin-architecture-guide.md)
 - **Repository:** https://github.com/Minh-Tam-Solution/EndiorBot
 
 ---

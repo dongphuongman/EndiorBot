@@ -65,6 +65,25 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.file_path // empty')
 - `/project:consult <query>` - Multi-model consultation
 - `/sprint-close` - Automated sprint closure (test, build, commit, docs); CLI: `./endiorbot.mjs sprint close`
 
+## Feature Release Doc Checklist
+
+When a new feature is shipped, update ALL of the following:
+
+| # | File | What to update |
+|---|------|----------------|
+| 1 | `README.md` | Quick Start, Stats table, Highlights section, architecture diagram command count |
+| 2 | `IDENTITY.md` | Capabilities section, version/sprint/test counts |
+| 3 | `CLAUDE.md` | File organization, command count, sprint/test footer |
+| 4 | `CHANGELOG.md` | Add entry under `[Unreleased]` or new version |
+| 5 | `package.json` + `src/index.ts` | Bump `version` if releasing |
+| 6 | `docs/00-foundation/product-vision.md` | "What's Built" table, version header |
+| 7 | `docs/04-build/sprints/SPRINT-INDEX.md` | Move sprint to completed, update test counts, ADR map |
+| 8 | `docs/07-operate/USAGE-GUIDE.md` | Add workflow if new user-facing feature |
+| 9 | `docs/08-collaborate/` | Training guide if new concept |
+| 10 | `docs/05-test/` | Execution report |
+
+**Rule:** No sprint closes without this checklist passing.
+
 ## Project Context
 
 - **Project:** EndiorBot

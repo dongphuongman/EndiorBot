@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v0.1.0-beta.3] - 2026-05-27
+
+### Added — Plugin Architecture (Sprint 149-154)
+- **Tier auto-recommendation** (ADR-054) — `endiorbot init` scans 7 project signals (source files, tests, CI/CD, deps, monorepo, team, compliance) and recommends LITE/STANDARD/PRO/ENT. `--tier` is now optional.
+- **Layered CLAUDE.md** (ADR-055) — hierarchical generation per directory: LITE root-only, STANDARD root+src/+tests/, PRO +docs/, ENT +per-service. Subdir files <100 lines each.
+- **Plugin format scaffold** (ADR-056) — STANDARD+ projects get Anthropic-compatible `.claude-plugin/plugin.json` (Base profile) + seed `commands/` + `skills/` directories.
+- **Plugin loader** — `endiorbot skills` discovers and lists `skills/` at runtime. Folder-per-skill (`skills/<name>/SKILL.md`) with flat fallback.
+- **CLAUDE.md audit** — `endiorbot audit-claude-md` with 5 checks: stale file references, outdated framework version, root/subdir size, age. Baseline suppression via `--accept`.
+- **Self-improving hooks** — `endiorbot init` generates PostToolUse tracker (Write/Edit/NotebookEdit → session temp) and Stop suggest (→ `.endiorbot/audit-suggestions.md`).
+- 3 new CLI commands: `skills`, `audit-claude-md`, `plugin migrate-manifest`
+
+### Changed
+- `endiorbot init --tier` default removed — auto-recommends from project scan
+- SDLC Framework version references bumped 6.3.0 → 6.3.1 (141 files)
+- `.claude/settings.json` now registers 3 hooks: PreToolUse + PostToolUse + Stop
+- Kimi Proxy replaced with Kimi Coding direct API (Sprint 148, ADR-053)
+
+### Fixed
+- Framework version 6.3.0 → 6.3.1 consistency across entire codebase (Sprint 148)
+- Report dates corrected for audit trail (Sprint 149-154)
+
+### Stats
+- 80 new tests (Sprint 149-154): 8,206+ total
+- 42 unified commands (was 39)
+- Build: clean, 0 errors
+
 ## [v0.1.0-beta.2] - 2026-04-30
 
 ### Fixed
