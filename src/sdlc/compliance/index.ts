@@ -65,3 +65,16 @@ export {
   ComplianceFixEngine,
   createComplianceFixEngine,
 } from "./fix-engine.js";
+
+// CLAUDE.md auditor (Sprint 153)
+export {
+  auditClaudeMd,
+  acceptWarning,
+} from "./claude-md-auditor.js";
+export type {
+  AuditResult,
+  AuditWarning,
+  AuditFileInfo,
+  AuditBaseline,
+  AuditSeverity,
+} from "./claude-md-auditor.js";

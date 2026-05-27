@@ -58,6 +58,7 @@ import {
   registerAuditCommand,
   registerWebhooksCommand,
   registerSkillsCommand,
+  registerAuditClaudeMdCommand,
 } from "./index.js";
 
 /**
@@ -108,4 +109,5 @@ export function registerAllCommands(program: Command): void {
   registerAuditCommand(program);
   registerWebhooksCommand(program);
   registerSkillsCommand(program);
+  registerAuditClaudeMdCommand(program);
 }
