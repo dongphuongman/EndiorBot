@@ -1,7 +1,7 @@
 # Sprint 152 Execution Report — Plugin Loader Runtime MVP
 
 > **Executor:** EndiorBot (@coder)  
-> **Date:** 2026-05-06  
+> **Date:** 2026-05-27  
 > **Scope:** Discover, parse, and expose skill files from `skills/` directory at runtime. Add `endiorbot skills` CLI command.
 
 ---
