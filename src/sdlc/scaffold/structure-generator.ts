@@ -27,6 +27,9 @@ import {
   serializeSdlcConfig,
   generateClaudeMd,
   generateSubdirClaudeMd,
+  generatePluginManifest,
+  generateCommandsReadme,
+  generateSkillsReadme,
   generateIdentityMd,
   generateAgentsMd,
 } from "./templates/index.js";
@@ -118,7 +121,37 @@ export async function scaffoldProject(
       }
     }
 
-    // Step 3: Create IDENTITY.md
+    // Step 3: Plugin scaffold (STANDARD+ only, Sprint 151, ADR-056)
+    if (shouldCreateForTier(config.tier, "STANDARD")) {
+      steps.push(
+        await executeStep(
+          "Generate .claude-plugin/plugin.json",
+          join(config.targetPath, ".claude-plugin", "plugin.json"),
+          () => generatePluginManifest(projectConfig, config.snapshot),
+          config
+        )
+      );
+
+      steps.push(
+        await executeStep(
+          "Generate commands/README.md",
+          join(config.targetPath, "commands", "README.md"),
+          () => generateCommandsReadme(projectConfig),
+          config
+        )
+      );
+
+      steps.push(
+        await executeStep(
+          "Generate skills/README.md",
+          join(config.targetPath, "skills", "README.md"),
+          () => generateSkillsReadme(projectConfig),
+          config
+        )
+      );
+    }
+
+    // Step 4: Create IDENTITY.md
     steps.push(
       await executeStep(
         "Generate IDENTITY.md",

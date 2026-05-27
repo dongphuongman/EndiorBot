@@ -83,6 +83,9 @@ export {
 export type { TierSignals, TierRecommendation } from "./tier-recommender.js";
 export { recommendTier } from "./tier-recommender.js";
 
+export type { PluginManifest } from "./templates/plugin-manifest.js";
+export { generatePluginManifest } from "./templates/plugin-manifest.js";
+
 // Config migration
 export type { MigrationResult, MigrationOptions } from "./config-migrator.js";
 export { migrateConfig, writeMigratedConfig } from "./config-migrator.js";

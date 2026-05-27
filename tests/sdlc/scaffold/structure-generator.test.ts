@@ -542,6 +542,62 @@ describe("scaffoldProject - Layered CLAUDE.md", () => {
     const content = readFileSync(join(TEST_DIR, "src", "CLAUDE.md"), "utf-8");
     expect(content).toBe("# Custom src rules\n");
   });
+
+  it("should NOT create plugin files for LITE tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "lite-project",
+      tier: "LITE",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    expect(existsSync(join(TEST_DIR, ".claude-plugin", "plugin.json"))).toBe(false);
+    expect(existsSync(join(TEST_DIR, "commands", "README.md"))).toBe(false);
+    expect(existsSync(join(TEST_DIR, "skills", "README.md"))).toBe(false);
+  });
+
+  it("should create plugin files for STANDARD tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "std-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const pluginPath = join(TEST_DIR, ".claude-plugin", "plugin.json");
+    expect(existsSync(pluginPath)).toBe(true);
+
+    const manifest = JSON.parse(readFileSync(pluginPath, "utf-8"));
+    expect(manifest.schema_profile).toBe("base");
+    expect(manifest.name).toBe("std-project");
+
+    expect(existsSync(join(TEST_DIR, "commands", "README.md"))).toBe(true);
+    expect(existsSync(join(TEST_DIR, "skills", "README.md"))).toBe(true);
+  });
+
+  it("should preserve existing plugin files on re-init without force", async () => {
+    mkdirSync(join(TEST_DIR, ".claude-plugin"), { recursive: true });
+    writeFileSync(join(TEST_DIR, ".claude-plugin", "plugin.json"), '{"custom": true}\n');
+
+    const config: ScaffoldConfig = {
+      projectName: "std-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const content = readFileSync(join(TEST_DIR, ".claude-plugin", "plugin.json"), "utf-8");
+    expect(content).toBe('{"custom": true}\n');
+  });
 });
 
 // ============================================================================

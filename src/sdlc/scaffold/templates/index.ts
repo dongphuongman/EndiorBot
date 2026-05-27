@@ -15,6 +15,12 @@ export {
 
 export { generateClaudeMd, generateSubdirClaudeMd } from "./claude-md.js";
 
+export {
+  generatePluginManifest,
+  generateCommandsReadme,
+  generateSkillsReadme,
+} from "./plugin-manifest.js";
+
 export { generateIdentityMd } from "./identity-md.js";
 
 export {
