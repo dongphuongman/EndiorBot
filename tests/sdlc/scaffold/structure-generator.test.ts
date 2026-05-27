@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -375,6 +375,146 @@ describe("scaffoldProject - Claude Structure", () => {
     const content = JSON.parse(readFileSync(settingsPath, "utf-8"));
     expect(content.hooks).toBeDefined();
     expect(content.commands).toBeDefined();
+  });
+
+  // Sprint 154 hook tests
+  it("should create post-tool-use-tracker.sh for STANDARD tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hookPath = join(TEST_DIR, ".claude", "hooks", "post-tool-use-tracker.sh");
+    expect(existsSync(hookPath)).toBe(true);
+  });
+
+  it("should create stop-suggest.sh for STANDARD tier", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hookPath = join(TEST_DIR, ".claude", "hooks", "stop-suggest.sh");
+    expect(existsSync(hookPath)).toBe(true);
+  });
+
+  it("should make hooks executable", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hooksPath = join(TEST_DIR, ".claude", "hooks");
+    for (const hook of ["pre-tool-use.sh", "post-tool-use-tracker.sh", "stop-suggest.sh"]) {
+      const path = join(hooksPath, hook);
+      const stats = statSync(path);
+      expect(stats.mode & 0o111).toBeGreaterThan(0);
+    }
+  });
+
+  it("should include PostToolUse and Stop in settings.json", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const settingsPath = join(TEST_DIR, ".claude", "settings.json");
+    const content = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    expect(content.hooks.PostToolUse).toBe(".claude/hooks/post-tool-use-tracker.sh");
+    expect(content.hooks.Stop).toBe(".claude/hooks/stop-suggest.sh");
+  });
+
+  it("post-tool-use-tracker.sh contains Write/Edit/NotebookEdit case", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hookPath = join(TEST_DIR, ".claude", "hooks", "post-tool-use-tracker.sh");
+    const content = readFileSync(hookPath, "utf-8");
+    expect(content).toContain("Write|Edit|NotebookEdit");
+  });
+
+  it("stop-suggest.sh contains git diff fallback and audit-suggestions.md", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hookPath = join(TEST_DIR, ".claude", "hooks", "stop-suggest.sh");
+    const content = readFileSync(hookPath, "utf-8");
+    expect(content).toContain("git diff");
+    expect(content).toContain("audit-suggestions.md");
+  });
+
+  it("should create hooks for LITE tier too", async () => {
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "LITE",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    await scaffoldProject(config);
+
+    const hooksPath = join(TEST_DIR, ".claude", "hooks");
+    expect(existsSync(join(hooksPath, "pre-tool-use.sh"))).toBe(true);
+    expect(existsSync(join(hooksPath, "post-tool-use-tracker.sh"))).toBe(true);
+    expect(existsSync(join(hooksPath, "stop-suggest.sh"))).toBe(true);
+  });
+
+  it("should preserve existing hooks on re-init", async () => {
+    const hooksPath = join(TEST_DIR, ".claude", "hooks");
+    mkdirSync(hooksPath, { recursive: true });
+    writeFileSync(join(hooksPath, "post-tool-use-tracker.sh"), "# custom hook\n");
+
+    const config: ScaffoldConfig = {
+      projectName: "test-project",
+      tier: "STANDARD",
+      targetPath: TEST_DIR,
+      dryRun: false,
+      force: false,
+    };
+
+    const result = await scaffoldProject(config);
+    const hookResult = result.steps.find(
+      (s) => s.name === "Create .claude/hooks/post-tool-use-tracker.sh"
+    );
+    expect(hookResult?.status).toBe("preserved");
+
+    const content = readFileSync(join(hooksPath, "post-tool-use-tracker.sh"), "utf-8");
+    expect(content).toBe("# custom hook\n");
   });
 });
 
