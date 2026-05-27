@@ -1,7 +1,7 @@
 # Sprint 150 Execution Report — Layered CLAUDE.md Generation (ADR-055)
 
 > **Executor:** EndiorBot (@coder)  
-> **Date:** 2026-05-06  
+> **Date:** 2026-05-27  
 > **Scope:** Implement hierarchical `CLAUDE.md` generation: root + subdirectory scoped files.
 
 ---

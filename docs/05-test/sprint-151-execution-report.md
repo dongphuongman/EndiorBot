@@ -1,7 +1,7 @@
 # Sprint 151 Execution Report — Plugin Format Scaffold (Base Profile, ADR-056)
 
 > **Executor:** EndiorBot (@coder)  
-> **Date:** 2026-05-06  
+> **Date:** 2026-05-27  
 > **Scope:** Add `.claude-plugin/plugin.json` (Anthropic Base profile) + seed `commands/` and `skills/` to `endiorbot init` (STANDARD+).
 
 ---
